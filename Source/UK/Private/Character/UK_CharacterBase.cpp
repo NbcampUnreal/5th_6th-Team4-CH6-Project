@@ -4,6 +4,7 @@
 #include "Character/UK_CharacterBase.h"
 #include "Controller/UK_PlayerController.h"
 #include "PlayerState/UK_PlayerState.h"
+#include "Animation/UK_AnimInstance.h"
 #include "Actorcomponent/StatusComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -48,7 +49,6 @@ AUK_CharacterBase::AUK_CharacterBase() :
 void AUK_CharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -227,6 +227,7 @@ void AUK_CharacterBase::Move(const FInputActionValue& Value)
 		AddMovementInput(Direction, MoveInput.Y);
 	}
 }
+
 void AUK_CharacterBase::Look(const FInputActionValue& Value)
 {
 	const FVector2D LookInput = Value.Get<FVector2D>();
@@ -237,7 +238,15 @@ void AUK_CharacterBase::Look(const FInputActionValue& Value)
 
 void AUK_CharacterBase::Attack()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Attack"));
+	if (0 == CurrentComboCount)
+	{
+		BeginAttack();
+	}
+	else
+	{
+		ensure(FMath::IsWithinInclusive<int32>(CurrentComboCount, 1, MaxComboCount));
+		bIsAttackKeyPressed = true;
+	}
 }
 
 void AUK_CharacterBase::ZoomIn()
@@ -265,4 +274,62 @@ void AUK_CharacterBase::ZoomOut()
 		12.f
 	);
 }
+#pragma endregion
+
+#pragma region Attack
+
+void AUK_CharacterBase::BeginAttack()
+{
+	TObjectPtr < UUK_AnimInstance > AnimInstance = Cast<UUK_AnimInstance>(GetMesh()->GetAnimInstance());
+	checkf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+
+	bIsNowAttacking = true;
+	if (IsValid(AnimInstance) && IsValid(AttackMontage) && !(AnimInstance->Montage_IsPlaying(AttackMontage)))
+	{
+		AnimInstance->Montage_Play(AttackMontage);
+	}
+
+	CurrentComboCount = 1;
+
+	if (!OnMeleeAttackMontageEndedDelegate.IsBound())
+	{
+		OnMeleeAttackMontageEndedDelegate.BindUObject(this, &ThisClass::EndAttack);
+		AnimInstance->Montage_SetEndDelegate(OnMeleeAttackMontageEndedDelegate, AttackMontage);
+	}
+}
+
+void AUK_CharacterBase::EndAttack(UAnimMontage* InMontage, bool bInterruped)
+{
+	ensureMsgf(CurrentComboCount != 0, TEXT("CurrentComboCount == 0"));
+
+	CurrentComboCount = 0;
+	bIsAttackKeyPressed = false;
+	bIsNowAttacking = false;
+
+	if (OnMeleeAttackMontageEndedDelegate.IsBound())
+	{
+		OnMeleeAttackMontageEndedDelegate.Unbind();
+	}
+}
+
+void AUK_CharacterBase::HandleOnCheckHit()
+{
+	UKismetSystemLibrary::PrintString(this, TEXT("HandleOnCheckHit()"));
+}
+
+void AUK_CharacterBase::HandleOnCheckInputAttack()
+{
+	TObjectPtr < UUK_AnimInstance > AnimInstance = Cast<UUK_AnimInstance>(GetMesh()->GetAnimInstance());
+	checkf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+
+	if (bIsAttackKeyPressed)
+	{
+		CurrentComboCount = FMath::Clamp(CurrentComboCount + 1, 1, MaxComboCount);
+
+		FName NextSectionName = *FString::Printf(TEXT("%s%02d"), *MontageSectionName, CurrentComboCount);
+		AnimInstance->Montage_JumpToSection(NextSectionName, AttackMontage);
+		bIsAttackKeyPressed = false;
+	}
+}
+
 #pragma endregion

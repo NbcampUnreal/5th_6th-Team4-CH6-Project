@@ -84,4 +84,34 @@ protected:
 	UPROPERTY()
 	bool bSprint;
 #pragma endregion
+#pragma region Attack
+public:
+	virtual void BeginAttack();
+
+	UFUNCTION()
+	virtual void EndAttack(UAnimMontage* InMontage, bool bInterruped);
+
+	UFUNCTION()
+	void HandleOnCheckHit();
+
+	UFUNCTION()
+	void HandleOnCheckInputAttack();
+
+protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TObjectPtr<UAnimMontage> AttackMontage;
+
+	FString MontageSectionName = FString(TEXT("Attack"));
+
+	int32 MaxComboCount = 3;
+
+	int32 CurrentComboCount = 0;
+
+	bool bIsNowAttacking = false;
+
+	bool bIsAttackKeyPressed = false;
+
+	FOnMontageEnded OnMeleeAttackMontageEndedDelegate;
+
+#pragma endregion
 };
