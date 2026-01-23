@@ -29,7 +29,7 @@ AUK_CharacterBase::AUK_CharacterBase() :
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(GetRootComponent());
 	SpringArm->TargetArmLength = 300.f;
-	SpringArm->SetRelativeLocation(FVector(0.f, 20.f, 50.f));
+	SpringArm->SetRelativeLocation(FVector(0.f, 20.f, 40.f));
 	SpringArm->bUsePawnControlRotation = true;
 	SpringArm->bEnableCameraLag = true; // 카메라가 캐릭터를 뒤늦게 따라옴
 	SpringArm->CameraLagSpeed = 5.0f; // 따라오는 속도
