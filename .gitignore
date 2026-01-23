@@ -10,7 +10,7 @@ Saved/
 *.xcodeproj
 *.xcworkspace
 *.VC.db
-*.VC.VC.opendb
+*.VC.VC.opendbsssss
 
 *.log
 *.tmp
@@ -23,3 +23,20 @@ Saved/
 # Visual Studio cache
 .vs/
 *.ipch
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+*.DotSettings.user
+
+# Rider user-specific
+.idea/.idea.*
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries
+.idea/shelf
+
+# Rider Unreal
+.idea/.rider/
+
+config/
