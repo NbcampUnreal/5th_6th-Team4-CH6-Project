@@ -7,6 +7,8 @@
 #include "AbilitySystemInterface.h"
 #include "UK_CharacterBase.generated.h"
 
+#define ECC_ATTACK ECollisionChannel::ECC_GameTraceChannel2
+
 #pragma region Forward Declaration
 class USpringArmComponent;
 class UCameraComponent;
@@ -112,6 +114,15 @@ protected:
 	bool bIsAttackKeyPressed = false;
 
 	FOnMontageEnded OnMeleeAttackMontageEndedDelegate;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float AttackRange;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float AttackRadius;
+
+public:
+	static int32 ShowAttackDebug;
 
 #pragma endregion
 };

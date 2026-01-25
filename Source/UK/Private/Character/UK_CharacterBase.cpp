@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Character/UK_CharacterBase.h"
 #include "Controller/UK_PlayerController.h"
 #include "PlayerState/UK_PlayerState.h"
@@ -15,9 +14,19 @@
 
 #pragma region Defualt
 
+int32 AUK_CharacterBase::ShowAttackDebug = 0;
+
+FAutoConsoleVariableRef CVarShowAttackDebug(
+	TEXT("UK.ShowAttackDebug"),
+	AUK_CharacterBase::ShowAttackDebug,
+	TEXT(""),
+	ECVF_Cheat
+);
 // Sets default values
 AUK_CharacterBase::AUK_CharacterBase() :
-	bSprint(false)
+	bSprint(false),
+	AttackRange(50.f),
+	AttackRadius(20.f)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
@@ -26,6 +35,7 @@ AUK_CharacterBase::AUK_CharacterBase() :
 	GetMesh()->SetRelativeLocationAndRotation(
 		FVector(0.f, 0.f, -90.f),
 		FRotator(0.f, -90.f, 0.f));
+	GetMesh()->SetCollisionProfileName(TEXT("UK_Charactor"));
 
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(GetRootComponent());
@@ -315,8 +325,71 @@ void AUK_CharacterBase::EndAttack(UAnimMontage* InMontage, bool bInterruped)
 void AUK_CharacterBase::HandleOnCheckHit()
 {
 	UKismetSystemLibrary::PrintString(this, TEXT("HandleOnCheckHit()"));
-}
 
+	TArray<FHitResult> HitResults;
+	FCollisionQueryParams Params(NAME_None, false, this);
+
+	bool bResult;
+	if (CurrentComboCount != 3)
+	{
+		bResult = GetWorld()->SweepMultiByChannel(
+			HitResults,
+			GetActorLocation(),
+			GetActorLocation() + AttackRange * GetActorForwardVector(),
+			FQuat::Identity,
+			ECC_ATTACK,
+			FCollisionShape::MakeSphere(AttackRadius),
+			Params
+		);
+	}
+	else
+	{
+		FVector UpMelee;
+		bResult = GetWorld()->SweepMultiByChannel(
+			HitResults,
+			GetActorLocation(),
+			GetActorLocation() + AttackRange * GetActorForwardVector(),
+			FQuat::Identity,
+			ECC_ATTACK,
+			FCollisionShape::MakeSphere(AttackRadius),
+			Params
+		);
+	}
+	if (bResult)
+	{
+		for (FHitResult HitResult : HitResults)
+		{
+			if (IsValid(HitResult.GetActor()))
+			{
+				if (1 == ShowAttackDebug)
+				{
+					UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
+				}
+			}
+		}
+	}
+
+	if (ShowAttackDebug == 1)
+	{
+		FVector TraceVector = AttackRange * GetActorForwardVector();
+		FVector Center = GetActorLocation() + TraceVector + GetActorUpVector() * 40.f;
+		float HalfHeight = AttackRange * 0.5f + AttackRadius;
+		FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceVector).ToQuat();
+		FColor DrawColor = true == bResult ? FColor::Green : FColor::Red;
+		float DebugLifeTime = 5.f;
+
+		DrawDebugCapsule(
+			GetWorld(),
+			Center,
+			HalfHeight,
+			AttackRadius,
+			CapsuleRot,
+			DrawColor,
+			false,
+			DebugLifeTime
+		);
+	}
+}
 void AUK_CharacterBase::HandleOnCheckInputAttack()
 {
 	TObjectPtr < UUK_AnimInstance > AnimInstance = Cast<UUK_AnimInstance>(GetMesh()->GetAnimInstance());

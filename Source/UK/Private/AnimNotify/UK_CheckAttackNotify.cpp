@@ -8,12 +8,12 @@ void UUK_CheckAttackNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequen
 {
 	Super::Notify(MeshComp, Animation, EventReference);
 
-	if (IsValid(MeshComp) == true)
+	if (IsValid(MeshComp))
 	{
-		TObjectPtr< AUK_CharacterBase> AttackingCharacter = Cast<AUK_CharacterBase>(MeshComp->GetOwner());
-		if (IsValid(AttackingCharacter) == true)
+		TObjectPtr< AUK_CharacterBase> Character = Cast<AUK_CharacterBase>(MeshComp->GetOwner());
+		if (IsValid(Character))
 		{
-			AttackingCharacter->HandleOnCheckHit();
+			Character->HandleOnCheckHit();
 		}
 	}
 }
