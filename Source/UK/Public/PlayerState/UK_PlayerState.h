@@ -1,0 +1,26 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/PlayerState.h"
+#include "AbilitySystemInterface.h"
+#include "UK_PlayerState.generated.h"
+
+#pragma region Forward Declaration
+class UAbilitySystemComponent;
+#pragma endregion
+
+UCLASS()
+class UK_API AUK_PlayerState : public APlayerState, public IAbilitySystemInterface
+{
+	GENERATED_BODY()
+
+public:
+	AUK_PlayerState();
+
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+	UPROPERTY(VisibleAnywhere, Category = "GB|Abilities")
+	TObjectPtr<UAbilitySystemComponent> ASC;
+};
