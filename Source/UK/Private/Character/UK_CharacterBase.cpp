@@ -1,9 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Character/UK_CharacterBase.h"
 #include "Controller/UK_PlayerController.h"
 #include "PlayerState/UK_PlayerState.h"
+#include "Animation/UK_AnimInstance.h"
 #include "Actorcomponent/StatusComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -14,9 +14,19 @@
 
 #pragma region Defualt
 
+int32 AUK_CharacterBase::ShowAttackDebug = 0;
+
+FAutoConsoleVariableRef CVarShowAttackDebug(
+	TEXT("UK.ShowAttackDebug"),
+	AUK_CharacterBase::ShowAttackDebug,
+	TEXT(""),
+	ECVF_Cheat
+);
 // Sets default values
 AUK_CharacterBase::AUK_CharacterBase() :
-	bSprint(false)
+	bSprint(false),
+	AttackRange(50.f),
+	AttackRadius(20.f)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
@@ -25,6 +35,7 @@ AUK_CharacterBase::AUK_CharacterBase() :
 	GetMesh()->SetRelativeLocationAndRotation(
 		FVector(0.f, 0.f, -90.f),
 		FRotator(0.f, -90.f, 0.f));
+	GetMesh()->SetCollisionProfileName(TEXT("UK_Charactor"));
 
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(GetRootComponent());
@@ -48,7 +59,6 @@ AUK_CharacterBase::AUK_CharacterBase() :
 void AUK_CharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -227,6 +237,7 @@ void AUK_CharacterBase::Move(const FInputActionValue& Value)
 		AddMovementInput(Direction, MoveInput.Y);
 	}
 }
+
 void AUK_CharacterBase::Look(const FInputActionValue& Value)
 {
 	const FVector2D LookInput = Value.Get<FVector2D>();
@@ -237,7 +248,15 @@ void AUK_CharacterBase::Look(const FInputActionValue& Value)
 
 void AUK_CharacterBase::Attack()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Attack"));
+	if (0 == CurrentComboCount)
+	{
+		BeginAttack();
+	}
+	else
+	{
+		ensure(FMath::IsWithinInclusive<int32>(CurrentComboCount, 1, MaxComboCount));
+		bIsAttackKeyPressed = true;
+	}
 }
 
 void AUK_CharacterBase::ZoomIn()
@@ -265,4 +284,125 @@ void AUK_CharacterBase::ZoomOut()
 		12.f
 	);
 }
+#pragma endregion
+
+#pragma region Attack
+
+void AUK_CharacterBase::BeginAttack()
+{
+	TObjectPtr < UUK_AnimInstance > AnimInstance = Cast<UUK_AnimInstance>(GetMesh()->GetAnimInstance());
+	checkf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+
+	bIsNowAttacking = true;
+	if (IsValid(AnimInstance) && IsValid(AttackMontage) && !(AnimInstance->Montage_IsPlaying(AttackMontage)))
+	{
+		AnimInstance->Montage_Play(AttackMontage);
+	}
+
+	CurrentComboCount = 1;
+
+	if (!OnMeleeAttackMontageEndedDelegate.IsBound())
+	{
+		OnMeleeAttackMontageEndedDelegate.BindUObject(this, &ThisClass::EndAttack);
+		AnimInstance->Montage_SetEndDelegate(OnMeleeAttackMontageEndedDelegate, AttackMontage);
+	}
+}
+
+void AUK_CharacterBase::EndAttack(UAnimMontage* InMontage, bool bInterruped)
+{
+	ensureMsgf(CurrentComboCount != 0, TEXT("CurrentComboCount == 0"));
+
+	CurrentComboCount = 0;
+	bIsAttackKeyPressed = false;
+	bIsNowAttacking = false;
+
+	if (OnMeleeAttackMontageEndedDelegate.IsBound())
+	{
+		OnMeleeAttackMontageEndedDelegate.Unbind();
+	}
+}
+
+void AUK_CharacterBase::HandleOnCheckHit()
+{
+	UKismetSystemLibrary::PrintString(this, TEXT("HandleOnCheckHit()"));
+
+	TArray<FHitResult> HitResults;
+	FCollisionQueryParams Params(NAME_None, false, this);
+
+	bool bResult;
+	if (CurrentComboCount != 3)
+	{
+		bResult = GetWorld()->SweepMultiByChannel(
+			HitResults,
+			GetActorLocation(),
+			GetActorLocation() + AttackRange * GetActorForwardVector(),
+			FQuat::Identity,
+			ECC_ATTACK,
+			FCollisionShape::MakeSphere(AttackRadius),
+			Params
+		);
+	}
+	else
+	{
+		FVector UpMelee;
+		bResult = GetWorld()->SweepMultiByChannel(
+			HitResults,
+			GetActorLocation(),
+			GetActorLocation() + AttackRange * GetActorForwardVector(),
+			FQuat::Identity,
+			ECC_ATTACK,
+			FCollisionShape::MakeSphere(AttackRadius),
+			Params
+		);
+	}
+	if (bResult)
+	{
+		for (FHitResult HitResult : HitResults)
+		{
+			if (IsValid(HitResult.GetActor()))
+			{
+				if (1 == ShowAttackDebug)
+				{
+					UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
+				}
+			}
+		}
+	}
+
+	if (ShowAttackDebug == 1)
+	{
+		FVector TraceVector = AttackRange * GetActorForwardVector();
+		FVector Center = GetActorLocation() + TraceVector + GetActorUpVector() * 40.f;
+		float HalfHeight = AttackRange * 0.5f + AttackRadius;
+		FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceVector).ToQuat();
+		FColor DrawColor = true == bResult ? FColor::Green : FColor::Red;
+		float DebugLifeTime = 5.f;
+
+		DrawDebugCapsule(
+			GetWorld(),
+			Center,
+			HalfHeight,
+			AttackRadius,
+			CapsuleRot,
+			DrawColor,
+			false,
+			DebugLifeTime
+		);
+	}
+}
+void AUK_CharacterBase::HandleOnCheckInputAttack()
+{
+	TObjectPtr < UUK_AnimInstance > AnimInstance = Cast<UUK_AnimInstance>(GetMesh()->GetAnimInstance());
+	checkf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+
+	if (bIsAttackKeyPressed)
+	{
+		CurrentComboCount = FMath::Clamp(CurrentComboCount + 1, 1, MaxComboCount);
+
+		FName NextSectionName = *FString::Printf(TEXT("%s%02d"), *MontageSectionName, CurrentComboCount);
+		AnimInstance->Montage_JumpToSection(NextSectionName, AttackMontage);
+		bIsAttackKeyPressed = false;
+	}
+}
+
 #pragma endregion
