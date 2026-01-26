@@ -15,6 +15,7 @@ class UCameraComponent;
 class UStatusComponent;
 class UAbilitySystemComponent;
 class UGameplayAbility;
+class AUK_WeaponBase;
 struct FInputActionValue;
 #pragma endregion
 
@@ -28,6 +29,7 @@ public:
 	// Sets default values for this character's properties
 	AUK_CharacterBase();
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	// Called every frame
 	//virtual void Tick(float DeltaTime) override;
 
@@ -86,6 +88,26 @@ protected:
 	UPROPERTY()
 	bool bSprint;
 #pragma endregion
+
+#pragma region Weapon
+protected:
+	UFUNCTION()
+	virtual void OnRep_CurrentWeapon(const AUK_WeaponBase* OldWeapon);
+
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	TArray<TSubclassOf<AUK_WeaponBase>> DefaultWeapons;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated, Category = "Weapon")
+	TArray<TObjectPtr<AUK_WeaponBase>> Weapons;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, ReplicatedUsing = OnRep_CurrentWeapon, Category = "Weapon")
+	TObjectPtr<AUK_WeaponBase> Weapon;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "State")
+	int32 WeaponIndex;
+#pragma endregion
+
 #pragma region Attack
 public:
 	virtual void BeginAttack();
@@ -124,5 +146,11 @@ protected:
 public:
 	static int32 ShowAttackDebug;
 
+	void DrawSweepCapsuleDebug(
+		const FVector& Start,
+		const FVector& End,
+		float HalfHeight,
+		const FColor& Color
+		);
 #pragma endregion
 };

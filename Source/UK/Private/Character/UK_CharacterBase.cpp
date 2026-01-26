@@ -2,6 +2,7 @@
 
 #include "Character/UK_CharacterBase.h"
 #include "Controller/UK_PlayerController.h"
+#include "Weapon/UK_WeaponBase.h"
 #include "PlayerState/UK_PlayerState.h"
 #include "Animation/UK_AnimInstance.h"
 #include "Actorcomponent/StatusComponent.h"
@@ -11,6 +12,7 @@
 #include "EnhancedInputComponent.h"
 #include "AbilitySystemComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Net/UnrealNetwork.h"
 
 #pragma region Defualt
 
@@ -22,11 +24,13 @@ FAutoConsoleVariableRef CVarShowAttackDebug(
 	TEXT(""),
 	ECVF_Cheat
 );
+
 // Sets default values
 AUK_CharacterBase::AUK_CharacterBase() :
 	bSprint(false),
 	AttackRange(50.f),
-	AttackRadius(20.f)
+	AttackRadius(20.f),
+	WeaponIndex(0)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
@@ -36,7 +40,7 @@ AUK_CharacterBase::AUK_CharacterBase() :
 		FVector(0.f, 0.f, -90.f),
 		FRotator(0.f, -90.f, 0.f));
 	GetMesh()->SetCollisionProfileName(TEXT("UK_Charactor"));
-
+#pragma region SpringArm
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(GetRootComponent());
 	SpringArm->TargetArmLength = 300.f;
@@ -45,20 +49,49 @@ AUK_CharacterBase::AUK_CharacterBase() :
 	SpringArm->bEnableCameraLag = true; // 카메라가 캐릭터를 뒤늦게 따라옴
 	SpringArm->CameraLagSpeed = 5.0f; // 따라오는 속도
 	SpringArm->CameraLagMaxDistance = 80.0f; // 카메라와 본래 위치와의 최대 거리 차이
+#pragma endregion
 
+#pragma region Camera
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm);
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 480.f, 0.0f);
+#pragma endregion
 
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
+}
+
+void AUK_CharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(AUK_CharacterBase, StatusComponent, COND_None);
+	DOREPLIFETIME_CONDITION(AUK_CharacterBase, Weapons, COND_None);
+	DOREPLIFETIME_CONDITION(AUK_CharacterBase, Weapon, COND_None);
 }
 
 // Called when the game starts or when spawned
 void AUK_CharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (HasAuthority())
+	{
+		for (const TSubclassOf<AUK_WeaponBase>& WeaponClass : DefaultWeapons)
+		{
+			if (!WeaponClass) continue;
+			FActorSpawnParameters Params;
+			Params.Owner = this;
+			AUK_WeaponBase* SpawnedWeapon = GetWorld()->SpawnActor<AUK_WeaponBase>(WeaponClass, Params); //서버와 클라이언트에 무기 스폰을 해야하기 때문에 반복문을 이용해준다.
+			const int32 Index = Weapons.Add(SpawnedWeapon);
+			if (Index == WeaponIndex)
+			{
+				Weapon = SpawnedWeapon;
+				OnRep_CurrentWeapon(nullptr);
+			}
+		}
+	}
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -286,12 +319,29 @@ void AUK_CharacterBase::ZoomOut()
 }
 #pragma endregion
 
+#pragma region Weapon
+void AUK_CharacterBase::OnRep_CurrentWeapon(const AUK_WeaponBase* OldWeapon)
+{
+	if (Weapon)
+	{
+		if (!Weapon->GetOwnerCharactor())
+		{
+			const FTransform PlacementTransform = Weapon->GetWeaponTransform() * GetMesh()->GetSocketTransform(FName("WeaponSocket"));
+			Weapon->SetActorTransform(PlacementTransform, false, nullptr, ETeleportType::TeleportPhysics);
+			Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::KeepWorldTransform, FName("WeaponSocket"));
+			Weapon->SetOwnerCharactor(this);
+		}
+		Weapon->GetStaticMeshComponent()->SetVisibility(true); 
+	}
+}
+
+#pragma endregion
+
 #pragma region Attack
 
 void AUK_CharacterBase::BeginAttack()
 {
 	TObjectPtr < UUK_AnimInstance > AnimInstance = Cast<UUK_AnimInstance>(GetMesh()->GetAnimInstance());
-	checkf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
 
 	bIsNowAttacking = true;
 	if (IsValid(AnimInstance) && IsValid(AttackMontage) && !(AnimInstance->Montage_IsPlaying(AttackMontage)))
@@ -328,6 +378,8 @@ void AUK_CharacterBase::HandleOnCheckHit()
 
 	TArray<FHitResult> HitResults;
 	FCollisionQueryParams Params(NAME_None, false, this);
+	FVector UpStartRange(30.f, 0.f, 0.f);
+	FVector UpRange(30.f, 0.f, 40.f);
 
 	bool bResult;
 	if (CurrentComboCount != 3)
@@ -341,19 +393,36 @@ void AUK_CharacterBase::HandleOnCheckHit()
 			FCollisionShape::MakeSphere(AttackRadius),
 			Params
 		);
+		if (ShowAttackDebug == 1)
+		{
+			DrawSweepCapsuleDebug(
+				AttackRange * GetActorForwardVector(),
+				GetActorLocation() + AttackRange * GetActorForwardVector(),
+				AttackRange * 0.5f + AttackRadius,
+				bResult ? FColor::Green : FColor::Red
+			);
+		}
 	}
 	else
 	{
-		FVector UpMelee;
 		bResult = GetWorld()->SweepMultiByChannel(
 			HitResults,
-			GetActorLocation(),
-			GetActorLocation() + AttackRange * GetActorForwardVector(),
+			AttackRange * GetActorForwardVector() + UpStartRange,
+			GetActorLocation() + UpRange + (AttackRange * GetActorForwardVector()),
 			FQuat::Identity,
 			ECC_ATTACK,
 			FCollisionShape::MakeSphere(AttackRadius),
 			Params
 		);
+		if (ShowAttackDebug == 1)
+		{
+			DrawSweepCapsuleDebug(
+				GetActorLocation() + UpStartRange,
+				GetActorLocation() + UpRange + (AttackRange * GetActorForwardVector()),
+				AttackRange * 0.5f + AttackRadius,
+				bResult ? FColor::Green : FColor::Red
+			);
+		}
 	}
 	if (bResult)
 	{
@@ -367,27 +436,6 @@ void AUK_CharacterBase::HandleOnCheckHit()
 				}
 			}
 		}
-	}
-
-	if (ShowAttackDebug == 1)
-	{
-		FVector TraceVector = AttackRange * GetActorForwardVector();
-		FVector Center = GetActorLocation() + TraceVector + GetActorUpVector() * 40.f;
-		float HalfHeight = AttackRange * 0.5f + AttackRadius;
-		FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceVector).ToQuat();
-		FColor DrawColor = true == bResult ? FColor::Green : FColor::Red;
-		float DebugLifeTime = 5.f;
-
-		DrawDebugCapsule(
-			GetWorld(),
-			Center,
-			HalfHeight,
-			AttackRadius,
-			CapsuleRot,
-			DrawColor,
-			false,
-			DebugLifeTime
-		);
 	}
 }
 void AUK_CharacterBase::HandleOnCheckInputAttack()
@@ -403,6 +451,22 @@ void AUK_CharacterBase::HandleOnCheckInputAttack()
 		AnimInstance->Montage_JumpToSection(NextSectionName, AttackMontage);
 		bIsAttackKeyPressed = false;
 	}
+}
+
+void AUK_CharacterBase::DrawSweepCapsuleDebug(const FVector& Start, const FVector& End, float HalfHeight, const FColor& Color)
+{
+	const FVector Center = (Start + End) * 0.5f;
+	FQuat CapsuleRot = FRotationMatrix::MakeFromZ(Center).ToQuat();
+
+	DrawDebugCapsule(GetWorld(),
+		Center,
+		HalfHeight,
+		AttackRadius,
+		CapsuleRot,
+		Color,
+		false,
+		5.f
+	);
 }
 
 #pragma endregion
