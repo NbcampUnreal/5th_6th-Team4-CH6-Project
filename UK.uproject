@@ -37,9 +37,9 @@
 		},
 		{
 			"Name": "Landmass",
-      "Enabled": true
-    },
-    {
+			"Enabled": true
+		},
+		{
 			"Name": "GameplayAbilities",
 			"Enabled": true
 		},
