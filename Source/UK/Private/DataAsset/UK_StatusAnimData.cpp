@@ -2,4 +2,13 @@
 
 
 #include "DataAsset/UK_StatusAnimData.h"
+#include "DataAsset/UK_AnimData.h"
 
+UUK_AnimData* UUK_StatusAnimData::FindAnimsDataAssetByTag(const EComboAttackType AttackType)
+{
+	if (const TObjectPtr <UUK_AnimData>* FoundAction = ComboAnimationDatas.Find(AttackType))
+	{
+		return *FoundAction;
+	}
+	return nullptr;
+}
