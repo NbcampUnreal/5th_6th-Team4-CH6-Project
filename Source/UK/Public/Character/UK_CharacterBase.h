@@ -16,6 +16,7 @@ class UStatusComponent;
 class UAbilitySystemComponent;
 class UGameplayAbility;
 class AUK_WeaponBase;
+class UUK_InputConfig;
 struct FInputActionValue;
 #pragma endregion
 
@@ -85,6 +86,9 @@ protected:
 	void ZoomOut();
 
 protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "InputData")
+	UUK_InputConfig* InputConfig;
+
 	UPROPERTY()
 	bool bSprint;
 #pragma endregion

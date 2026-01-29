@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Weapon/UK_WeaponBase.h"
+#include "Character/Weapon/UK_WeaponBase.h"
 #include "Character/UK_CharacterBase.h"
 
 // Sets default values
