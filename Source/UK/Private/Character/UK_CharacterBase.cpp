@@ -8,6 +8,7 @@
 #include "Animation/UK_AnimInstance.h"
 #include "ActorComponent/StatusComponent.h"
 #include "ActorComponent/UK_InputComponent.h"
+#include "ActorComponent/UK_CombatAnimationComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -63,6 +64,7 @@ AUK_CharacterBase::AUK_CharacterBase() :
 #pragma endregion
 
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
+	AnimationComponent = CreateDefaultSubobject<UUK_CombatAnimationComponent>(TEXT("AnimComponent"));
 }
 
 void AUK_CharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -155,133 +157,8 @@ void AUK_CharacterBase::GiveStartupAbilities()
 void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-	TObjectPtr<UEnhancedInputComponent> EnhancedInput = CastChecked<UEnhancedInputComponent>(PlayerInputComponent);
-	ULocalPlayer* Localplayer = GetController<APlayerController>()->GetLocalPlayer();
-	if ( TObjectPtr<UEnhancedInputLocalPlayerSubsystem> SupSystem = Localplayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>() )
-	{
-		if ( InputConfig )
-		{
-			SupSystem->AddMappingContext(InputConfig->DefaultIMC, 0);
-		}
-	}
-#pragma region BindAction
-	TObjectPtr<UUK_InputComponent> UKEnhanced = CastChecked<UUK_InputComponent>(PlayerInputComponent);
-	UKEnhanced->BindInputAction(
-		InputConfig,
-		UK_GameplayTags::Input::InputMove,
-		ETriggerEvent::Triggered,
-		this,
-		&ThisClass::Move
-	);
-
-	UKEnhanced->BindInputAction(
-		InputConfig,
-		UK_GameplayTags::Input::InputLook,
-		ETriggerEvent::Triggered,
-		this,
-		&ThisClass::Look
-	);
-
-	UKEnhanced->BindInputAction(
-		InputConfig,
-		UK_GameplayTags::Input::InputJump,
-		ETriggerEvent::Started,
-		this,
-		&ThisClass::Jump
-	);
-
-	UKEnhanced->BindInputAction(
-		InputConfig,
-		UK_GameplayTags::Input::InputJump,
-		ETriggerEvent::Completed,
-		this,
-		&ThisClass::StopJumping
-	);
-
-	UKEnhanced->BindInputAction(
-		InputConfig,
-		UK_GameplayTags::Input::InputSprint,
-		ETriggerEvent::Started,
-		this,
-		&ThisClass::Sprint
-	);
-
-	UKEnhanced->BindInputAction(
-		InputConfig,
-		UK_GameplayTags::Input::InputAttack,
-		ETriggerEvent::Started,
-		this,
-		&ThisClass::Attack
-	);
-
-	UKEnhanced->BindInputAction(
-		InputConfig,
-		UK_GameplayTags::Input::InputZoomIn,
-		ETriggerEvent::Triggered,
-		this,
-		&ThisClass::ZoomIn
-	);
-
-	UKEnhanced->BindInputAction(
-		InputConfig,
-		UK_GameplayTags::Input::InputZoomOut,
-		ETriggerEvent::Triggered,
-		this,
-		&ThisClass::ZoomOut
-	);
-#pragma endregion
 }
 
-void AUK_CharacterBase::Sprint()
-{
-
-	if ( !bSprint )
-	{
-		GetCharacterMovement()->MaxWalkSpeed = 1200.f;
-		bSprint = true;
-	}
-	else
-	{
-		GetCharacterMovement()->MaxWalkSpeed = 600.f;
-		bSprint = false;
-	}
-}
-
-void AUK_CharacterBase::Move(const FInputActionValue& Value)
-{
-	if ( !Controller )
-		return;
-	const FVector2D MoveInput = Value.Get<FVector2D>();
-
-	if ( !FMath::IsNearlyZero(MoveInput.X) )
-	{
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-		AddMovementInput(Direction, MoveInput.X);
-	}
-
-
-	if ( !FMath::IsNearlyZero(MoveInput.Y) )
-	{
-
-		const FRotator Rotation = Controller->GetControlRotation();
-
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-
-		AddMovementInput(Direction, MoveInput.Y);
-	}
-}
-
-void AUK_CharacterBase::Look(const FInputActionValue& Value)
-{
-	const FVector2D LookInput = Value.Get<FVector2D>();
-
-	AddControllerYawInput(LookInput.X);
-	AddControllerPitchInput(LookInput.Y);
-}
 
 void AUK_CharacterBase::Attack()
 {
