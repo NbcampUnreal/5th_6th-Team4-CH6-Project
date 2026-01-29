@@ -1,15 +1,18 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Character/UK_CharacterBase.h"
-#include "Controller/UK_PlayerController.h"
-#include "Weapon/UK_WeaponBase.h"
-#include "PlayerState/UK_PlayerState.h"
+#include "Character/UK_PlayerController.h"
+#include "Character/UK_PlayerState.h"
+#include "Character/Weapon/UK_WeaponBase.h"
+#include "Tags/UK_GameplayTags.h"
 #include "Animation/UK_AnimInstance.h"
-#include "Actorcomponent/StatusComponent.h"
+#include "ActorComponent/StatusComponent.h"
+#include "ActorComponent/UK_InputComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
 #include "AbilitySystemComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
@@ -46,9 +49,9 @@ AUK_CharacterBase::AUK_CharacterBase() :
 	SpringArm->TargetArmLength = 300.f;
 	SpringArm->SetRelativeLocation(FVector(0.f, 20.f, 40.f));
 	SpringArm->bUsePawnControlRotation = true;
-	SpringArm->bEnableCameraLag = true; // Ä«¸Ş¶ó°¡ Ä³¸¯ÅÍ¸¦ µÚ´Ê°Ô µû¶ó¿È
-	SpringArm->CameraLagSpeed = 5.0f; // µû¶ó¿À´Â ¼Óµµ
-	SpringArm->CameraLagMaxDistance = 80.0f; // Ä«¸Ş¶ó¿Í º»·¡ À§Ä¡¿ÍÀÇ ÃÖ´ë °Å¸® Â÷ÀÌ
+	SpringArm->bEnableCameraLag = true; // ì¹´ë©”ë¼ê°€ ìºë¦­í„°ë¥¼ ë’¤ëŠ¦ê²Œ ë”°ë¼ì˜´
+	SpringArm->CameraLagSpeed = 5.0f; // ë”°ë¼ì˜¤ëŠ” ì†ë„
+	SpringArm->CameraLagMaxDistance = 80.0f; // ì¹´ë©”ë¼ì™€ ë³¸ë˜ ìœ„ì¹˜ì™€ì˜ ìµœëŒ€ ê±°ë¦¬ ì°¨ì´
 #pragma endregion
 
 #pragma region Camera
@@ -83,7 +86,7 @@ void AUK_CharacterBase::BeginPlay()
 			if (!WeaponClass) continue;
 			FActorSpawnParameters Params;
 			Params.Owner = this;
-			AUK_WeaponBase* SpawnedWeapon = GetWorld()->SpawnActor<AUK_WeaponBase>(WeaponClass, Params); //¼­¹ö¿Í Å¬¶óÀÌ¾ğÆ®¿¡ ¹«±â ½ºÆùÀ» ÇØ¾ßÇÏ±â ¶§¹®¿¡ ¹İº¹¹®À» ÀÌ¿ëÇØÁØ´Ù.
+			AUK_WeaponBase* SpawnedWeapon = GetWorld()->SpawnActor<AUK_WeaponBase>(WeaponClass, Params); //ì„œë²„ì™€ í´ë¼ì´ì–¸íŠ¸ì— ë¬´ê¸° ìŠ¤í°ì„ í•´ì•¼í•˜ê¸° ë•Œë¬¸ì— ë°˜ë³µë¬¸ì„ ì´ìš©í•´ì¤€ë‹¤.
 			const int32 Index = Weapons.Add(SpawnedWeapon);
 			if (Index == WeaponIndex)
 			{
@@ -152,80 +155,155 @@ void AUK_CharacterBase::GiveStartupAbilities()
 void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-	if (TObjectPtr<UEnhancedInputComponent> EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent))
-	{
-		if (TObjectPtr<AUK_PlayerController> UKPC = Cast<AUK_PlayerController>(GetController()))
-		{
-			if (UKPC->JumpAction)
-			{
-				EnhancedInput->BindAction(
-					UKPC->JumpAction,
-					ETriggerEvent::Started,
-					this,
-					&ACharacter::Jump);
+//	TObjectPtr<UEnhancedInputComponent> EnhancedInput = CastChecked<UEnhancedInputComponent>(PlayerInputComponent);
+//	ULocalPlayer* Localplayer = GetController<APlayerController>()->GetLocalPlayer();
+//	if (TObjectPtr<UEnhancedInputLocalPlayerSubsystem> SupSystem = Localplayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+//	{
+//		if (InputConfig)
+//		{
+//			SupSystem->AddMappingContext(InputConfig->DefaultIMC, 0);
+//		}
+//	}
+//#pragma region BindAction
+//	TObjectPtr<UUK_InputComponent> TempEnhanced = CastChecked<UUK_InputComponent>(PlayerInputComponent);
+//	TempEnhanced->BindInputAction(
+//		InputConfig,
+//		UK_GameplayTags::Input::InputMove,
+//		ETriggerEvent::Triggered,
+//		this,
+//		&ThisClass::Move
+//	);
+//
+//	TempEnhanced->BindInputAction(
+//		InputConfig,
+//		UK_GameplayTags::Input::InputLook,
+//		ETriggerEvent::Triggered,
+//		this,
+//		&ThisClass::Look
+//	);
+//
+//	TempEnhanced->BindInputAction(
+//		InputConfig,
+//		UK_GameplayTags::Input::InputJump,
+//		ETriggerEvent::Started,
+//		this,
+//		&ThisClass::Jump
+//	);
+//
+//	TempEnhanced->BindInputAction(
+//		InputConfig,
+//		UK_GameplayTags::Input::InputJump,
+//		ETriggerEvent::Completed,
+//		this,
+//		&ThisClass::StopJumping
+//	);
+//
+//	TempEnhanced->BindInputAction(
+//		InputConfig,
+//		UK_GameplayTags::Input::InputSprint,
+//		ETriggerEvent::Started,
+//		this,
+//		&ThisClass::Sprint
+//	);
+//
+//	TempEnhanced->BindInputAction(
+//		InputConfig,
+//		UK_GameplayTags::Input::InputAttack,
+//		ETriggerEvent::Started,
+//		this,
+//		&ThisClass::Attack
+//	);
+//
+//	TempEnhanced->BindInputAction(
+//		InputConfig,
+//		UK_GameplayTags::Input::InputZoomIn,
+//		ETriggerEvent::Triggered,
+//		this,
+//		&ThisClass::ZoomIn
+//	);
+//
+//	TempEnhanced->BindInputAction(
+//		InputConfig,
+//		UK_GameplayTags::Input::InputZoomOut,
+//		ETriggerEvent::Triggered,
+//		this,
+//		&ThisClass::ZoomOut
+//	);
+//#pragma endregion
+	//if (TObjectPtr<UEnhancedInputComponent> EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	//{
+	//	if (TObjectPtr<AUK_PlayerController> UKPC = Cast<AUK_PlayerController>(GetController()))
+	//	{
+	//		if (UKPC->JumpAction)
+	//		{
+	//			EnhancedInput->BindAction(
+	//				UKPC->JumpAction,
+	//				ETriggerEvent::Started,
+	//				this,
+	//				&ACharacter::Jump);
 
-				EnhancedInput->BindAction(
-					UKPC->JumpAction,
-					ETriggerEvent::Completed,
-					this,
-					&ACharacter::StopJumping);
-			}
+	//			EnhancedInput->BindAction(
+	//				UKPC->JumpAction,
+	//				ETriggerEvent::Completed,
+	//				this,
+	//				&ACharacter::StopJumping);
+	//		}
 
-			if (UKPC->LookAction)
-			{
-				EnhancedInput->BindAction(
-					UKPC->LookAction,
-					ETriggerEvent::Triggered,
-					this,
-					&ThisClass::Look);
-			}
+	//		if (UKPC->LookAction)
+	//		{
+	//			EnhancedInput->BindAction(
+	//				UKPC->LookAction,
+	//				ETriggerEvent::Triggered,
+	//				this,
+	//				&ThisClass::Look);
+	//		}
 
-			if (UKPC->MoveAction)
-			{
-				EnhancedInput->BindAction(
-					UKPC->MoveAction,
-					ETriggerEvent::Triggered,
-					this,
-					&ThisClass::Move);
-			}
+	//		if (UKPC->MoveAction)
+	//		{
+	//			EnhancedInput->BindAction(
+	//				UKPC->MoveAction,
+	//				ETriggerEvent::Triggered,
+	//				this,
+	//				&ThisClass::Move);
+	//		}
 
-			if (UKPC->SprintAction)
-			{
-				EnhancedInput->BindAction(
-					UKPC->SprintAction,
-					ETriggerEvent::Triggered,
-					this,
-					&ThisClass::Sprint);
-			}
+	//		if (UKPC->SprintAction)
+	//		{
+	//			EnhancedInput->BindAction(
+	//				UKPC->SprintAction,
+	//				ETriggerEvent::Triggered,
+	//				this,
+	//				&ThisClass::Sprint);
+	//		}
 
-			if (UKPC->AttackAction)
-			{
-				EnhancedInput->BindAction(
-					UKPC->AttackAction,
-					ETriggerEvent::Started,
-					this,
-					&ThisClass::Attack);
-			}
+	//		if (UKPC->AttackAction)
+	//		{
+	//			EnhancedInput->BindAction(
+	//				UKPC->AttackAction,
+	//				ETriggerEvent::Started,
+	//				this,
+	//				&ThisClass::Attack);
+	//		}
 
-			if (UKPC->ZoomIn)
-			{
-				EnhancedInput->BindAction(
-					UKPC->ZoomIn,
-					ETriggerEvent::Triggered,
-					this,
-					&ThisClass::ZoomIn);
-			}
+	//		if (UKPC->ZoomIn)
+	//		{
+	//			EnhancedInput->BindAction(
+	//				UKPC->ZoomIn,
+	//				ETriggerEvent::Triggered,
+	//				this,
+	//				&ThisClass::ZoomIn);
+	//		}
 
-			if (UKPC->ZoomOut)
-			{
-				EnhancedInput->BindAction(
-					UKPC->ZoomOut,
-					ETriggerEvent::Triggered,
-					this,
-					&ThisClass::ZoomOut);
-			}
-		}
-	}
+	//		if (UKPC->ZoomOut)
+	//		{
+	//			EnhancedInput->BindAction(
+	//				UKPC->ZoomOut,
+	//				ETriggerEvent::Triggered,
+	//				this,
+	//				&ThisClass::ZoomOut);
+	//		}
+	//	}
+	//}
 }
 
 void AUK_CharacterBase::Sprint()

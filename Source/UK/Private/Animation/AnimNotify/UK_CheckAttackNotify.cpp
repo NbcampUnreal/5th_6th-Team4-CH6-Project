@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "AnimNotify/UK_CheckAttackNotify.h"
+#include "Animation/AnimNotify/UK_CheckAttackNotify.h"
 #include "Character/UK_CharacterBase.h"
 
 //void UUK_CheckAttackNotify::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration)

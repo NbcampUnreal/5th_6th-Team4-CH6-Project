@@ -22,7 +22,7 @@ class UK_API UUK_StatusAnimData : public UDataAsset
 {
 	GENERATED_BODY()
 public:
-	UUK_AnimData* FindAnimsDataAssetByTag(const EComboAttackType AttackType);
+	UUK_AnimData* FindAnimsDataAssetByType(const EComboAttackType AttackType);
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ComboAttack")
 	TMap<EComboAttackType, TObjectPtr<UUK_AnimData>> ComboAnimationDatas;
