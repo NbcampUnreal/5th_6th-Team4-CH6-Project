@@ -4,7 +4,7 @@
 #include "DataAsset/UK_StatusAnimData.h"
 #include "DataAsset/UK_AnimData.h"
 
-UUK_AnimData* UUK_StatusAnimData::FindAnimsDataAssetByTag(const EComboAttackType AttackType)
+UUK_AnimData* UUK_StatusAnimData::FindAnimsDataAssetByType(const EComboAttackType AttackType)
 {
 	if (const TObjectPtr <UUK_AnimData>* FoundAction = ComboAnimationDatas.Find(AttackType))
 	{
@@ -12,3 +12,4 @@ UUK_AnimData* UUK_StatusAnimData::FindAnimsDataAssetByTag(const EComboAttackType
 	}
 	return nullptr;
 }
+
