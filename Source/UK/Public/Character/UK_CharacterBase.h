@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -17,6 +17,8 @@ class UAbilitySystemComponent;
 class UGameplayAbility;
 class AUK_WeaponBase;
 class UUK_InputConfig;
+class UUK_InputComponent;
+class UUK_CombatAnimationComponent;
 struct FInputActionValue;
 #pragma endregion
 
@@ -54,6 +56,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStatusComponent> StatusComponent;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UUK_CombatAnimationComponent> AnimationComponent;
+
 #pragma endregion
 #pragma region GAS
 protected:
@@ -67,15 +72,6 @@ private:
 
 #pragma region Input
 protected:
-	UFUNCTION()
-	void Sprint();
-
-	UFUNCTION()
-	void Move(const FInputActionValue& Value);
-
-	UFUNCTION()
-	void Look(const FInputActionValue& Value);
-
 	UFUNCTION()
 	void Attack();
 
