@@ -162,19 +162,15 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 void AUK_CharacterBase::Attack()
 {
-	if ( 0 == CurrentComboCount )
-	{
-		BeginAttack();
-	}
-	else
-	{
-		ensure(FMath::IsWithinInclusive<int32>(CurrentComboCount, 1, MaxComboCount));
-		bIsAttackKeyPressed = true;
-	}
+	AnimationComponent->PlayLightComboAnimation();
 }
 
 void AUK_CharacterBase::ZoomIn()
 {
+	if (!IsValid( SpringArm ))
+	{
+		return;
+	}
 	const float DeltaTime = GetWorld()->GetDeltaSeconds();
 
 	const float Target = 70.f;
@@ -188,6 +184,10 @@ void AUK_CharacterBase::ZoomIn()
 
 void AUK_CharacterBase::ZoomOut()
 {
+	if (!IsValid( SpringArm ))
+	{
+		return;
+	}
 	const float DeltaTime = GetWorld()->GetDeltaSeconds();
 
 	const float Target = 300.f;
@@ -220,39 +220,6 @@ void AUK_CharacterBase::OnRep_CurrentWeapon(const AUK_WeaponBase* OldWeapon)
 
 #pragma region Attack
 
-void AUK_CharacterBase::BeginAttack()
-{
-	TObjectPtr < UUK_AnimInstance > AnimInstance = Cast<UUK_AnimInstance>(GetMesh()->GetAnimInstance());
-
-	bIsNowAttacking = true;
-	if ( IsValid(AnimInstance) && IsValid(AttackMontage) && !( AnimInstance->Montage_IsPlaying(AttackMontage) ) )
-	{
-		AnimInstance->Montage_Play(AttackMontage);
-	}
-
-	CurrentComboCount = 1;
-
-	if ( !OnMeleeAttackMontageEndedDelegate.IsBound() )
-	{
-		OnMeleeAttackMontageEndedDelegate.BindUObject(this, &ThisClass::EndAttack);
-		AnimInstance->Montage_SetEndDelegate(OnMeleeAttackMontageEndedDelegate, AttackMontage);
-	}
-}
-
-void AUK_CharacterBase::EndAttack(UAnimMontage* InMontage, bool bInterruped)
-{
-	ensureMsgf(CurrentComboCount != 0, TEXT("CurrentComboCount == 0"));
-
-	CurrentComboCount = 0;
-	bIsAttackKeyPressed = false;
-	bIsNowAttacking = false;
-
-	if ( OnMeleeAttackMontageEndedDelegate.IsBound() )
-	{
-		OnMeleeAttackMontageEndedDelegate.Unbind();
-	}
-}
-
 void AUK_CharacterBase::HandleOnCheckHit()
 {
 	UKismetSystemLibrary::PrintString(this, TEXT("HandleOnCheckHit()"));
@@ -263,7 +230,7 @@ void AUK_CharacterBase::HandleOnCheckHit()
 	FVector UpRange(30.f, 0.f, 40.f);
 
 	bool bResult;
-	if ( CurrentComboCount != 3 )
+	if ( 1/*CurrentComboCount != 3 */ )
 	{
 		bResult = GetWorld()->SweepMultiByChannel(
 			HitResults,
@@ -317,20 +284,6 @@ void AUK_CharacterBase::HandleOnCheckHit()
 				}
 			}
 		}
-	}
-}
-void AUK_CharacterBase::HandleOnCheckInputAttack()
-{
-	TObjectPtr < UUK_AnimInstance > AnimInstance = Cast<UUK_AnimInstance>(GetMesh()->GetAnimInstance());
-	checkf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
-
-	if ( bIsAttackKeyPressed )
-	{
-		CurrentComboCount = FMath::Clamp(CurrentComboCount + 1, 1, MaxComboCount);
-
-		FName NextSectionName = *FString::Printf(TEXT("%s%02d"), *MontageSectionName, CurrentComboCount);
-		AnimInstance->Montage_JumpToSection(NextSectionName, AttackMontage);
-		bIsAttackKeyPressed = false;
 	}
 }
 
