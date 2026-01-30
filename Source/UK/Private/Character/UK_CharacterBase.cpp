@@ -8,6 +8,7 @@
 #include "Animation/UK_AnimInstance.h"
 #include "ActorComponent/StatusComponent.h"
 #include "ActorComponent/UK_InputComponent.h"
+#include "ActorComponent/UK_CombatAnimationComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -63,6 +64,7 @@ AUK_CharacterBase::AUK_CharacterBase() :
 #pragma endregion
 
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
+	AnimationComponent = CreateDefaultSubobject<UUK_CombatAnimationComponent>(TEXT("AnimComponent"));
 }
 
 void AUK_CharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -79,16 +81,16 @@ void AUK_CharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (HasAuthority())
+	if ( HasAuthority() )
 	{
-		for (const TSubclassOf<AUK_WeaponBase>& WeaponClass : DefaultWeapons)
+		for ( const TSubclassOf<AUK_WeaponBase>& WeaponClass : DefaultWeapons )
 		{
-			if (!WeaponClass) continue;
+			if ( !WeaponClass ) continue;
 			FActorSpawnParameters Params;
 			Params.Owner = this;
 			AUK_WeaponBase* SpawnedWeapon = GetWorld()->SpawnActor<AUK_WeaponBase>(WeaponClass, Params); //서버와 클라이언트에 무기 스폰을 해야하기 때문에 반복문을 이용해준다.
 			const int32 Index = Weapons.Add(SpawnedWeapon);
-			if (Index == WeaponIndex)
+			if ( Index == WeaponIndex )
 			{
 				Weapon = SpawnedWeapon;
 				OnRep_CurrentWeapon(nullptr);
@@ -101,7 +103,7 @@ void AUK_CharacterBase::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
 
-	if (!IsValid(GetAbilitySystemComponent()))
+	if ( !IsValid(GetAbilitySystemComponent()) )
 		return;
 
 	GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
@@ -110,7 +112,7 @@ void AUK_CharacterBase::OnRep_PlayerState()
 void AUK_CharacterBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-	if (!IsValid(GetAbilitySystemComponent()))
+	if ( !IsValid(GetAbilitySystemComponent()) )
 		return;
 
 	GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
@@ -130,7 +132,7 @@ void AUK_CharacterBase::PossessedBy(AController* NewController)
 UAbilitySystemComponent* AUK_CharacterBase::GetAbilitySystemComponent() const
 {
 	AUK_PlayerState* UKPS = Cast<AUK_PlayerState>(GetPlayerState());
-	if (!IsValid(UKPS))
+	if ( !IsValid(UKPS) )
 		return nullptr;
 
 	return UKPS->GetAbilitySystemComponent();
@@ -138,10 +140,10 @@ UAbilitySystemComponent* AUK_CharacterBase::GetAbilitySystemComponent() const
 
 void AUK_CharacterBase::GiveStartupAbilities()
 {
-	if (!IsValid(GetAbilitySystemComponent()))
+	if ( !IsValid(GetAbilitySystemComponent()) )
 		return;
 
-	for (const TSubclassOf<UGameplayAbility>& Ability : StartupAbilities)
+	for ( const TSubclassOf<UGameplayAbility>& Ability : StartupAbilities )
 	{
 		FGameplayAbilitySpec AbilitySpec = FGameplayAbilitySpec(Ability);
 		GetAbilitySystemComponent()->GiveAbility(AbilitySpec);
@@ -155,223 +157,20 @@ void AUK_CharacterBase::GiveStartupAbilities()
 void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-//	TObjectPtr<UEnhancedInputComponent> EnhancedInput = CastChecked<UEnhancedInputComponent>(PlayerInputComponent);
-//	ULocalPlayer* Localplayer = GetController<APlayerController>()->GetLocalPlayer();
-//	if (TObjectPtr<UEnhancedInputLocalPlayerSubsystem> SupSystem = Localplayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
-//	{
-//		if (InputConfig)
-//		{
-//			SupSystem->AddMappingContext(InputConfig->DefaultIMC, 0);
-//		}
-//	}
-//#pragma region BindAction
-//	TObjectPtr<UUK_InputComponent> TempEnhanced = CastChecked<UUK_InputComponent>(PlayerInputComponent);
-//	TempEnhanced->BindInputAction(
-//		InputConfig,
-//		UK_GameplayTags::Input::InputMove,
-//		ETriggerEvent::Triggered,
-//		this,
-//		&ThisClass::Move
-//	);
-//
-//	TempEnhanced->BindInputAction(
-//		InputConfig,
-//		UK_GameplayTags::Input::InputLook,
-//		ETriggerEvent::Triggered,
-//		this,
-//		&ThisClass::Look
-//	);
-//
-//	TempEnhanced->BindInputAction(
-//		InputConfig,
-//		UK_GameplayTags::Input::InputJump,
-//		ETriggerEvent::Started,
-//		this,
-//		&ThisClass::Jump
-//	);
-//
-//	TempEnhanced->BindInputAction(
-//		InputConfig,
-//		UK_GameplayTags::Input::InputJump,
-//		ETriggerEvent::Completed,
-//		this,
-//		&ThisClass::StopJumping
-//	);
-//
-//	TempEnhanced->BindInputAction(
-//		InputConfig,
-//		UK_GameplayTags::Input::InputSprint,
-//		ETriggerEvent::Started,
-//		this,
-//		&ThisClass::Sprint
-//	);
-//
-//	TempEnhanced->BindInputAction(
-//		InputConfig,
-//		UK_GameplayTags::Input::InputAttack,
-//		ETriggerEvent::Started,
-//		this,
-//		&ThisClass::Attack
-//	);
-//
-//	TempEnhanced->BindInputAction(
-//		InputConfig,
-//		UK_GameplayTags::Input::InputZoomIn,
-//		ETriggerEvent::Triggered,
-//		this,
-//		&ThisClass::ZoomIn
-//	);
-//
-//	TempEnhanced->BindInputAction(
-//		InputConfig,
-//		UK_GameplayTags::Input::InputZoomOut,
-//		ETriggerEvent::Triggered,
-//		this,
-//		&ThisClass::ZoomOut
-//	);
-//#pragma endregion
-	//if (TObjectPtr<UEnhancedInputComponent> EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent))
-	//{
-	//	if (TObjectPtr<AUK_PlayerController> UKPC = Cast<AUK_PlayerController>(GetController()))
-	//	{
-	//		if (UKPC->JumpAction)
-	//		{
-	//			EnhancedInput->BindAction(
-	//				UKPC->JumpAction,
-	//				ETriggerEvent::Started,
-	//				this,
-	//				&ACharacter::Jump);
-
-	//			EnhancedInput->BindAction(
-	//				UKPC->JumpAction,
-	//				ETriggerEvent::Completed,
-	//				this,
-	//				&ACharacter::StopJumping);
-	//		}
-
-	//		if (UKPC->LookAction)
-	//		{
-	//			EnhancedInput->BindAction(
-	//				UKPC->LookAction,
-	//				ETriggerEvent::Triggered,
-	//				this,
-	//				&ThisClass::Look);
-	//		}
-
-	//		if (UKPC->MoveAction)
-	//		{
-	//			EnhancedInput->BindAction(
-	//				UKPC->MoveAction,
-	//				ETriggerEvent::Triggered,
-	//				this,
-	//				&ThisClass::Move);
-	//		}
-
-	//		if (UKPC->SprintAction)
-	//		{
-	//			EnhancedInput->BindAction(
-	//				UKPC->SprintAction,
-	//				ETriggerEvent::Triggered,
-	//				this,
-	//				&ThisClass::Sprint);
-	//		}
-
-	//		if (UKPC->AttackAction)
-	//		{
-	//			EnhancedInput->BindAction(
-	//				UKPC->AttackAction,
-	//				ETriggerEvent::Started,
-	//				this,
-	//				&ThisClass::Attack);
-	//		}
-
-	//		if (UKPC->ZoomIn)
-	//		{
-	//			EnhancedInput->BindAction(
-	//				UKPC->ZoomIn,
-	//				ETriggerEvent::Triggered,
-	//				this,
-	//				&ThisClass::ZoomIn);
-	//		}
-
-	//		if (UKPC->ZoomOut)
-	//		{
-	//			EnhancedInput->BindAction(
-	//				UKPC->ZoomOut,
-	//				ETriggerEvent::Triggered,
-	//				this,
-	//				&ThisClass::ZoomOut);
-	//		}
-	//	}
-	//}
 }
 
-void AUK_CharacterBase::Sprint()
-{
-
-	if (!bSprint)
-	{
-		GetCharacterMovement()->MaxWalkSpeed = 1200.f;
-		bSprint = true;
-	}
-	else
-	{
-		GetCharacterMovement()->MaxWalkSpeed = 600.f;
-		bSprint = false;
-	}
-}
-
-void AUK_CharacterBase::Move(const FInputActionValue& Value)
-{
-	if (!Controller)
-		return;
-	const FVector2D MoveInput = Value.Get<FVector2D>();
-
-	if (!FMath::IsNearlyZero(MoveInput.X))
-	{
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-		AddMovementInput(Direction, MoveInput.X);
-	}
-
-
-	if (!FMath::IsNearlyZero(MoveInput.Y))
-	{
-
-		const FRotator Rotation = Controller->GetControlRotation();
-
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-
-		AddMovementInput(Direction, MoveInput.Y);
-	}
-}
-
-void AUK_CharacterBase::Look(const FInputActionValue& Value)
-{
-	const FVector2D LookInput = Value.Get<FVector2D>();
-
-	AddControllerYawInput(LookInput.X);
-	AddControllerPitchInput(LookInput.Y);
-}
 
 void AUK_CharacterBase::Attack()
 {
-	if (0 == CurrentComboCount)
-	{
-		BeginAttack();
-	}
-	else
-	{
-		ensure(FMath::IsWithinInclusive<int32>(CurrentComboCount, 1, MaxComboCount));
-		bIsAttackKeyPressed = true;
-	}
+	AnimationComponent->PlayLightComboAnimation();
 }
 
 void AUK_CharacterBase::ZoomIn()
 {
+	if (!IsValid( SpringArm ))
+	{
+		return;
+	}
 	const float DeltaTime = GetWorld()->GetDeltaSeconds();
 
 	const float Target = 70.f;
@@ -385,6 +184,10 @@ void AUK_CharacterBase::ZoomIn()
 
 void AUK_CharacterBase::ZoomOut()
 {
+	if (!IsValid( SpringArm ))
+	{
+		return;
+	}
 	const float DeltaTime = GetWorld()->GetDeltaSeconds();
 
 	const float Target = 300.f;
@@ -400,55 +203,22 @@ void AUK_CharacterBase::ZoomOut()
 #pragma region Weapon
 void AUK_CharacterBase::OnRep_CurrentWeapon(const AUK_WeaponBase* OldWeapon)
 {
-	if (Weapon)
+	if ( Weapon )
 	{
-		if (!Weapon->GetOwnerCharactor())
+		if ( !Weapon->GetOwnerCharactor() )
 		{
 			const FTransform PlacementTransform = Weapon->GetWeaponTransform() * GetMesh()->GetSocketTransform(FName("WeaponSocket"));
 			Weapon->SetActorTransform(PlacementTransform, false, nullptr, ETeleportType::TeleportPhysics);
 			Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::KeepWorldTransform, FName("WeaponSocket"));
 			Weapon->SetOwnerCharactor(this);
 		}
-		Weapon->GetStaticMeshComponent()->SetVisibility(true); 
+		Weapon->GetStaticMeshComponent()->SetVisibility(true);
 	}
 }
 
 #pragma endregion
 
 #pragma region Attack
-
-void AUK_CharacterBase::BeginAttack()
-{
-	TObjectPtr < UUK_AnimInstance > AnimInstance = Cast<UUK_AnimInstance>(GetMesh()->GetAnimInstance());
-
-	bIsNowAttacking = true;
-	if (IsValid(AnimInstance) && IsValid(AttackMontage) && !(AnimInstance->Montage_IsPlaying(AttackMontage)))
-	{
-		AnimInstance->Montage_Play(AttackMontage);
-	}
-
-	CurrentComboCount = 1;
-
-	if (!OnMeleeAttackMontageEndedDelegate.IsBound())
-	{
-		OnMeleeAttackMontageEndedDelegate.BindUObject(this, &ThisClass::EndAttack);
-		AnimInstance->Montage_SetEndDelegate(OnMeleeAttackMontageEndedDelegate, AttackMontage);
-	}
-}
-
-void AUK_CharacterBase::EndAttack(UAnimMontage* InMontage, bool bInterruped)
-{
-	ensureMsgf(CurrentComboCount != 0, TEXT("CurrentComboCount == 0"));
-
-	CurrentComboCount = 0;
-	bIsAttackKeyPressed = false;
-	bIsNowAttacking = false;
-
-	if (OnMeleeAttackMontageEndedDelegate.IsBound())
-	{
-		OnMeleeAttackMontageEndedDelegate.Unbind();
-	}
-}
 
 void AUK_CharacterBase::HandleOnCheckHit()
 {
@@ -460,7 +230,7 @@ void AUK_CharacterBase::HandleOnCheckHit()
 	FVector UpRange(30.f, 0.f, 40.f);
 
 	bool bResult;
-	if (CurrentComboCount != 3)
+	if ( 1/*CurrentComboCount != 3 */ )
 	{
 		bResult = GetWorld()->SweepMultiByChannel(
 			HitResults,
@@ -471,7 +241,7 @@ void AUK_CharacterBase::HandleOnCheckHit()
 			FCollisionShape::MakeSphere(AttackRadius),
 			Params
 		);
-		if (ShowAttackDebug == 1)
+		if ( ShowAttackDebug == 1 )
 		{
 			DrawSweepCapsuleDebug(
 				AttackRange * GetActorForwardVector(),
@@ -486,29 +256,29 @@ void AUK_CharacterBase::HandleOnCheckHit()
 		bResult = GetWorld()->SweepMultiByChannel(
 			HitResults,
 			AttackRange * GetActorForwardVector() + UpStartRange,
-			GetActorLocation() + UpRange + (AttackRange * GetActorForwardVector()),
+			GetActorLocation() + UpRange + ( AttackRange * GetActorForwardVector() ),
 			FQuat::Identity,
 			ECC_ATTACK,
 			FCollisionShape::MakeSphere(AttackRadius),
 			Params
 		);
-		if (ShowAttackDebug == 1)
+		if ( ShowAttackDebug == 1 )
 		{
 			DrawSweepCapsuleDebug(
 				GetActorLocation() + UpStartRange,
-				GetActorLocation() + UpRange + (AttackRange * GetActorForwardVector()),
+				GetActorLocation() + UpRange + ( AttackRange * GetActorForwardVector() ),
 				AttackRange * 0.5f + AttackRadius,
 				bResult ? FColor::Green : FColor::Red
 			);
 		}
 	}
-	if (bResult)
+	if ( bResult )
 	{
-		for (FHitResult HitResult : HitResults)
+		for ( FHitResult HitResult : HitResults )
 		{
-			if (IsValid(HitResult.GetActor()))
+			if ( IsValid(HitResult.GetActor()) )
 			{
-				if (1 == ShowAttackDebug)
+				if ( 1 == ShowAttackDebug )
 				{
 					UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
 				}
@@ -516,24 +286,10 @@ void AUK_CharacterBase::HandleOnCheckHit()
 		}
 	}
 }
-void AUK_CharacterBase::HandleOnCheckInputAttack()
-{
-	TObjectPtr < UUK_AnimInstance > AnimInstance = Cast<UUK_AnimInstance>(GetMesh()->GetAnimInstance());
-	checkf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
-
-	if (bIsAttackKeyPressed)
-	{
-		CurrentComboCount = FMath::Clamp(CurrentComboCount + 1, 1, MaxComboCount);
-
-		FName NextSectionName = *FString::Printf(TEXT("%s%02d"), *MontageSectionName, CurrentComboCount);
-		AnimInstance->Montage_JumpToSection(NextSectionName, AttackMontage);
-		bIsAttackKeyPressed = false;
-	}
-}
 
 void AUK_CharacterBase::DrawSweepCapsuleDebug(const FVector& Start, const FVector& End, float HalfHeight, const FColor& Color)
 {
-	const FVector Center = (Start + End) * 0.5f;
+	const FVector Center = ( Start + End ) * 0.5f;
 	FQuat CapsuleRot = FRotationMatrix::MakeFromZ(Center).ToQuat();
 
 	DrawDebugCapsule(GetWorld(),
