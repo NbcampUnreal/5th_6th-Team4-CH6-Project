@@ -94,14 +94,7 @@ void UUK_CombatAnimationComponent::PlayLightComboAnimation()
 	{
 		if ( !OwnerCharactor->HasAuthority() )
 		{
-			if ( !ComboCheckTimer.IsValid() )
-			{
-				InputType = EAttackInput::Light;
-			}
-			else
-			{
-				InputType = EAttackInput::None;
-			}
+			InputType = EAttackInput::Light;
 		}
 	}
 }
@@ -123,8 +116,6 @@ void UUK_CombatAnimationComponent::StartComboAttack(EComboAttackType AttackType)
 
 	// 애니메이션  플레이
 	PlayComboAttackAnimation(AttackType, ComboAttackMontageName);
-	// 다음 콤보 체크 타이머 시작
-	SetCheckComboTimer(AttackType);
 }
 
 void UUK_CombatAnimationComponent::ServerRPCComboAttack_Implementation(const EComboAttackType AttackType, FName SectionName)
@@ -189,33 +180,33 @@ void UUK_CombatAnimationComponent::PlayComboAttackAnimation(const EComboAttackTy
 //타이머 세팅
 void UUK_CombatAnimationComponent::SetCheckComboTimer(const EComboAttackType AttackType)
 {
-	if ( !IsValid(NowWeapon) )
-		return;
-
-	//if ( AttackAnim->MaxComboCount == CurrentComboCount )
+	//if ( !IsValid(NowWeapon) )
 	//	return;
 
-	int32 CurrentComboIndex = CurrentComboCount - 1;
+	////if ( AttackAnim->MaxComboCount == CurrentComboCount )
+	////	return;
 
-	UAnimMontage* ComboAttackMontage = AttackAnim->ComboMantage;
-	ensure(AttackAnim->ComboFrameTime[ CurrentComboIndex ]);
+	//int32 CurrentComboIndex = CurrentComboCount - 1;
 
-	// 타이머 타임을 가져옴
-	float ComboAcceptTime = AttackAnim->ComboFrameTime[ CurrentComboIndex ];
+	//UAnimMontage* ComboAttackMontage = AttackAnim->ComboMantage;
+	//ensure(AttackAnim->ComboFrameTime[ CurrentComboIndex ]);
 
-	if ( ComboAcceptTime != 0.f )
-	{
+	//// 타이머 타임을 가져옴
+	//float ComboAcceptTime = AttackAnim->ComboFrameTime[ CurrentComboIndex ];
 
-		FTimerDelegate ComboCheckDelegate;
-		// 타이머가 끝나면 후속타 점검
-		ComboCheckDelegate.BindUObject(this, &UUK_CombatAnimationComponent::CheckComboProcessable, AttackType);
-		GetWorld()->GetTimerManager().SetTimer(
-			ComboCheckTimer,
-			ComboCheckDelegate,
-			ComboAcceptTime,
-			false
-		);
-	}
+	//if ( ComboAcceptTime != 0.f )
+	//{
+
+	//	FTimerDelegate ComboCheckDelegate;
+	//	// 타이머가 끝나면 후속타 점검
+	//	ComboCheckDelegate.BindUObject(this, &UUK_CombatAnimationComponent::CheckComboProcessable, AttackType);
+	//	GetWorld()->GetTimerManager().SetTimer(
+	//		ComboCheckTimer,
+	//		ComboCheckDelegate,
+	//		ComboAcceptTime,
+	//		false
+	//	);
+	//}
 }
 
 void UUK_CombatAnimationComponent::StopJumpAndFly()
@@ -238,8 +229,8 @@ void UUK_CombatAnimationComponent::CheckComboProcessable(const EComboAttackType 
 
 	ensure(IsValid(OwnerCharactor));
 	//// 입력 감지에 안된다면 콤보 재생종료
-	//if ( InputType == EAttackInput::None )
-	//	return;
+	if ( InputType == EAttackInput::None )
+		return;
 	UE_LOG(LogTemp, Display, TEXT("CheckComboProcessable() call"));
 	++CurrentComboCount;
 
@@ -259,10 +250,6 @@ void UUK_CombatAnimationComponent::CheckComboProcessable(const EComboAttackType 
 		PlayComboAttackAnimation(NextAttack, NextComboSectionName);
 	}
 	ServerRPCComboAttack(NextAttack, NextComboSectionName);
-
-	// 다음 콤보 체크 타이머
-	ComboCheckTimer.Invalidate();
-	SetCheckComboTimer(NextAttack);
 
 	InputType = EAttackInput::None;
 }
