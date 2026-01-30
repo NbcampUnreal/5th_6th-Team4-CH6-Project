@@ -1,12 +1,13 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Component/AI_MonsterStatComponent.h"
 #include "AIMonsterBase.generated.h"
 
 class UBehaviorTree;
 
-/* AI ���� ���� ������ ���� */
+/* AI 상태 관련 정의한 내용 */
 UENUM(BlueprintType)
 enum class EMonsterState : uint8
 {
@@ -27,7 +28,7 @@ class UK_API AAIMonsterBase : public ACharacter
 public:
 	AAIMonsterBase();
 
-	/* ���� ���� ���¿��� ��û �� ���� (Controller�� ȣ�� �� ����)*/
+	/* 서버 전용 상태에서 요청 할 내용 (Controller가 호출 할 예정)*/
 	UFUNCTION(Server, Reliable)
 	void RequestState(EMonsterState NewState);
 
@@ -74,7 +75,10 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 
-	/* �ʱ� ���°� ���� */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UAI_MonsterStatComponent* StatComponent;
+
+	/* 초기 상태값 설정 */
 	UPROPERTY(ReplicatedUsing = OnRep_MonsterState)
 	EMonsterState CurrentState = EMonsterState::Idle;
 
@@ -83,19 +87,19 @@ protected:
 
 	void SetServerState(EMonsterState NewState);
 
-	/* AI Ȱ�� / ��Ȱ�� ����ġ ������ �ϰԵ� �� (Controller�� ȣ�� �� ����) */
+	/* AI 활성 / 비활성 스위치 역할을 하게될 값 (Controller가 호출 할 예정) */
 public:
 	void SetAIActive(bool bAcitve);
 
 protected:
-	/* ���� ���º� ������ �Լ��� ��ӹ��� �ڽ�Ŭ�������� override �� �Լ� */
+	/* 현재 상태별 실행할 함수들 상속받은 자식클래스에서 override 될 함수 */
 	virtual void OnIdle();
 	virtual void OnChase(float DeltaSeconds);
 	virtual void OnPatrol();
 	virtual void OnAttack();
 	virtual void OnDead();
 
-	/* �⺻ ����ȭ ���̽� (��ƴ� �ΰ� ���� ÷�� �ɼ� �ֽ��ϴ�) */
+	/* 기본 최적화 베이스 (깔아는 두고 수정 첨삭 될수 있습니다) */
 protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Optimization")
@@ -108,6 +112,13 @@ protected:
 	float TickIntervalAttack = 0.1f;
 
 public:
+
+	/* State Control */
+
+	EMonsterState GetCurrentState() const { return CurrentState; }
+
+	void ReceiveDamage(float Damage);
+
 	/* Replication */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };
