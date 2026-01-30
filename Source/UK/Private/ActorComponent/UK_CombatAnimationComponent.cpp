@@ -30,8 +30,7 @@ UUK_CombatAnimationComponent::UUK_CombatAnimationComponent() :
 void UUK_CombatAnimationComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UUK_CombatAnimationComponent, ServerComboCount);
-	DOREPLIFETIME(UUK_CombatAnimationComponent, ServerAttackType);
+	DOREPLIFETIME(UUK_CombatAnimationComponent, CurrentComboCount);
 
 }
 
@@ -57,6 +56,10 @@ void UUK_CombatAnimationComponent::BeginPlay()
 //{
 //	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 //}
+
+void UUK_CombatAnimationComponent::OnRep_CurrentComboCount()
+{
+}
 
 // 진입점
 void UUK_CombatAnimationComponent::PlayLightComboAnimation()
@@ -92,10 +95,7 @@ void UUK_CombatAnimationComponent::PlayLightComboAnimation()
 	}
 	else
 	{
-		if ( !OwnerCharactor->HasAuthority() )
-		{
-			InputType = EAttackInput::Light;
-		}
+		InputType = EAttackInput::Light;
 	}
 }
 
@@ -120,16 +120,7 @@ void UUK_CombatAnimationComponent::StartComboAttack(EComboAttackType AttackType)
 
 void UUK_CombatAnimationComponent::ServerRPCComboAttack_Implementation(const EComboAttackType AttackType, FName SectionName)
 {
-	//if ( ServerAttackType != AttackType )
-	//{
-	//	ServerComboCount = 1;
-	//	ServerAttackType = AttackType;
-	//}
-	//else
-	//{
-	//	++ServerComboCount;
-	//}
-	PlayComboAttackAnimation(AttackType, SectionName);
+	MulticastPlayCombo(AttackType, CurrentComboCount);
 }
 
 void UUK_CombatAnimationComponent::PlayComboAttackAnimation(const EComboAttackType AttackType, FName SectionName)
@@ -169,44 +160,7 @@ void UUK_CombatAnimationComponent::PlayComboAttackAnimation(const EComboAttackTy
 		PlayerAnimInstance->Montage_SetEndDelegate(EndDelegate, ComboAttackMontage);
 	}
 	// 출력될 애니메이션 섹션으로 점프
-	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
-	if ( IsValid(PlayerMovement) )
-	{
-		PlayerMovement->SetMovementMode(EMovementMode::MOVE_None);
-	}
 	PlayerAnimInstance->Montage_JumpToSection(SectionName, ComboAttackMontage);
-}
-
-//타이머 세팅
-void UUK_CombatAnimationComponent::SetCheckComboTimer(const EComboAttackType AttackType)
-{
-	//if ( !IsValid(NowWeapon) )
-	//	return;
-
-	////if ( AttackAnim->MaxComboCount == CurrentComboCount )
-	////	return;
-
-	//int32 CurrentComboIndex = CurrentComboCount - 1;
-
-	//UAnimMontage* ComboAttackMontage = AttackAnim->ComboMantage;
-	//ensure(AttackAnim->ComboFrameTime[ CurrentComboIndex ]);
-
-	//// 타이머 타임을 가져옴
-	//float ComboAcceptTime = AttackAnim->ComboFrameTime[ CurrentComboIndex ];
-
-	//if ( ComboAcceptTime != 0.f )
-	//{
-
-	//	FTimerDelegate ComboCheckDelegate;
-	//	// 타이머가 끝나면 후속타 점검
-	//	ComboCheckDelegate.BindUObject(this, &UUK_CombatAnimationComponent::CheckComboProcessable, AttackType);
-	//	GetWorld()->GetTimerManager().SetTimer(
-	//		ComboCheckTimer,
-	//		ComboCheckDelegate,
-	//		ComboAcceptTime,
-	//		false
-	//	);
-	//}
 }
 
 void UUK_CombatAnimationComponent::StopJumpAndFly()
@@ -225,7 +179,6 @@ void UUK_CombatAnimationComponent::CheckComboProcessable(const EComboAttackType 
 {
 	if ( !IsValid(NowWeapon) )
 		return;
-	// 타이머 초기화
 
 	ensure(IsValid(OwnerCharactor));
 	//// 입력 감지에 안된다면 콤보 재생종료
@@ -278,7 +231,6 @@ void UUK_CombatAnimationComponent::ResetCharacterGravityScale()
 
 void UUK_CombatAnimationComponent::ResetPlayerComboAttackValue()
 {
-	ComboCheckTimer.Invalidate();
 	InputType = EAttackInput::None;
 
 	CurrentComboCount = 0;
@@ -294,19 +246,6 @@ void UUK_CombatAnimationComponent::ResetPlayerCharacterMovement()
 	}
 }
 
-void UUK_CombatAnimationComponent::ServerResetPlayerComboAttackValue_Implementation()
-{
-	ComboCheckTimer.Invalidate();
-	InputType = EAttackInput::None;
-
-	CurrentComboCount = 0;
-
-	if ( OwnerCharactor && OwnerCharactor->HasAuthority() )
-	{
-		ServerComboCount = 0;
-		ServerAttackType = EComboAttackType::None;
-	}
-}
 
 // 현재 상태에 따른 어택타입 가져오기
 EComboAttackType UUK_CombatAnimationComponent::GetNextAttackType()
@@ -349,24 +288,6 @@ void UUK_CombatAnimationComponent::ServerRPCStartComboAttack_Implementation(cons
 {
 	if ( !OwnerCharactor || !NowWeapon )
 		return;
-
-	//if ( ServerComboCount == 0 )
-	//{
-	//	ServerComboCount = 1;
-	//	ServerAttackType = AttackType;
-	//}
-	//else
-	//{
-	//	if ( ServerAttackType != AttackType )
-	//	{
-	//		ServerComboCount = 1;
-	//		ServerAttackType = AttackType;
-	//	}
-	//	else
-	//	{
-	//		++ServerComboCount;
-	//	}
-	//}
 
 	CurrentComboCount = 1;
 
