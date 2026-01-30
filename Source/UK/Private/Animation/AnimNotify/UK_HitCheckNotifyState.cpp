@@ -8,6 +8,7 @@
 
 void UUK_HitCheckNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration)
 {
+	Super::NotifyBegin(MeshComp, Animation, TotalDuration);
 	ACharacter* OwnerCharacter = Cast<ACharacter>(MeshComp->GetOwner());
 	if ( !IsValid( OwnerCharacter) )
 		return;
@@ -30,6 +31,7 @@ void UUK_HitCheckNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAni
 
 void UUK_HitCheckNotifyState::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
 {
+	Super::NotifyEnd(MeshComp, Animation);
 	ACharacter* OwnerCharacter = Cast<ACharacter>(MeshComp->GetOwner());
 	if ( !IsValid(OwnerCharacter) )
 		return;
