@@ -1,7 +1,10 @@
 #include "AIMonster/UK_AiMonsterCtl.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Character.h"
-#include "DrawDebugHelpers.h" //µð¹ö±ë¿ë (»èÁ¦¿¹Á¤)
+#include "GameFramework/CharacterMovementComponent.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "DrawDebugHelpers.h" //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
 
 AUK_AiMonsterCtl::AUK_AiMonsterCtl()
 {
@@ -17,14 +20,50 @@ void AUK_AiMonsterCtl::OnPossess(APawn* InPawn)
 
 	if (ControlledMonster)
 	{
-		/* AI È°¼ºÈ­ ½ÃÅ°±â */
-		ControlledMonster->RequestState(EMonsterState::Idle);
+		// ===== BehaviorTree =====
+		if (ControlledMonster->BehaviorTree)
+		{
+			RunBehaviorTree(ControlledMonster->BehaviorTree);
+			
+			if (UBlackboardComponent* BlackboardComp = GetBlackboardComponent())
+			{
+				BlackboardComp->SetValueAsVector(TEXT("SpawnLocation"), ControlledMonster->SpawnLocation);
+				BlackboardComp->SetValueAsVector(TEXT("PatrolLocation"), ControlledMonster->SpawnLocation);
+			}
+			
+			UE_LOG(LogTemp, Log, TEXT("UK_AiMonsterCtl: BehaviorTree started for %s"), *InPawn->GetName());
+		}
+		else
+		{
+			ControlledMonster->RequestState(EMonsterState::Idle);
+		}
+	
+		// ===== RVO =====
+		if (bUseRVOAvoidance)
+		{
+			ACharacter* ControlledCharacter = Cast<ACharacter>(InPawn);
+			if (ControlledCharacter)
+			{
+				UCharacterMovementComponent* MovementComp = ControlledCharacter->GetCharacterMovement();
+				if (MovementComp)
+				{
+					MovementComp->bUseRVOAvoidance = true;
+					MovementComp->SetAvoidanceGroup(AvoidanceGroup);
+					MovementComp->SetGroupsToAvoid(GroupsToAvoid);
+					MovementComp->SetGroupsToIgnore(GroupsToIgnore);
+					MovementComp->AvoidanceConsiderationRadius = 500.0f;
+					MovementComp->AvoidanceWeight = 0.5f;
+					
+					UE_LOG(LogTemp, Log, TEXT("UK_AiMonsterCtl: RVO Avoidance enabled for %s"), *InPawn->GetName());
+				}
+			}
+		}
 	}
 }
 
 void AUK_AiMonsterCtl::OnUnPossess()
 {
-	/* ÇØÁ¦ ½ÃÅ°±â */
+	/* ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Å°ï¿½ï¿½ */
 	ControlledMonster = nullptr;
 	CurrentTarget = nullptr;
 	bHasPatrolTarget = false;
@@ -39,13 +78,17 @@ void AUK_AiMonsterCtl::Tick(float DeltaSeconds)
 	if (!ControlledMonster || !HasAuthority())
 		return;
 
+	// BehaviorTree ì‚¬ìš©ì¤‘ì´ë©´ ê¸°ì¡´ AI ë¡œì§ ìŠ¤í‚µ
+	if (ControlledMonster->BehaviorTree && GetBrainComponent())
+		return;
+	
 	UpdateTarget();
 	UpdateState();
 	HandleMovement();
 	DrawAIDebug();
 }
 
-/* Target Å½»ö ·ÎÁ÷ (¼öÁ¤,Ã·»è µÉ ¼ö ÀÖÀ½) */
+/* Target Å½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½,Ã·ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½) */
 
 void AUK_AiMonsterCtl::UpdateTarget()
 {
@@ -75,7 +118,7 @@ void AUK_AiMonsterCtl::UpdateTarget()
 	CurrentTarget = ClosestTarget;
 }
 
-/* »óÅÂº° ÆÇ´Ü ·ÎÁ÷ */
+/* ï¿½ï¿½ï¿½Âºï¿½ ï¿½Ç´ï¿½ ï¿½ï¿½ï¿½ï¿½ */
 
 void AUK_AiMonsterCtl::UpdateState()
 {
@@ -102,7 +145,7 @@ void AUK_AiMonsterCtl::UpdateState()
 	}
 }
 
-/* ÀÌµ¿ ÇàÀ§ ·ÎÁ÷ */
+/* ï¿½Ìµï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ */
 
 void AUK_AiMonsterCtl::HandleMovement()
 {
@@ -139,7 +182,7 @@ void AUK_AiMonsterCtl::HandleMovement()
 	}
 }
 
-/* Patrol ¹üÀ§ ¼³Á¤ ·ÎÁ÷ */
+/* Patrol ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ */
 
 void AUK_AiMonsterCtl::SetNewPatrolTarget()
 {
@@ -153,7 +196,7 @@ void AUK_AiMonsterCtl::SetNewPatrolTarget()
 	bHasPatrolTarget = true;
 }
 
-/* ¹Ýº¹ PatrolÀ» ÇÒ ¼ö ÀÖ°Ô ÇÏ´Â ÄÝ¹é ÇÔ¼ö */
+/* ï¿½Ýºï¿½ Patrolï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½Ö°ï¿½ ï¿½Ï´ï¿½ ï¿½Ý¹ï¿½ ï¿½Ô¼ï¿½ */
 
 void AUK_AiMonsterCtl::OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result)
 {
@@ -165,7 +208,7 @@ void AUK_AiMonsterCtl::OnMoveCompleted(FAIRequestID RequestID, const FPathFollow
 	}
 }
 
-/* µð¹ö±ë¿ë (»èÁ¦ ¿¹Á¤) */
+/* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½) */
 
 void AUK_AiMonsterCtl::DrawAIDebug() const
 {
@@ -175,7 +218,7 @@ void AUK_AiMonsterCtl::DrawAIDebug() const
 	const FVector Origin = ControlledMonster->GetActorLocation();
 	const float ZOffset = 10.f;
 
-	// Å½»ö ¹üÀ§ (³ë¶û)
+	// Å½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½)
 	DrawDebugSphere(
 		GetWorld(),
 		Origin,
@@ -188,7 +231,7 @@ void AUK_AiMonsterCtl::DrawAIDebug() const
 		1.5f
 	);
 
-	// ÃßÀû ¹üÀ§ (ÆÄ¶û)
+	// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ (ï¿½Ä¶ï¿½)
 	DrawDebugSphere(
 		GetWorld(),
 		Origin,
@@ -201,7 +244,7 @@ void AUK_AiMonsterCtl::DrawAIDebug() const
 		1.5f
 	);
 
-	// °ø°Ý ¹üÀ§ (»¡°­)
+	// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½)
 	DrawDebugSphere(
 		GetWorld(),
 		Origin,
@@ -214,7 +257,7 @@ void AUK_AiMonsterCtl::DrawAIDebug() const
 		2.5f
 	);
 
-	// ¼øÂû ¹Ý°æ (ÃÊ·Ï)
+	// ï¿½ï¿½ï¿½ï¿½ ï¿½Ý°ï¿½ (ï¿½Ê·ï¿½)
 	DrawDebugSphere(
 		GetWorld(),
 		Origin,
@@ -227,7 +270,7 @@ void AUK_AiMonsterCtl::DrawAIDebug() const
 		1.0f
 	);
 
-	// ÇöÀç Å¸°Ù Ç¥½Ã
+	// ï¿½ï¿½ï¿½ï¿½ Å¸ï¿½ï¿½ Ç¥ï¿½ï¿½
 	if (CurrentTarget)
 	{
 		DrawDebugLine(
@@ -242,7 +285,7 @@ void AUK_AiMonsterCtl::DrawAIDebug() const
 		);
 	}
 
-	// ¼øÂû ¸ñÇ¥ ÁöÁ¡
+	// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ç¥ ï¿½ï¿½ï¿½ï¿½
 	if (bDrawDebug)
 	{
 		DrawDebugSphere(
