@@ -99,8 +99,25 @@ protected:
 	virtual void OnAttack();
 	virtual void OnDead();
 
+#pragma region Combat
+
+	/* 공격 관련 */
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float AttackDamage = 20.f;
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float AttackRange = 150.f;
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float AttackCooldown = 1.5f;
+
+	float LastAttackTime = 0.f;
+
+#pragma endregion
+
 	/* 기본 최적화 베이스 (깔아는 두고 수정 첨삭 될수 있습니다) */
-protected:
+#pragma region Optimization
 
 	UPROPERTY(EditDefaultsOnly, Category = "Optimization")
 	float TickIntervalPatrol = 0.6f;
@@ -111,6 +128,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Optimization")
 	float TickIntervalAttack = 0.1f;
 
+#pragma endregion
 public:
 
 	void ReceiveDamage(float Damage);

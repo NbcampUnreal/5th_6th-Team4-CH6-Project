@@ -1,6 +1,8 @@
 ﻿#include "AIMonster/AIMonsterBase.h"
 #include "AIController.h"
 #include "Net/UnrealNetwork.h"
+#include "AIMonster/UK_AiMonsterCtl.h"
+#include "Character/UK_CharacterBase.h"
 
 AAIMonsterBase::AAIMonsterBase()
 {
@@ -168,6 +170,56 @@ void AAIMonsterBase::OnChase(float DeltaSeconds)
 
 void AAIMonsterBase::OnAttack()
 {
+	if ( !HasAuthority() ) return;
+
+	/* 쿨타임 */
+
+	float Now = GetWorld()->GetTimeSeconds();
+
+	if ( Now - LastAttackTime < AttackCooldown )
+		return;
+
+
+	/* AIController */
+
+	AUK_AiMonsterCtl* AI =
+		Cast<AUK_AiMonsterCtl>(GetController());
+
+	if ( !AI ) return;
+
+
+	/* Target */
+
+	AActor* Target = AI->GetCurrentTarget();
+
+	if ( !Target ) return;
+
+
+	/* 거리 체크 */
+
+	float Dist = FVector::Dist(
+		GetActorLocation(),
+		Target->GetActorLocation()
+	);
+
+	if ( Dist > AttackRange )
+		return;
+
+
+	/* 데미지 */
+
+	AUK_CharacterBase* Player =
+		Cast<AUK_CharacterBase>(Target);
+
+	if ( Player )
+	{
+		//Player->ReceiveDamage(AttackDamage);
+	}
+
+
+	/* 쿨타임 갱신 */
+
+	LastAttackTime = Now;
 }
 
 void AAIMonsterBase::OnDead()
