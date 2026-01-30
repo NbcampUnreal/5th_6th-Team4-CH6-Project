@@ -36,6 +36,15 @@ void UUK_CombatAnimationComponent::GetLifetimeReplicatedProps(TArray<FLifetimePr
 }
 
 
+
+void UUK_CombatAnimationComponent::SetNowWeapon(const TObjectPtr<UUK_StatusAnimData>& Weapon)
+{
+	if ( IsValid(Weapon) )
+	{
+		NowWeapon = Weapon;
+	}
+}
+
 // Called when the game starts
 void UUK_CombatAnimationComponent::BeginPlay()
 {
@@ -183,8 +192,8 @@ void UUK_CombatAnimationComponent::SetCheckComboTimer(const EComboAttackType Att
 	if ( !IsValid(NowWeapon) )
 		return;
 
-	if ( AttackAnim->MaxComboCount == CurrentComboCount )
-		return;
+	//if ( AttackAnim->MaxComboCount == CurrentComboCount )
+	//	return;
 
 	int32 CurrentComboIndex = CurrentComboCount - 1;
 
@@ -372,7 +381,7 @@ void UUK_CombatAnimationComponent::ServerRPCStartComboAttack_Implementation(cons
 	//	}
 	//}
 
-	//CurrentComboCount = ServerComboCount;
+	CurrentComboCount = 1;
 
 	MulticastPlayCombo(AttackType, CurrentComboCount);
 }

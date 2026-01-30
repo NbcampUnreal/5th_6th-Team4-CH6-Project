@@ -40,6 +40,7 @@ public:
 
 	virtual void OnRep_PlayerState();
 
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -54,7 +55,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
 	TObjectPtr<UStatusComponent> StatusComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUK_CombatAnimationComponent> AnimationComponent;
 
 #pragma endregion
@@ -92,6 +93,7 @@ protected:
 	UPROPERTY()
 	TObjectPtr<AUK_WeaponBase> CurrentWeapon;
 public:
+
 	void EquipWeapon(AUK_WeaponBase* NewWeapon);
 #pragma endregion
 

@@ -34,11 +34,9 @@ public:
 	UUK_CombatAnimationComponent();
 	
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps)const override;
-
 	// Called every frame
 	//virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	void SetNowWeapon(const TObjectPtr<UUK_StatusAnimData>& Weapon) { NowWeapon = Weapon; }
-protected:
+	void SetNowWeapon(const TObjectPtr<UUK_StatusAnimData>& Weapon);
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
