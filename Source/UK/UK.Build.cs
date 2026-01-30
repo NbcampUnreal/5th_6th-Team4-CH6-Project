@@ -14,6 +14,7 @@ public class UK : ModuleRules
 			"Engine",
 			"InputCore",
 			"EnhancedInput",
+			"NavigationSystem",
 			"AIModule",
 			"StateTreeModule",
 			"GameplayStateTreeModule",
