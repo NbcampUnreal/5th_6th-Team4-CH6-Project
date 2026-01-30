@@ -57,6 +57,9 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerRPCStartComboAttack(const EComboAttackType AttackType);
 
+	UFUNCTION(Server, Reliable)
+	void ServerRPCComboAttack(const EComboAttackType AttackType, FName SectionName);
+
 	void PlayComboAttackAnimation(const EComboAttackType AttackType, FName SectionName);
 
 	void SetCheckComboTimer(const EComboAttackType AttackType);
@@ -73,6 +76,9 @@ public:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastPlayCombo(EComboAttackType AttackType, uint8 ComboCount);
+
+	UFUNCTION(Server, Reliable)
+	void ServerResetPlayerComboAttackValue();
 
 	EComboAttackType GetNextAttackType();
 protected:
