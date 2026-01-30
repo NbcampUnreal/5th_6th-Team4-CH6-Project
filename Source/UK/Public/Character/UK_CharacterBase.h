@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -17,6 +17,8 @@ class UAbilitySystemComponent;
 class UGameplayAbility;
 class AUK_WeaponBase;
 class UUK_InputConfig;
+class UUK_InputComponent;
+class UUK_CombatAnimationComponent;
 struct FInputActionValue;
 #pragma endregion
 
@@ -45,14 +47,17 @@ protected:
 	virtual void BeginPlay() override;
 
 protected:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USpringArmComponent> SpringArm;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UCameraComponent> Camera;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStatusComponent> StatusComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UUK_CombatAnimationComponent> AnimationComponent;
 
 #pragma endregion
 #pragma region GAS
@@ -67,22 +72,13 @@ private:
 
 #pragma region Input
 protected:
-	UFUNCTION()
-	void Sprint();
-
-	UFUNCTION()
-	void Move(const FInputActionValue& Value);
-
-	UFUNCTION()
-	void Look(const FInputActionValue& Value);
-
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void Attack();
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void ZoomIn();
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void ZoomOut();
 
 protected:
@@ -96,7 +92,7 @@ protected:
 #pragma region Weapon
 protected:
 	UFUNCTION()
-	virtual void OnRep_CurrentWeapon(const AUK_WeaponBase* OldWeapon);
+	void OnRep_CurrentWeapon(const AUK_WeaponBase* OldWeapon);
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
@@ -114,33 +110,11 @@ protected:
 
 #pragma region Attack
 public:
-	virtual void BeginAttack();
-
-	UFUNCTION()
-	virtual void EndAttack(UAnimMontage* InMontage, bool bInterruped);
 
 	UFUNCTION()
 	void HandleOnCheckHit();
 
-	UFUNCTION()
-	void HandleOnCheckInputAttack();
-
 protected:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TObjectPtr<UAnimMontage> AttackMontage;
-
-	FString MontageSectionName = FString(TEXT("Attack"));
-
-	int32 MaxComboCount = 3;
-
-	int32 CurrentComboCount = 0;
-
-	bool bIsNowAttacking = false;
-
-	bool bIsAttackKeyPressed = false;
-
-	FOnMontageEnded OnMeleeAttackMontageEndedDelegate;
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	float AttackRange;
 

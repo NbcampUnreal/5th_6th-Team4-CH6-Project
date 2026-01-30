@@ -19,6 +19,7 @@ void AAIMonsterBase::BeginPlay()
 	if (HasAuthority())
 	{
 		SetActorTickEnabled(false);
+		SpawnLocation = GetActorLocation();
 	}
 }
 
@@ -52,7 +53,7 @@ void AAIMonsterBase::Tick(float DeltaSeconds)
     }
 }
 
-/* ¼­¹ö·Î »óÅÂ ¿äÃ»À» º¸³»´Â ±¸°£ */
+/* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ã»ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ */
 
 void AAIMonsterBase::RequestState_Implementation(EMonsterState NewState)
 {
@@ -108,15 +109,35 @@ void AAIMonsterBase::OnRep_MonsterState()
     }
 }
 
-/* AI È°¼ºÈ­ Á¦¾î ½ºÀ§Ä¡ °°Àº ¿ªÇÒ */
+/* AI È°ï¿½ï¿½È­ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ä¡ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ */
 
 void AAIMonsterBase::SetAIActive(bool bActive)
 {
-   /* ·ÎÁ÷ ¼öÁ¤ Áß*/
+   /* ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½*/
 }
 
-/* »óÅÂº° ±âº»ÀûÀÎ µ¿ÀÛ È¤Àº ÇàÀ§ */
-/* ÀÚ½Ä Å¬·¡½º¿¡¼­ »ó¼Ó ¹Ş¾Æ¼­ »ç¿ë µÉ ÇÔ¼ö */
+/* Spawner System*/
+void AAIMonsterBase::Die()
+{
+	if (!HasAuthority()) return;
+	if (IsDead()) return;
+
+	SetServerState(EMonsterState::Dead);
+	OnDeath.Broadcast(this);
+}
+
+void AAIMonsterBase::ResetHealth()
+{
+	// HP ì»´í¬ë„ŒíŠ¸ ì¶”ê°€ì‹œ ì—¬ê¸°ì„œ ì´ˆê¸°í™”
+	// í˜„ì¬ëŠ” ìƒíƒœë§Œ ë¦¬ì…‹
+	if (HasAuthority())
+	{
+		SetServerState(EMonsterState::Idle);
+	}
+}
+
+/* ï¿½ï¿½ï¿½Âºï¿½ ï¿½âº»ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ È¤ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ */
+/* ï¿½Ú½ï¿½ Å¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½Ş¾Æ¼ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½Ô¼ï¿½ */
 
 void AAIMonsterBase::OnIdle()
 {
