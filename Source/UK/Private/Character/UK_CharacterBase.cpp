@@ -8,6 +8,7 @@
 #include "Animation/UK_AnimInstance.h"
 #include "ActorComponent/StatusComponent.h"
 #include "ActorComponent/UK_InputComponent.h"
+#include "ActorComponent/UK_CombatAnimationComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -63,6 +64,7 @@ AUK_CharacterBase::AUK_CharacterBase() :
 #pragma endregion
 
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
+	AnimationComponent = CreateDefaultSubobject<UUK_CombatAnimationComponent>(TEXT("AnimComponent"));
 }
 
 void AUK_CharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -155,149 +157,20 @@ void AUK_CharacterBase::GiveStartupAbilities()
 void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-	TObjectPtr<UEnhancedInputComponent> EnhancedInput = CastChecked<UEnhancedInputComponent>(PlayerInputComponent);
-	ULocalPlayer* Localplayer = GetController<APlayerController>()->GetLocalPlayer();
-	if ( TObjectPtr<UEnhancedInputLocalPlayerSubsystem> SupSystem = Localplayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>() )
-	{
-		if ( InputConfig )
-		{
-			SupSystem->AddMappingContext(InputConfig->DefaultIMC, 0);
-		}
-	}
-#pragma region BindAction
-	TObjectPtr<UUK_InputComponent> UKEnhanced = CastChecked<UUK_InputComponent>(PlayerInputComponent);
-	UKEnhanced->BindInputAction(
-		InputConfig,
-		UK_GameplayTags::Input::InputMove,
-		ETriggerEvent::Triggered,
-		this,
-		&ThisClass::Move
-	);
-
-	UKEnhanced->BindInputAction(
-		InputConfig,
-		UK_GameplayTags::Input::InputLook,
-		ETriggerEvent::Triggered,
-		this,
-		&ThisClass::Look
-	);
-
-	UKEnhanced->BindInputAction(
-		InputConfig,
-		UK_GameplayTags::Input::InputJump,
-		ETriggerEvent::Started,
-		this,
-		&ThisClass::Jump
-	);
-
-	UKEnhanced->BindInputAction(
-		InputConfig,
-		UK_GameplayTags::Input::InputJump,
-		ETriggerEvent::Completed,
-		this,
-		&ThisClass::StopJumping
-	);
-
-	UKEnhanced->BindInputAction(
-		InputConfig,
-		UK_GameplayTags::Input::InputSprint,
-		ETriggerEvent::Started,
-		this,
-		&ThisClass::Sprint
-	);
-
-	UKEnhanced->BindInputAction(
-		InputConfig,
-		UK_GameplayTags::Input::InputAttack,
-		ETriggerEvent::Started,
-		this,
-		&ThisClass::Attack
-	);
-
-	UKEnhanced->BindInputAction(
-		InputConfig,
-		UK_GameplayTags::Input::InputZoomIn,
-		ETriggerEvent::Triggered,
-		this,
-		&ThisClass::ZoomIn
-	);
-
-	UKEnhanced->BindInputAction(
-		InputConfig,
-		UK_GameplayTags::Input::InputZoomOut,
-		ETriggerEvent::Triggered,
-		this,
-		&ThisClass::ZoomOut
-	);
-#pragma endregion
 }
 
-void AUK_CharacterBase::Sprint()
-{
-
-	if ( !bSprint )
-	{
-		GetCharacterMovement()->MaxWalkSpeed = 1200.f;
-		bSprint = true;
-	}
-	else
-	{
-		GetCharacterMovement()->MaxWalkSpeed = 600.f;
-		bSprint = false;
-	}
-}
-
-void AUK_CharacterBase::Move(const FInputActionValue& Value)
-{
-	if ( !Controller )
-		return;
-	const FVector2D MoveInput = Value.Get<FVector2D>();
-
-	if ( !FMath::IsNearlyZero(MoveInput.X) )
-	{
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-		AddMovementInput(Direction, MoveInput.X);
-	}
-
-
-	if ( !FMath::IsNearlyZero(MoveInput.Y) )
-	{
-
-		const FRotator Rotation = Controller->GetControlRotation();
-
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-
-		AddMovementInput(Direction, MoveInput.Y);
-	}
-}
-
-void AUK_CharacterBase::Look(const FInputActionValue& Value)
-{
-	const FVector2D LookInput = Value.Get<FVector2D>();
-
-	AddControllerYawInput(LookInput.X);
-	AddControllerPitchInput(LookInput.Y);
-}
 
 void AUK_CharacterBase::Attack()
 {
-	if ( 0 == CurrentComboCount )
-	{
-		BeginAttack();
-	}
-	else
-	{
-		ensure(FMath::IsWithinInclusive<int32>(CurrentComboCount, 1, MaxComboCount));
-		bIsAttackKeyPressed = true;
-	}
+	AnimationComponent->PlayLightComboAnimation();
 }
 
 void AUK_CharacterBase::ZoomIn()
 {
+	if (!IsValid( SpringArm ))
+	{
+		return;
+	}
 	const float DeltaTime = GetWorld()->GetDeltaSeconds();
 
 	const float Target = 70.f;
@@ -311,6 +184,10 @@ void AUK_CharacterBase::ZoomIn()
 
 void AUK_CharacterBase::ZoomOut()
 {
+	if (!IsValid( SpringArm ))
+	{
+		return;
+	}
 	const float DeltaTime = GetWorld()->GetDeltaSeconds();
 
 	const float Target = 300.f;
@@ -343,39 +220,6 @@ void AUK_CharacterBase::OnRep_CurrentWeapon(const AUK_WeaponBase* OldWeapon)
 
 #pragma region Attack
 
-void AUK_CharacterBase::BeginAttack()
-{
-	TObjectPtr < UUK_AnimInstance > AnimInstance = Cast<UUK_AnimInstance>(GetMesh()->GetAnimInstance());
-
-	bIsNowAttacking = true;
-	if ( IsValid(AnimInstance) && IsValid(AttackMontage) && !( AnimInstance->Montage_IsPlaying(AttackMontage) ) )
-	{
-		AnimInstance->Montage_Play(AttackMontage);
-	}
-
-	CurrentComboCount = 1;
-
-	if ( !OnMeleeAttackMontageEndedDelegate.IsBound() )
-	{
-		OnMeleeAttackMontageEndedDelegate.BindUObject(this, &ThisClass::EndAttack);
-		AnimInstance->Montage_SetEndDelegate(OnMeleeAttackMontageEndedDelegate, AttackMontage);
-	}
-}
-
-void AUK_CharacterBase::EndAttack(UAnimMontage* InMontage, bool bInterruped)
-{
-	ensureMsgf(CurrentComboCount != 0, TEXT("CurrentComboCount == 0"));
-
-	CurrentComboCount = 0;
-	bIsAttackKeyPressed = false;
-	bIsNowAttacking = false;
-
-	if ( OnMeleeAttackMontageEndedDelegate.IsBound() )
-	{
-		OnMeleeAttackMontageEndedDelegate.Unbind();
-	}
-}
-
 void AUK_CharacterBase::HandleOnCheckHit()
 {
 	UKismetSystemLibrary::PrintString(this, TEXT("HandleOnCheckHit()"));
@@ -386,7 +230,7 @@ void AUK_CharacterBase::HandleOnCheckHit()
 	FVector UpRange(30.f, 0.f, 40.f);
 
 	bool bResult;
-	if ( CurrentComboCount != 3 )
+	if ( 1/*CurrentComboCount != 3 */ )
 	{
 		bResult = GetWorld()->SweepMultiByChannel(
 			HitResults,
@@ -440,20 +284,6 @@ void AUK_CharacterBase::HandleOnCheckHit()
 				}
 			}
 		}
-	}
-}
-void AUK_CharacterBase::HandleOnCheckInputAttack()
-{
-	TObjectPtr < UUK_AnimInstance > AnimInstance = Cast<UUK_AnimInstance>(GetMesh()->GetAnimInstance());
-	checkf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
-
-	if ( bIsAttackKeyPressed )
-	{
-		CurrentComboCount = FMath::Clamp(CurrentComboCount + 1, 1, MaxComboCount);
-
-		FName NextSectionName = *FString::Printf(TEXT("%s%02d"), *MontageSectionName, CurrentComboCount);
-		AnimInstance->Montage_JumpToSection(NextSectionName, AttackMontage);
-		bIsAttackKeyPressed = false;
 	}
 }
 

@@ -19,24 +19,24 @@ protected:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result) override;
 private:
-	/* ÄÁÆ®·Ñ ÁßÀÎ ¸ó½ºÅÍ */
+	/* ï¿½ï¿½Æ®ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ */
 
 	UPROPERTY()
 	AAIMonsterBase* ControlledMonster;
 
-	/* ÇöÀç Å¸°Ù */
+	/* ï¿½ï¿½ï¿½ï¿½ Å¸ï¿½ï¿½ */
 
 	UPROPERTY()
 	AActor* CurrentTarget;
 
-	/*  AI ÆÇ´Ü  */
+	/*  AI ï¿½Ç´ï¿½  */
 
 	void UpdateTarget();
 	void UpdateState();
 	void HandleMovement();
 
-	/* ¼³Á¤°ª */
-	/* ÀÓ½Ã·Î ³ÖÀº ¼³Á¤ °ª (ÃßÈÄ Å×½ºÆ® ÅëÇØ¼­ º¯°æ ÇÊ¿ä) */
+	/* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
+	/* ï¿½Ó½Ã·ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ ï¿½×½ï¿½Æ® ï¿½ï¿½ï¿½Ø¼ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ê¿ï¿½) */
 
 	void SetNewPatrolTarget();
 
@@ -57,8 +57,22 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	float ControllerTickInterval = 0.2f;
+	
+#pragma region RVO
+	UPROPERTY(EditAnywhere, Category = "AI|RVO")
+	bool bUseRVOAvoidance = true;
 
-	/* µð¹ö±ë (»èÁ¦ ¿¹Á¤) */
+	UPROPERTY(EditAnywhere, Category = "AI|RVO")
+	int32 AvoidanceGroup = 1;
+
+	UPROPERTY(EditAnywhere, Category = "AI|RVO")
+	int32 GroupsToAvoid = 1;
+
+	UPROPERTY(EditAnywhere, Category = "AI|RVO")
+	int32 GroupsToIgnore = 0;
+#pragma endregion
+
+	/* ï¿½ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½) */
 
 	UPROPERTY(EditDefaultsOnly, Category = "Debug")
 	bool bDrawDebug = true;
