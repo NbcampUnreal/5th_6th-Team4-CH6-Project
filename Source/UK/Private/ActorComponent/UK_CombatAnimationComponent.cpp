@@ -79,7 +79,7 @@ void UUK_CombatAnimationComponent::PlayLightComboAnimation()
 		{
 			if ( !OwnerCharactor->HasAuthority() )
 			{
-				StartComboAttack(EComboAttackType::AttackOnAir);
+				//StartComboAttack(EComboAttackType::AttackOnAir);
 			}
 
 			ServerRPCStartComboAttack(EComboAttackType::AttackOnAir);
@@ -88,7 +88,7 @@ void UUK_CombatAnimationComponent::PlayLightComboAnimation()
 		{
 			if ( !OwnerCharactor->HasAuthority() )
 			{
-				StartComboAttack(EComboAttackType::LightAttackOnGround);
+				//StartComboAttack(EComboAttackType::LightAttackOnGround);
 			}
 			ServerRPCStartComboAttack(EComboAttackType::LightAttackOnGround);
 		}
@@ -120,6 +120,20 @@ void UUK_CombatAnimationComponent::StartComboAttack(EComboAttackType AttackType)
 
 void UUK_CombatAnimationComponent::ServerRPCComboAttack_Implementation(const EComboAttackType AttackType, FName SectionName)
 {
+	if ( !NowWeapon ) return;
+
+	EComboAttackType NextAttack = GetNextAttackType();
+
+	// 공격 타입이 달라진다면
+	if ( AttackType != NextAttack )
+	{
+		//콤보를 처음부터 시작
+		CurrentComboCount = 1;
+	}
+	else 
+	{
+		CurrentComboCount++;
+	}
 	MulticastPlayCombo(AttackType, CurrentComboCount);
 }
 
@@ -184,25 +198,17 @@ void UUK_CombatAnimationComponent::CheckComboProcessable(const EComboAttackType 
 	//// 입력 감지에 안된다면 콤보 재생종료
 	if ( InputType == EAttackInput::None )
 		return;
-	UE_LOG(LogTemp, Display, TEXT("CheckComboProcessable() call"));
-	++CurrentComboCount;
 
-	EComboAttackType NextAttack = GetNextAttackType();
-	// 공격 타입이 달라진다면
-	if ( AttackType != NextAttack )
-	{
-		//콤보를 처음부터 시작
-		CurrentComboCount = 1;
-	}
+	UE_LOG(LogTemp, Display, TEXT("CheckComboProcessable() call"));
 
 	FName NextComboSectionName = *FString::Printf(TEXT("%s%d"), *AttackAnim->MontageName, CurrentComboCount);
 
 	// 애니메이션 재생
 	if ( !OwnerCharactor->HasAuthority() )
 	{
-		PlayComboAttackAnimation(NextAttack, NextComboSectionName);
+		//PlayComboAttackAnimation(NextAttack, NextComboSectionName);
 	}
-	ServerRPCComboAttack(NextAttack, NextComboSectionName);
+	ServerRPCComboAttack(AttackType, NextComboSectionName);
 
 	InputType = EAttackInput::None;
 }
@@ -274,8 +280,8 @@ EComboAttackType UUK_CombatAnimationComponent::GetNextAttackType()
 
 void UUK_CombatAnimationComponent::MulticastPlayCombo_Implementation(EComboAttackType AttackType, uint8 ComboCount)
 {
-	if ( OwnerCharactor->GetLocalRole() == ROLE_AutonomousProxy )
-		return;
+	//if ( OwnerCharactor->GetLocalRole() == ROLE_AutonomousProxy )
+	//	return;
 
 	AttackAnim = NowWeapon->FindAnimsDataAssetByType(AttackType);
 
