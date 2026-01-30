@@ -4,7 +4,9 @@
 #include "GameFramework/Character.h"
 #include "AIMonsterBase.generated.h"
 
-/* AI »óÅÂ °ü·Ã Á¤ÀÇÇÑ ³»¿ë */
+class UBehaviorTree;
+
+/* AI ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ */
 UENUM(BlueprintType)
 enum class EMonsterState : uint8
 {
@@ -14,6 +16,9 @@ enum class EMonsterState : uint8
 	Attack,
 	Dead
 };
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDeath, class AAIMonsterBase*, DeadMonster);
+
 UCLASS(Abstract)
 class UK_API AAIMonsterBase : public ACharacter
 {
@@ -22,18 +27,54 @@ class UK_API AAIMonsterBase : public ACharacter
 public:
 	AAIMonsterBase();
 
-	/* ¼­¹ö Àü¿ë »óÅÂ¿¡¼­ ¿äÃ» ÇÒ ³»¿ë (Controller°¡ È£Ãâ ÇÒ ¿¹Á¤)*/
+	/* ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Â¿ï¿½ï¿½ï¿½ ï¿½ï¿½Ã» ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ (Controllerï¿½ï¿½ È£ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½)*/
 	UFUNCTION(Server, Reliable)
 	void RequestState(EMonsterState NewState);
 
 	UFUNCTION(BlueprintPure)
 	EMonsterState GetCurrentState() const { return CurrentState; }
+	
+#pragma region Spawner System
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
+	UBehaviorTree* BehaviorTree;
 
+	UPROPERTY()
+	class AUK_MonsterSpawner* OwningSpawner;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Monster")
+	FVector SpawnLocation;
+
+	UPROPERTY(BlueprintAssignable, Category = "Monster")
+	FOnMonsterDeath OnDeath;
+
+	UFUNCTION(BlueprintCallable, Category = "Monster")
+	void Die();
+
+	UFUNCTION(BlueprintPure, Category = "Monster")
+	bool IsDead() const { return CurrentState == EMonsterState::Dead; }
+
+	UFUNCTION(BlueprintCallable, Category = "Monster")
+	void ResetHealth();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+	float DetectionRadius = 800.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+	float PatrolRadius = 1000.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+	float LookAtRotationSpeed = 5.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+	float MaxChaseDistance = 1500.0f;
+	
+#pragma endregion
+	
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 
-	/* ÃÊ±â »óÅÂ°ª ¼³Á¤ */
+	/* ï¿½Ê±ï¿½ ï¿½ï¿½ï¿½Â°ï¿½ ï¿½ï¿½ï¿½ï¿½ */
 	UPROPERTY(ReplicatedUsing = OnRep_MonsterState)
 	EMonsterState CurrentState = EMonsterState::Idle;
 
@@ -42,19 +83,19 @@ protected:
 
 	void SetServerState(EMonsterState NewState);
 
-	/* AI È°¼º / ºñÈ°¼º ½ºÀ§Ä¡ ¿ªÇÒÀ» ÇÏ°ÔµÉ °ª (Controller°¡ È£Ãâ ÇÒ ¿¹Á¤) */
+	/* AI È°ï¿½ï¿½ / ï¿½ï¿½È°ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ä¡ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ï°Ôµï¿½ ï¿½ï¿½ (Controllerï¿½ï¿½ È£ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½) */
 public:
 	void SetAIActive(bool bAcitve);
 
 protected:
-	/* ÇöÀç »óÅÂº° ½ÇÇàÇÒ ÇÔ¼öµé »ó¼Ó¹ÞÀº ÀÚ½ÄÅ¬·¡½º¿¡¼­ override µÉ ÇÔ¼ö */
+	/* ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Âºï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ô¼ï¿½ï¿½ï¿½ ï¿½ï¿½Ó¹ï¿½ï¿½ï¿½ ï¿½Ú½ï¿½Å¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ override ï¿½ï¿½ ï¿½Ô¼ï¿½ */
 	virtual void OnIdle();
 	virtual void OnChase(float DeltaSeconds);
 	virtual void OnPatrol();
 	virtual void OnAttack();
 	virtual void OnDead();
 
-	/* ±âº» ÃÖÀûÈ­ º£ÀÌ½º (±ò¾Æ´Â µÎ°í ¼öÁ¤ Ã·»è µÉ¼ö ÀÖ½À´Ï´Ù) */
+	/* ï¿½âº» ï¿½ï¿½ï¿½ï¿½È­ ï¿½ï¿½ï¿½Ì½ï¿½ (ï¿½ï¿½Æ´ï¿½ ï¿½Î°ï¿½ ï¿½ï¿½ï¿½ï¿½ Ã·ï¿½ï¿½ ï¿½É¼ï¿½ ï¿½Ö½ï¿½ï¿½Ï´ï¿½) */
 protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Optimization")
