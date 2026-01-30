@@ -75,7 +75,7 @@ void AUK_CharacterBase::BeginPlay()
 	if ( IsValid(WeaponList) )
 	{
 		// 임시 방편 나중에 무기 바뀔때마다 바꿀수 있도록 수정
-		AnimationComponent->SetNowWeapon(WeaponList->FindAnimsDataAssetByTag(UK_GameplayTags::Weapon::DefaultWeapon));
+		//AnimationComponent->SetNowWeapon(WeaponList->FindAnimsDataAssetByTag(UK_GameplayTags::Weapon::DefaultWeapon));
 	}
 }
 
