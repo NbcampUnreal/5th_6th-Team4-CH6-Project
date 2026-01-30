@@ -7,7 +7,7 @@
 #include "AbilitySystemInterface.h"
 #include "UK_CharacterBase.generated.h"
 
-#define ECC_ATTACK ECollisionChannel::ECC_GameTraceChannel2
+
 
 #pragma region Forward Declaration
 class USpringArmComponent;
@@ -16,8 +16,7 @@ class UStatusComponent;
 class UAbilitySystemComponent;
 class UGameplayAbility;
 class AUK_WeaponBase;
-class UUK_InputConfig;
-class UUK_InputComponent;
+class UUK_WeaponData;
 class UUK_CombatAnimationComponent;
 struct FInputActionValue;
 #pragma endregion
@@ -36,10 +35,9 @@ public:
 	// Called every frame
 	//virtual void Tick(float DeltaTime) override;
 
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual void PossessedBy(AController* NewController) override;
+
 	virtual void OnRep_PlayerState();
 
 protected:
@@ -53,10 +51,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UCameraComponent> Camera;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
 	TObjectPtr<UStatusComponent> StatusComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
 	TObjectPtr<UUK_CombatAnimationComponent> AnimationComponent;
 
 #pragma endregion
@@ -82,53 +80,19 @@ protected:
 	void ZoomOut();
 
 protected:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "InputData")
-	UUK_InputConfig* InputConfig;
 
-	UPROPERTY()
-	bool bSprint;
 #pragma endregion
 
 #pragma region Weapon
-protected:
-	UFUNCTION()
-	void OnRep_CurrentWeapon(const AUK_WeaponBase* OldWeapon);
-
-protected:
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
-	TArray<TSubclassOf<AUK_WeaponBase>> DefaultWeapons;
-
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated, Category = "Weapon")
-	TArray<TObjectPtr<AUK_WeaponBase>> Weapons;
-
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, ReplicatedUsing = OnRep_CurrentWeapon, Category = "Weapon")
-	TObjectPtr<AUK_WeaponBase> Weapon;
-
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "State")
-	int32 WeaponIndex;
-#pragma endregion
-
-#pragma region Attack
-public:
-
-	UFUNCTION()
-	void HandleOnCheckHit();
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	float AttackRange;
+	TObjectPtr<UUK_WeaponData> WeaponList;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	float AttackRadius;
-
+	UPROPERTY()
+	TObjectPtr<AUK_WeaponBase> CurrentWeapon;
 public:
-	static int32 ShowAttackDebug;
-
-	void DrawSweepCapsuleDebug(
-		const FVector& Start,
-		const FVector& End,
-		float HalfHeight,
-		const FColor& Color
-		);
+	void EquipWeapon(AUK_WeaponBase* NewWeapon);
 #pragma endregion
+
 };
