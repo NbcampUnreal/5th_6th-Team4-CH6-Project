@@ -24,6 +24,7 @@ void UUK_HitCheckNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAni
 			CombatAnimComp->SetEnableHitCheck(true);
 			CombatAnimComp->SetDamageEvent(NewDamageEvent);
 		}
+
 	}
 }
 
