@@ -1,10 +1,13 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Engine/DamageEvents.h"
 #include "UK_CombatAnimationComponent.generated.h"
+
+#define ECC_ATTACK ECollisionChannel::ECC_GameTraceChannel2
 
 #pragma region Forward Declaration
 class AUK_CharacterBase;
@@ -34,7 +37,7 @@ public:
 
 	// Called every frame
 	//virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
+	void SetNowWeapon(const TObjectPtr<UUK_StatusAnimData>& Weapon) { NowWeapon = Weapon; }
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -44,7 +47,6 @@ protected:
 	float DefaultGravityValue;
 
 	FTimerHandle ComboCheckTimer;
-	FTimerHandle LaunchplayerTimer;
 
 
 public:
@@ -83,8 +85,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UUK_StatusAnimData> NowWeapon;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TObjectPtr<UUK_WeaponData> WeaponList;
+
 
 	EAttackInput InputType;
 
@@ -93,4 +94,32 @@ protected:
 
 	UPROPERTY(Replicated)
 	EComboAttackType ServerAttackType;
+
+public:
+	static int32 ShowAttackDebug;
+	FORCEINLINE void SetDamageEvent(FDamageEvent NewDamageEvent) {DamageEvent = NewDamageEvent	;}
+
+	void SetEnableHitCheck(bool bEnablaHitCheck);
+
+	void HitCheckProcess();
+
+	UFUNCTION(BlueprintCallable)
+	void SetWeaponMesh(UStaticMeshComponent* NewWeapon);
+
+protected:
+	UPROPERTY()
+	FDamageEvent DamageEvent;
+
+	FTimerHandle HitCheckTimer;
+
+	UPROPERTY(EditAnywhere,BlueprintReadOnly)
+	FName TraceStartSocketName;
+	UPROPERTY(EditAnywhere,BlueprintReadOnly)
+	FName TraceEndSocketName;
+
+	UPROPERTY()
+	TSet<AActor*> HitcheckedActor;
+
+	UPROPERTY()
+	TObjectPtr<UStaticMeshComponent> WeaponMesh;
 };
