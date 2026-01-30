@@ -113,10 +113,6 @@ protected:
 
 public:
 
-	/* State Control */
-
-	EMonsterState GetCurrentState() const { return CurrentState; }
-
 	void ReceiveDamage(float Damage);
 
 	/* Replication */
