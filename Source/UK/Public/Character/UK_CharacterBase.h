@@ -52,6 +52,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UCameraComponent> Camera;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USkeletalMeshComponent> ViewSKMeshComp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UStaticMeshComponent> WeaponStaticMeshComp;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
 	TObjectPtr<UStatusComponent> StatusComponent;
 
