@@ -349,13 +349,15 @@ void UUK_CombatAnimationComponent::HitCheckProcess()
 	if ( ShowAttackDebug )
 	{
 #if ENABLE_DRAW_DEBUG
-		FColor DrawColor = bIsHit ? FColor::Red : FColor::Green;
+		FColor DrawColor = bIsHit ? FColor::Green : FColor::Red;
+
+		FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceEnd - TraceStart).ToQuat();
 		DrawDebugCapsule(
 			GetWorld(),
 			( TraceStart + TraceEnd ) / 2,
-			( TraceEnd - TraceStart ).Size() / 2,
+			( TraceEnd - TraceStart ).Size(),
 			CapsuleRadius,
-			FQuat::Identity,
+			CapsuleRot,
 			DrawColor,
 			false,
 			1.f

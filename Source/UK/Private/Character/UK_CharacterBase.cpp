@@ -54,12 +54,6 @@ AUK_CharacterBase::AUK_CharacterBase()
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 480.f, 0.0f);
 #pragma endregion
 
-	ViewSKMeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ViewSKMeshComp"));
-	ViewSKMeshComp->SetupAttachment(GetMesh());
-
-	WeaponStaticMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponStaticMeshComp"));
-	WeaponStaticMeshComp->SetupAttachment(ViewSKMeshComp);
-
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
 	AnimationComponent = CreateDefaultSubobject<UUK_CombatAnimationComponent>(TEXT("AnimComponent"));
 }
