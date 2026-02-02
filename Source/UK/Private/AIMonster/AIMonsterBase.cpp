@@ -191,7 +191,7 @@ void AAIMonsterBase::OnAttack()
 
 	if ( Player )
 	{
-		//Player->ReceiveDamage(AttackDamage);
+		Player->ReceiveDamage(AttackDamage);
 	}
 
 
