@@ -124,16 +124,16 @@ void UUK_CombatAnimationComponent::ServerRPCComboAttack_Implementation(const ECo
 
 	EComboAttackType NextAttack = GetNextAttackType();
 
-	// 공격 타입이 달라진다면
-	if ( AttackType != NextAttack )
-	{
-		//콤보를 처음부터 시작
-		CurrentComboCount = 1;
-	}
-	else 
-	{
-		CurrentComboCount++;
-	}
+	//// 공격 타입이 달라진다면
+	//if ( AttackType != NextAttack )
+	//{
+	//	//콤보를 처음부터 시작
+	//	CurrentComboCount = 1;
+	//}
+	//else
+	//{
+	//}
+	CurrentComboCount++;
 	MulticastPlayCombo(AttackType, CurrentComboCount);
 }
 
