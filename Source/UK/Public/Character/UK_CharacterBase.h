@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
+#include "ActorComponent/StatusComponent.h"
 #include "UK_CharacterBase.generated.h"
 
 
@@ -85,6 +86,8 @@ protected:
 #pragma endregion
 
 #pragma region Weapon
+public:
+	void EquipWeapon(AUK_WeaponBase* NewWeapon);
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
@@ -92,14 +95,15 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<AUK_WeaponBase> CurrentWeapon;
-public:
-
-	void EquipWeapon(AUK_WeaponBase* NewWeapon);
 
 #pragma endregion
 
 #pragma region Battle
+public:
 	void ReceiveDamage(float Damage);
 	float ApplyDamage();
+	UFUNCTION()
+	void Dead();
+	FOnDeadDelegate OnDead;
 #pragma endregion
 };

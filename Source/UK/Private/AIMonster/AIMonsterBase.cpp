@@ -1,6 +1,8 @@
 ﻿#include "AIMonster/AIMonsterBase.h"
 #include "AIController.h"
 #include "Net/UnrealNetwork.h"
+#include "AIMonster/UK_AiMonsterCtl.h"
+#include "Character/UK_CharacterBase.h"
 
 AAIMonsterBase::AAIMonsterBase()
 {
@@ -33,29 +35,6 @@ void AAIMonsterBase::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 
     if (!HasAuthority()) return;
-
-    switch (CurrentState)
-    {
-    case EMonsterState::Idle:
-        OnIdle();
-        break;
-
-    case EMonsterState::Patrol:
-        OnPatrol();
-        break;
-
-    case EMonsterState::Chase:
-        OnChase(DeltaSeconds);
-        break;
-
-    case EMonsterState::Attack:
-        OnAttack();
-        break;
-
-    case EMonsterState::Dead:
-        OnDead();
-        break;
-    }
 }
 
 /* 서버로 상태 요청을 보내는 구간 */
@@ -147,7 +126,19 @@ void AAIMonsterBase::ReceiveDamage(float Damage)
 
 	if ( StatComponent )
 	{
+		float BeforeHp = StatComponent->GetHP();
+
 		StatComponent->TakeDamage(Damage);
+
+		float AfterHp = StatComponent->GetHP();
+
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Monster Hit] %s | Damage: %.1f | HP: %.1f -> %.1f"),
+			*GetName(),
+			Damage,
+			BeforeHp,
+			AfterHp
+		);
 	}
 }
 
@@ -168,6 +159,64 @@ void AAIMonsterBase::OnChase(float DeltaSeconds)
 
 void AAIMonsterBase::OnAttack()
 {
+	UE_LOG(LogTemp, Error, TEXT("ON Attack"));
+	if ( !HasAuthority() ) return;
+	
+	/* 쿨타임 */
+
+	float Now = GetWorld()->GetTimeSeconds();
+
+	if ( Now - LastAttackTime < AttackCooldown )
+		return;
+
+
+	/* AIController */
+
+	AUK_AiMonsterCtl* AI =
+		Cast<AUK_AiMonsterCtl>(GetController());
+
+	if ( !AI ) return;
+
+
+	/* Target */
+
+	AActor* Target = AI->GetCurrentTarget();
+
+	if ( !Target ) return;
+
+
+	/* 거리 체크 */
+
+	float Dist = FVector::Dist(
+		GetActorLocation(),
+		Target->GetActorLocation()
+	);
+
+	if ( Dist > AttackRange )
+		return;
+
+
+	/* 데미지 */
+
+	AUK_CharacterBase* Player =
+		Cast<AUK_CharacterBase>(Target);
+
+	if ( Player )
+	{
+		Player->ReceiveDamage(AttackDamage);
+
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Monster Attack] %s -> %s | Damage: %.1f"),
+			*GetName(),
+			*Player->GetName(),
+			AttackDamage
+		);
+	}
+
+
+	/* 쿨타임 갱신 */
+
+	LastAttackTime = Now;
 }
 
 void AAIMonsterBase::OnDead()

@@ -12,19 +12,18 @@ class UK_API AUK_AiMonsterCtl : public AAIController
 	
 public:
 	AUK_AiMonsterCtl();
-
+	AActor* GetCurrentTarget() const { return CurrentTarget; }
+	
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void OnUnPossess() override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result) override;
 private:
-	/* 컨트롤 중인 몬스터 */
 
+	/* 컨트롤 중인 몬스터 */
 	UPROPERTY()
 	AAIMonsterBase* ControlledMonster;
-
-	/* 현재 타겟 */
 
 	UPROPERTY()
 	AActor* CurrentTarget;

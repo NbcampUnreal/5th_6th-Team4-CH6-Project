@@ -82,5 +82,7 @@ void UStatusComponent::TakeDamage(const float Damage)
 	float FinalDamage = FMath::Max(1.f, Damage);
 
 	SetHp(Status.CurrentHp - FinalDamage);
+
+	UE_LOG(LogTemp, Warning, TEXT("Damage : %f Charactor HP : %f"), FinalDamage, Status.CurrentHp);
 }
 #pragma endregion

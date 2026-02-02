@@ -76,6 +76,7 @@ void AUK_CharacterBase::BeginPlay()
 		AnimationComponent->SetNowWeapon(WeaponList->FindAnimsDataAssetByTag(UK_GameplayTags::Weapon::DefaultWeapon));
 	}
 
+	OnDead.AddDynamic(this, & AUK_CharacterBase::Dead);
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -193,6 +194,7 @@ void AUK_CharacterBase::EquipWeapon(AUK_WeaponBase* NewWeapon)
 	}
 }
 #pragma endregion
+
 #pragma region Battle
 
 void AUK_CharacterBase::ReceiveDamage(float Damage)
@@ -212,5 +214,9 @@ float AUK_CharacterBase::ApplyDamage()
 		return StatusComponent->ApplyDamage();
 	}
 	return 0.f;
+}
+void AUK_CharacterBase::Dead()
+{
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 }
 #pragma endregion
