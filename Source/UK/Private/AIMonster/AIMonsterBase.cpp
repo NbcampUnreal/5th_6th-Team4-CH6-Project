@@ -1,4 +1,4 @@
-#include "AIMonster/AIMonsterBase.h"
+﻿#include "AIMonster/AIMonsterBase.h"
 #include "AIController.h"
 #include "Net/UnrealNetwork.h"
 
@@ -8,7 +8,7 @@ AAIMonsterBase::AAIMonsterBase()
 
 	bReplicates = true;
 	SetReplicateMovement(true);
-
+	StatComponent = CreateDefaultSubobject<UAI_MonsterStatComponent>(TEXT("StatComponent"));
 	NetDormancy = DORM_DormantAll;
 }
 
@@ -20,6 +20,11 @@ void AAIMonsterBase::BeginPlay()
 	{
 		SetActorTickEnabled(false);
 		SpawnLocation = GetActorLocation();
+	}
+
+	if (StatComponent)
+	{
+		StatComponent->OnDeath.AddDynamic(this, &AAIMonsterBase::Die);
 	}
 }
 
@@ -53,7 +58,7 @@ void AAIMonsterBase::Tick(float DeltaSeconds)
     }
 }
 
-/* ������ ���� ��û�� ������ ���� */
+/* 서버로 상태 요청을 보내는 구간 */
 
 void AAIMonsterBase::RequestState_Implementation(EMonsterState NewState)
 {
@@ -109,11 +114,11 @@ void AAIMonsterBase::OnRep_MonsterState()
     }
 }
 
-/* AI Ȱ��ȭ ���� ����ġ ���� ���� */
+/* AI 활성화 제어 스위치 같은 역할 */
 
 void AAIMonsterBase::SetAIActive(bool bActive)
 {
-   /* ���� ���� ��*/
+	/* 로직 수정 중 */
 }
 
 /* Spawner System*/
@@ -136,8 +141,18 @@ void AAIMonsterBase::ResetHealth()
 	}
 }
 
-/* ���º� �⺻���� ���� Ȥ�� ���� */
-/* �ڽ� Ŭ�������� ��� �޾Ƽ� ��� �� �Լ� */
+void AAIMonsterBase::ReceiveDamage(float Damage)
+{
+	if ( !HasAuthority() ) return;
+
+	if ( StatComponent )
+	{
+		StatComponent->TakeDamage(Damage);
+	}
+}
+
+/* 상태별 기본적인 동작 혹은 행위 */
+/* 자식 클래스에서 상속 받아서 사용 될 함수 */
 
 void AAIMonsterBase::OnIdle()
 {

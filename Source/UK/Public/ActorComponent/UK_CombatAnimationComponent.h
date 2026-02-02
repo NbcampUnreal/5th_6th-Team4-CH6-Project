@@ -34,22 +34,21 @@ public:
 	UUK_CombatAnimationComponent();
 	
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps)const override;
-
 	// Called every frame
 	//virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	void SetNowWeapon(const TObjectPtr<UUK_StatusAnimData>& Weapon) { NowWeapon = Weapon; }
-protected:
+	void SetNowWeapon(const TObjectPtr<UUK_StatusAnimData>& Weapon);
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
 protected:
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentComboCount, BlueprintReadOnly, Category = "Combat")
 	uint8 CurrentComboCount;
+
 	float DefaultGravityValue;
 
-	FTimerHandle ComboCheckTimer;
-
-
 public:
+	UFUNCTION()
+	void OnRep_CurrentComboCount();
 	void PlayLightComboAnimation();
 
 	void StartComboAttack(const EComboAttackType AttackType);
@@ -57,9 +56,13 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerRPCStartComboAttack(const EComboAttackType AttackType);
 
-	void PlayComboAttackAnimation(const EComboAttackType AttackType, FName SectionName);
+	UFUNCTION(Server, Reliable)
+	void ServerRPCComboAttack(const EComboAttackType AttackType, FName SectionName);
 
-	void SetCheckComboTimer(const EComboAttackType AttackType);
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastPlayCombo(EComboAttackType AttackType, uint8 ComboCount);
+
+	void PlayComboAttackAnimation(const EComboAttackType AttackType, FName SectionName);
 
 	void StopJumpAndFly();
 
@@ -71,10 +74,8 @@ public:
 
 	void CheckComboProcessable(const EComboAttackType AttackType);
 
-	UFUNCTION(NetMulticast, Reliable)
-	void MulticastPlayCombo(EComboAttackType AttackType, uint8 ComboCount);
-
 	EComboAttackType GetNextAttackType();
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<AUK_CharacterBase> OwnerCharactor;
@@ -85,15 +86,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UUK_StatusAnimData> NowWeapon;
 
-
-
 	EAttackInput InputType;
-
-	UPROPERTY(Replicated)
-	uint8 ServerComboCount;
-
-	UPROPERTY(Replicated)
-	EComboAttackType ServerAttackType;
 
 public:
 	static int32 ShowAttackDebug;
