@@ -75,7 +75,6 @@ void AUK_CharacterBase::BeginPlay()
 		// 임시 방편 나중에 무기 바뀔때마다 바꿀수 있도록 수정
 		AnimationComponent->SetNowWeapon(WeaponList->FindAnimsDataAssetByTag(UK_GameplayTags::Weapon::DefaultWeapon));
 	}
-
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -193,6 +192,7 @@ void AUK_CharacterBase::EquipWeapon(AUK_WeaponBase* NewWeapon)
 	}
 }
 #pragma endregion
+
 #pragma region Battle
 
 void AUK_CharacterBase::ReceiveDamage(float Damage)
