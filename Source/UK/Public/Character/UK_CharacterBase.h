@@ -85,6 +85,8 @@ protected:
 #pragma endregion
 
 #pragma region Weapon
+public:
+	void EquipWeapon(AUK_WeaponBase* NewWeapon);
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
@@ -92,13 +94,11 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<AUK_WeaponBase> CurrentWeapon;
-public:
-
-	void EquipWeapon(AUK_WeaponBase* NewWeapon);
 
 #pragma endregion
 
 #pragma region Battle
+public:
 	void ReceiveDamage(float Damage);
 	float ApplyDamage();
 #pragma endregion
