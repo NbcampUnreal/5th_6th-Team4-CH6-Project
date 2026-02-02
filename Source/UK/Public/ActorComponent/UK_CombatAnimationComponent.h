@@ -28,60 +28,24 @@ UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class UK_API UUK_CombatAnimationComponent : public UActorComponent
 {
 	GENERATED_BODY()
+#pragma region Defualt
 
 public:	
 	// Sets default values for this component's properties
 	UUK_CombatAnimationComponent();
 	
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps)const override;
-
 	// Called every frame
 	//virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	void SetNowWeapon(const TObjectPtr<UUK_StatusAnimData>& Weapon) { NowWeapon = Weapon; }
-protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
 protected:
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentComboCount, BlueprintReadOnly, Category = "Combat")
 	uint8 CurrentComboCount;
+
 	float DefaultGravityValue;
 
-	FTimerHandle ComboCheckTimer;
-
-
-public:
-	void PlayLightComboAnimation();
-
-	void StartComboAttack(const EComboAttackType AttackType);
-
-	UFUNCTION(Server, Reliable)
-	void ServerRPCStartComboAttack(const EComboAttackType AttackType);
-
-	UFUNCTION(Server, Reliable)
-	void ServerRPCComboAttack(const EComboAttackType AttackType, FName SectionName);
-
-	void PlayComboAttackAnimation(const EComboAttackType AttackType, FName SectionName);
-
-	void SetCheckComboTimer(const EComboAttackType AttackType);
-
-	void StopJumpAndFly();
-
-	void EndComboAttack(UAnimMontage* TargetMontage, bool bInterrupted);
-
-	void ResetCharacterGravityScale();
-	void ResetPlayerComboAttackValue();
-	void ResetPlayerCharacterMovement();
-
-	void CheckComboProcessable(const EComboAttackType AttackType);
-
-	UFUNCTION(NetMulticast, Reliable)
-	void MulticastPlayCombo(EComboAttackType AttackType, uint8 ComboCount);
-
-	UFUNCTION(Server, Reliable)
-	void ServerResetPlayerComboAttackValue();
-
-	EComboAttackType GetNextAttackType();
-protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<AUK_CharacterBase> OwnerCharactor;
 
@@ -91,23 +55,52 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UUK_StatusAnimData> NowWeapon;
 
-
-
 	EAttackInput InputType;
-
-	UPROPERTY(Replicated)
-	uint8 ServerComboCount;
-
-	UPROPERTY(Replicated)
-	EComboAttackType ServerAttackType;
+#pragma endregion
 
 public:
+	UFUNCTION()
+	void OnRep_CurrentComboCount();
+
+	void PlayLightComboAnimation();
+
+#pragma region ServerRPCs
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastPlayCombo(EComboAttackType AttackType, uint8 ComboCount);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCStartComboAttack(const EComboAttackType AttackType);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCComboAttack(const EComboAttackType AttackType, FName SectionName);
+#pragma endregion
+
+	void PlayComboAttackAnimation(const EComboAttackType AttackType, FName SectionName);
+
+	void StopJumpAndFly();
+#pragma region EndCombo
+
+	void EndComboAttack(UAnimMontage* TargetMontage, bool bInterrupted);
+	void ResetCharacterGravityScale();
+	void ResetPlayerComboAttackValue();
+	void ResetPlayerCharacterMovement();
+#pragma endregion
+
+	void CheckComboProcessable(const EComboAttackType AttackType);
+
+	EComboAttackType GetNextAttackType();
+
+#pragma region Battle
+public:
 	static int32 ShowAttackDebug;
+
 	FORCEINLINE void SetDamageEvent(FDamageEvent NewDamageEvent) {DamageEvent = NewDamageEvent	;}
 
 	void SetEnableHitCheck(bool bEnablaHitCheck);
 
 	void HitCheckProcess();
+
+	void SetNowWeapon(const TObjectPtr<UUK_StatusAnimData>& Weapon);
 
 	UFUNCTION(BlueprintCallable)
 	void SetWeaponMesh(UStaticMeshComponent* NewWeapon);
@@ -120,6 +113,7 @@ protected:
 
 	UPROPERTY(EditAnywhere,BlueprintReadOnly)
 	FName TraceStartSocketName;
+
 	UPROPERTY(EditAnywhere,BlueprintReadOnly)
 	FName TraceEndSocketName;
 
@@ -128,4 +122,6 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UStaticMeshComponent> WeaponMesh;
+#pragma endregion
+
 };

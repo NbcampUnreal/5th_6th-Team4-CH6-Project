@@ -6,8 +6,9 @@
 #include "GameFramework/Character.h"
 #include "Engine/DamageEvents.h"
 
-void UUK_HitCheckNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration)
+void UUK_HitCheckNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration,const FAnimNotifyEventReference& EventReference)
 {
+	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
 	ACharacter* OwnerCharacter = Cast<ACharacter>(MeshComp->GetOwner());
 	if ( !IsValid( OwnerCharacter) )
 		return;
@@ -28,8 +29,9 @@ void UUK_HitCheckNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAni
 	}
 }
 
-void UUK_HitCheckNotifyState::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
+void UUK_HitCheckNotifyState::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
+	Super::NotifyEnd(MeshComp, Animation, EventReference);
 	ACharacter* OwnerCharacter = Cast<ACharacter>(MeshComp->GetOwner());
 	if ( !IsValid(OwnerCharacter) )
 		return;
