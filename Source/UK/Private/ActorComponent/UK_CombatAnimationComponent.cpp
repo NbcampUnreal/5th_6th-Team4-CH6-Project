@@ -135,7 +135,10 @@ void UUK_CombatAnimationComponent::PlayComboAttackAnimation(const EComboAttackTy
 	TObjectPtr<UAnimMontage> ComboAttackMontage = AttackAnim->ComboMantage;
 
 	if ( !IsValid(ComboAttackMontage) )
+	{
+		EndComboAttack(ComboAttackMontage, false);
 		return;
+	}
 
 	// 몽타주 재생이 안되고 있을 때만 진입
 	if ( !PlayerAnimInstance->Montage_IsPlaying(ComboAttackMontage) )
@@ -216,7 +219,12 @@ void UUK_CombatAnimationComponent::CheckComboProcessable(const EComboAttackType 
 	ensure(IsValid(OwnerCharactor));
 	//// 입력 감지에 안된다면 콤보 재생종료
 	if ( InputType == EAttackInput::None )
+	{
+		TObjectPtr<UAnimMontage> ComboAttackMontage = AttackAnim->ComboMantage;
+
+		EndComboAttack(ComboAttackMontage, false);
 		return;
+	}
 
 	FName NextComboSectionName = *FString::Printf(TEXT("%s%d"), *AttackAnim->MontageName, CurrentComboCount);
 
