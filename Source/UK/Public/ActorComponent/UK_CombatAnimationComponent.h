@@ -80,6 +80,7 @@ public:
 	void StopJumpAndFly();
 #pragma region EndCombo
 
+	UFUNCTION(BlueprintCallable)
 	void EndComboAttack(UAnimMontage* TargetMontage, bool bInterrupted);
 	void ResetCharacterGravityScale();
 	void ResetPlayerComboAttackValue();

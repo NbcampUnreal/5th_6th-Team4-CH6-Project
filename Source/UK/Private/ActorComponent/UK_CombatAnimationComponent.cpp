@@ -114,7 +114,7 @@ void UUK_CombatAnimationComponent::MulticastPlayCombo_Implementation(EComboAttac
 
 	AttackAnim = NowWeapon->FindAnimsDataAssetByType(AttackType);
 
-	FName SectionName = *FString::Printf(TEXT("%s%d"), *AttackAnim->MontageName, ComboCount);
+	FName SectionName = *FString::Printf(TEXT("%s%d"), *AttackAnim->MontageSectionName, ComboCount);
 
 	PlayComboAttackAnimation(AttackType, SectionName);
 }
@@ -178,6 +178,7 @@ void UUK_CombatAnimationComponent::EndComboAttack(UAnimMontage* TargetMontage, b
 {
 	if ( !bInterrupted )
 	{
+		UE_LOG(LogTemp, Display, TEXT("EndComboAttack()"));
 		ResetCharacterGravityScale();
 		//ServerResetPlayerComboAttackValue();
 		ResetPlayerComboAttackValue();
@@ -188,7 +189,11 @@ void UUK_CombatAnimationComponent::EndComboAttack(UAnimMontage* TargetMontage, b
 void UUK_CombatAnimationComponent::ResetCharacterGravityScale()
 {
 	if ( !IsValid(OwnerCharactor) )
+	{
+		UE_LOG(LogTemp, Display, TEXT("ResetCharacterGravityScale()return"));
 		return;
+	}
+	UE_LOG(LogTemp, Display, TEXT("Reset()"));
 	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
 	PlayerMovement->GravityScale = DefaultGravityValue;
 }
@@ -226,7 +231,7 @@ void UUK_CombatAnimationComponent::CheckComboProcessable(const EComboAttackType 
 		return;
 	}
 
-	FName NextComboSectionName = *FString::Printf(TEXT("%s%d"), *AttackAnim->MontageName, CurrentComboCount);
+	FName NextComboSectionName = *FString::Printf(TEXT("%s%d"), *AttackAnim->MontageSectionName, CurrentComboCount);
 
 	// 애니메이션 재생
 	ServerRPCComboAttack(AttackType, NextComboSectionName);
@@ -263,6 +268,7 @@ void UUK_CombatAnimationComponent::SetEnableHitCheck(bool bEnablaHitCheck)
 {
 	if ( bEnablaHitCheck )
 	{
+		HitcheckedActor.Reset();
 		GetWorld()->GetTimerManager().SetTimer
 		(
 			HitCheckTimer,
@@ -340,8 +346,8 @@ void UUK_CombatAnimationComponent::HitCheckProcess()
 				{
 					if ( TObjectPtr<AAIMonsterBase> Monster = Cast<AAIMonsterBase>(HitActor) )
 					{
-							Monster->ReceiveDamage(OwnerCharactor->ApplyDamage());
-							UE_LOG(LogTemp, Warning, TEXT("Damage Applied to Monster: %s to Damage : %f"), *Monster->GetName(), OwnerCharactor->ApplyDamage());
+						Monster->ReceiveDamage(OwnerCharactor->ApplyDamage());
+						UE_LOG(LogTemp, Warning, TEXT("Damage Applied to Monster: %s to Damage : %f"), *Monster->GetName(), OwnerCharactor->ApplyDamage());
 					}
 				}
 				if ( OwnerCharactor->IsLocallyControlled() )
