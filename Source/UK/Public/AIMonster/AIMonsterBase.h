@@ -91,7 +91,6 @@ protected:
 public:
 	void SetAIActive(bool bAcitve);
 
-protected:
 	/* 현재 상태별 실행할 함수들 상속받은 자식클래스에서 override 될 함수 */
 	virtual void OnIdle();
 	virtual void OnChase(float DeltaSeconds);

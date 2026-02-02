@@ -35,29 +35,6 @@ void AAIMonsterBase::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 
     if (!HasAuthority()) return;
-
-    switch (CurrentState)
-    {
-    case EMonsterState::Idle:
-        OnIdle();
-        break;
-
-    case EMonsterState::Patrol:
-        OnPatrol();
-        break;
-
-    case EMonsterState::Chase:
-        OnChase(DeltaSeconds);
-        break;
-
-    case EMonsterState::Attack:
-        OnAttack();
-        break;
-
-    case EMonsterState::Dead:
-        OnDead();
-        break;
-    }
 }
 
 /* 서버로 상태 요청을 보내는 구간 */
@@ -170,8 +147,9 @@ void AAIMonsterBase::OnChase(float DeltaSeconds)
 
 void AAIMonsterBase::OnAttack()
 {
+	UE_LOG(LogTemp, Error, TEXT("ON Attack"));
 	if ( !HasAuthority() ) return;
-
+	
 	/* 쿨타임 */
 
 	float Now = GetWorld()->GetTimeSeconds();
