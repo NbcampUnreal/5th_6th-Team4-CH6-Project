@@ -2,8 +2,9 @@
 
 
 #include "ActorComponent/UK_CombatAnimationComponent.h"
-#include "Character/UK_CharacterBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Character/UK_CharacterBase.h"
+#include "AIMonster/AIMonsterBase.h"
 #include "DataAsset/UK_StatusAnimData.h"
 #include "DataAsset/UK_AnimData.h"
 #include "Net/UnrealNetwork.h"
@@ -30,17 +31,25 @@ UUK_CombatAnimationComponent::UUK_CombatAnimationComponent() :
 void UUK_CombatAnimationComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UUK_CombatAnimationComponent, ServerComboCount);
-	DOREPLIFETIME(UUK_CombatAnimationComponent, ServerAttackType);
+	DOREPLIFETIME(UUK_CombatAnimationComponent, CurrentComboCount);
 
 }
 
+
+
+void UUK_CombatAnimationComponent::SetNowWeapon(const TObjectPtr<UUK_StatusAnimData>& Weapon)
+{
+	if ( IsValid(Weapon) )
+	{
+		NowWeapon = Weapon;
+	}
+}
 
 // Called when the game starts
 void UUK_CombatAnimationComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	OwnerCharactor = CastChecked<AUK_CharacterBase>(GetOwner());
+	OwnerCharactor = Cast<AUK_CharacterBase>(GetOwner());
 }
 
 // Called every frame
@@ -48,6 +57,10 @@ void UUK_CombatAnimationComponent::BeginPlay()
 //{
 //	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 //}
+
+void UUK_CombatAnimationComponent::OnRep_CurrentComboCount()
+{
+}
 
 // 진입점
 void UUK_CombatAnimationComponent::PlayLightComboAnimation()
@@ -67,7 +80,7 @@ void UUK_CombatAnimationComponent::PlayLightComboAnimation()
 		{
 			if ( !OwnerCharactor->HasAuthority() )
 			{
-				StartComboAttack(EComboAttackType::AttackOnAir);
+				//StartComboAttack(EComboAttackType::AttackOnAir);
 			}
 
 			ServerRPCStartComboAttack(EComboAttackType::AttackOnAir);
@@ -76,24 +89,14 @@ void UUK_CombatAnimationComponent::PlayLightComboAnimation()
 		{
 			if ( !OwnerCharactor->HasAuthority() )
 			{
-				StartComboAttack(EComboAttackType::LightAttackOnGround);
+				//StartComboAttack(EComboAttackType::LightAttackOnGround);
 			}
 			ServerRPCStartComboAttack(EComboAttackType::LightAttackOnGround);
 		}
 	}
 	else
 	{
-		if ( !OwnerCharactor->HasAuthority() )
-		{
-			if ( !ComboCheckTimer.IsValid() )
-			{
-				InputType = EAttackInput::Light;
-			}
-			else
-			{
-				InputType = EAttackInput::None;
-			}
-		}
+		InputType = EAttackInput::Light;
 	}
 }
 
@@ -114,22 +117,17 @@ void UUK_CombatAnimationComponent::StartComboAttack(EComboAttackType AttackType)
 
 	// 애니메이션  플레이
 	PlayComboAttackAnimation(AttackType, ComboAttackMontageName);
-	// 다음 콤보 체크 타이머 시작
-	SetCheckComboTimer(AttackType);
 }
 
 void UUK_CombatAnimationComponent::ServerRPCComboAttack_Implementation(const EComboAttackType AttackType, FName SectionName)
 {
-	//if ( ServerAttackType != AttackType )
-	//{
-	//	ServerComboCount = 1;
-	//	ServerAttackType = AttackType;
-	//}
-	//else
-	//{
-	//	++ServerComboCount;
-	//}
-	PlayComboAttackAnimation(AttackType, SectionName);
+	if ( !NowWeapon ) return;
+
+	EComboAttackType NextAttack = GetNextAttackType();
+
+	CurrentComboCount++;
+
+	MulticastPlayCombo(AttackType, CurrentComboCount);
 }
 
 void UUK_CombatAnimationComponent::PlayComboAttackAnimation(const EComboAttackType AttackType, FName SectionName)
@@ -169,44 +167,7 @@ void UUK_CombatAnimationComponent::PlayComboAttackAnimation(const EComboAttackTy
 		PlayerAnimInstance->Montage_SetEndDelegate(EndDelegate, ComboAttackMontage);
 	}
 	// 출력될 애니메이션 섹션으로 점프
-	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
-	if ( IsValid(PlayerMovement) )
-	{
-		PlayerMovement->SetMovementMode(EMovementMode::MOVE_None);
-	}
 	PlayerAnimInstance->Montage_JumpToSection(SectionName, ComboAttackMontage);
-}
-
-//타이머 세팅
-void UUK_CombatAnimationComponent::SetCheckComboTimer(const EComboAttackType AttackType)
-{
-	if ( !IsValid(NowWeapon) )
-		return;
-
-	if ( AttackAnim->MaxComboCount == CurrentComboCount )
-		return;
-
-	int32 CurrentComboIndex = CurrentComboCount - 1;
-
-	UAnimMontage* ComboAttackMontage = AttackAnim->ComboMantage;
-	ensure(AttackAnim->ComboFrameTime[ CurrentComboIndex ]);
-
-	// 타이머 타임을 가져옴
-	float ComboAcceptTime = AttackAnim->ComboFrameTime[ CurrentComboIndex ];
-
-	if ( ComboAcceptTime != 0.f )
-	{
-
-		FTimerDelegate ComboCheckDelegate;
-		// 타이머가 끝나면 후속타 점검
-		ComboCheckDelegate.BindUObject(this, &UUK_CombatAnimationComponent::CheckComboProcessable, AttackType);
-		GetWorld()->GetTimerManager().SetTimer(
-			ComboCheckTimer,
-			ComboCheckDelegate,
-			ComboAcceptTime,
-			false
-		);
-	}
 }
 
 void UUK_CombatAnimationComponent::StopJumpAndFly()
@@ -225,35 +186,22 @@ void UUK_CombatAnimationComponent::CheckComboProcessable(const EComboAttackType 
 {
 	if ( !IsValid(NowWeapon) )
 		return;
-	// 타이머 초기화
 
 	ensure(IsValid(OwnerCharactor));
 	//// 입력 감지에 안된다면 콤보 재생종료
-	//if ( InputType == EAttackInput::None )
-	//	return;
-	UE_LOG(LogTemp, Display, TEXT("CheckComboProcessable() call"));
-	++CurrentComboCount;
+	if ( InputType == EAttackInput::None )
+		return;
 
-	EComboAttackType NextAttack = GetNextAttackType();
-	// 공격 타입이 달라진다면
-	if ( AttackType != NextAttack )
-	{
-		//콤보를 처음부터 시작
-		CurrentComboCount = 1;
-	}
+	UE_LOG(LogTemp, Display, TEXT("CheckComboProcessable() call"));
 
 	FName NextComboSectionName = *FString::Printf(TEXT("%s%d"), *AttackAnim->MontageName, CurrentComboCount);
 
 	// 애니메이션 재생
 	if ( !OwnerCharactor->HasAuthority() )
 	{
-		PlayComboAttackAnimation(NextAttack, NextComboSectionName);
+		//PlayComboAttackAnimation(NextAttack, NextComboSectionName);
 	}
-	ServerRPCComboAttack(NextAttack, NextComboSectionName);
-
-	// 다음 콤보 체크 타이머
-	ComboCheckTimer.Invalidate();
-	SetCheckComboTimer(NextAttack);
+	ServerRPCComboAttack(AttackType, NextComboSectionName);
 
 	InputType = EAttackInput::None;
 }
@@ -282,7 +230,6 @@ void UUK_CombatAnimationComponent::ResetCharacterGravityScale()
 
 void UUK_CombatAnimationComponent::ResetPlayerComboAttackValue()
 {
-	ComboCheckTimer.Invalidate();
 	InputType = EAttackInput::None;
 
 	CurrentComboCount = 0;
@@ -295,20 +242,6 @@ void UUK_CombatAnimationComponent::ResetPlayerCharacterMovement()
 	{
 		PlayerMovement->SetMovementMode(EMovementMode::MOVE_Walking);
 		PlayerMovement->SetJumpAllowed(true);
-	}
-}
-
-void UUK_CombatAnimationComponent::ServerResetPlayerComboAttackValue_Implementation()
-{
-	ComboCheckTimer.Invalidate();
-	InputType = EAttackInput::None;
-
-	CurrentComboCount = 0;
-
-	if ( OwnerCharactor && OwnerCharactor->HasAuthority() )
-	{
-		ServerComboCount = 0;
-		ServerAttackType = EComboAttackType::None;
 	}
 }
 
@@ -336,11 +269,10 @@ EComboAttackType UUK_CombatAnimationComponent::GetNextAttackType()
 	return EComboAttackType::None;
 }
 
-
 void UUK_CombatAnimationComponent::MulticastPlayCombo_Implementation(EComboAttackType AttackType, uint8 ComboCount)
 {
-	if ( OwnerCharactor->GetLocalRole() == ROLE_AutonomousProxy )
-		return;
+	//if ( OwnerCharactor->GetLocalRole() == ROLE_AutonomousProxy )
+	//	return;
 
 	AttackAnim = NowWeapon->FindAnimsDataAssetByType(AttackType);
 
@@ -354,25 +286,7 @@ void UUK_CombatAnimationComponent::ServerRPCStartComboAttack_Implementation(cons
 	if ( !OwnerCharactor || !NowWeapon )
 		return;
 
-	//if ( ServerComboCount == 0 )
-	//{
-	//	ServerComboCount = 1;
-	//	ServerAttackType = AttackType;
-	//}
-	//else
-	//{
-	//	if ( ServerAttackType != AttackType )
-	//	{
-	//		ServerComboCount = 1;
-	//		ServerAttackType = AttackType;
-	//	}
-	//	else
-	//	{
-	//		++ServerComboCount;
-	//	}
-	//}
-
-	//CurrentComboCount = ServerComboCount;
+	CurrentComboCount = 1;
 
 	MulticastPlayCombo(AttackType, CurrentComboCount);
 }
@@ -393,7 +307,7 @@ void UUK_CombatAnimationComponent::SetEnableHitCheck(bool bEnablaHitCheck)
 	else
 	{
 		GetWorld()->GetTimerManager().ClearTimer(HitCheckTimer);
-		HitcheckedActor.Empty();
+		HitcheckedActor.Reset();
 		HitCheckTimer.Invalidate();
 	}
 }
@@ -426,13 +340,15 @@ void UUK_CombatAnimationComponent::HitCheckProcess()
 	if ( ShowAttackDebug )
 	{
 #if ENABLE_DRAW_DEBUG
-		FColor DrawColor = bIsHit ? FColor::Red : FColor::Green;
+		FColor DrawColor = bIsHit ? FColor::Green : FColor::Red;
+
+		FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceEnd - TraceStart).ToQuat();
 		DrawDebugCapsule(
 			GetWorld(),
 			( TraceStart + TraceEnd ) / 2,
-			( TraceEnd - TraceStart ).Size() / 2,
+			( TraceEnd - TraceStart ).Size(),
 			CapsuleRadius,
-			FQuat::Identity,
+			CapsuleRot,
 			DrawColor,
 			false,
 			1.f
@@ -454,8 +370,11 @@ void UUK_CombatAnimationComponent::HitCheckProcess()
 				UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *HitActor->GetName());
 				if ( OwnerCharactor->HasAuthority() )
 				{
-					// 데미지 로직
-					HitActor->TakeDamage(10.f, DamageEvent, OwnerCharactor->GetController(), OwnerCharactor);
+					if ( TObjectPtr<AAIMonsterBase> Monster = Cast<AAIMonsterBase>(HitActor) )
+					{
+							Monster->ReceiveDamage(OwnerCharactor->ApplyDamage());
+							UE_LOG(LogTemp, Warning, TEXT("Damage Applied to Monster: %s"), *Monster->GetName());
+					}
 				}
 				if ( OwnerCharactor->IsLocallyControlled() )
 				{
