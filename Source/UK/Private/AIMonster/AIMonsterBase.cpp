@@ -126,7 +126,19 @@ void AAIMonsterBase::ReceiveDamage(float Damage)
 
 	if ( StatComponent )
 	{
+		float BeforeHp = StatComponent->GetHP();
+
 		StatComponent->TakeDamage(Damage);
+
+		float AfterHp = StatComponent->GetHP();
+
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Monster Hit] %s | Damage: %.1f | HP: %.1f -> %.1f"),
+			*GetName(),
+			Damage,
+			BeforeHp,
+			AfterHp
+		);
 	}
 }
 
@@ -191,7 +203,14 @@ void AAIMonsterBase::OnAttack()
 
 	if ( Player )
 	{
-		//Player->ReceiveDamage(AttackDamage);
+		Player->ReceiveDamage(AttackDamage);
+
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Monster Attack] %s -> %s | Damage: %.1f"),
+			*GetName(),
+			*Player->GetName(),
+			AttackDamage
+		);
 	}
 
 
