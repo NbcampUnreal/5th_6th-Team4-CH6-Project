@@ -333,7 +333,7 @@ void UUK_CombatAnimationComponent::HitCheckProcess()
 					if ( TObjectPtr<AAIMonsterBase> Monster = Cast<AAIMonsterBase>(HitActor) )
 					{
 							Monster->ReceiveDamage(OwnerCharactor->ApplyDamage());
-							UE_LOG(LogTemp, Warning, TEXT("Damage Applied to Monster: %s"), *Monster->GetName());
+							UE_LOG(LogTemp, Warning, TEXT("Damage Applied to Monster: %s to Damage : %f"), *Monster->GetName(), OwnerCharactor->ApplyDamage());
 					}
 				}
 				if ( OwnerCharactor->IsLocallyControlled() )

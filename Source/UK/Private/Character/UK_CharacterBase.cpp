@@ -75,6 +75,8 @@ void AUK_CharacterBase::BeginPlay()
 		// 임시 방편 나중에 무기 바뀔때마다 바꿀수 있도록 수정
 		AnimationComponent->SetNowWeapon(WeaponList->FindAnimsDataAssetByTag(UK_GameplayTags::Weapon::DefaultWeapon));
 	}
+
+	OnDead.AddDynamic(this, & AUK_CharacterBase::Dead);
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -212,5 +214,9 @@ float AUK_CharacterBase::ApplyDamage()
 		return StatusComponent->ApplyDamage();
 	}
 	return 0.f;
+}
+void AUK_CharacterBase::Dead()
+{
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 }
 #pragma endregion

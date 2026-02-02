@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
+#include "ActorComponent/StatusComponent.h"
 #include "UK_CharacterBase.generated.h"
 
 
@@ -101,5 +102,8 @@ protected:
 public:
 	void ReceiveDamage(float Damage);
 	float ApplyDamage();
+	UFUNCTION()
+	void Dead();
+	FOnDeadDelegate OnDead;
 #pragma endregion
 };
