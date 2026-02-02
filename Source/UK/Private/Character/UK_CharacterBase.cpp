@@ -193,4 +193,24 @@ void AUK_CharacterBase::EquipWeapon(AUK_WeaponBase* NewWeapon)
 	}
 }
 #pragma endregion
+#pragma region Battle
 
+void AUK_CharacterBase::ReceiveDamage(float Damage)
+{
+	if ( !HasAuthority() ) return;
+
+	if ( IsValid(StatusComponent) )
+	{
+		StatusComponent->TakeDamage(Damage);
+	}
+}
+
+float AUK_CharacterBase::ApplyDamage()
+{
+	if ( IsValid(StatusComponent) )
+	{
+		return StatusComponent->ApplyDamage();
+	}
+	return 0.f;
+}
+#pragma endregion

@@ -98,4 +98,8 @@ public:
 
 #pragma endregion
 
+#pragma region Battle
+	void ReceiveDamage(float Damage);
+	float ApplyDamage();
+#pragma endregion
 };

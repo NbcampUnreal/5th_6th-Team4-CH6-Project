@@ -2,8 +2,9 @@
 
 
 #include "ActorComponent/UK_CombatAnimationComponent.h"
-#include "Character/UK_CharacterBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Character/UK_CharacterBase.h"
+#include "AIMonster/AIMonsterBase.h"
 #include "DataAsset/UK_StatusAnimData.h"
 #include "DataAsset/UK_AnimData.h"
 #include "Net/UnrealNetwork.h"
@@ -48,7 +49,7 @@ void UUK_CombatAnimationComponent::SetNowWeapon(const TObjectPtr<UUK_StatusAnimD
 void UUK_CombatAnimationComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	OwnerCharactor = CastChecked<AUK_CharacterBase>(GetOwner());
+	OwnerCharactor = Cast<AUK_CharacterBase>(GetOwner());
 }
 
 // Called every frame
@@ -124,16 +125,8 @@ void UUK_CombatAnimationComponent::ServerRPCComboAttack_Implementation(const ECo
 
 	EComboAttackType NextAttack = GetNextAttackType();
 
-	//// 공격 타입이 달라진다면
-	//if ( AttackType != NextAttack )
-	//{
-	//	//콤보를 처음부터 시작
-	//	CurrentComboCount = 1;
-	//}
-	//else
-	//{
-	//}
 	CurrentComboCount++;
+
 	MulticastPlayCombo(AttackType, CurrentComboCount);
 }
 
@@ -252,7 +245,6 @@ void UUK_CombatAnimationComponent::ResetPlayerCharacterMovement()
 	}
 }
 
-
 // 현재 상태에 따른 어택타입 가져오기
 EComboAttackType UUK_CombatAnimationComponent::GetNextAttackType()
 {
@@ -276,7 +268,6 @@ EComboAttackType UUK_CombatAnimationComponent::GetNextAttackType()
 	}
 	return EComboAttackType::None;
 }
-
 
 void UUK_CombatAnimationComponent::MulticastPlayCombo_Implementation(EComboAttackType AttackType, uint8 ComboCount)
 {
@@ -316,7 +307,7 @@ void UUK_CombatAnimationComponent::SetEnableHitCheck(bool bEnablaHitCheck)
 	else
 	{
 		GetWorld()->GetTimerManager().ClearTimer(HitCheckTimer);
-		HitcheckedActor.Empty();
+		HitcheckedActor.Reset();
 		HitCheckTimer.Invalidate();
 	}
 }
@@ -379,8 +370,11 @@ void UUK_CombatAnimationComponent::HitCheckProcess()
 				UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *HitActor->GetName());
 				if ( OwnerCharactor->HasAuthority() )
 				{
-					// 데미지 로직
-					HitActor->TakeDamage(10.f, DamageEvent, OwnerCharactor->GetController(), OwnerCharactor);
+					if ( TObjectPtr<AAIMonsterBase> Monster = Cast<AAIMonsterBase>(HitActor) )
+					{
+							Monster->ReceiveDamage(OwnerCharactor->ApplyDamage());
+							UE_LOG(LogTemp, Warning, TEXT("Damage Applied to Monster: %s"), *Monster->GetName());
+					}
 				}
 				if ( OwnerCharactor->IsLocallyControlled() )
 				{
