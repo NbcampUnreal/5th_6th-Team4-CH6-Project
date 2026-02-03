@@ -14,9 +14,16 @@ class UK_API UUK_AnimData : public UDataAsset
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation | Montage")
 	TObjectPtr<UAnimMontage> ComboMantage;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ComboData")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation | Data")
 	FString MontageSectionName;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Sound | Data")
+	TObjectPtr<USoundBase> AttackSound;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Sound | Data")
+	TObjectPtr<USoundBase> HitSound;
+
 };

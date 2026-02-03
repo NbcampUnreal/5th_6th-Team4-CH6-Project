@@ -123,6 +123,15 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UStaticMeshComponent> WeaponMesh;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "SoundDistanece")
+	TObjectPtr< USoundAttenuation > SoundAttenuation;
+
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCPlaySoundAndEffect(USoundBase* Sound);
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastPlaySoundAndEffect(USoundBase* Sound);
 #pragma endregion
 
 };

@@ -9,6 +9,8 @@
 #include "DataAsset/UK_AnimData.h"
 #include "Animation/AnimMontage.h"
 #include "Net/UnrealNetwork.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundAttenuation.h"
 int32 UUK_CombatAnimationComponent::ShowAttackDebug = 0;
 
 FAutoConsoleVariableRef CVarShowAttackDebug(
@@ -277,6 +279,8 @@ void UUK_CombatAnimationComponent::SetEnableHitCheck(bool bEnablaHitCheck)
 			0.1f,
 			true
 		);
+		TObjectPtr<USoundBase> AttackSound = AttackAnim->AttackSound;
+		ServerRPCPlaySoundAndEffect(AttackSound);
 	}
 	else
 	{
@@ -349,11 +353,9 @@ void UUK_CombatAnimationComponent::HitCheckProcess()
 						Monster->ReceiveDamage(OwnerCharactor->ApplyDamage());
 						UE_LOG(LogTemp, Warning, TEXT("Damage Applied to Monster: %s to Damage : %f"), *Monster->GetName(), OwnerCharactor->ApplyDamage());
 					}
-				}
-				if ( OwnerCharactor->IsLocallyControlled() )
-				{
 					// 이펙트 출력
-
+					TObjectPtr<USoundBase> HitSound = AttackAnim->HitSound;
+					ServerRPCPlaySoundAndEffect(HitSound);
 				}
 			}
 		}
@@ -365,6 +367,29 @@ void UUK_CombatAnimationComponent::SetWeaponMesh(UStaticMeshComponent* NewWeapon
 	if ( !IsValid(NewWeapon) )
 		return;
 	WeaponMesh = NewWeapon;
+}
+
+void UUK_CombatAnimationComponent::ServerRPCPlaySoundAndEffect_Implementation(USoundBase* Sound)
+{
+	MulticastPlaySoundAndEffect(Sound);
+}
+
+void UUK_CombatAnimationComponent::MulticastPlaySoundAndEffect_Implementation(USoundBase* Sound)
+{
+	if ( IsValid(Sound) && IsValid(SoundAttenuation) )
+	{
+		FVector Start = WeaponMesh->GetSocketLocation(TraceStartSocketName);
+		FVector End = WeaponMesh->GetSocketLocation(TraceEndSocketName);
+		UGameplayStatics::PlaySoundAtLocation(
+			GetWorld(),
+			Sound,
+			( Start + End ) / 2.f,
+			1.f,
+			1.f,
+			0.f,
+			SoundAttenuation
+		);
+	}
 }
 
 void UUK_CombatAnimationComponent::SetNowWeapon(const TObjectPtr<UUK_StatusAnimData>& Weapon)
