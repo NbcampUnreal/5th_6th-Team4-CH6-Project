@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "AIController.h"
@@ -12,31 +12,30 @@ class UK_API AUK_AiMonsterCtl : public AAIController
 	
 public:
 	AUK_AiMonsterCtl();
-
+	AActor* GetCurrentTarget() const { return CurrentTarget; }
+	
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void OnUnPossess() override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result) override;
 private:
-	/* ��Ʈ�� ���� ���� */
 
+	/* 컨트롤 중인 몬스터 */
 	UPROPERTY()
 	AAIMonsterBase* ControlledMonster;
-
-	/* ���� Ÿ�� */
 
 	UPROPERTY()
 	AActor* CurrentTarget;
 
-	/*  AI �Ǵ�  */
+	/* AI 판단 */
 
 	void UpdateTarget();
 	void UpdateState();
 	void HandleMovement();
 
-	/* ������ */
-	/* �ӽ÷� ���� ���� �� (���� �׽�Ʈ ���ؼ� ���� �ʿ�) */
+	/* 설정값 */
+	/* 밸런스 테스트를 통해 수치 변경 필요 */
 
 	void SetNewPatrolTarget();
 
@@ -72,7 +71,7 @@ private:
 	int32 GroupsToIgnore = 0;
 #pragma endregion
 
-	/* ����� (���� ����) */
+	/* 디버그용 드로우 (삭제예정) */
 
 	UPROPERTY(EditDefaultsOnly, Category = "Debug")
 	bool bDrawDebug = true;
