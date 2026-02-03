@@ -75,6 +75,8 @@ void AUK_CharacterBase::BeginPlay()
 		// 임시 방편 나중에 무기 바뀔때마다 바꿀수 있도록 수정
 		AnimationComponent->SetNowWeapon(WeaponList->FindAnimsDataAssetByTag(UK_GameplayTags::Weapon::DefaultWeapon));
 	}
+
+	StatusComponent->OnDeadDelegate.AddDynamic(this, & AUK_CharacterBase::Dead);
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -133,11 +135,19 @@ void AUK_CharacterBase::GiveStartupAbilities()
 
 void AUK_CharacterBase::Attack()
 {
+	if ( StatusComponent->IsDead() )
+	{
+		return;
+	}
 	AnimationComponent->PlayLightComboAnimation();
 }
 
 void AUK_CharacterBase::ZoomIn()
 {
+	if ( StatusComponent->IsDead() )
+	{
+		return;
+	}
 	if ( !IsValid(SpringArm) )
 	{
 		return;
@@ -155,6 +165,10 @@ void AUK_CharacterBase::ZoomIn()
 
 void AUK_CharacterBase::ZoomOut()
 {
+	if ( StatusComponent->IsDead() )
+	{
+		return;
+	}
 	if ( !IsValid(SpringArm) )
 	{
 		return;
@@ -169,11 +183,11 @@ void AUK_CharacterBase::ZoomOut()
 		12.f
 	);
 }
+// 어느 타이밍에 호출할지 고민 필요
 #pragma endregion
 
 #pragma region Weapon
 
-// 어느 타이밍에 호출할지 고민 필요
 void AUK_CharacterBase::EquipWeapon(AUK_WeaponBase* NewWeapon)
 {
 	if ( CurrentWeapon )
@@ -212,5 +226,9 @@ float AUK_CharacterBase::ApplyDamage()
 		return StatusComponent->ApplyDamage();
 	}
 	return 0.f;
+}
+void AUK_CharacterBase::Dead()
+{
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 }
 #pragma endregion

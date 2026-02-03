@@ -126,7 +126,19 @@ void AAIMonsterBase::ReceiveDamage(float Damage)
 
 	if ( StatComponent )
 	{
+		float BeforeHp = StatComponent->GetHP();
+
 		StatComponent->TakeDamage(Damage);
+
+		float AfterHp = StatComponent->GetHP();
+
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Monster Hit] %s | Damage: %.1f | HP: %.1f -> %.1f"),
+			*GetName(),
+			Damage,
+			BeforeHp,
+			AfterHp
+		);
 	}
 }
 
@@ -147,57 +159,142 @@ void AAIMonsterBase::OnChase(float DeltaSeconds)
 
 void AAIMonsterBase::OnAttack()
 {
-	UE_LOG(LogTemp, Error, TEXT("ON Attack"));
-	if ( !HasAuthority() ) return;
-	
-	/* 쿨타임 */
+	UE_LOG(LogTemp, Warning,
+		TEXT("=== OnAttack Start | Authority: %d ==="),
+		HasAuthority()
+	);
+
+	if ( !HasAuthority() )
+	{
+		UE_LOG(LogTemp, Error, TEXT("Not Server!"));
+		return;
+	}
 
 	float Now = GetWorld()->GetTimeSeconds();
 
 	if ( Now - LastAttackTime < AttackCooldown )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Cooldown"));
 		return;
-
-
-	/* AIController */
+	}
 
 	AUK_AiMonsterCtl* AI =
 		Cast<AUK_AiMonsterCtl>(GetController());
 
-	if ( !AI ) return;
-
-
-	/* Target */
+	if ( !AI )
+	{
+		UE_LOG(LogTemp, Error, TEXT("No AIController"));
+		return;
+	}
 
 	AActor* Target = AI->GetCurrentTarget();
 
+	UE_LOG(LogTemp, Warning,
+		TEXT("Target: %s"),
+		Target ? *Target->GetName() : TEXT("NULL")
+	);
+
 	if ( !Target ) return;
-
-
-	/* 거리 체크 */
 
 	float Dist = FVector::Dist(
 		GetActorLocation(),
 		Target->GetActorLocation()
 	);
 
+	UE_LOG(LogTemp, Warning,
+		TEXT("Distance: %.1f / Range: %.1f"),
+		Dist,
+		AttackRange
+	);
+
 	if ( Dist > AttackRange )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Out of Range"));
 		return;
-
-
-	/* 데미지 */
+	}
 
 	AUK_CharacterBase* Player =
 		Cast<AUK_CharacterBase>(Target);
 
-	if ( Player )
+	if ( !Player )
 	{
-		//Player->ReceiveDamage(AttackDamage);
+		UE_LOG(LogTemp, Error,
+			TEXT("Cast Failed: %s"),
+			*Target->GetClass()->GetName()
+		);
+		return;
 	}
 
+	UE_LOG(LogTemp, Warning, TEXT("Before Damage"));
 
-	/* 쿨타임 갱신 */
+	Player->ReceiveDamage(AttackDamage);
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[Monster Attack] %s -> %s | Damage: %.1f"),
+		*GetName(),
+		*Player->GetName(),
+		AttackDamage
+	);
 
 	LastAttackTime = Now;
+	//UE_LOG(LogTemp, Error, TEXT("ON Attack"));
+	//if ( !HasAuthority() ) return;
+	//
+	///* 쿨타임 */
+
+	//float Now = GetWorld()->GetTimeSeconds();
+
+	//if ( Now - LastAttackTime < AttackCooldown )
+	//	return;
+
+
+	///* AIController */
+
+	//AUK_AiMonsterCtl* AI =
+	//	Cast<AUK_AiMonsterCtl>(GetController());
+
+	//if ( !AI ) return;
+
+
+	///* Target */
+
+	//AActor* Target = AI->GetCurrentTarget();
+
+	//if ( !Target ) return;
+
+
+	///* 거리 체크 */
+
+	//float Dist = FVector::Dist(
+	//	GetActorLocation(),
+	//	Target->GetActorLocation()
+	//);
+
+	//if ( Dist > AttackRange )
+	//	return;
+
+
+	///* 데미지 */
+
+	//AUK_CharacterBase* Player =
+	//	Cast<AUK_CharacterBase>(Target);
+
+	//if ( Player )
+	//{
+	//	Player->ReceiveDamage(AttackDamage);
+
+	//	UE_LOG(LogTemp, Warning,
+	//		TEXT("[Monster Attack] %s -> %s | Damage: %.1f"),
+	//		*GetName(),
+	//		*Player->GetName(),
+	//		AttackDamage
+	//	);
+	//}
+
+
+	///* 쿨타임 갱신 */
+
+	//LastAttackTime = Now;
 }
 
 void AAIMonsterBase::OnDead()
