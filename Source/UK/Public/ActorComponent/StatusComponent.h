@@ -70,7 +70,10 @@ public:
 #pragma endregion
 
 #pragma region Delegate
+	UPROPERTY(BlueprintAssignable)
 	FOnHpStatusDelegate HpStatusDelegate;
+
+	UPROPERTY(BlueprintAssignable)
 	FOnDeadDelegate OnDeadDelegate;
 #pragma endregion
 };

@@ -33,7 +33,7 @@ public:
     float SpawnRadius = 500.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Settings")
-    float RespawnDelay = 5.0f;
+    float RespawnDelay = 10.0f;
 
     // 디버그
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Debug")

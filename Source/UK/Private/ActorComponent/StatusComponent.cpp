@@ -42,16 +42,19 @@ void UStatusComponent::BeginPlay()
 
 void UStatusComponent::SetHp(const float CurrentHp)
 {
-	if ( IsValid(GetOwner()) || GetOwnerRole() != ROLE_Authority )
+	if ( GetOwnerRole() != ROLE_Authority || !IsValid(GetOwner()) )
+	{
 		return;
+	}
 
 	Status.CurrentHp = FMath::Clamp(CurrentHp, 0.f, Status.MaxHp);
 
-	HpStatusDelegate.Broadcast(CurrentHp, Status.MaxHp);
+	HpStatusDelegate.Broadcast(Status.CurrentHp, Status.MaxHp);
 
 	if ( IsDead() )
 	{
 		OnDeadDelegate.Broadcast();
+		UE_LOG(LogTemp, Warning, TEXT("IsDead()"));
 	}
 }
 
