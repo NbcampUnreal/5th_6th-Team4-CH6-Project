@@ -76,7 +76,7 @@ void AUK_CharacterBase::BeginPlay()
 		AnimationComponent->SetNowWeapon(WeaponList->FindAnimsDataAssetByTag(UK_GameplayTags::Weapon::DefaultWeapon));
 	}
 
-	OnDead.AddDynamic(this, & AUK_CharacterBase::Dead);
+	StatusComponent->OnDeadDelegate.AddDynamic(this, & AUK_CharacterBase::Dead);
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -135,11 +135,19 @@ void AUK_CharacterBase::GiveStartupAbilities()
 
 void AUK_CharacterBase::Attack()
 {
+	if ( StatusComponent->IsDead() )
+	{
+		return;
+	}
 	AnimationComponent->PlayLightComboAnimation();
 }
 
 void AUK_CharacterBase::ZoomIn()
 {
+	if ( StatusComponent->IsDead() )
+	{
+		return;
+	}
 	if ( !IsValid(SpringArm) )
 	{
 		return;
@@ -157,6 +165,10 @@ void AUK_CharacterBase::ZoomIn()
 
 void AUK_CharacterBase::ZoomOut()
 {
+	if ( StatusComponent->IsDead() )
+	{
+		return;
+	}
 	if ( !IsValid(SpringArm) )
 	{
 		return;
