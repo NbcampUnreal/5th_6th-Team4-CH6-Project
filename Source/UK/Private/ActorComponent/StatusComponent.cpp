@@ -54,6 +54,7 @@ void UStatusComponent::SetHp(const float CurrentHp)
 	if ( IsDead() )
 	{
 		OnDeadDelegate.Broadcast();
+		UE_LOG(LogTemp, Warning, TEXT("IsDead()"));
 	}
 }
 
