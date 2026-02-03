@@ -171,11 +171,11 @@ void AUK_CharacterBase::ZoomOut()
 		12.f
 	);
 }
+// 어느 타이밍에 호출할지 고민 필요
 #pragma endregion
 
 #pragma region Weapon
 
-// 어느 타이밍에 호출할지 고민 필요
 void AUK_CharacterBase::EquipWeapon(AUK_WeaponBase* NewWeapon)
 {
 	if ( CurrentWeapon )

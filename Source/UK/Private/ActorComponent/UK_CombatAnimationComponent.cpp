@@ -9,6 +9,8 @@
 #include "DataAsset/UK_AnimData.h"
 #include "Animation/AnimMontage.h"
 #include "Net/UnrealNetwork.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundAttenuation.h"
 int32 UUK_CombatAnimationComponent::ShowAttackDebug = 0;
 
 FAutoConsoleVariableRef CVarShowAttackDebug(
@@ -114,7 +116,7 @@ void UUK_CombatAnimationComponent::MulticastPlayCombo_Implementation(EComboAttac
 
 	AttackAnim = NowWeapon->FindAnimsDataAssetByType(AttackType);
 
-	FName SectionName = *FString::Printf(TEXT("%s%d"), *AttackAnim->MontageName, ComboCount);
+	FName SectionName = *FString::Printf(TEXT("%s%d"), *AttackAnim->MontageSectionName, ComboCount);
 
 	PlayComboAttackAnimation(AttackType, SectionName);
 }
@@ -135,7 +137,10 @@ void UUK_CombatAnimationComponent::PlayComboAttackAnimation(const EComboAttackTy
 	TObjectPtr<UAnimMontage> ComboAttackMontage = AttackAnim->ComboMantage;
 
 	if ( !IsValid(ComboAttackMontage) )
+	{
+		EndComboAttack(ComboAttackMontage, false);
 		return;
+	}
 
 	// 몽타주 재생이 안되고 있을 때만 진입
 	if ( !PlayerAnimInstance->Montage_IsPlaying(ComboAttackMontage) )
@@ -175,6 +180,7 @@ void UUK_CombatAnimationComponent::EndComboAttack(UAnimMontage* TargetMontage, b
 {
 	if ( !bInterrupted )
 	{
+		UE_LOG(LogTemp, Display, TEXT("EndComboAttack()"));
 		ResetCharacterGravityScale();
 		//ServerResetPlayerComboAttackValue();
 		ResetPlayerComboAttackValue();
@@ -185,7 +191,11 @@ void UUK_CombatAnimationComponent::EndComboAttack(UAnimMontage* TargetMontage, b
 void UUK_CombatAnimationComponent::ResetCharacterGravityScale()
 {
 	if ( !IsValid(OwnerCharactor) )
+	{
+		UE_LOG(LogTemp, Display, TEXT("ResetCharacterGravityScale()return"));
 		return;
+	}
+	UE_LOG(LogTemp, Display, TEXT("Reset()"));
 	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
 	PlayerMovement->GravityScale = DefaultGravityValue;
 }
@@ -216,9 +226,14 @@ void UUK_CombatAnimationComponent::CheckComboProcessable(const EComboAttackType 
 	ensure(IsValid(OwnerCharactor));
 	//// 입력 감지에 안된다면 콤보 재생종료
 	if ( InputType == EAttackInput::None )
-		return;
+	{
+		TObjectPtr<UAnimMontage> ComboAttackMontage = AttackAnim->ComboMantage;
 
-	FName NextComboSectionName = *FString::Printf(TEXT("%s%d"), *AttackAnim->MontageName, CurrentComboCount);
+		EndComboAttack(ComboAttackMontage, false);
+		return;
+	}
+
+	FName NextComboSectionName = *FString::Printf(TEXT("%s%d"), *AttackAnim->MontageSectionName, CurrentComboCount);
 
 	// 애니메이션 재생
 	ServerRPCComboAttack(AttackType, NextComboSectionName);
@@ -255,6 +270,7 @@ void UUK_CombatAnimationComponent::SetEnableHitCheck(bool bEnablaHitCheck)
 {
 	if ( bEnablaHitCheck )
 	{
+		HitcheckedActor.Reset();
 		GetWorld()->GetTimerManager().SetTimer
 		(
 			HitCheckTimer,
@@ -263,6 +279,8 @@ void UUK_CombatAnimationComponent::SetEnableHitCheck(bool bEnablaHitCheck)
 			0.1f,
 			true
 		);
+		TObjectPtr<USoundBase> AttackSound = AttackAnim->AttackSound;
+		ServerRPCPlaySoundAndEffect(AttackSound);
 	}
 	else
 	{
@@ -332,14 +350,12 @@ void UUK_CombatAnimationComponent::HitCheckProcess()
 				{
 					if ( TObjectPtr<AAIMonsterBase> Monster = Cast<AAIMonsterBase>(HitActor) )
 					{
-							Monster->ReceiveDamage(OwnerCharactor->ApplyDamage());
-							UE_LOG(LogTemp, Warning, TEXT("Damage Applied to Monster: %s to Damage : %f"), *Monster->GetName(), OwnerCharactor->ApplyDamage());
+						Monster->ReceiveDamage(OwnerCharactor->ApplyDamage());
+						UE_LOG(LogTemp, Warning, TEXT("Damage Applied to Monster: %s to Damage : %f"), *Monster->GetName(), OwnerCharactor->ApplyDamage());
 					}
-				}
-				if ( OwnerCharactor->IsLocallyControlled() )
-				{
 					// 이펙트 출력
-
+					TObjectPtr<USoundBase> HitSound = AttackAnim->HitSound;
+					ServerRPCPlaySoundAndEffect(HitSound);
 				}
 			}
 		}
@@ -351,6 +367,29 @@ void UUK_CombatAnimationComponent::SetWeaponMesh(UStaticMeshComponent* NewWeapon
 	if ( !IsValid(NewWeapon) )
 		return;
 	WeaponMesh = NewWeapon;
+}
+
+void UUK_CombatAnimationComponent::ServerRPCPlaySoundAndEffect_Implementation(USoundBase* Sound)
+{
+	MulticastPlaySoundAndEffect(Sound);
+}
+
+void UUK_CombatAnimationComponent::MulticastPlaySoundAndEffect_Implementation(USoundBase* Sound)
+{
+	if ( IsValid(Sound) && IsValid(SoundAttenuation) )
+	{
+		FVector Start = WeaponMesh->GetSocketLocation(TraceStartSocketName);
+		FVector End = WeaponMesh->GetSocketLocation(TraceEndSocketName);
+		UGameplayStatics::PlaySoundAtLocation(
+			GetWorld(),
+			Sound,
+			( Start + End ) / 2.f,
+			1.f,
+			1.f,
+			0.f,
+			SoundAttenuation
+		);
+	}
 }
 
 void UUK_CombatAnimationComponent::SetNowWeapon(const TObjectPtr<UUK_StatusAnimData>& Weapon)

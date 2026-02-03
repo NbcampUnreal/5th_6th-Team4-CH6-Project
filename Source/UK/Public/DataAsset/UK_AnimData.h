@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -14,15 +14,16 @@ class UK_API UUK_AnimData : public UDataAsset
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation | Montage")
 	TObjectPtr<UAnimMontage> ComboMantage;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ComboData")
-	FString MontageName;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation | Data")
+	FString MontageSectionName;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Sound | Data")
+	TObjectPtr<USoundBase> AttackSound;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ComboData")
-	uint8 MaxComboCount;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Sound | Data")
+	TObjectPtr<USoundBase> HitSound;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ComboData")
-	TArray<float> ComboFrameTime;
 };
