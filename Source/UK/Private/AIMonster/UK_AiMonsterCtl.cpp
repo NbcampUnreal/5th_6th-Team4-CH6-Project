@@ -77,7 +77,9 @@ void AUK_AiMonsterCtl::Tick(float DeltaSeconds)
 	DrawAIDebug();
 	if (!ControlledMonster || !HasAuthority())
 		return;
+
 	UpdateTarget();
+
 	// BehaviorTree 사용중이면 기존 AI 로직 스킵
 	if (ControlledMonster->BehaviorTree && GetBrainComponent())
 		return;
