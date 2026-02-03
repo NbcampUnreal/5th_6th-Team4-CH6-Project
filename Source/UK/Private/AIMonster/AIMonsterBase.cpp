@@ -112,10 +112,12 @@ void AAIMonsterBase::Die()
 
 void AAIMonsterBase::ResetHealth()
 {
-	// HP 컴포넌트 추가시 여기서 초기화
-	// 현재는 상태만 리셋
 	if (HasAuthority())
 	{
+		if (StatComponent)
+		{
+			StatComponent->SetHP(StatComponent->GetMaxHP());
+		}
 		SetServerState(EMonsterState::Idle);
 	}
 }
