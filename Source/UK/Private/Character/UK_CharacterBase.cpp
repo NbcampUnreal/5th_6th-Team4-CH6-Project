@@ -9,6 +9,8 @@
 #include "ActorComponent/StatusComponent.h"
 #include "ActorComponent/UK_InputComponent.h"
 #include "ActorComponent/UK_CombatAnimationComponent.h"
+#include "DataAsset/UK_WeaponData.h"
+#include "DataAsset/UK_StatusAnimData.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -20,21 +22,10 @@
 
 #pragma region Defualt
 
-int32 AUK_CharacterBase::ShowAttackDebug = 0;
 
-FAutoConsoleVariableRef CVarShowAttackDebug(
-	TEXT("UK.ShowAttackDebug"),
-	AUK_CharacterBase::ShowAttackDebug,
-	TEXT(""),
-	ECVF_Cheat
-);
 
 // Sets default values
-AUK_CharacterBase::AUK_CharacterBase() :
-	bSprint(false),
-	AttackRange(50.f),
-	AttackRadius(20.f),
-	WeaponIndex(0)
+AUK_CharacterBase::AUK_CharacterBase()
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
@@ -72,31 +63,20 @@ void AUK_CharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(AUK_CharacterBase, StatusComponent, COND_None);
-	DOREPLIFETIME_CONDITION(AUK_CharacterBase, Weapons, COND_None);
-	DOREPLIFETIME_CONDITION(AUK_CharacterBase, Weapon, COND_None);
+
 }
 
 // Called when the game starts or when spawned
 void AUK_CharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if ( HasAuthority() )
+	if ( IsValid(WeaponList) && IsValid(AnimationComponent) )
 	{
-		for ( const TSubclassOf<AUK_WeaponBase>& WeaponClass : DefaultWeapons )
-		{
-			if ( !WeaponClass ) continue;
-			FActorSpawnParameters Params;
-			Params.Owner = this;
-			AUK_WeaponBase* SpawnedWeapon = GetWorld()->SpawnActor<AUK_WeaponBase>(WeaponClass, Params); //서버와 클라이언트에 무기 스폰을 해야하기 때문에 반복문을 이용해준다.
-			const int32 Index = Weapons.Add(SpawnedWeapon);
-			if ( Index == WeaponIndex )
-			{
-				Weapon = SpawnedWeapon;
-				OnRep_CurrentWeapon(nullptr);
-			}
-		}
+		// 임시 방편 나중에 무기 바뀔때마다 바꿀수 있도록 수정
+		AnimationComponent->SetNowWeapon(WeaponList->FindAnimsDataAssetByTag(UK_GameplayTags::Weapon::DefaultWeapon));
 	}
+
+	OnDead.AddDynamic(this, & AUK_CharacterBase::Dead);
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -153,13 +133,6 @@ void AUK_CharacterBase::GiveStartupAbilities()
 
 #pragma region Input
 
-// Called to bind functionality to input
-void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-}
-
-
 void AUK_CharacterBase::Attack()
 {
 	AnimationComponent->PlayLightComboAnimation();
@@ -167,7 +140,7 @@ void AUK_CharacterBase::Attack()
 
 void AUK_CharacterBase::ZoomIn()
 {
-	if (!IsValid( SpringArm ))
+	if ( !IsValid(SpringArm) )
 	{
 		return;
 	}
@@ -184,7 +157,7 @@ void AUK_CharacterBase::ZoomIn()
 
 void AUK_CharacterBase::ZoomOut()
 {
-	if (!IsValid( SpringArm ))
+	if ( !IsValid(SpringArm) )
 	{
 		return;
 	}
@@ -198,109 +171,52 @@ void AUK_CharacterBase::ZoomOut()
 		12.f
 	);
 }
+// 어느 타이밍에 호출할지 고민 필요
 #pragma endregion
 
 #pragma region Weapon
-void AUK_CharacterBase::OnRep_CurrentWeapon(const AUK_WeaponBase* OldWeapon)
+
+void AUK_CharacterBase::EquipWeapon(AUK_WeaponBase* NewWeapon)
 {
-	if ( Weapon )
+	if ( CurrentWeapon )
 	{
-		if ( !Weapon->GetOwnerCharactor() )
-		{
-			const FTransform PlacementTransform = Weapon->GetWeaponTransform() * GetMesh()->GetSocketTransform(FName("WeaponSocket"));
-			Weapon->SetActorTransform(PlacementTransform, false, nullptr, ETeleportType::TeleportPhysics);
-			Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::KeepWorldTransform, FName("WeaponSocket"));
-			Weapon->SetOwnerCharactor(this);
-		}
-		Weapon->GetStaticMeshComponent()->SetVisibility(true);
+		GetAbilitySystemComponent()->RemoveLooseGameplayTag(CurrentWeapon->WeaponTag);
+	}
+
+	CurrentWeapon = NewWeapon;
+
+
+	if ( CurrentWeapon )
+	{
+		UUK_StatusAnimData* Weapon = WeaponList->FindAnimsDataAssetByTag(CurrentWeapon->WeaponTag);
+		AnimationComponent->SetNowWeapon(Weapon);
+		GetAbilitySystemComponent()->AddLooseGameplayTag(CurrentWeapon->WeaponTag);
 	}
 }
-
 #pragma endregion
 
-#pragma region Attack
+#pragma region Battle
 
-void AUK_CharacterBase::HandleOnCheckHit()
+void AUK_CharacterBase::ReceiveDamage(float Damage)
 {
-	UKismetSystemLibrary::PrintString(this, TEXT("HandleOnCheckHit()"));
+	if ( !HasAuthority() ) return;
 
-	TArray<FHitResult> HitResults;
-	FCollisionQueryParams Params(NAME_None, false, this);
-	FVector UpStartRange(30.f, 0.f, 0.f);
-	FVector UpRange(30.f, 0.f, 40.f);
-
-	bool bResult;
-	if ( 1/*CurrentComboCount != 3 */ )
+	if ( IsValid(StatusComponent) )
 	{
-		bResult = GetWorld()->SweepMultiByChannel(
-			HitResults,
-			GetActorLocation(),
-			GetActorLocation() + AttackRange * GetActorForwardVector(),
-			FQuat::Identity,
-			ECC_ATTACK,
-			FCollisionShape::MakeSphere(AttackRadius),
-			Params
-		);
-		if ( ShowAttackDebug == 1 )
-		{
-			DrawSweepCapsuleDebug(
-				AttackRange * GetActorForwardVector(),
-				GetActorLocation() + AttackRange * GetActorForwardVector(),
-				AttackRange * 0.5f + AttackRadius,
-				bResult ? FColor::Green : FColor::Red
-			);
-		}
-	}
-	else
-	{
-		bResult = GetWorld()->SweepMultiByChannel(
-			HitResults,
-			AttackRange * GetActorForwardVector() + UpStartRange,
-			GetActorLocation() + UpRange + ( AttackRange * GetActorForwardVector() ),
-			FQuat::Identity,
-			ECC_ATTACK,
-			FCollisionShape::MakeSphere(AttackRadius),
-			Params
-		);
-		if ( ShowAttackDebug == 1 )
-		{
-			DrawSweepCapsuleDebug(
-				GetActorLocation() + UpStartRange,
-				GetActorLocation() + UpRange + ( AttackRange * GetActorForwardVector() ),
-				AttackRange * 0.5f + AttackRadius,
-				bResult ? FColor::Green : FColor::Red
-			);
-		}
-	}
-	if ( bResult )
-	{
-		for ( FHitResult HitResult : HitResults )
-		{
-			if ( IsValid(HitResult.GetActor()) )
-			{
-				if ( 1 == ShowAttackDebug )
-				{
-					UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
-				}
-			}
-		}
+		StatusComponent->TakeDamage(Damage);
 	}
 }
 
-void AUK_CharacterBase::DrawSweepCapsuleDebug(const FVector& Start, const FVector& End, float HalfHeight, const FColor& Color)
+float AUK_CharacterBase::ApplyDamage()
 {
-	const FVector Center = ( Start + End ) * 0.5f;
-	FQuat CapsuleRot = FRotationMatrix::MakeFromZ(Center).ToQuat();
-
-	DrawDebugCapsule(GetWorld(),
-		Center,
-		HalfHeight,
-		AttackRadius,
-		CapsuleRot,
-		Color,
-		false,
-		5.f
-	);
+	if ( IsValid(StatusComponent) )
+	{
+		return StatusComponent->ApplyDamage();
+	}
+	return 0.f;
 }
-
+void AUK_CharacterBase::Dead()
+{
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+}
 #pragma endregion

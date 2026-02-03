@@ -1,10 +1,10 @@
-#include "AIMonster/UK_AiMonsterCtl.h"
+﻿#include "AIMonster/UK_AiMonsterCtl.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "DrawDebugHelpers.h" //������ (��������)
+#include "DrawDebugHelpers.h" //디버그용 드로우 (삭제예정)
 
 AUK_AiMonsterCtl::AUK_AiMonsterCtl()
 {
@@ -63,7 +63,7 @@ void AUK_AiMonsterCtl::OnPossess(APawn* InPawn)
 
 void AUK_AiMonsterCtl::OnUnPossess()
 {
-	/* ���� ��Ű�� */
+	/* 해제 시키기 */
 	ControlledMonster = nullptr;
 	CurrentTarget = nullptr;
 	bHasPatrolTarget = false;
@@ -74,7 +74,7 @@ void AUK_AiMonsterCtl::OnUnPossess()
 void AUK_AiMonsterCtl::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-
+	DrawAIDebug();
 	if (!ControlledMonster || !HasAuthority())
 		return;
 
@@ -85,10 +85,10 @@ void AUK_AiMonsterCtl::Tick(float DeltaSeconds)
 	UpdateTarget();
 	UpdateState();
 	HandleMovement();
-	DrawAIDebug();
+	
 }
 
-/* Target Ž�� ���� (����,÷�� �� �� ����) */
+/* Target 탐색 로직 (수정,첨삭 될 수 있음) */
 
 void AUK_AiMonsterCtl::UpdateTarget()
 {
@@ -118,7 +118,7 @@ void AUK_AiMonsterCtl::UpdateTarget()
 	CurrentTarget = ClosestTarget;
 }
 
-/* ���º� �Ǵ� ���� */
+/* 상태별 판단 로직 */
 
 void AUK_AiMonsterCtl::UpdateState()
 {
@@ -145,7 +145,7 @@ void AUK_AiMonsterCtl::UpdateState()
 	}
 }
 
-/* �̵� ���� ���� */
+/* 이동 행위 로직 */
 
 void AUK_AiMonsterCtl::HandleMovement()
 {
@@ -182,7 +182,7 @@ void AUK_AiMonsterCtl::HandleMovement()
 	}
 }
 
-/* Patrol ���� ���� ���� */
+/* Patrol 위치 설정 */
 
 void AUK_AiMonsterCtl::SetNewPatrolTarget()
 {
@@ -196,7 +196,7 @@ void AUK_AiMonsterCtl::SetNewPatrolTarget()
 	bHasPatrolTarget = true;
 }
 
-/* �ݺ� Patrol�� �� �� �ְ� �ϴ� �ݹ� �Լ� */
+/* 이동 완료 콜백 */
 
 void AUK_AiMonsterCtl::OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result)
 {
@@ -208,94 +208,28 @@ void AUK_AiMonsterCtl::OnMoveCompleted(FAIRequestID RequestID, const FPathFollow
 	}
 }
 
-/* ������ (���� ����) */
+/* 디버그용 드로우 (삭제예정) */
 
 void AUK_AiMonsterCtl::DrawAIDebug() const
 {
-	if (!bDrawDebug || !ControlledMonster)
+	if ( !bDrawDebug || !ControlledMonster )
 		return;
 
 	const FVector Origin = ControlledMonster->GetActorLocation();
-	const float ZOffset = 10.f;
+	const float LifeTime = ControllerTickInterval * 1.2f;
 
-	// Ž�� ���� (���)
-	DrawDebugSphere(
-		GetWorld(),
-		Origin,
-		SearchRadius,
-		32,
-		FColor::Yellow,
-		false,
-		0.f,
-		0,
-		1.5f
-	);
+	DrawDebugSphere(GetWorld(), Origin, SearchRadius, 32, FColor::Yellow, false, LifeTime, 0, 1.5f); 	// 탐색 범위 (노랑)
+	DrawDebugSphere(GetWorld(), Origin, ChaseRange, 32, FColor::Blue, false, LifeTime, 0, 1.5f);		// 추적 범위 (파랑)
+	DrawDebugSphere(GetWorld(), Origin, AttackRange, 32, FColor::Red, false, LifeTime, 0, 2.5f);		// 공격 범위 (빨강)
+	DrawDebugSphere(GetWorld(), Origin, PatrolRadius, 32, FColor::Green, false, LifeTime, 0, 1.0f);		// 순찰 반경 (초록)
 
-	// ���� ���� (�Ķ�)
-	DrawDebugSphere(
-		GetWorld(),
-		Origin,
-		ChaseRange,
-		32,
-		FColor::Blue,
-		false,
-		0.f,
-		0,
-		1.5f
-	);
-
-	// ���� ���� (����)
-	DrawDebugSphere(
-		GetWorld(),
-		Origin,
-		AttackRange,
-		32,
-		FColor::Red,
-		false,
-		0.f,
-		0,
-		2.5f
-	);
-
-	// ���� �ݰ� (�ʷ�)
-	DrawDebugSphere(
-		GetWorld(),
-		Origin,
-		PatrolRadius,
-		32,
-		FColor::Green,
-		false,
-		0.f,
-		0,
-		1.0f
-	);
-
-	// ���� Ÿ�� ǥ��
-	if (CurrentTarget)
+	if ( CurrentTarget ) // 현재 타겟 표시
 	{
-		DrawDebugLine(
-			GetWorld(),
-			Origin,
-			CurrentTarget->GetActorLocation(),
-			FColor::Red,
-			false,
-			0.f,
-			0,
-			2.f
-		);
+		DrawDebugLine(GetWorld(), Origin, CurrentTarget->GetActorLocation(), FColor::Red, false, LifeTime, 0, 2.f);
 	}
 
-	// ���� ��ǥ ����
-	if (bDrawDebug)
+	if ( bHasPatrolTarget )
 	{
-		DrawDebugSphere(
-			GetWorld(),
-			PatrolTarget,
-			50.f,
-			12,
-			FColor::Green,
-			false,
-			2.f
-		);
+		DrawDebugSphere(GetWorld(), PatrolTarget, 50.f, 12, FColor::Green, false, LifeTime, 0, 1.5f);
 	}
 }
