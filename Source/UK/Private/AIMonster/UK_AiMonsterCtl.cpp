@@ -78,11 +78,11 @@ void AUK_AiMonsterCtl::Tick(float DeltaSeconds)
 	if (!ControlledMonster || !HasAuthority())
 		return;
 
+	UpdateTarget();
+
 	// BehaviorTree 사용중이면 기존 AI 로직 스킵
 	if (ControlledMonster->BehaviorTree && GetBrainComponent())
 		return;
-	
-	UpdateTarget();
 	UpdateState();
 	HandleMovement();
 	
@@ -92,30 +92,46 @@ void AUK_AiMonsterCtl::Tick(float DeltaSeconds)
 
 void AUK_AiMonsterCtl::UpdateTarget()
 {
-	if (CurrentTarget && IsValid(CurrentTarget))
+	if ( !HasAuthority() ) return;
+
+	UBlackboardComponent* BB = GetBlackboardComponent();
+	if ( !BB ) return;
+
+	if ( BB->GetValueAsObject("Target") )
 		return;
 
 	TArray<AActor*> Players;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(),ACharacter::StaticClass(),Players);
+	UGameplayStatics::GetAllActorsOfClass(
+		GetWorld(),
+		ACharacter::StaticClass(),
+		Players
+	);
 
 	float ClosestDist = SearchRadius;
 	AActor* ClosestTarget = nullptr;
 
-	for (AActor* Actor : Players)
+	for ( AActor* Actor : Players )
 	{
-		if (!Actor || Actor == ControlledMonster)
+		if ( !Actor || Actor == ControlledMonster )
 			continue;
 
-		float Dist = FVector::Dist(ControlledMonster->GetActorLocation(),Actor->GetActorLocation());
+		float Dist = FVector::Dist(
+			ControlledMonster->GetActorLocation(),
+			Actor->GetActorLocation()
+		);
 
-		if (Dist < ClosestDist)
+		if ( Dist < ClosestDist )
 		{
 			ClosestDist = Dist;
 			ClosestTarget = Actor;
 		}
 	}
 
-	CurrentTarget = ClosestTarget;
+	if ( ClosestTarget )
+	{
+		BB->SetValueAsObject("Target", ClosestTarget);
+		CurrentTarget = ClosestTarget;
+	}
 }
 
 /* 상태별 판단 로직 */
