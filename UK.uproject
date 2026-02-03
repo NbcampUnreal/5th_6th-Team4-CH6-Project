@@ -37,7 +37,7 @@
 		},
 		{
 			"Name": "Landmass",
-			"Enabled": true
+			"Enabled": false
 		},
 		{
 			"Name": "GameplayAbilities",
@@ -91,6 +91,7 @@
 			"Name": "PCGWaterInterop",
 			"Enabled": true
 		}
+
 	],
 	"TargetPlatforms": [
 		"Windows"
