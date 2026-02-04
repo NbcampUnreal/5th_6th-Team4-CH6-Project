@@ -56,6 +56,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Monster")
 	void ResetHealth();
+	
+	UFUNCTION(BlueprintPure, Category = "Monster")
+	UAI_MonsterStatComponent* GetStatComponent() const { return StatComponent; }
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 	float DetectionRadius = 800.0f;
