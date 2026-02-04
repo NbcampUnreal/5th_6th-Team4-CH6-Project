@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -6,7 +6,30 @@
 #include "Components/ActorComponent.h"
 #include "StatusComponent.generated.h"
 
+USTRUCT(BlueprintType)
+struct FStatus
+{
+	GENERATED_BODY()
 
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+	float MaxHp = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+	float CurrentHp = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+	float MaxMp = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+	float CurrentMp = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+	float Str = 10.f;
+};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHpStatusDelegate, float, CurrentHp, float, MaxHp);
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class UK_API UStatusComponent : public UActorComponent
 {
@@ -18,26 +41,39 @@ public:
 
 	// Called every frame
 	//virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+#pragma region Status
+public:
+	void SetHp(const float CurrentHp);
 
-#pragma region GetSet
-	int GetMaxHP() const { return MaxHp; }
-	void SetMaxHP(const int32 CurrentHp) { MaxHp = CurrentHp; };
+	bool IsDead() const;
 
-	int GetMaxMp() const { return MaxMp; };
-	void SetMaxMp(const int32 CurrentMp) { MaxMp = CurrentMp; };
-
-	int GetStr() const { return Str; };
-	void SetStr(const int32 CurrentStr) { Str = CurrentStr; };
-#pragma endregion
+	UFUNCTION()
+	void OnRepStatus();
 protected:
-	UPROPERTY()
-	int32 MaxHp;
-	UPROPERTY()
-	int32 MaxMp;
-	UPROPERTY()
-	int32 Str;
+
+	UPROPERTY(ReplicatedUsing = OnRepStatus)
+	FStatus Status;
+
+#pragma endregion
+
+#pragma region Battle
+public:
+	float ApplyDamage();
+
+	void TakeDamage(float Damage);
+#pragma endregion
+
+#pragma region Delegate
+	UPROPERTY(BlueprintAssignable)
+	FOnHpStatusDelegate HpStatusDelegate;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnDeadDelegate OnDeadDelegate;
+#pragma endregion
 };

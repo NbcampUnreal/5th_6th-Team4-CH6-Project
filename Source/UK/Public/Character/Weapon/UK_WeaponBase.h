@@ -1,9 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "GameplayTagContainer.h"
 #include "UK_WeaponBase.generated.h"
 
 #pragma region Forward Declaration
@@ -37,15 +38,20 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<AUK_CharacterBase> OwnerClass;
+
+	
 #pragma endregion
 #pragma region GeterSeter
 public:	
-	AUK_CharacterBase* GetOwnerCharactor() const { return OwnerClass; };
+	AUK_CharacterBase* GetOwnerCharactor() const { return OwnerClass; }
 	void SetOwnerCharactor(const TObjectPtr<AUK_CharacterBase> OwnerCharactor) { OwnerClass = OwnerCharactor; }
 	
-	UStaticMeshComponent* GetStaticMeshComponent() const { return StaticMeshComponent; };
+	UStaticMeshComponent* GetStaticMeshComponent() const { return StaticMeshComponent; }
 
-	FTransform GetWeaponTransform() const { return PlacementTransform; };
+	FTransform GetWeaponTransform() const { return PlacementTransform; }
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	FGameplayTag WeaponTag;
 #pragma endregion
 
 };

@@ -1,12 +1,13 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Component/AI_MonsterStatComponent.h"
 #include "AIMonsterBase.generated.h"
 
 class UBehaviorTree;
 
-/* AI ���� ���� ������ ���� */
+/* AI 상태 관련 정의한 내용 */
 UENUM(BlueprintType)
 enum class EMonsterState : uint8
 {
@@ -27,7 +28,7 @@ class UK_API AAIMonsterBase : public ACharacter
 public:
 	AAIMonsterBase();
 
-	/* ���� ���� ���¿��� ��û �� ���� (Controller�� ȣ�� �� ����)*/
+	/* 서버 전용 상태에서 요청 할 내용 (Controller가 호출 할 예정)*/
 	UFUNCTION(Server, Reliable)
 	void RequestState(EMonsterState NewState);
 
@@ -55,6 +56,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Monster")
 	void ResetHealth();
+	
+	UFUNCTION(BlueprintPure, Category = "Monster")
+	UAI_MonsterStatComponent* GetStatComponent() const { return StatComponent; }
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 	float DetectionRadius = 800.0f;
@@ -74,7 +78,10 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 
-	/* �ʱ� ���°� ���� */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UAI_MonsterStatComponent* StatComponent;
+
+	/* 초기 상태값 설정 */
 	UPROPERTY(ReplicatedUsing = OnRep_MonsterState)
 	EMonsterState CurrentState = EMonsterState::Idle;
 
@@ -83,20 +90,36 @@ protected:
 
 	void SetServerState(EMonsterState NewState);
 
-	/* AI Ȱ�� / ��Ȱ�� ����ġ ������ �ϰԵ� �� (Controller�� ȣ�� �� ����) */
+	/* AI 활성 / 비활성 스위치 역할을 하게될 값 (Controller가 호출 할 예정) */
 public:
 	void SetAIActive(bool bAcitve);
 
-protected:
-	/* ���� ���º� ������ �Լ��� ��ӹ��� �ڽ�Ŭ�������� override �� �Լ� */
+	/* 현재 상태별 실행할 함수들 상속받은 자식클래스에서 override 될 함수 */
 	virtual void OnIdle();
 	virtual void OnChase(float DeltaSeconds);
 	virtual void OnPatrol();
 	virtual void OnAttack();
 	virtual void OnDead();
 
-	/* �⺻ ����ȭ ���̽� (��ƴ� �ΰ� ���� ÷�� �ɼ� �ֽ��ϴ�) */
-protected:
+#pragma region Combat
+
+	/* 공격 관련 */
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float AttackDamage = 20.f;
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float AttackRange = 150.f;
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float AttackCooldown = 1.5f;
+
+	float LastAttackTime = 0.f;
+
+#pragma endregion
+
+	/* 기본 최적화 베이스 (깔아는 두고 수정 첨삭 될수 있습니다) */
+#pragma region Optimization
 
 	UPROPERTY(EditDefaultsOnly, Category = "Optimization")
 	float TickIntervalPatrol = 0.6f;
@@ -107,7 +130,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Optimization")
 	float TickIntervalAttack = 0.1f;
 
+#pragma endregion
 public:
+
+	void ReceiveDamage(float Damage);
+
 	/* Replication */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };
