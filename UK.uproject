@@ -91,5 +91,9 @@
 			"Name": "PCGWaterInterop",
 			"Enabled": true
 		}
+
+	],
+	"TargetPlatforms": [
+		"Windows"
 	]
 }

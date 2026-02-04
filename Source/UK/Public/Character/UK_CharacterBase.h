@@ -102,8 +102,11 @@ protected:
 public:
 	void ReceiveDamage(float Damage);
 	float ApplyDamage();
+
 	UFUNCTION()
 	void Dead();
+
+	UPROPERTY(BlueprintAssignable)
 	FOnDeadDelegate OnDead;
 #pragma endregion
 };
