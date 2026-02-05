@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+﻿// Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -23,6 +23,8 @@ public class UK : ModuleRules
 			"GameplayAbilities",
             "GameplayTags",
             "GameplayTasks",
+            "OnlineSubsystem",
+            "OnlineSubsystemUtils"
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
