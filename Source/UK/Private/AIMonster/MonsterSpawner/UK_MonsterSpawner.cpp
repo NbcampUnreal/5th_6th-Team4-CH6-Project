@@ -307,6 +307,16 @@ void AUK_MonsterSpawner::ActivateMonster(AAIMonsterBase* Monster)
     // 체력과 상태 초기화
     Monster->ResetHealth();
 
+	// HP 확인 로그
+	if (UAI_MonsterStatComponent* StatComp = Monster->GetStatComponent())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("몬스터 리스폰: %s | HP: %.1f / %.1f | 위치: %s"), 
+			*Monster->GetName(),
+			StatComp->GetHP(),
+			StatComp->GetMaxHP(),
+			*NewLocation.ToString());
+	}
+	
     ActiveMonsters.Add(Monster);
 
     UE_LOG(LogTemp, Log, TEXT("UK_MonsterSpawner: Activated monster from pool. Active: %d"), ActiveMonsters.Num());
