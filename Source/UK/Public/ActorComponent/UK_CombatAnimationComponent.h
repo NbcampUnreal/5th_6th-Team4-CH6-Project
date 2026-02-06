@@ -52,8 +52,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UUK_AnimData> AttackAnim;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<UUK_StatusAnimData> NowWeapon;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
+	UUK_StatusAnimData* NowWeapon;
 
 	EAttackInput InputType;
 #pragma endregion
@@ -101,10 +101,20 @@ public:
 
 	void HitCheckProcess();
 
-	void SetNowWeapon(const TObjectPtr<UUK_StatusAnimData>& Weapon);
+	void SetNowWeapon(TObjectPtr<UUK_StatusAnimData> Weapon);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCChangeWeaponMesh(UUK_StatusAnimData* Weapon);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastChangeWeaponMesh(UStaticMesh* Weapon);
+
 
 	UFUNCTION(BlueprintCallable)
-	void SetWeaponMesh(UStaticMeshComponent* NewWeapon);
+	UStaticMesh* GetWeaponMesh() const {	return WeaponMesh->GetStaticMesh(); }
+
+	UFUNCTION(BlueprintCallable)
+	void SetWeaponMesh(UStaticMesh* Weapon);
 
 protected:
 	UPROPERTY()
@@ -121,8 +131,8 @@ protected:
 	UPROPERTY()
 	TSet<AActor*> HitcheckedActor;
 
-	UPROPERTY()
-	TObjectPtr<UStaticMeshComponent> WeaponMesh;
+	UPROPERTY(Replicated)
+	UStaticMeshComponent* WeaponMesh;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "SoundDistanece")
 	TObjectPtr< USoundAttenuation > SoundAttenuation;

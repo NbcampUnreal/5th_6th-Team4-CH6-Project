@@ -32,6 +32,7 @@ UUK_CombatAnimationComponent::UUK_CombatAnimationComponent() :
 	PrimaryComponentTick.bCanEverTick = false;
 
 	SetIsReplicatedByDefault(true);
+	WeaponMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMesh"));
 }
 
 // Called every frame
@@ -44,6 +45,8 @@ void UUK_CombatAnimationComponent::GetLifetimeReplicatedProps(TArray<FLifetimePr
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UUK_CombatAnimationComponent, CurrentComboCount);
+	DOREPLIFETIME(UUK_CombatAnimationComponent, WeaponMesh);
+	DOREPLIFETIME(UUK_CombatAnimationComponent, NowWeapon);
 
 }
 
@@ -362,12 +365,6 @@ void UUK_CombatAnimationComponent::HitCheckProcess()
 	}
 }
 
-void UUK_CombatAnimationComponent::SetWeaponMesh(UStaticMeshComponent* NewWeapon)
-{
-	if ( !IsValid(NewWeapon) )
-		return;
-	WeaponMesh = NewWeapon;
-}
 
 void UUK_CombatAnimationComponent::ServerRPCPlaySoundAndEffect_Implementation(USoundBase* Sound)
 {
@@ -392,11 +389,31 @@ void UUK_CombatAnimationComponent::MulticastPlaySoundAndEffect_Implementation(US
 	}
 }
 
-void UUK_CombatAnimationComponent::SetNowWeapon(const TObjectPtr<UUK_StatusAnimData>& Weapon)
+void UUK_CombatAnimationComponent::SetNowWeapon(TObjectPtr<UUK_StatusAnimData> Weapon)
+{
+	if ( IsValid(Weapon) )
+	{
+		ServerRPCChangeWeaponMesh(Weapon);
+	}
+}
+
+void UUK_CombatAnimationComponent::ServerRPCChangeWeaponMesh_Implementation(UUK_StatusAnimData* Weapon)
 {
 	if ( IsValid(Weapon) )
 	{
 		NowWeapon = Weapon;
+		MulticastChangeWeaponMesh(Weapon->GetWeaponMesh());
 	}
+}
+
+void UUK_CombatAnimationComponent::MulticastChangeWeaponMesh_Implementation(UStaticMesh* Weapon)
+{
+	SetWeaponMesh(Weapon);
+	OwnerCharactor->ChangeWeaponMesh(Weapon);
+}
+
+void UUK_CombatAnimationComponent::SetWeaponMesh(UStaticMesh* Weapon)
+{
+	WeaponMesh->SetStaticMesh(Weapon);
 }
 #pragma endregion
