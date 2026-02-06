@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -9,16 +7,13 @@
 /**
  *  Simple GameMode for a third person game
  */
-UCLASS(abstract)
+UCLASS()
 class AUKGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 
 public:
-	
+
 	/** Constructor */
 	AUKGameMode();
 };
-
-
-
