@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -23,7 +23,11 @@ class UK_API UUK_StatusAnimData : public UDataAsset
 	GENERATED_BODY()
 public:
 	UUK_AnimData* FindAnimsDataAssetByType(const EComboAttackType AttackType);
+	TObjectPtr<UStaticMesh> GetWeaponMesh() { return WeaponMesh; }
 protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "WeaponMesh")
+	TObjectPtr<UStaticMesh> WeaponMesh;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ComboAttack")
 	TMap<EComboAttackType, TObjectPtr<UUK_AnimData>> ComboAnimationDatas;
 };
