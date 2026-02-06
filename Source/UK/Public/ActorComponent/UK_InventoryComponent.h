@@ -46,23 +46,45 @@ public:
 	void BroadcastInventoryUpdate() const;
 
 	UFUNCTION(BlueprintCallable)
-	void AddItem(FName ItemID, int32 Amount = 1);
-	void RemoveItem(FName ItemID, int32 Amount = 1);
+	TArray<FInventorySlot>  GetItemSlot() const { return InventorySlots; }
+	UFUNCTION(BlueprintCallable)
+	TArray<FInventorySlot>  GetWeaponSlot() const { return WeaponSlots; }
 
-	TArray<FInventorySlot>  GetSlot() const { return InventorySlots; }
+	UFUNCTION(BlueprintCallable)
+	int32 AddItem(FName ItemID, int32 Amount = 1);
+
+	UFUNCTION(BlueprintCallable)
+	int32 RemoveItem(FName ItemID, int32 Amount = 1);
 
 	FInventorySlot* FindItemSlot(FName ItemID, const FUK_ItemData* ItemData);
-	FInventorySlot* FindEmptySlot();
-public:
+	FInventorySlot* FindEmptyItemSlot();
+
+	UFUNCTION(BlueprintCallable)
+	bool AddWeapon(FName ItemID, int32 index = -1);
+	bool RemoveWeapon(FName ItemID, int32 index);
+
+	FInventorySlot* FindWeaponSlot(FName ItemID);
+	FInventorySlot* FindWeaponSlotbyIndex(int32 index);
+	FInventorySlot* FindEmptyWeaponSlot();
+
+
 	UPROPERTY(BlueprintAssignable)
 	FOnInventoryUpdate OnInventoryUpdate;
 
+protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	TObjectPtr<UDataTable> ItemDataTable;
-protected:
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	TArray<FInventorySlot> InventorySlots;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	int32 Capacity;
+	TArray<FInventorySlot> WeaponSlots;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	int32 InventoryCapacity;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	int32 WeaponCapacity;
+
 };

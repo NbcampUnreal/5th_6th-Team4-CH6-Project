@@ -8,8 +8,10 @@
 #include "Animation/UK_AnimInstance.h"
 #include "ActorComponent/StatusComponent.h"
 #include "ActorComponent/UK_CombatAnimationComponent.h"
+#include "ActorComponent/UK_InventoryComponent.h"
 #include "DataAsset/UK_WeaponData.h"
 #include "DataAsset/UK_StatusAnimData.h"
+#include "DataAsset/Data/UK_ItemData.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -58,6 +60,7 @@ AUK_CharacterBase::AUK_CharacterBase()
 #pragma endregion
 
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
+	InventoryComponent = CreateDefaultSubobject<UUK_InventoryComponent>(TEXT("InventoryComponent"));
 	AnimationComponent = CreateDefaultSubobject<UUK_CombatAnimationComponent>(TEXT("AnimComponent"));
 }
 
@@ -192,6 +195,7 @@ void AUK_CharacterBase::ZoomOut()
 
 #pragma region Weapon
 
+
 void AUK_CharacterBase::EquipWeapon(AUK_WeaponBase* NewWeapon)
 {
 	if ( CurrentWeapon )
@@ -208,6 +212,24 @@ void AUK_CharacterBase::EquipWeapon(AUK_WeaponBase* NewWeapon)
 		AnimationComponent->SetNowWeapon(Weapon);
 		GetAbilitySystemComponent()->AddLooseGameplayTag(CurrentWeapon->WeaponTag);
 	}
+}
+void AUK_CharacterBase::SlotWeaponOne()
+{
+	SwapWeapon(1);
+}
+void AUK_CharacterBase::SlotWeaponTwo()
+{
+	SwapWeapon(2);
+}
+void AUK_CharacterBase::SlotWeaponThree()
+{
+	SwapWeapon(3);
+}
+void AUK_CharacterBase::SwapWeapon(int32 Index)
+{
+	FInventorySlot* WeaponSlot = InventoryComponent->FindWeaponSlotbyIndex(Index);
+	const FUK_ItemData* ItemData = WeaponDataTable->FindRow<FUK_ItemData>(WeaponSlot->ItemID, TEXT("AUK_CharacterBase::SwapWeapon"));
+
 }
 #pragma endregion
 
