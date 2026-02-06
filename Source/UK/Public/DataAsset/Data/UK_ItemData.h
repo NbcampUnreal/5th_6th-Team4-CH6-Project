@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "UK_ItemData.generated.h"
 
 /**
@@ -26,4 +27,13 @@ public:
 	TSoftObjectPtr<UTexture2D> ItemIcon;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	int32 ItemStackCount;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	int32 MaxItemStack;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSoftClassPtr<AActor> ItemClass;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FGameplayTag ItemTag;
 };

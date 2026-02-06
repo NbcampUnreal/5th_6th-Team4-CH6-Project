@@ -19,6 +19,7 @@ class UGameplayAbility;
 class AUK_WeaponBase;
 class UUK_WeaponData;
 class UUK_CombatAnimationComponent;
+class UUK_InventoryComponent;
 struct FInputActionValue;
 #pragma endregion
 
@@ -59,6 +60,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUK_CombatAnimationComponent> AnimationComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UUK_InventoryComponent> InventoryComponent;
+
 #pragma endregion
 #pragma region GAS
 protected:
@@ -88,7 +92,10 @@ protected:
 #pragma region Weapon
 public:
 	void EquipWeapon(AUK_WeaponBase* NewWeapon);
-
+	void SlotWeaponOne();
+	void SlotWeaponTwo();
+	void SlotWeaponThree();
+	void SwapWeapon(int32 Index);
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<UUK_WeaponData> WeaponList;
@@ -96,6 +103,8 @@ protected:
 	UPROPERTY()
 	TObjectPtr<AUK_WeaponBase> CurrentWeapon;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	TObjectPtr<UDataTable> WeaponDataTable;
 #pragma endregion
 
 #pragma region Battle
