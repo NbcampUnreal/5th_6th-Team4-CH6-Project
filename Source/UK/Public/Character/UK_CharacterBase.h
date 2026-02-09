@@ -102,7 +102,7 @@ public:
 	void SwapWeapon(int32 Index);
 
 	UFUNCTION(BlueprintImplementableEvent)
-	void ChangeWeaponMesh(UStaticMesh* StaticMesh);
+	void ChangeWeapon(TSubclassOf<AUK_WeaponBase> WeaponClass);
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<UUK_WeaponData> WeaponList;
