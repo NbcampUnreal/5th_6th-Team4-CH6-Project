@@ -4,6 +4,7 @@
 #include "ActorComponent/UK_CombatAnimationComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Character/UK_CharacterBase.h"
+#include "Character/Weapon/UK_WeaponBase.h"
 #include "AIMonster/AIMonsterBase.h"
 #include "DataAsset/UK_StatusAnimData.h"
 #include "DataAsset/UK_AnimData.h"
@@ -25,13 +26,16 @@ FAutoConsoleVariableRef CVarShowAttackDebug(
 
 UUK_CombatAnimationComponent::UUK_CombatAnimationComponent() :
 	CurrentComboCount(0),
-	DefaultGravityValue(1.f)
+	DefaultGravityValue(1.f),
+	TraceStartSocketName("StartSocket"),
+	TraceEndSocketName("EndSocket")
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
 
 	SetIsReplicatedByDefault(true);
+	//WeaponMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMesh"));
 }
 
 // Called every frame
@@ -44,6 +48,8 @@ void UUK_CombatAnimationComponent::GetLifetimeReplicatedProps(TArray<FLifetimePr
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UUK_CombatAnimationComponent, CurrentComboCount);
+	DOREPLIFETIME(UUK_CombatAnimationComponent, Weapon);
+	DOREPLIFETIME(UUK_CombatAnimationComponent, NowWeapon);
 
 }
 
@@ -292,10 +298,10 @@ void UUK_CombatAnimationComponent::SetEnableHitCheck(bool bEnablaHitCheck)
 
 void UUK_CombatAnimationComponent::HitCheckProcess()
 {
-	if ( !IsValid(WeaponMesh) )
+	if ( !IsValid(Weapon) )
 		return;
-	FVector TraceStart = WeaponMesh->GetSocketLocation(TraceStartSocketName);
-	FVector TraceEnd = WeaponMesh->GetSocketLocation(TraceEndSocketName);
+	FVector TraceStart = Weapon->GetStaticMeshComponent()->GetSocketLocation(TraceStartSocketName);
+	FVector TraceEnd = Weapon->GetStaticMeshComponent()->GetSocketLocation(TraceEndSocketName);
 
 	const float CapsuleRadius = 50.f;
 
@@ -362,12 +368,6 @@ void UUK_CombatAnimationComponent::HitCheckProcess()
 	}
 }
 
-void UUK_CombatAnimationComponent::SetWeaponMesh(UStaticMeshComponent* NewWeapon)
-{
-	if ( !IsValid(NewWeapon) )
-		return;
-	WeaponMesh = NewWeapon;
-}
 
 void UUK_CombatAnimationComponent::ServerRPCPlaySoundAndEffect_Implementation(USoundBase* Sound)
 {
@@ -378,8 +378,8 @@ void UUK_CombatAnimationComponent::MulticastPlaySoundAndEffect_Implementation(US
 {
 	if ( IsValid(Sound) && IsValid(SoundAttenuation) )
 	{
-		FVector Start = WeaponMesh->GetSocketLocation(TraceStartSocketName);
-		FVector End = WeaponMesh->GetSocketLocation(TraceEndSocketName);
+		FVector Start = Weapon->GetStaticMeshComponent()->GetSocketLocation(TraceStartSocketName);
+		FVector End = Weapon->GetStaticMeshComponent()->GetSocketLocation(TraceEndSocketName);
 		UGameplayStatics::PlaySoundAtLocation(
 			GetWorld(),
 			Sound,
@@ -391,12 +391,40 @@ void UUK_CombatAnimationComponent::MulticastPlaySoundAndEffect_Implementation(US
 		);
 	}
 }
+#pragma endregion
 
-void UUK_CombatAnimationComponent::SetNowWeapon(const TObjectPtr<UUK_StatusAnimData>& Weapon)
+#pragma region Weapon
+
+void UUK_CombatAnimationComponent::SetNowWeapon(TObjectPtr<UUK_StatusAnimData> NewWeapon)
 {
+	ServerRPCChangeWeaponMesh(NewWeapon);
+}
+
+
+void UUK_CombatAnimationComponent::ServerRPCChangeWeaponMesh_Implementation(UUK_StatusAnimData* NewWeapon)
+{
+	NowWeapon = NewWeapon;
+	TSubclassOf<AUK_WeaponBase> WeaponClass = NewWeapon->GetWeapon();
+	if ( !WeaponClass )
+		return;
+	Weapon = Cast<AUK_WeaponBase>(WeaponClass.Get());
+	//WeaponChildActor->SetChildActorClass(WeaponClass);
+	OwnerCharactor->ChangeWeapon(WeaponClass);
 	if ( IsValid(Weapon) )
 	{
-		NowWeapon = Weapon;
+		//MulticastChangeWeapon();
+	}
+}
+
+void UUK_CombatAnimationComponent::MulticastChangeWeapon_Implementation()
+{
+}
+
+void UUK_CombatAnimationComponent::SetWeapon(AUK_WeaponBase* NewWeapon)
+{
+	if ( IsValid(NewWeapon) )
+	{
+		Weapon = NewWeapon;
 	}
 }
 #pragma endregion
