@@ -195,11 +195,11 @@ void AUK_CharacterBase::ZoomOut()
 void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 {
 
-	//GetAbilitySystemComponent()->RemoveLooseGameplayTag(NowWeapon);
+	GetAbilitySystemComponent()->RemoveLooseGameplayTag(NowWeapon);
 	NowWeapon = NewWeapon;
 	UUK_StatusAnimData* Weapon = WeaponList->FindAnimsDataAssetByTag(NowWeapon);
 	AnimationComponent->SetNowWeapon(Weapon);
-	//GetAbilitySystemComponent()->AddLooseGameplayTag(NowWeapon);
+	GetAbilitySystemComponent()->AddLooseGameplayTag(NowWeapon);
 }
 void AUK_CharacterBase::SlotWeaponOne()
 {

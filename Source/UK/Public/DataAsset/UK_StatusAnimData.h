@@ -4,10 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "Character/Weapon/UK_WeaponBase.h"
 #include "UK_StatusAnimData.generated.h"
 
 #pragma region Forward Declaration
 class UUK_AnimData;
+class AUK_WeaponBase;
 #pragma endregion
 UENUM()
 enum class EComboAttackType : uint8
@@ -23,10 +25,10 @@ class UK_API UUK_StatusAnimData : public UDataAsset
 	GENERATED_BODY()
 public:
 	UUK_AnimData* FindAnimsDataAssetByType(const EComboAttackType AttackType);
-	TObjectPtr<UStaticMesh> GetWeaponMesh() { return WeaponMesh; }
+	TSubclassOf<AUK_WeaponBase> GetWeapon() { return Weapon; }
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "WeaponMesh")
-	TObjectPtr<UStaticMesh> WeaponMesh;
+	TSubclassOf<AUK_WeaponBase> Weapon;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ComboAttack")
 	TMap<EComboAttackType, TObjectPtr<UUK_AnimData>> ComboAnimationDatas;
