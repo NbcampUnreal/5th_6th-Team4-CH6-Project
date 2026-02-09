@@ -418,6 +418,7 @@ void UUK_CombatAnimationComponent::ServerRPCChangeWeaponMesh_Implementation(UUK_
 
 void UUK_CombatAnimationComponent::MulticastChangeWeapon_Implementation()
 {
+
 }
 
 void UUK_CombatAnimationComponent::SetWeapon(AUK_WeaponBase* NewWeapon)
