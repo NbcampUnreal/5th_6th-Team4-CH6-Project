@@ -34,7 +34,7 @@ void UUK_InvMain::TapClicked(UUK_InvTapbutton* ClickTap)
 	{
 		InvSwitcher->SetActiveWidgetIndex(1);
 	}
-	else if ( ClickTap == TapMap )
+	else if(ClickTap == TapMap)
 	{
 		InvSwitcher->SetActiveWidgetIndex(2);
 	}
