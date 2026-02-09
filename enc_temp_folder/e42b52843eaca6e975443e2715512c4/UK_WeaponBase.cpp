@@ -13,6 +13,7 @@ AUK_WeaponBase::AUK_WeaponBase()
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	RootComponent = Root;
 	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComponent"));
+	StaticMeshComponent->SetupAttachment(Root);
 }
 
 // Called when the game starts or when spawned
