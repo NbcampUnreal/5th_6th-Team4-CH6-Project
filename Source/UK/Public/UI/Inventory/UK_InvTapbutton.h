@@ -31,7 +31,7 @@ public:
 
 
 	//델리게이트 속성, 이벤트 호출 시 실행될 동작
-	UPROPERTY(BlueprintAssignable, Category = "InvTap")
+	UPROPERTY(BlueprintAssignable, Category = "InvMainTap")
 	FOnInvTapButtonClicked OnButtonTap;
 
 	// 디자인 런타임 및 게임 실행 런타임 수정
