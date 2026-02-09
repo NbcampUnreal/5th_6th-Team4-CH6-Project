@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
 #include "ActorComponent/StatusComponent.h"
+#include "GameplayTagContainer.h"
 #include "UK_CharacterBase.generated.h"
 
 
@@ -19,6 +20,7 @@ class UGameplayAbility;
 class AUK_WeaponBase;
 class UUK_WeaponData;
 class UUK_CombatAnimationComponent;
+class UUK_InventoryComponent;
 struct FInputActionValue;
 #pragma endregion
 
@@ -48,7 +50,7 @@ protected:
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<USpringArmComponent> SpringArm;
+	TObjectPtr<USpringArmComponent> SpringArmComp;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UCameraComponent> Camera;
@@ -58,6 +60,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUK_CombatAnimationComponent> AnimationComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UUK_InventoryComponent> InventoryComponent;
 
 #pragma endregion
 #pragma region GAS
@@ -87,15 +92,26 @@ protected:
 
 #pragma region Weapon
 public:
-	void EquipWeapon(AUK_WeaponBase* NewWeapon);
+	void EquipWeapon(FGameplayTag NewWeapon);
+	UFUNCTION(BlueprintCallable)
+	void SlotWeaponOne();
+	UFUNCTION(BlueprintCallable)
+	void SlotWeaponTwo();
+	UFUNCTION(BlueprintCallable)
+	void SlotWeaponThree();
+	void SwapWeapon(int32 Index);
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void ChangeWeapon(TSubclassOf<AUK_WeaponBase> WeaponClass);
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<UUK_WeaponData> WeaponList;
 
-	UPROPERTY()
-	TObjectPtr<AUK_WeaponBase> CurrentWeapon;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	TObjectPtr<UDataTable> ItmeDataTable;
+
+	FGameplayTag NowWeapon;
 #pragma endregion
 
 #pragma region Battle

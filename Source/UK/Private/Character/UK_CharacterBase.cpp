@@ -7,10 +7,11 @@
 #include "Tags/UK_GameplayTags.h"
 #include "Animation/UK_AnimInstance.h"
 #include "ActorComponent/StatusComponent.h"
-#include "ActorComponent/UK_InputComponent.h"
 #include "ActorComponent/UK_CombatAnimationComponent.h"
+#include "ActorComponent/UK_InventoryComponent.h"
 #include "DataAsset/UK_WeaponData.h"
 #include "DataAsset/UK_StatusAnimData.h"
+#include "DataAsset/Data/UK_ItemData.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -25,7 +26,8 @@
 
 
 // Sets default values
-AUK_CharacterBase::AUK_CharacterBase()
+AUK_CharacterBase::AUK_CharacterBase() :
+	NowWeapon(UK_GameplayTags::Weapon::WeaponRoot)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
@@ -36,25 +38,30 @@ AUK_CharacterBase::AUK_CharacterBase()
 		FRotator(0.f, -90.f, 0.f));
 	GetMesh()->SetCollisionProfileName(TEXT("UK_Charactor"));
 #pragma region SpringArm
-	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
-	SpringArm->SetupAttachment(GetRootComponent());
-	SpringArm->TargetArmLength = 300.f;
-	SpringArm->SetRelativeLocation(FVector(0.f, 20.f, 40.f));
-	SpringArm->bUsePawnControlRotation = true;
-	SpringArm->bEnableCameraLag = true; // 카메라가 캐릭터를 뒤늦게 따라옴
-	SpringArm->CameraLagSpeed = 5.0f; // 따라오는 속도
-	SpringArm->CameraLagMaxDistance = 80.0f; // 카메라와 본래 위치와의 최대 거리 차이
+
+	SpringArmComp = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
+	SpringArmComp->SetupAttachment(GetRootComponent());
+	SpringArmComp->TargetArmLength = 300.f;
+	SpringArmComp->SetRelativeLocation(FVector(0.f, 20.f, 60.f));
+	SpringArmComp->bUsePawnControlRotation = true;
+	SpringArmComp->bEnableCameraLag = true; // 카메라가 캐릭터를 뒤늦게 따라옴
+	SpringArmComp->CameraLagSpeed = 5.0f; // 따라오는 속도
+	SpringArmComp->CameraLagMaxDistance = 80.0f; // 카메라와 본래 위치와의 최대 거리 차이
+
 #pragma endregion
 
 #pragma region Camera
+
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	Camera->SetupAttachment(SpringArm);
+	Camera->SetupAttachment(SpringArmComp);
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 480.f, 0.0f);
+
 #pragma endregion
 
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
+	InventoryComponent = CreateDefaultSubobject<UUK_InventoryComponent>(TEXT("InventoryComponent"));
 	AnimationComponent = CreateDefaultSubobject<UUK_CombatAnimationComponent>(TEXT("AnimComponent"));
 }
 
@@ -70,13 +77,8 @@ void AUK_CharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 void AUK_CharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
-	if ( IsValid(WeaponList) && IsValid(AnimationComponent) )
-	{
-		// 임시 방편 나중에 무기 바뀔때마다 바꿀수 있도록 수정
-		AnimationComponent->SetNowWeapon(WeaponList->FindAnimsDataAssetByTag(UK_GameplayTags::Weapon::DefaultWeapon));
-	}
 
-	StatusComponent->OnDeadDelegate.AddDynamic(this, & AUK_CharacterBase::Dead);
+	StatusComponent->OnDeadDelegate.AddDynamic(this, &AUK_CharacterBase::Dead);
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -148,15 +150,16 @@ void AUK_CharacterBase::ZoomIn()
 	{
 		return;
 	}
-	if ( !IsValid(SpringArm) )
+
+	if ( !IsValid(SpringArmComp) )
 	{
 		return;
 	}
 	const float DeltaTime = GetWorld()->GetDeltaSeconds();
 
 	const float Target = 70.f;
-	SpringArm->TargetArmLength = FMath::FInterpTo(
-		SpringArm->TargetArmLength,
+	SpringArmComp->TargetArmLength = FMath::FInterpTo(
+		SpringArmComp->TargetArmLength,
 		Target,
 		DeltaTime,
 		12.f
@@ -169,15 +172,15 @@ void AUK_CharacterBase::ZoomOut()
 	{
 		return;
 	}
-	if ( !IsValid(SpringArm) )
+	if ( !IsValid(SpringArmComp) )
 	{
 		return;
 	}
 	const float DeltaTime = GetWorld()->GetDeltaSeconds();
 
 	const float Target = 300.f;
-	SpringArm->TargetArmLength = FMath::FInterpTo(
-		SpringArm->TargetArmLength,
+	SpringArmComp->TargetArmLength = FMath::FInterpTo(
+		SpringArmComp->TargetArmLength,
 		Target,
 		DeltaTime,
 		12.f
@@ -188,22 +191,42 @@ void AUK_CharacterBase::ZoomOut()
 
 #pragma region Weapon
 
-void AUK_CharacterBase::EquipWeapon(AUK_WeaponBase* NewWeapon)
+
+void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 {
-	if ( CurrentWeapon )
+
+	GetAbilitySystemComponent()->RemoveLooseGameplayTag(NowWeapon);
+	NowWeapon = NewWeapon;
+	UUK_StatusAnimData* Weapon = WeaponList->FindAnimsDataAssetByTag(NowWeapon);
+	AnimationComponent->SetNowWeapon(Weapon);
+	GetAbilitySystemComponent()->AddLooseGameplayTag(NowWeapon);
+}
+void AUK_CharacterBase::SlotWeaponOne()
+{
+	SwapWeapon(0);
+}
+void AUK_CharacterBase::SlotWeaponTwo()
+{
+	SwapWeapon(1);
+}
+void AUK_CharacterBase::SlotWeaponThree()
+{
+	SwapWeapon(2);
+}
+void AUK_CharacterBase::SwapWeapon(int32 Index)
+{
+	FInventorySlot* WeaponSlot = InventoryComponent->FindWeaponSlotbyIndex(Index);
+	if ( WeaponSlot->isEmpty() )
 	{
-		GetAbilitySystemComponent()->RemoveLooseGameplayTag(CurrentWeapon->WeaponTag);
+		return;
 	}
-
-	CurrentWeapon = NewWeapon;
-
-
-	if ( CurrentWeapon )
+	const FUK_ItemData* ItemData = ItmeDataTable->FindRow<FUK_ItemData>(WeaponSlot->ItemID, TEXT("AUK_CharacterBase::SwapWeapon"));
+	if ( ItemData == nullptr )
 	{
-		UUK_StatusAnimData* Weapon = WeaponList->FindAnimsDataAssetByTag(CurrentWeapon->WeaponTag);
-		AnimationComponent->SetNowWeapon(Weapon);
-		GetAbilitySystemComponent()->AddLooseGameplayTag(CurrentWeapon->WeaponTag);
+		return;
 	}
+	EquipWeapon(ItemData->ItemTag);
+	AnimationComponent->SetNowWeapon(WeaponList->FindAnimsDataAssetByTag(NowWeapon));
 }
 #pragma endregion
 
