@@ -19,8 +19,6 @@
 #include "EnhancedInputSubsystems.h"
 #include "AbilitySystemComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "Perception/AIPerceptionStimuliSourceComponent.h"
-#include "Perception/AISense_Sight.h"
 #include "Net/UnrealNetwork.h"
 
 #pragma region Defualt
@@ -64,11 +62,14 @@ AUK_CharacterBase::AUK_CharacterBase() :
 
 	MannySkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MannySkeletalMesh"));
 	MannySkeletalMesh->SetupAttachment(GetMesh());
-	ChildActorComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("ChildActorComponent"));
-	ChildActorComponent->SetupAttachment(MannySkeletalMesh, TEXT("Weapon"));
+
+	RightHandWeaponComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RightHandWeaponComponent"));
+	RightHandWeaponComponent->SetupAttachment(MannySkeletalMesh, TEXT("Weapon"));
+
+	LeftHandWeaponComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftHandWeaponComponent"));
+	LeftHandWeaponComponent->SetupAttachment(MannySkeletalMesh, TEXT("Weapon"));
 
 
-	StimuliSource = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("StimuliSource"));
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
 	InventoryComponent = CreateDefaultSubobject<UUK_InventoryComponent>(TEXT("InventoryComponent"));
 	AnimationComponent = CreateDefaultSubobject<UUK_CombatAnimationComponent>(TEXT("AnimComponent"));
@@ -207,6 +208,14 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 	GetAbilitySystemComponent()->RemoveLooseGameplayTag(NowWeapon);
 	NowWeapon = NewWeapon;
 	UUK_StatusAnimData* Weapon = WeaponList->FindAnimsDataAssetByTag(NowWeapon);
+	if ( IsValid(Weapon->GetRightHandWeapon()) )
+	{
+		RightHandWeaponComponent->SetSkeletalMesh(Weapon->GetRightHandWeapon()); // todo : 이후에 서버에서 변경하도록 수정해야함 임시로 클라에서만 변경하고 있음
+	}
+	if ( IsValid(Weapon->GetLeftHandWeapon()) )
+	{
+		LeftHandWeaponComponent->SetSkeletalMesh(Weapon->GetLeftHandWeapon()); // todo : 이후에 서버에서 변경하도록 수정해야함 임시로 클라에서만 변경하고 있음
+	}
 	AnimationComponent->SetNowWeapon(Weapon);
 	GetAbilitySystemComponent()->AddLooseGameplayTag(NowWeapon);
 }
@@ -235,7 +244,6 @@ void AUK_CharacterBase::SwapWeapon(int32 Index)
 		return;
 	}
 	EquipWeapon(ItemData->ItemTag);
-	AnimationComponent->SetNowWeapon(WeaponList->FindAnimsDataAssetByTag(NowWeapon));
 }
 #pragma endregion
 

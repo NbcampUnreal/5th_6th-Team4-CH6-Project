@@ -48,7 +48,6 @@ void UUK_CombatAnimationComponent::GetLifetimeReplicatedProps(TArray<FLifetimePr
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UUK_CombatAnimationComponent, CurrentComboCount);
-	DOREPLIFETIME(UUK_CombatAnimationComponent, Weapon);
 	DOREPLIFETIME(UUK_CombatAnimationComponent, NowWeapon);
 
 }
@@ -272,7 +271,7 @@ EComboAttackType UUK_CombatAnimationComponent::GetNextAttackType()
 }
 
 #pragma region Battle
-void UUK_CombatAnimationComponent::SetEnableHitCheck(bool bEnablaHitCheck)
+void UUK_CombatAnimationComponent::SetEnableRightHitCheck(bool bEnablaHitCheck)
 {
 	if ( bEnablaHitCheck )
 	{
@@ -281,7 +280,7 @@ void UUK_CombatAnimationComponent::SetEnableHitCheck(bool bEnablaHitCheck)
 		(
 			HitCheckTimer,
 			this,
-			&UUK_CombatAnimationComponent::HitCheckProcess,
+			&UUK_CombatAnimationComponent::RightHitCheckProcess,
 			0.1f,
 			true
 		);
@@ -296,12 +295,12 @@ void UUK_CombatAnimationComponent::SetEnableHitCheck(bool bEnablaHitCheck)
 	}
 }
 
-void UUK_CombatAnimationComponent::HitCheckProcess()
+void UUK_CombatAnimationComponent::RightHitCheckProcess()
 {
-	if ( !IsValid(Weapon) )
+	if ( !IsValid(OwnerCharactor->GetRightHandWeapon()) )
 		return;
-	FVector TraceStart = Weapon->GetStaticMeshComponent()->GetSocketLocation(TraceStartSocketName);
-	FVector TraceEnd = Weapon->GetStaticMeshComponent()->GetSocketLocation(TraceEndSocketName);
+	FVector TraceStart = OwnerCharactor->GetRightHandWeapon()->GetSocketLocation(TraceStartSocketName);
+	FVector TraceEnd = OwnerCharactor->GetRightHandWeapon()->GetSocketLocation(TraceEndSocketName);
 
 	const float CapsuleRadius = 50.f;
 
@@ -378,8 +377,8 @@ void UUK_CombatAnimationComponent::MulticastPlaySoundAndEffect_Implementation(US
 {
 	if ( IsValid(Sound) && IsValid(SoundAttenuation) )
 	{
-		FVector Start = Weapon->GetStaticMeshComponent()->GetSocketLocation(TraceStartSocketName);
-		FVector End = Weapon->GetStaticMeshComponent()->GetSocketLocation(TraceEndSocketName);
+		FVector Start = OwnerCharactor->GetRightHandWeapon()->GetSocketLocation(TraceStartSocketName);
+		FVector End = OwnerCharactor->GetRightHandWeapon()->GetSocketLocation(TraceEndSocketName);
 		UGameplayStatics::PlaySoundAtLocation(
 			GetWorld(),
 			Sound,
@@ -403,29 +402,11 @@ void UUK_CombatAnimationComponent::SetNowWeapon(TObjectPtr<UUK_StatusAnimData> N
 
 void UUK_CombatAnimationComponent::ServerRPCChangeWeaponMesh_Implementation(UUK_StatusAnimData* NewWeapon)
 {
-	NowWeapon = NewWeapon;
-	TSubclassOf<AUK_WeaponBase> WeaponClass = NewWeapon->GetWeapon();
-	if ( !WeaponClass )
-		return;
-	Weapon = Cast<AUK_WeaponBase>(WeaponClass.Get());
-	//WeaponChildActor->SetChildActorClass(WeaponClass);
-	OwnerCharactor->ChangeWeapon(WeaponClass);
-	if ( IsValid(Weapon) )
-	{
-		//MulticastChangeWeapon();
-	}
-}
 
-void UUK_CombatAnimationComponent::MulticastChangeWeapon_Implementation()
-{
-
-}
-
-void UUK_CombatAnimationComponent::SetWeapon(AUK_WeaponBase* NewWeapon)
-{
 	if ( IsValid(NewWeapon) )
 	{
-		Weapon = NewWeapon;
+		NowWeapon = NewWeapon;
 	}
 }
+
 #pragma endregion

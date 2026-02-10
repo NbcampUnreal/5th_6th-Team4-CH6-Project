@@ -22,7 +22,7 @@ void UUK_HitCheckNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAni
 		if ( IsValid(CombatAnimComp) )
 		{
 			FDamageEvent NewDamageEvent(AttackDamageType);
-			CombatAnimComp->SetEnableHitCheck(true);
+			CombatAnimComp->SetEnableRightHitCheck(true);
 			CombatAnimComp->SetDamageEvent(NewDamageEvent);
 		}
 
@@ -44,7 +44,7 @@ void UUK_HitCheckNotifyState::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimS
 		UUK_CombatAnimationComponent* CombatAnimComp = Cast<UUK_CombatAnimationComponent>(Actorcomp);
 		if ( IsValid(CombatAnimComp) )
 		{
-			CombatAnimComp->SetEnableHitCheck(false);
+			CombatAnimComp->SetEnableRightHitCheck(false);
 		}
 	}
 }
