@@ -98,9 +98,9 @@ public:
 
 	FORCEINLINE void SetDamageEvent(FDamageEvent NewDamageEvent) {DamageEvent = NewDamageEvent	;}
 
-	void SetEnableHitCheck(bool bEnablaHitCheck);
+	void SetEnableRightHitCheck(bool bEnablaHitCheck);
 
-	void HitCheckProcess();
+	void RightHitCheckProcess();
 
 
 protected:
@@ -128,12 +128,6 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerRPCChangeWeaponMesh(UUK_StatusAnimData* NewWeapon);
 
-	UFUNCTION(NetMulticast, Reliable)
-	void MulticastChangeWeapon();
-
-	UFUNCTION(BlueprintCallable)
-	void SetWeapon(AUK_WeaponBase* NewWeapon);
-
 protected:
 
 	UPROPERTY(EditAnywhere,BlueprintReadOnly)
@@ -141,10 +135,6 @@ protected:
 
 	UPROPERTY(EditAnywhere,BlueprintReadOnly)
 	FName TraceEndSocketName;
-
-	UPROPERTY(Replicated, BlueprintReadOnly)
-	AUK_WeaponBase* Weapon;
-
 #pragma endregion
 
 };
