@@ -4,6 +4,7 @@
 #include "ActorComponent/UK_CombatAnimationComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Character/UK_CharacterBase.h"
+#include "Character/Weapon/UK_WeaponBase.h"
 #include "AIMonster/AIMonsterBase.h"
 #include "DataAsset/UK_StatusAnimData.h"
 #include "DataAsset/UK_AnimData.h"
@@ -25,13 +26,16 @@ FAutoConsoleVariableRef CVarShowAttackDebug(
 
 UUK_CombatAnimationComponent::UUK_CombatAnimationComponent() :
 	CurrentComboCount(0),
-	DefaultGravityValue(1.f)
+	DefaultGravityValue(1.f),
+	TraceStartSocketName("StartSocket"),
+	TraceEndSocketName("EndSocket")
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
 
 	SetIsReplicatedByDefault(true);
+	//WeaponMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMesh"));
 }
 
 // Called every frame
@@ -44,6 +48,7 @@ void UUK_CombatAnimationComponent::GetLifetimeReplicatedProps(TArray<FLifetimePr
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UUK_CombatAnimationComponent, CurrentComboCount);
+	DOREPLIFETIME(UUK_CombatAnimationComponent, NowWeapon);
 
 }
 
@@ -266,16 +271,16 @@ EComboAttackType UUK_CombatAnimationComponent::GetNextAttackType()
 }
 
 #pragma region Battle
-void UUK_CombatAnimationComponent::SetEnableHitCheck(bool bEnablaHitCheck)
+void UUK_CombatAnimationComponent::SetEnableRightHitCheck(bool bEnablaHitCheck)
 {
 	if ( bEnablaHitCheck )
 	{
-		HitcheckedActor.Reset();
+		RightHitcheckedActor.Reset();
 		GetWorld()->GetTimerManager().SetTimer
 		(
-			HitCheckTimer,
+			RightHitCheckTimer,
 			this,
-			&UUK_CombatAnimationComponent::HitCheckProcess,
+			&UUK_CombatAnimationComponent::RightHitCheckProcess,
 			0.1f,
 			true
 		);
@@ -284,18 +289,41 @@ void UUK_CombatAnimationComponent::SetEnableHitCheck(bool bEnablaHitCheck)
 	}
 	else
 	{
-		GetWorld()->GetTimerManager().ClearTimer(HitCheckTimer);
-		HitcheckedActor.Reset();
-		HitCheckTimer.Invalidate();
+		GetWorld()->GetTimerManager().ClearTimer(RightHitCheckTimer);
+		RightHitcheckedActor.Reset();
+		RightHitCheckTimer.Invalidate();
+	}
+}
+void UUK_CombatAnimationComponent::SetEnableLeftHitCheck(bool bEnablaHitCheck)
+{
+	if ( bEnablaHitCheck )
+	{
+		LeftHitcheckedActor.Reset();
+		GetWorld()->GetTimerManager().SetTimer
+		(
+			LeftHitCheckTimer,
+			this,
+			&UUK_CombatAnimationComponent::RightHitCheckProcess,
+			0.1f,
+			true
+		);
+		TObjectPtr<USoundBase> AttackSound = AttackAnim->AttackSound;
+		ServerRPCPlaySoundAndEffect(AttackSound);
+	}
+	else
+	{
+		GetWorld()->GetTimerManager().ClearTimer(LeftHitCheckTimer);
+		LeftHitcheckedActor.Reset();
+		LeftHitCheckTimer.Invalidate();
 	}
 }
 
-void UUK_CombatAnimationComponent::HitCheckProcess()
+void UUK_CombatAnimationComponent::RightHitCheckProcess()
 {
-	if ( !IsValid(WeaponMesh) )
+	if ( !IsValid(OwnerCharactor->GetRightHandWeapon()) )
 		return;
-	FVector TraceStart = WeaponMesh->GetSocketLocation(TraceStartSocketName);
-	FVector TraceEnd = WeaponMesh->GetSocketLocation(TraceEndSocketName);
+	FVector TraceStart = OwnerCharactor->GetRightHandWeapon()->GetSocketLocation(TraceStartSocketName);
+	FVector TraceEnd = OwnerCharactor->GetRightHandWeapon()->GetSocketLocation(TraceEndSocketName);
 
 	const float CapsuleRadius = 50.f;
 
@@ -340,10 +368,10 @@ void UUK_CombatAnimationComponent::HitCheckProcess()
 		{
 
 			AActor* HitActor = Hit.GetActor();
-			bool bAlreadyHit = HitcheckedActor.Contains(HitActor);
+			bool bAlreadyHit = RightHitcheckedActor.Contains(HitActor);
 			if ( !bAlreadyHit )
 			{
-				HitcheckedActor.Add(HitActor);
+				RightHitcheckedActor.Add(HitActor);
 
 				UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *HitActor->GetName());
 				if ( OwnerCharactor->HasAuthority() )
@@ -362,12 +390,78 @@ void UUK_CombatAnimationComponent::HitCheckProcess()
 	}
 }
 
-void UUK_CombatAnimationComponent::SetWeaponMesh(UStaticMeshComponent* NewWeapon)
+void UUK_CombatAnimationComponent::LeftHitCheckProcess()
 {
-	if ( !IsValid(NewWeapon) )
+	if ( !IsValid(OwnerCharactor->GetLeftHandWeapon()) )
 		return;
-	WeaponMesh = NewWeapon;
+	FVector TraceStart = OwnerCharactor->GetLeftHandWeapon()->GetSocketLocation(TraceStartSocketName);
+	FVector TraceEnd = OwnerCharactor->GetLeftHandWeapon()->GetSocketLocation(TraceEndSocketName);
+
+	const float CapsuleRadius = 50.f;
+
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.AddIgnoredActor(OwnerCharactor);
+	CollisionParams.bReturnPhysicalMaterial = true;
+
+	TArray<FHitResult> HitResult;
+	FCollisionShape CollisionShape = FCollisionShape::MakeSphere(CapsuleRadius);
+
+	bool bIsHit = GetWorld()->SweepMultiByChannel(
+		HitResult,
+		TraceStart,
+		TraceEnd,
+		FQuat::Identity,
+		ECC_ATTACK,
+		CollisionShape,
+		CollisionParams
+	);
+	if ( ShowAttackDebug )
+	{
+#if ENABLE_DRAW_DEBUG
+		FColor DrawColor = bIsHit ? FColor::Green : FColor::Red;
+
+		FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceEnd - TraceStart).ToQuat();
+		DrawDebugCapsule(
+			GetWorld(),
+			( TraceStart + TraceEnd ) / 2,
+			( TraceEnd - TraceStart ).Size(),
+			CapsuleRadius,
+			CapsuleRot,
+			DrawColor,
+			false,
+			1.f
+		);
+#endif
+	}
+
+	if ( bIsHit )
+	{
+		for ( const FHitResult& Hit : HitResult )
+		{
+
+			AActor* HitActor = Hit.GetActor();
+			bool bAlreadyHit = LeftHitcheckedActor.Contains(HitActor);
+			if ( !bAlreadyHit )
+			{
+				LeftHitcheckedActor.Add(HitActor);
+
+				UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *HitActor->GetName());
+				if ( OwnerCharactor->HasAuthority() )
+				{
+					if ( TObjectPtr<AAIMonsterBase> Monster = Cast<AAIMonsterBase>(HitActor) )
+					{
+						Monster->ReceiveDamage(OwnerCharactor->ApplyDamage());
+						UE_LOG(LogTemp, Warning, TEXT("Damage Applied to Monster: %s to Damage : %f"), *Monster->GetName(), OwnerCharactor->ApplyDamage());
+					}
+					// 이펙트 출력
+					TObjectPtr<USoundBase> HitSound = AttackAnim->HitSound;
+					ServerRPCPlaySoundAndEffect(HitSound);
+				}
+			}
+		}
+	}
 }
+
 
 void UUK_CombatAnimationComponent::ServerRPCPlaySoundAndEffect_Implementation(USoundBase* Sound)
 {
@@ -378,8 +472,8 @@ void UUK_CombatAnimationComponent::MulticastPlaySoundAndEffect_Implementation(US
 {
 	if ( IsValid(Sound) && IsValid(SoundAttenuation) )
 	{
-		FVector Start = WeaponMesh->GetSocketLocation(TraceStartSocketName);
-		FVector End = WeaponMesh->GetSocketLocation(TraceEndSocketName);
+		FVector Start = OwnerCharactor->GetRightHandWeapon()->GetSocketLocation(TraceStartSocketName);
+		FVector End = OwnerCharactor->GetRightHandWeapon()->GetSocketLocation(TraceEndSocketName);
 		UGameplayStatics::PlaySoundAtLocation(
 			GetWorld(),
 			Sound,
@@ -391,12 +485,23 @@ void UUK_CombatAnimationComponent::MulticastPlaySoundAndEffect_Implementation(US
 		);
 	}
 }
+#pragma endregion
 
-void UUK_CombatAnimationComponent::SetNowWeapon(const TObjectPtr<UUK_StatusAnimData>& Weapon)
+#pragma region Weapon
+
+void UUK_CombatAnimationComponent::SetNowWeapon(TObjectPtr<UUK_StatusAnimData> NewWeapon)
 {
-	if ( IsValid(Weapon) )
+	ServerRPCChangeWeaponMesh(NewWeapon);
+}
+
+
+void UUK_CombatAnimationComponent::ServerRPCChangeWeaponMesh_Implementation(UUK_StatusAnimData* NewWeapon)
+{
+
+	if ( IsValid(NewWeapon) )
 	{
-		NowWeapon = Weapon;
+		NowWeapon = NewWeapon;
 	}
 }
+
 #pragma endregion

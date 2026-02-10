@@ -10,9 +10,9 @@ AUK_WeaponBase::AUK_WeaponBase()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
-	SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+	SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
 	RootComponent = SceneComponent;
-	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComponent"));
+	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SkeletalMeshComponent"));
 	StaticMeshComponent->SetupAttachment(SceneComponent);
 }
 
@@ -20,10 +20,6 @@ AUK_WeaponBase::AUK_WeaponBase()
 void AUK_WeaponBase::BeginPlay()
 {
 	Super::BeginPlay();
-	if (!OwnerClass)
-	{
-		StaticMeshComponent->SetVisibility(false);
-	}
 }
 
 // Called every frame

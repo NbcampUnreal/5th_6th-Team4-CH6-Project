@@ -14,6 +14,7 @@ class AUK_CharacterBase;
 class UUK_StatusAnimData;
 class UUK_WeaponData;
 class UUK_AnimData;
+class AUK_WeaponBase;
 #pragma endregion
 
 UENUM()
@@ -52,8 +53,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UUK_AnimData> AttackAnim;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<UUK_StatusAnimData> NowWeapon;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
+	UUK_StatusAnimData* NowWeapon;
 
 	EAttackInput InputType;
 #pragma endregion
@@ -97,41 +98,50 @@ public:
 
 	FORCEINLINE void SetDamageEvent(FDamageEvent NewDamageEvent) {DamageEvent = NewDamageEvent	;}
 
-	void SetEnableHitCheck(bool bEnablaHitCheck);
+	void SetEnableRightHitCheck(bool bEnablaHitCheck);
 
-	void HitCheckProcess();
+	void RightHitCheckProcess();
 
-	void SetNowWeapon(const TObjectPtr<UUK_StatusAnimData>& Weapon);
+	void SetEnableLeftHitCheck(bool bEnablaHitCheck);
 
-	UFUNCTION(BlueprintCallable)
-	void SetWeaponMesh(UStaticMeshComponent* NewWeapon);
+	void LeftHitCheckProcess();
+
 
 protected:
 	UPROPERTY()
 	FDamageEvent DamageEvent;
 
-	FTimerHandle HitCheckTimer;
+	FTimerHandle RightHitCheckTimer;
+	FTimerHandle LeftHitCheckTimer;
+
+	UPROPERTY()
+	TSet<AActor*> RightHitcheckedActor;
+	UPROPERTY()
+	TSet<AActor*> LeftHitcheckedActor;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "SoundDistanece")
+	TObjectPtr< USoundAttenuation > SoundAttenuation;
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCPlaySoundAndEffect(USoundBase* Sound);
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastPlaySoundAndEffect(USoundBase* Sound);
+#pragma endregion
+
+#pragma region Weapon
+public:
+	void SetNowWeapon(TObjectPtr<UUK_StatusAnimData> NewWeapon);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPCChangeWeaponMesh(UUK_StatusAnimData* NewWeapon);
+
+protected:
 
 	UPROPERTY(EditAnywhere,BlueprintReadOnly)
 	FName TraceStartSocketName;
 
 	UPROPERTY(EditAnywhere,BlueprintReadOnly)
 	FName TraceEndSocketName;
-
-	UPROPERTY()
-	TSet<AActor*> HitcheckedActor;
-
-	UPROPERTY()
-	TObjectPtr<UStaticMeshComponent> WeaponMesh;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "SoundDistanece")
-	TObjectPtr< USoundAttenuation > SoundAttenuation;
-
-
-	UFUNCTION(Server, Reliable)
-	void ServerRPCPlaySoundAndEffect(USoundBase* Sound);
-	UFUNCTION(NetMulticast, Reliable)
-	void MulticastPlaySoundAndEffect(USoundBase* Sound);
 #pragma endregion
 
 };
