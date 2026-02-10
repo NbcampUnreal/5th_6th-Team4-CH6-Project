@@ -28,8 +28,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TObjectPtr<USceneComponent> SceneComponent;
-
+	TObjectPtr<USceneComponent> Root;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<UStaticMeshComponent> StaticMeshComponent;
 
@@ -46,6 +45,7 @@ public:
 	AUK_CharacterBase* GetOwnerCharactor() const { return OwnerClass; }
 	void SetOwnerCharactor(const TObjectPtr<AUK_CharacterBase> OwnerCharactor) { OwnerClass = OwnerCharactor; }
 	
+	UFUNCTION(BlueprintCallable)
 	UStaticMeshComponent* GetStaticMeshComponent() const { return StaticMeshComponent; }
 
 	FTransform GetWeaponTransform() const { return PlacementTransform; }

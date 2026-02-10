@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
 #include "ActorComponent/StatusComponent.h"
+#include "GameplayTagContainer.h"
 #include "UK_CharacterBase.generated.h"
 
 
@@ -20,6 +21,7 @@ class AUK_WeaponBase;
 class UUK_WeaponData;
 class UUK_CombatAnimationComponent;
 class UUK_InventoryComponent;
+class UAIPerceptionStimuliSourceComponent;
 struct FInputActionValue;
 #pragma endregion
 
@@ -54,6 +56,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UCameraComponent> Camera;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USkeletalMeshComponent> MannySkeletalMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
+	TObjectPtr<UChildActorComponent> ChildActorComponent;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
 	TObjectPtr<UStatusComponent> StatusComponent;
 
@@ -62,6 +70,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUK_InventoryComponent> InventoryComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UAIPerceptionStimuliSourceComponent> StimuliSource;
 
 #pragma endregion
 #pragma region GAS
@@ -91,20 +102,26 @@ protected:
 
 #pragma region Weapon
 public:
-	void EquipWeapon(AUK_WeaponBase* NewWeapon);
+	void EquipWeapon(FGameplayTag NewWeapon);
+	UFUNCTION(BlueprintCallable)
 	void SlotWeaponOne();
+	UFUNCTION(BlueprintCallable)
 	void SlotWeaponTwo();
+	UFUNCTION(BlueprintCallable)
 	void SlotWeaponThree();
 	void SwapWeapon(int32 Index);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void ChangeWeapon(TSubclassOf<AUK_WeaponBase> WeaponClass);
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<UUK_WeaponData> WeaponList;
 
-	UPROPERTY()
-	TObjectPtr<AUK_WeaponBase> CurrentWeapon;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	TObjectPtr<UDataTable> WeaponDataTable;
+	TObjectPtr<UDataTable> ItmeDataTable;
+
+	FGameplayTag NowWeapon;
 #pragma endregion
 
 #pragma region Battle

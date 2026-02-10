@@ -19,6 +19,8 @@
 #include "EnhancedInputSubsystems.h"
 #include "AbilitySystemComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
+#include "Perception/AISense_Sight.h"
 #include "Net/UnrealNetwork.h"
 
 #pragma region Defualt
@@ -26,7 +28,8 @@
 
 
 // Sets default values
-AUK_CharacterBase::AUK_CharacterBase()
+AUK_CharacterBase::AUK_CharacterBase() :
+	NowWeapon(UK_GameplayTags::Weapon::WeaponRoot)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
@@ -59,6 +62,13 @@ AUK_CharacterBase::AUK_CharacterBase()
 
 #pragma endregion
 
+	MannySkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MannySkeletalMesh"));
+	MannySkeletalMesh->SetupAttachment(GetMesh());
+	ChildActorComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("ChildActorComponent"));
+	ChildActorComponent->SetupAttachment(MannySkeletalMesh, TEXT("Weapon"));
+
+
+	StimuliSource = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("StimuliSource"));
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
 	InventoryComponent = CreateDefaultSubobject<UUK_InventoryComponent>(TEXT("InventoryComponent"));
 	AnimationComponent = CreateDefaultSubobject<UUK_CombatAnimationComponent>(TEXT("AnimComponent"));
@@ -76,13 +86,8 @@ void AUK_CharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 void AUK_CharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
-	if ( IsValid(WeaponList) && IsValid(AnimationComponent) )
-	{
-		// 임시 방편 나중에 무기 바뀔때마다 바꿀수 있도록 수정
-		AnimationComponent->SetNowWeapon(WeaponList->FindAnimsDataAssetByTag(UK_GameplayTags::Weapon::DefaultWeapon));
-	}
 
-	StatusComponent->OnDeadDelegate.AddDynamic(this, & AUK_CharacterBase::Dead);
+	StatusComponent->OnDeadDelegate.AddDynamic(this, &AUK_CharacterBase::Dead);
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -196,40 +201,41 @@ void AUK_CharacterBase::ZoomOut()
 #pragma region Weapon
 
 
-void AUK_CharacterBase::EquipWeapon(AUK_WeaponBase* NewWeapon)
+void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 {
-	if ( CurrentWeapon )
-	{
-		GetAbilitySystemComponent()->RemoveLooseGameplayTag(CurrentWeapon->WeaponTag);
-	}
 
-	CurrentWeapon = NewWeapon;
-
-
-	if ( CurrentWeapon )
-	{
-		UUK_StatusAnimData* Weapon = WeaponList->FindAnimsDataAssetByTag(CurrentWeapon->WeaponTag);
-		AnimationComponent->SetNowWeapon(Weapon);
-		GetAbilitySystemComponent()->AddLooseGameplayTag(CurrentWeapon->WeaponTag);
-	}
+	GetAbilitySystemComponent()->RemoveLooseGameplayTag(NowWeapon);
+	NowWeapon = NewWeapon;
+	UUK_StatusAnimData* Weapon = WeaponList->FindAnimsDataAssetByTag(NowWeapon);
+	AnimationComponent->SetNowWeapon(Weapon);
+	GetAbilitySystemComponent()->AddLooseGameplayTag(NowWeapon);
 }
 void AUK_CharacterBase::SlotWeaponOne()
 {
-	SwapWeapon(1);
+	SwapWeapon(0);
 }
 void AUK_CharacterBase::SlotWeaponTwo()
 {
-	SwapWeapon(2);
+	SwapWeapon(1);
 }
 void AUK_CharacterBase::SlotWeaponThree()
 {
-	SwapWeapon(3);
+	SwapWeapon(2);
 }
 void AUK_CharacterBase::SwapWeapon(int32 Index)
 {
 	FInventorySlot* WeaponSlot = InventoryComponent->FindWeaponSlotbyIndex(Index);
-	const FUK_ItemData* ItemData = WeaponDataTable->FindRow<FUK_ItemData>(WeaponSlot->ItemID, TEXT("AUK_CharacterBase::SwapWeapon"));
-
+	if ( WeaponSlot->isEmpty() )
+	{
+		return;
+	}
+	const FUK_ItemData* ItemData = ItmeDataTable->FindRow<FUK_ItemData>(WeaponSlot->ItemID, TEXT("AUK_CharacterBase::SwapWeapon"));
+	if ( ItemData == nullptr )
+	{
+		return;
+	}
+	EquipWeapon(ItemData->ItemTag);
+	AnimationComponent->SetNowWeapon(WeaponList->FindAnimsDataAssetByTag(NowWeapon));
 }
 #pragma endregion
 

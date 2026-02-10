@@ -1,7 +1,8 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
+#include "Quest/UKQuestTypes.h"  // 퀘스트 관련
 #include "UKSaveGame.generated.h"
 
 USTRUCT(BlueprintType)
@@ -24,4 +25,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FUKPlayerSaveData HostPlayer;
+
+	// 퀘스트 진행도 저장 (QuestID -> Progress)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TMap<FName, FQuestProgress> QuestProgressMap;
 };
