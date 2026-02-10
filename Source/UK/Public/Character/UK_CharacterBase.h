@@ -43,7 +43,7 @@ public:
 	virtual void PossessedBy(AController* NewController) override;
 
 	virtual void OnRep_PlayerState();
-
+	TObjectPtr<USkeletalMeshComponent> GetRightHandWeapon() { return RightHandWeaponComponent; }
 
 protected:
 	// Called when the game starts or when spawned
@@ -60,7 +60,10 @@ protected:
 	TObjectPtr<USkeletalMeshComponent> MannySkeletalMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
-	TObjectPtr<UChildActorComponent> ChildActorComponent;
+	TObjectPtr<USkeletalMeshComponent> RightHandWeaponComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
+	TObjectPtr<USkeletalMeshComponent> LeftHandWeaponComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
 	TObjectPtr<UStatusComponent> StatusComponent;
@@ -103,16 +106,16 @@ protected:
 #pragma region Weapon
 public:
 	void EquipWeapon(FGameplayTag NewWeapon);
+
 	UFUNCTION(BlueprintCallable)
 	void SlotWeaponOne();
 	UFUNCTION(BlueprintCallable)
 	void SlotWeaponTwo();
 	UFUNCTION(BlueprintCallable)
 	void SlotWeaponThree();
+
 	void SwapWeapon(int32 Index);
 
-	UFUNCTION(BlueprintImplementableEvent)
-	void ChangeWeapon(TSubclassOf<AUK_WeaponBase> WeaponClass);
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<UUK_WeaponData> WeaponList;
