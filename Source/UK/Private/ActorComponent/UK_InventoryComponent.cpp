@@ -3,6 +3,7 @@
 
 #include "ActorComponent/UK_InventoryComponent.h"
 #include "DataAsset/Data/UK_ItemData.h"
+#include "UI/Inventory/UK_InvUI.h"
 
 // Sets default values for this component's properties
 UUK_InventoryComponent::UUK_InventoryComponent() :
@@ -34,18 +35,17 @@ void UUK_InventoryComponent::BeginPlay()
 
 void UUK_InventoryComponent::BroadcastInventoryUpdate() const
 {
-	OnInventoryUpdate.Broadcast();
 }
 
 int32 UUK_InventoryComponent::AddItem(FName ItemID, int32 Amount)
 {
 	// 유효성 검사
-	if ( IsValid(ItemDataTable) || Amount <= 0 )
+	if ( !IsValid(ItemDataTable) || Amount <= 0 )
 		return false;
 
 	// 데이터 테이블에서 데이터 찾아오기
 	const FUK_ItemData* ItemData = ItemDataTable->FindRow<FUK_ItemData>(ItemID, TEXT("UUK_InventoryComponent::AddItem"));
-	if ( ItemData )
+	if ( ItemData == nullptr )
 	{
 		UE_LOG(LogTemp, Display, TEXT("아이템 데이터 테이블에 존재하지 않는 ID가 있습니다 : %s"), *ItemID.ToString());
 		return false;
@@ -73,7 +73,7 @@ int32 UUK_InventoryComponent::AddItem(FName ItemID, int32 Amount)
 	while ( AmountToAdd > 0 )
 	{
 		FInventorySlot* EmptySlot = FindEmptyItemSlot();
-		if ( EmptySlot )
+		if ( EmptySlot == nullptr )
 		{
 			UE_LOG(LogTemp, Display, TEXT("인벤토리 공간이 부족합니다."));
 
@@ -85,7 +85,7 @@ int32 UUK_InventoryComponent::AddItem(FName ItemID, int32 Amount)
 		EmptySlot->Quantity = AmountToFill;
 		AmountToAdd -= AmountToFill;
 	}
-	BroadcastInventoryUpdate();
+	OnInventoryUpdate.Broadcast();
 
 	return true;
 }
@@ -93,12 +93,12 @@ int32 UUK_InventoryComponent::AddItem(FName ItemID, int32 Amount)
 int32 UUK_InventoryComponent::RemoveItem(FName ItemID, int32 Amount)
 {
 	// 유효성 검사
-	if ( IsValid(ItemDataTable) || Amount <= 0 )
+	if ( IsValid(ItemDataTable) == false || Amount <= 0 )
 		return false;
 
 	/*추가와 로직이 비슷함 이하 생략*/
 	const FUK_ItemData* ItemData = ItemDataTable->FindRow<FUK_ItemData>(ItemID, TEXT("UUK_InventoryComponent::AddItem"));
-	if ( ItemData )
+	if ( ItemData == nullptr )
 	{
 		UE_LOG(LogTemp, Display, TEXT("아이템 데이터 테이블에 존재하지 않는 ID가 있습니다 : %s"), *ItemID.ToString());
 		return false;
@@ -125,7 +125,7 @@ int32 UUK_InventoryComponent::RemoveItem(FName ItemID, int32 Amount)
 			ExistingSlot->Clear();
 		}
 	}
-	BroadcastInventoryUpdate();
+	OnInventoryUpdate.Broadcast();
 	return true;
 }
 
@@ -145,7 +145,7 @@ FInventorySlot* UUK_InventoryComponent::FindEmptyItemSlot()
 {
 	for ( FInventorySlot& Slot : InventorySlots )
 	{
-		if ( Slot.isEmpty() )
+		if ( Slot.isEmpty()  == true)
 		{
 			return &Slot;
 		}
@@ -172,7 +172,7 @@ bool UUK_InventoryComponent::AddWeapon(FName ItemID, int32 index)
 	// 기존에 있던 슬롯
 	FInventorySlot* Slot = FindWeaponSlotbyIndex(index);
 
-	if ( Slot->isEmpty() ) /*지정시 자리에 있던 무기와 교환 or 지정된 자리에 추가*/
+	if ( Slot->isEmpty() == true) /*지정시 자리에 있던 무기와 교환 or 지정된 자리에 추가*/
 	{
 		Slot->ItemID = ItemID;
 		Slot->Quantity = 1;
@@ -204,7 +204,7 @@ FInventorySlot* UUK_InventoryComponent::FindWeaponSlot(FName ItemID)
 {
 	for ( FInventorySlot& Slot : WeaponSlots )
 	{
-		if ( !Slot.isEmpty() && Slot.ItemID == ItemID )
+		if ( Slot.isEmpty() == false && Slot.ItemID == ItemID )
 		{
 			return &Slot;
 		}
@@ -222,7 +222,7 @@ FInventorySlot* UUK_InventoryComponent::FindEmptyWeaponSlot()
 {
 	for ( FInventorySlot& Slot : WeaponSlots )
 	{
-		if ( Slot.isEmpty() )
+		if ( Slot.isEmpty() == true)
 		{
 			return &Slot;
 		}

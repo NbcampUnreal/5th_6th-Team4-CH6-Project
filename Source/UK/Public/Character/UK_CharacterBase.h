@@ -21,6 +21,7 @@ class AUK_WeaponBase;
 class UUK_WeaponData;
 class UUK_CombatAnimationComponent;
 class UUK_InventoryComponent;
+class UAIPerceptionStimuliSourceComponent;
 struct FInputActionValue;
 #pragma endregion
 
@@ -42,7 +43,8 @@ public:
 	virtual void PossessedBy(AController* NewController) override;
 
 	virtual void OnRep_PlayerState();
-
+	TObjectPtr<USkeletalMeshComponent> GetRightHandWeapon() { return RightHandWeaponComponent; }
+	TObjectPtr<UUK_InventoryComponent> GetInventoryComponent() { return InventoryComponent; }
 
 protected:
 	// Called when the game starts or when spawned
@@ -55,6 +57,15 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UCameraComponent> Camera;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USkeletalMeshComponent> MannySkeletalMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
+	TObjectPtr<USkeletalMeshComponent> RightHandWeaponComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
+	TObjectPtr<USkeletalMeshComponent> LeftHandWeaponComponent;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
 	TObjectPtr<UStatusComponent> StatusComponent;
 
@@ -63,6 +74,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUK_InventoryComponent> InventoryComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UAIPerceptionStimuliSourceComponent> StimuliSource;
 
 #pragma endregion
 #pragma region GAS
@@ -93,16 +107,16 @@ protected:
 #pragma region Weapon
 public:
 	void EquipWeapon(FGameplayTag NewWeapon);
+
 	UFUNCTION(BlueprintCallable)
 	void SlotWeaponOne();
 	UFUNCTION(BlueprintCallable)
 	void SlotWeaponTwo();
 	UFUNCTION(BlueprintCallable)
 	void SlotWeaponThree();
+
 	void SwapWeapon(int32 Index);
 
-	UFUNCTION(BlueprintImplementableEvent)
-	void ChangeWeapon(TSubclassOf<AUK_WeaponBase> WeaponClass);
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<UUK_WeaponData> WeaponList;
