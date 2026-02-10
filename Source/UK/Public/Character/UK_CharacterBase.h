@@ -44,6 +44,7 @@ public:
 
 	virtual void OnRep_PlayerState();
 	TObjectPtr<USkeletalMeshComponent> GetRightHandWeapon() { return RightHandWeaponComponent; }
+	TObjectPtr<UUK_InventoryComponent> GetInventoryComponent() { return InventoryComponent; }
 
 protected:
 	// Called when the game starts or when spawned
