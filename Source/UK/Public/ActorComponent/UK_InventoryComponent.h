@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "UK_InventoryComponent.generated.h"
 
+
 struct FUK_ItemData;
 USTRUCT(BlueprintType)
 struct FInventorySlot
