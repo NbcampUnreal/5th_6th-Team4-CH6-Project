@@ -35,7 +35,7 @@ public:
 	//인벤토리 컴포넌트
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inv")
 	TSubclassOf<UUK_InvSlot> InvSlotClass;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inv")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inv")
 	UDataTable* ItemDataTable;
 
 	//==슬롯 갯수 한 페이지당==

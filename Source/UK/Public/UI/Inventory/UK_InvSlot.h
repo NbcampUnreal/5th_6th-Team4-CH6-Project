@@ -40,8 +40,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	void UpdateSlot();
 
+	UFUNCTION(BlueprintCallable)
+	void SetSlotData(int32 InSlotIndex, const FInventorySlot& InSlotData);
+
 protected:
-	virtual void NativePreConstruct() override;
+	virtual void NativeConstruct() override;
 
 	
 };
