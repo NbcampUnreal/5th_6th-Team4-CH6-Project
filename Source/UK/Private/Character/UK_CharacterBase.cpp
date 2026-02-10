@@ -64,10 +64,10 @@ AUK_CharacterBase::AUK_CharacterBase() :
 	MannySkeletalMesh->SetupAttachment(GetMesh());
 
 	RightHandWeaponComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RightHandWeaponComponent"));
-	RightHandWeaponComponent->SetupAttachment(MannySkeletalMesh, TEXT("Weapon"));
+	RightHandWeaponComponent->SetupAttachment(MannySkeletalMesh, TEXT("Weapon_rSocket"));
 
 	LeftHandWeaponComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftHandWeaponComponent"));
-	LeftHandWeaponComponent->SetupAttachment(MannySkeletalMesh, TEXT("Weapon"));
+	LeftHandWeaponComponent->SetupAttachment(MannySkeletalMesh, TEXT("Weapon_lSocket"));
 
 
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
