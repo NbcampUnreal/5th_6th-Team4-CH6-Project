@@ -19,6 +19,8 @@
 #include "EnhancedInputSubsystems.h"
 #include "AbilitySystemComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
+#include "Perception/AISense_Sight.h"
 #include "Net/UnrealNetwork.h"
 
 #pragma region Defualt
@@ -60,6 +62,13 @@ AUK_CharacterBase::AUK_CharacterBase() :
 
 #pragma endregion
 
+	MannySkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MannySkeletalMesh"));
+	MannySkeletalMesh->SetupAttachment(GetMesh());
+	ChildActorComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("ChildActorComponent"));
+	ChildActorComponent->SetupAttachment(MannySkeletalMesh, TEXT("Weapon"));
+
+
+	StimuliSource = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("StimuliSource"));
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
 	InventoryComponent = CreateDefaultSubobject<UUK_InventoryComponent>(TEXT("InventoryComponent"));
 	AnimationComponent = CreateDefaultSubobject<UUK_CombatAnimationComponent>(TEXT("AnimComponent"));

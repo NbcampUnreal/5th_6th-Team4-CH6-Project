@@ -21,6 +21,7 @@ class AUK_WeaponBase;
 class UUK_WeaponData;
 class UUK_CombatAnimationComponent;
 class UUK_InventoryComponent;
+class UAIPerceptionStimuliSourceComponent;
 struct FInputActionValue;
 #pragma endregion
 
@@ -55,6 +56,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UCameraComponent> Camera;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USkeletalMeshComponent> MannySkeletalMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
+	TObjectPtr<UChildActorComponent> ChildActorComponent;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
 	TObjectPtr<UStatusComponent> StatusComponent;
 
@@ -63,6 +70,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUK_InventoryComponent> InventoryComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UAIPerceptionStimuliSourceComponent> StimuliSource;
 
 #pragma endregion
 #pragma region GAS
