@@ -24,7 +24,9 @@ public class UK : ModuleRules
             "GameplayTags",
             "GameplayTasks",
             "OnlineSubsystem",
-            "OnlineSubsystemUtils"
+            "OnlineSubsystemUtils",
+            "Json",
+			"JsonUtilities"
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
