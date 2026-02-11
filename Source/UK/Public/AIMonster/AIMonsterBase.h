@@ -16,16 +16,17 @@ enum class EMonsterState : uint8
 	Chase,
 	Attack,
 	Dead,
-	Passive,		// 평화로운 상태
-	Alert,			// 경계 상태
-	Aggressive		// 적대 상태
+	Passive,		// 평화로운 상태 (아무것도 안함)
+	Alert,			// 경계 상태 (플레이어가 가까이 옴)
+	Aggressive		// 적대 상태 (공격받아서 화남)
 };
 
+/* 몬스터 성격 타입 */
 UENUM(BlueprintType)
 enum class EMonsterPersonality : uint8
 {
-	Aggressive,		// 공격적 
-	Peaceful		// 평화로운 
+	Aggressive,		// 공격적 (기존 몬스터)
+	Peaceful		// 평화로운 (새로운 몬스터)
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDeath, class AAIMonsterBase*, DeadMonster);
@@ -46,7 +47,6 @@ public:
 	UFUNCTION(BlueprintPure)
 	EMonsterState GetCurrentState() const { return CurrentState; }
 	
-#pragma region Personality
 	/* 몬스터 성격 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Personality")
 	EMonsterPersonality Personality = EMonsterPersonality::Aggressive;
@@ -61,11 +61,18 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful", meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
 	float ResetDistance = 2000.0f;  // 이 거리 이상 벗어나면 리셋
 	
-	UPROPERTY(BlueprintReadOnly, Category = "AI|Peaceful")
-	bool bIsAggressive = false;  // 공격받아서 적대적으로 변했는지
-	
-	UPROPERTY(BlueprintReadOnly, Category = "AI|Peaceful")
-	AActor* Aggressor = nullptr;  // 공격한 적
+	UPROPERTY(ReplicatedUsing = OnRep_IsAggressive, BlueprintReadOnly, Category = "AI|Peaceful")
+	bool bIsAggressive = false;
+
+	UFUNCTION()
+	void OnRep_IsAggressive();
+
+	// ✅ AnimBlueprint에서 "Get Is Aggressive" 노드로 사용
+	UFUNCTION(BlueprintPure, Category = "AI|Peaceful")
+	bool GetIsAggressive() const { return bIsAggressive; }
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "AI|Peaceful")
+	AActor* Aggressor = nullptr;
 	
 	/* 링크 시스템 - 주변 동료 부르기 */
 	UFUNCTION(BlueprintCallable, Category = "AI|Peaceful")
@@ -74,7 +81,6 @@ public:
 	/* 복귀 시스템 - 원래 상태로 돌아가기 */
 	UFUNCTION(BlueprintCallable, Category = "AI|Peaceful")
 	void ResetToPassive();
-#pragma endregion
 	
 #pragma region Spawner System
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
@@ -144,15 +150,15 @@ public:
 	virtual void OnPatrol();
 	virtual void OnAttack();
 	virtual void OnDead();
-	virtual void OnPassive();  
-	virtual void OnAlert();   
+	virtual void OnPassive();  // 평화로운 상태
+	virtual void OnAlert();    // 경계 상태
 
 #pragma region Combat
 
 	/* 공격 관련 */
 
 	UPROPERTY(EditAnywhere, Category = "Combat")
-	float AttackDamage = 10.f;
+	float AttackDamage = 20.f;
 
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	float AttackRange = 150.f;
@@ -183,7 +189,6 @@ public:
 	float TickIntervalAlert = 0.3f;  // 경계 상태
 
 #pragma endregion
-	
 public:
 
 	void ReceiveDamage(float Damage);
