@@ -59,7 +59,7 @@ int32 UUK_InventoryComponent::AddItem(FName ItemID, int32 Amount)
 	{
 		// 동일 아이템 슬롯 확인
 		FInventorySlot* ExistingSlot = FindItemSlot(ItemID, ItemData);
-		if ( ExistingSlot == nullptr )
+		if ( ExistingSlot != nullptr )
 		{
 			// 슬롯에 합칠수 있는 남은 공간
 			int32 SpaceLeft = ItemData->MaxItemStack - ExistingSlot->Quantity;
