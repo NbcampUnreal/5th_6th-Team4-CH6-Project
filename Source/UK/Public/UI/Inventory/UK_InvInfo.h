@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/Inventory/UK_InvCategoryBase.h"
-#include "UK_InvALL.generated.h"
+#include "Blueprint/UserWidget.h"
+#include "UK_InvInfo.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class UK_API UUK_InvALL : public UUK_InvCategoryBase
+class UK_API UUK_InvInfo : public UUserWidget
 {
 	GENERATED_BODY()
 	
