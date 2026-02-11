@@ -27,12 +27,6 @@ struct FQuestProgress
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bCompleted = false;
 
-	// 마지막 갱신 시각(퀘스트 단위 디버깅)
-	// 퀘스트 하나가 언제 갱신됐는지
-	// Step/Complete 같은 변경 함수에서 갱신할것임 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FDateTime LastUpdatedAt;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSet<FName> Flags;
 

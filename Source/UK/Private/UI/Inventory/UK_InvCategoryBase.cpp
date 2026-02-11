@@ -13,26 +13,8 @@ void UUK_InvCategoryBase::NativeConstruct()
 
 void UUK_InvCategoryBase::CreateSlots() //ㅇ 
 {
-	//지울거
-	UE_LOG(LogTemp, Warning, TEXT("Category ItemDataTable: %s"), *GetNameSafe(ItemDataTable));
-	UE_LOG(LogTemp, Warning, TEXT("CreateSlots: This=%s Outer=%s World=%s Table=%s"),
-		*GetNameSafe(this),
-		*GetNameSafe(GetOuter()),
-		*GetNameSafe(GetWorld()),
-		*GetNameSafe(ItemDataTable));
-	UE_LOG(LogTemp, Warning, TEXT("[CreateSlots] This=%s SlotGrid=%s InvSlotClass=%s CurrentSlot=%d MaxSlot=%d"),
-		*GetNameSafe(this),
-		*GetNameSafe(SlotGrid),
-		*GetNameSafe(InvSlotClass),
-		CurrentSlot,
-		MaxSlot);
-
-
-
 	if ( !SlotGrid || !InvSlotClass )
 	{
-		UE_LOG(LogTemp, Error, TEXT("[CreateSlots] RETURN! SlotGrid or InvSlotClass is NULL"));
-
 		return;
 	}
 
@@ -45,11 +27,7 @@ void UUK_InvCategoryBase::CreateSlots() //ㅇ
 	for ( int32 i = 0; i < SlotCountToCreate; ++i )
 	{
 		UUK_InvSlot* SlotWidget = CreateWidget<UUK_InvSlot>(this, InvSlotClass);
-		if ( !SlotWidget )
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[CreateSlots] Created slot widget i=%d -> %s"), i, *GetNameSafe(SlotWidget));//지울거
-			continue;
-		}
+		if ( !SlotWidget ) continue;
 
 		SlotWidget->SlotIndex = i;
 		SlotWidget->ItemDataTable = ItemDataTable;
@@ -68,62 +46,46 @@ void UUK_InvCategoryBase::SetInvArraySlots(const TArray<FInventorySlot>& InAllSl
 {
 	//invUI -> 카테고리 -> 슬롯 위젯, 빈 슬롯은 표시X
 	FilteredSlots.Empty();
-	int32 PassCount = 0;
 
 	for ( const FInventorySlot& InvSlot : InAllSlots )
 	{
-		// 1. isEmpty 체크 확인 로그
-		if ( InvSlot.isEmpty() )
-		{
-			// 수량이 0보다 큰데도 isEmpty가 true라면 이게 범인입니다.
-			if ( InvSlot.Quantity > 0 )
-			{
-				UE_LOG(LogTemp, Error, TEXT("심각: 수량이 %d인데 isEmpty()가 true를 반환함!"), InvSlot.Quantity);
-			}
+		//빈 슬롯은 건너뜀
+		if (InvSlot.isEmpty())
 			continue;
-		}
-
-		// 2. 카테고리 체크 확인 로그
-		if ( !IsItemAllowed(InvSlot) )
-		{
-			UE_LOG(LogTemp, Error, TEXT("카테고리 거부됨: %s"), *InvSlot.ItemID.ToString());
+		//카테고리에 맞지 않는 슬롯은 건너뜀
+		if (!IsItemAllowed(InvSlot))
 			continue;
-		}
-
+		//필터링된 슬롯에 추가
 		FilteredSlots.Add(InvSlot);
-		PassCount++;
 
-		if (FilteredSlots.Num() >= CurrentSlot ) break;
+		// UI에 표시 가능한 슬롯 수까지만
+		if (FilteredSlots.Num() >= CurrentSlot)
+			break;
 	}
 
-	UE_LOG(LogTemp, Error, TEXT("최종 필터링 통과 개수: %d"), PassCount); // 지울거
 	UpdateSlots();
 }
 
 void UUK_InvCategoryBase::UpdateSlots()
 {
-
 	for (int32 i = 0; i < SlotWidgets.Num(); ++i)
 	{
-		if (!SlotWidgets[i] ) continue;
+		if (!SlotWidgets[i]) continue;
 
 		if (FilteredSlots.IsValidIndex(i))
 		{
-			SlotWidgets[i]->SetSlotData(i, FilteredSlots[i]);
+			SlotWidgets[i]->SlotData = FilteredSlots[i];
 		}
 		else
 		{
-			FInventorySlot EmptySlot;
-			SlotWidgets[i]->SetSlotData(i, EmptySlot);
+			SlotWidgets[i]->SlotData.Clear();
 		}
+		SlotWidgets[i]->UpdateSlot();
 	}
 }
 
 void UUK_InvCategoryBase::AddSlot(int32 AddCount) //ㅇ
 {
-
-	int32 OldSlotCount = CurrentSlot;
-
 	if ( AddCount <= 0 )
 		return;
 
@@ -133,11 +95,7 @@ void UUK_InvCategoryBase::AddSlot(int32 AddCount) //ㅇ
 		MaxSlot
 	);
 
-	if (CurrentSlot > OldSlotCount)
-	{
-		CreateSlots();
-	}
-
+	CreateSlots();
 	UpdateSlots();
 }
 
