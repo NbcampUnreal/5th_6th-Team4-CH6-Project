@@ -158,11 +158,49 @@ void AUK_MonsterSpawner::SpawnInitialMonsters()
 
 FVector AUK_MonsterSpawner::GetRandomSpawnLocation() const
 {
-    FVector BaseLocation = GetActorLocation();
-    FVector RandomOffset = UKismetMathLibrary::RandomUnitVector() * FMath::RandRange(0.0f, SpawnRadius);
-    RandomOffset.Z = 0.0f;
+	FVector BaseLocation = GetActorLocation();
     
-    return BaseLocation + RandomOffset;
+	const int32 MaxAttempts = 20;
+	const float MinDistanceBetweenMonsters = 200.0f;
+	const float MinDistanceFromCenter = 150.0f;  // 스포너 중심에서 최소 거리
+    
+	for (int32 Attempt = 0; Attempt < MaxAttempts; Attempt++)
+	{
+		FVector RandomOffset = UKismetMathLibrary::RandomUnitVector() * FMath::RandRange(MinDistanceFromCenter, SpawnRadius);
+		RandomOffset.Z = 0.0f;
+        
+		FVector CandidateLocation = BaseLocation + RandomOffset;
+        
+		// 스포너 중심과 거리 체크
+		if (FVector::Dist2D(CandidateLocation, BaseLocation) < MinDistanceFromCenter)
+		{
+			continue;
+		}
+        
+		// 기존 활성 몬스터들과 거리 체크
+		bool bTooClose = false;
+		for (AAIMonsterBase* Monster : ActiveMonsters)
+		{
+			if (IsValid(Monster))
+			{
+				if (FVector::Dist2D(CandidateLocation, Monster->GetActorLocation()) < MinDistanceBetweenMonsters)
+				{
+					bTooClose = true;
+					break;
+				}
+			}
+		}
+        
+		if (!bTooClose)
+		{
+			return CandidateLocation;
+		}
+	}
+    
+	// 폴백 - 최소한 중심에서는 떨어뜨리기
+	FVector RandomOffset = UKismetMathLibrary::RandomUnitVector() * FMath::RandRange(MinDistanceFromCenter, SpawnRadius);
+	RandomOffset.Z = 0.0f;
+	return BaseLocation + RandomOffset;
 }
 
 void AUK_MonsterSpawner::InitializeObjectPool()
