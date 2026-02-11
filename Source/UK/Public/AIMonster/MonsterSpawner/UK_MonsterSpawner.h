@@ -34,6 +34,12 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Settings")
     float RespawnDelay = 10.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Settings")
+	float MinSpawnDistance = 200.0f;  // 몬스터 간 최소 거리
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Settings")
+	float MinCenterDistance = 150.0f;  // 스포너 중심에서 최소 거리
 
     // 디버그
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Debug")
