@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
@@ -7,11 +7,11 @@
 #include "UKGameInstance.generated.h"
 
 
-/* ¸ñ·Ï
-1. Lan ±â¹İ ¼¼¼Ç ±¸Çö ¹× °¡´ÉÇÑ ¿À·ù¹æÁö ½Ã½ºÅÛ
-2. savegame °ü·ÃÃß°¡ ³»¿ë (¼­ºê½Ã½ºÅÛ ºĞ¸®½Ã Á¶Á¤ÇÒ°Í, ¼öÁ¤¾ö±İ*/
+/* ëª©ë¡
+1. Lan ê¸°ë°˜ ì„¸ì…˜ êµ¬í˜„ ë° ê°€ëŠ¥í•œ ì˜¤ë¥˜ë°©ì§€ ì‹œìŠ¤í…œ
+2. savegame ê´€ë ¨ì¶”ê°€ ë‚´ìš© (ì„œë¸Œì‹œìŠ¤í…œ ë¶„ë¦¬ì‹œ ì¡°ì •í• ê²ƒ, ìˆ˜ì •ì—„ê¸ˆ*/
 
-// [1] Lan ±â¹İ ¼¼¼Ç
+// [1] Lan ê¸°ë°˜ ì„¸ì…˜
 
 UCLASS()
 class UK_API UUKGameInstance : public UGameInstance
@@ -35,16 +35,16 @@ public:
     void DestroySessionLAN();
 
     UFUNCTION(BlueprintCallable)
-    void CloseSessionLAN(); // À¯Àú°¡ '¹æ ´İ±â' ´©¸¦ ¶§, Àç»ı¼º ¾øÀÌ Á¾·á¸¸
+    void CloseSessionLAN(); // ìœ ì €ê°€ 'ë°© ë‹«ê¸°' ëˆ„ë¥¼ ë•Œ, ì¬ìƒì„± ì—†ì´ ì¢…ë£Œë§Œ
 
 private:
     IOnlineSessionPtr SessionInterface;
     TSharedPtr<FOnlineSessionSearch> SessionSearch;
 
-    bool bDestroyInProgress = false; // Destroy Áß Áßº¹ È£Ãâ ¹æÁö
+    bool bDestroyInProgress = false; // Destroy ì¤‘ ì¤‘ë³µ í˜¸ì¶œ ë°©ì§€
 
-    bool bCreateAfterDestroy = false;  // À¯Àú°¡ Á÷Á¢ ´İÀ» ¶© º¸Åë false.
-    int32 PendingPublicConnections = 4; // °ø°³½½·Ô ¼ö. Áï ÀÓ½Ã°ªÀº 4¸í¹æ Àç»ı¼º
+    bool bCreateAfterDestroy = false;  // ìœ ì €ê°€ ì§ì ‘ ë‹«ì„ ë• ë³´í†µ false.
+    int32 PendingPublicConnections = 4; // ê³µê°œìŠ¬ë¡¯ ìˆ˜. ì¦‰ ì„ì‹œê°’ì€ 4ëª…ë°© ì¬ìƒì„±
 
     FOnCreateSessionCompleteDelegate OnCreateSessionCompleteDelegate;
     FDelegateHandle OnCreateSessionCompleteHandle;
@@ -64,7 +64,7 @@ private:
     void HandleJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
     void HandleDestroySessionComplete(FName SessionName, bool bWasSuccessful);
 
-// [2] savegame °ü·Ã
+// [2] savegame ê´€ë ¨
 
 public:
     UFUNCTION(BlueprintCallable)

@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "UK_InventoryComponent.generated.h"
 
+
 struct FUK_ItemData;
 USTRUCT(BlueprintType)
 struct FInventorySlot
@@ -13,10 +14,10 @@ struct FInventorySlot
 	GENERATED_BODY()
 public:
 	FInventorySlot() : ItemID(EName::None), Quantity(0) {  }
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName ItemID;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Quantity;
 
 	bool isEmpty() const { return ItemID.IsNone() || Quantity <= 0; }
