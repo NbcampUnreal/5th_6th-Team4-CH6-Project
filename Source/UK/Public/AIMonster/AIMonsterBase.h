@@ -15,10 +15,21 @@ enum class EMonsterState : uint8
 	Patrol,
 	Chase,
 	Attack,
-	Dead
+	Dead,
+	Passive,		// 평화로운 상태
+	Alert,			// 경계 상태
+	Aggressive		// 적대 상태
+};
+
+UENUM(BlueprintType)
+enum class EMonsterPersonality : uint8
+{
+	Aggressive,		// 공격적 
+	Peaceful		// 평화로운 
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDeath, class AAIMonsterBase*, DeadMonster);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMonsterAttacked, class AAIMonsterBase*, AttackedMonster, AActor*, Attacker);
 
 UCLASS(Abstract)
 class UK_API AAIMonsterBase : public ACharacter
@@ -35,6 +46,36 @@ public:
 	UFUNCTION(BlueprintPure)
 	EMonsterState GetCurrentState() const { return CurrentState; }
 	
+#pragma region Personality
+	/* 몬스터 성격 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Personality")
+	EMonsterPersonality Personality = EMonsterPersonality::Aggressive;
+	
+	/* 평화로운 몬스터 설정 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful", meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
+	float AlertDistance = 300.0f;  // 이 거리 이내로 오면 경계 상태
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful", meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
+	float AllyCallRadius = 1000.0f;  // 링크 시스템 반경
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful", meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
+	float ResetDistance = 2000.0f;  // 이 거리 이상 벗어나면 리셋
+	
+	UPROPERTY(BlueprintReadOnly, Category = "AI|Peaceful")
+	bool bIsAggressive = false;  // 공격받아서 적대적으로 변했는지
+	
+	UPROPERTY(BlueprintReadOnly, Category = "AI|Peaceful")
+	AActor* Aggressor = nullptr;  // 공격한 적
+	
+	/* 링크 시스템 - 주변 동료 부르기 */
+	UFUNCTION(BlueprintCallable, Category = "AI|Peaceful")
+	void CallNearbyAllies(AActor* Enemy);
+	
+	/* 복귀 시스템 - 원래 상태로 돌아가기 */
+	UFUNCTION(BlueprintCallable, Category = "AI|Peaceful")
+	void ResetToPassive();
+#pragma endregion
+	
 #pragma region Spawner System
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
 	UBehaviorTree* BehaviorTree;
@@ -47,6 +88,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Monster")
 	FOnMonsterDeath OnDeath;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Monster")
+	FOnMonsterAttacked OnAttacked;
 
 	UFUNCTION(BlueprintCallable, Category = "Monster")
 	void Die();
@@ -100,13 +144,15 @@ public:
 	virtual void OnPatrol();
 	virtual void OnAttack();
 	virtual void OnDead();
+	virtual void OnPassive();  
+	virtual void OnAlert();   
 
 #pragma region Combat
 
 	/* 공격 관련 */
 
 	UPROPERTY(EditAnywhere, Category = "Combat")
-	float AttackDamage = 20.f;
+	float AttackDamage = 10.f;
 
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	float AttackRange = 150.f;
@@ -129,8 +175,15 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Optimization")
 	float TickIntervalAttack = 0.1f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Optimization")
+	float TickIntervalPassive = 1.0f;  // 평화로운 상태는 느리게
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Optimization")
+	float TickIntervalAlert = 0.3f;  // 경계 상태
 
 #pragma endregion
+	
 public:
 
 	void ReceiveDamage(float Damage);

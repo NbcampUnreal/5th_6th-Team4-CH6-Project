@@ -275,10 +275,10 @@ void UUK_CombatAnimationComponent::SetEnableRightHitCheck(bool bEnablaHitCheck)
 {
 	if ( bEnablaHitCheck )
 	{
-		HitcheckedActor.Reset();
+		RightHitcheckedActor.Reset();
 		GetWorld()->GetTimerManager().SetTimer
 		(
-			HitCheckTimer,
+			RightHitCheckTimer,
 			this,
 			&UUK_CombatAnimationComponent::RightHitCheckProcess,
 			0.1f,
@@ -289,9 +289,32 @@ void UUK_CombatAnimationComponent::SetEnableRightHitCheck(bool bEnablaHitCheck)
 	}
 	else
 	{
-		GetWorld()->GetTimerManager().ClearTimer(HitCheckTimer);
-		HitcheckedActor.Reset();
-		HitCheckTimer.Invalidate();
+		GetWorld()->GetTimerManager().ClearTimer(RightHitCheckTimer);
+		RightHitcheckedActor.Reset();
+		RightHitCheckTimer.Invalidate();
+	}
+}
+void UUK_CombatAnimationComponent::SetEnableLeftHitCheck(bool bEnablaHitCheck)
+{
+	if ( bEnablaHitCheck )
+	{
+		LeftHitcheckedActor.Reset();
+		GetWorld()->GetTimerManager().SetTimer
+		(
+			LeftHitCheckTimer,
+			this,
+			&UUK_CombatAnimationComponent::RightHitCheckProcess,
+			0.1f,
+			true
+		);
+		TObjectPtr<USoundBase> AttackSound = AttackAnim->AttackSound;
+		ServerRPCPlaySoundAndEffect(AttackSound);
+	}
+	else
+	{
+		GetWorld()->GetTimerManager().ClearTimer(LeftHitCheckTimer);
+		LeftHitcheckedActor.Reset();
+		LeftHitCheckTimer.Invalidate();
 	}
 }
 
@@ -345,10 +368,82 @@ void UUK_CombatAnimationComponent::RightHitCheckProcess()
 		{
 
 			AActor* HitActor = Hit.GetActor();
-			bool bAlreadyHit = HitcheckedActor.Contains(HitActor);
+			bool bAlreadyHit = RightHitcheckedActor.Contains(HitActor);
 			if ( !bAlreadyHit )
 			{
-				HitcheckedActor.Add(HitActor);
+				RightHitcheckedActor.Add(HitActor);
+
+				UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *HitActor->GetName());
+				if ( OwnerCharactor->HasAuthority() )
+				{
+					if ( TObjectPtr<AAIMonsterBase> Monster = Cast<AAIMonsterBase>(HitActor) )
+					{
+						Monster->ReceiveDamage(OwnerCharactor->ApplyDamage());
+						UE_LOG(LogTemp, Warning, TEXT("Damage Applied to Monster: %s to Damage : %f"), *Monster->GetName(), OwnerCharactor->ApplyDamage());
+					}
+					// 이펙트 출력
+					TObjectPtr<USoundBase> HitSound = AttackAnim->HitSound;
+					ServerRPCPlaySoundAndEffect(HitSound);
+				}
+			}
+		}
+	}
+}
+
+void UUK_CombatAnimationComponent::LeftHitCheckProcess()
+{
+	if ( !IsValid(OwnerCharactor->GetLeftHandWeapon()) )
+		return;
+	FVector TraceStart = OwnerCharactor->GetLeftHandWeapon()->GetSocketLocation(TraceStartSocketName);
+	FVector TraceEnd = OwnerCharactor->GetLeftHandWeapon()->GetSocketLocation(TraceEndSocketName);
+
+	const float CapsuleRadius = 50.f;
+
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.AddIgnoredActor(OwnerCharactor);
+	CollisionParams.bReturnPhysicalMaterial = true;
+
+	TArray<FHitResult> HitResult;
+	FCollisionShape CollisionShape = FCollisionShape::MakeSphere(CapsuleRadius);
+
+	bool bIsHit = GetWorld()->SweepMultiByChannel(
+		HitResult,
+		TraceStart,
+		TraceEnd,
+		FQuat::Identity,
+		ECC_ATTACK,
+		CollisionShape,
+		CollisionParams
+	);
+	if ( ShowAttackDebug )
+	{
+#if ENABLE_DRAW_DEBUG
+		FColor DrawColor = bIsHit ? FColor::Green : FColor::Red;
+
+		FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceEnd - TraceStart).ToQuat();
+		DrawDebugCapsule(
+			GetWorld(),
+			( TraceStart + TraceEnd ) / 2,
+			( TraceEnd - TraceStart ).Size(),
+			CapsuleRadius,
+			CapsuleRot,
+			DrawColor,
+			false,
+			1.f
+		);
+#endif
+	}
+
+	if ( bIsHit )
+	{
+		for ( const FHitResult& Hit : HitResult )
+		{
+
+			AActor* HitActor = Hit.GetActor();
+			bool bAlreadyHit = LeftHitcheckedActor.Contains(HitActor);
+			if ( !bAlreadyHit )
+			{
+				LeftHitcheckedActor.Add(HitActor);
 
 				UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *HitActor->GetName());
 				if ( OwnerCharactor->HasAuthority() )

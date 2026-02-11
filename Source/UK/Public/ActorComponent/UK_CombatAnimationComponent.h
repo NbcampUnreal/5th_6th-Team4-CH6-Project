@@ -102,15 +102,22 @@ public:
 
 	void RightHitCheckProcess();
 
+	void SetEnableLeftHitCheck(bool bEnablaHitCheck);
+
+	void LeftHitCheckProcess();
+
 
 protected:
 	UPROPERTY()
 	FDamageEvent DamageEvent;
 
-	FTimerHandle HitCheckTimer;
+	FTimerHandle RightHitCheckTimer;
+	FTimerHandle LeftHitCheckTimer;
 
 	UPROPERTY()
-	TSet<AActor*> HitcheckedActor;
+	TSet<AActor*> RightHitcheckedActor;
+	UPROPERTY()
+	TSet<AActor*> LeftHitcheckedActor;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "SoundDistanece")
 	TObjectPtr< USoundAttenuation > SoundAttenuation;
