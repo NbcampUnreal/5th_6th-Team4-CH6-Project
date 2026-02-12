@@ -14,13 +14,12 @@ class UK_API AUK_QuestNPC : public AUK_NPCAIBase
 public:
 	AUK_QuestNPC();
 
+	bool CanInteract() const {return bPlayerInRange;}
+
 	virtual void Tick(float DeltaTime) override;
 	virtual void Interact_Implementation(AActor* Interactor) override;
 
 protected:
-	// 플레이어가 상호작용 가능한 범위
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
-	float InteractionRadius;
 
 	// 퀘스트 마커를 표시할 영역
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC")
@@ -31,8 +30,6 @@ protected:
 	UStaticMeshComponent* QuestMarker;
 
 	virtual void BeginPlay() override;
-
-	void CheckPlayerDistance();
 
 	FTimerHandle MarkerTimerHandle;
 

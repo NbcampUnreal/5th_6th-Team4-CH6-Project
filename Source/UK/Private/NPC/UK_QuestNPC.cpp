@@ -34,8 +34,6 @@ void AUK_QuestNPC::BeginPlay()
 void AUK_QuestNPC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	//CheckPlayerDistance();
 }
 
 void AUK_QuestNPC::OnPlayerEnter(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,bool bFromSweep, const FHitResult& SweepResult)
@@ -86,38 +84,20 @@ void AUK_QuestNPC::UpdateMarkerRotation()
 	QuestMarker->SetWorldRotation(LookAtRotation);
 }
 
-void AUK_QuestNPC::CheckPlayerDistance() //지금은 딱히 사용하고 있지 않음 퀘스트용으로 사용될 예정
-{
-	ACharacter* PlayerChar = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
-	if (!PlayerChar) return;
-
-	float Distance = FVector::Dist(PlayerChar->GetActorLocation(), GetActorLocation());
-
-	if (Distance <= InteractionRadius)
-	{
-		if (!bPlayerInRange)
-		{
-			bPlayerInRange = true;
-			UE_LOG(LogTemp, Log, TEXT("플레이어가 NPC 근처에 있습니다! 상호작용 가능."));
-		}
-	}
-	else
-	{
-		if (bPlayerInRange)
-		{
-			bPlayerInRange = false;
-			UE_LOG(LogTemp, Log, TEXT("플레이어가 NPC에서 멀어졌습니다."));
-		}
-	}
-
-	if (QuestMarker)
-	{
-		QuestMarker->SetVisibility(true);
-	}
-}
-
 void AUK_QuestNPC::Interact_Implementation(AActor* Interactor)
 {
+	if ( !bPlayerInRange ) return;
 
+
+	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(Interactor);
+
+	if ( !Player ) return;
+
+	UE_LOG(LogTemp, Log, TEXT("QuestNPC Interact"));
+
+	// 여기서 나중에
+	// - 대화 UI
+	// - 퀘스트 지급
+	// - JSON 연동
 }
 
