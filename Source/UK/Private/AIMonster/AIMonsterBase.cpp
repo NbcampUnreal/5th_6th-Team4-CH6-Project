@@ -2,6 +2,7 @@
 #include "AIController.h"
 #include "Net/UnrealNetwork.h"
 #include "AIMonster/UK_AiMonsterCtl.h"
+#include "BehaviorTree/BehaviorTreeComponent.h"
 #include "Character/UK_CharacterBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -119,6 +120,14 @@ void AAIMonsterBase::OnRep_MonsterState()
     }
 }
 
+// bIsAggressive 복제 시 클라이언트에서 호출
+void AAIMonsterBase::OnRep_IsAggressive()
+{
+    // AnimBlueprint가 bIsAggressive 변경을 감지할 수 있도록
+    // 추가 처리가 필요하면 여기에 작성
+    UE_LOG(LogTemp, Log, TEXT("[OnRep] %s bIsAggressive = %d"), *GetName(), bIsAggressive);
+}
+
 /* 링크 시스템 - 주변 동료들 부르기 */
 void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
 {
@@ -153,8 +162,20 @@ void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
 		AllyMonster->Aggressor = Enemy;
 		AllyMonster->RequestState(EMonsterState::Aggressive);
 		
-		UE_LOG(LogTemp, Log, TEXT("[Link System] %s called ally %s to fight!"), 
-			*GetName(), *AllyMonster->GetName());
+		// 동료 Blackboard에 TargetPlayer 설정
+		if (AAIController* AllyAIC = Cast<AAIController>(AllyMonster->GetController()))
+		{
+			if (UBlackboardComponent* BB = AllyAIC->GetBlackboardComponent())
+			{
+				BB->SetValueAsObject(TEXT("TargetPlayer"), Enemy);
+			}
+    
+			// 동료 BT 즉시 재시작 (Passive Wait에서 깨우기)
+			if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AllyAIC->GetBrainComponent()))
+			{
+				BTComp->RestartTree();
+			}
+		}
 	}
 }
 
@@ -310,6 +331,14 @@ void AAIMonsterBase::ReceiveDamage(float Damage)
 			
 			// 상태 변경
 			RequestState(EMonsterState::Aggressive);
+			
+			if (AAIController* AIC = Cast<AAIController>(GetController()))
+			{
+				if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AIC->GetBrainComponent()))
+				{
+					BTComp->RestartTree();
+				}
+			}
 		}
 	}
 }
@@ -432,4 +461,6 @@ void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
     DOREPLIFETIME(AAIMonsterBase, CurrentState);
+    DOREPLIFETIME(AAIMonsterBase, bIsAggressive); 
+    DOREPLIFETIME(AAIMonsterBase, Aggressor);      
 }

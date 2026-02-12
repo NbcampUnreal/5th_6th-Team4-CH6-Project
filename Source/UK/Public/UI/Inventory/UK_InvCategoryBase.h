@@ -8,6 +8,15 @@
 class UUniformGridPanel;
 class UUK_InvSlot;
 
+UENUM(BlueprintType)
+enum class EInvCategory : uint8
+{
+	All,
+	Weapon,
+	Food,
+	Material
+};
+
 
 UCLASS()
 class UK_API UUK_InvCategoryBase : public UUserWidget
@@ -15,17 +24,22 @@ class UK_API UUK_InvCategoryBase : public UUserWidget
 	GENERATED_BODY()
 	
 public:
-
+	//카테고리 타입
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inv")
+	EInvCategory CategoryType = EInvCategory::All;
+	//인벤토리 슬롯 배열 생성
 	UFUNCTION(BlueprintCallable, Category = "Inv")
 	void SetInvArraySlots(const TArray<FInventorySlot>& InAllSlots);
-
+	//슬롯 갯수 추가
 	UFUNCTION(BlueprintCallable, Category = "Inv")
 	void AddSlot(int32 AddCount);
 
 	virtual void NativeConstruct() override;
+	//슬롯이 허용되는지 여부
 	virtual bool IsItemAllowed(const FInventorySlot& InSlot) const;
-
+	//슬롯 생성
 	void CreateSlots();
+	//슬롯 정보 업데이트
 	void UpdateSlots();
 
 	//바인드
