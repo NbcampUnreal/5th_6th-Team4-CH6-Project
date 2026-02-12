@@ -29,7 +29,7 @@ protected:
 
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = USTitleWidget, Meta = ( AllowPrivateAccess, BindWidget ))
-	TObjectPtr<UButton> PlayButton;
+	TObjectPtr<UButton> StartButton;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = USTitleWidget, Meta = ( AllowPrivateAccess, BindWidget ))
 	TObjectPtr<UButton> ExitButton;

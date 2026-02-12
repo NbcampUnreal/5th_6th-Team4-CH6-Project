@@ -15,7 +15,7 @@ UUK_Out_MainMenu::UUK_Out_MainMenu(const FObjectInitializer& ObjectInitializer)
 
 void UUK_Out_MainMenu::NativeConstruct()
 {
-	PlayButton.Get()->OnClicked.AddDynamic(this, &ThisClass::OnPlayButtonClicked);
+	StartButton.Get()->OnClicked.AddDynamic(this, &ThisClass::OnPlayButtonClicked);
 	ExitButton.Get()->OnClicked.AddDynamic(this, &ThisClass::OnExitButtonClicked);
 }
 
@@ -26,6 +26,7 @@ void UUK_Out_MainMenu::OnPlayButtonClicked()
 	{
 		FText ServerIP = ServerIPEditableText->GetText();
 		// 플레이어 시작 위치
+		//PlayerController->RequestStartGame();
 	}
 }
 
