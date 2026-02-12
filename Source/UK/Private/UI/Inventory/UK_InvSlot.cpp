@@ -13,6 +13,20 @@ void UUK_InvSlot::NativePreConstruct()
 	UpdateSlot();
 }
 
+void UUK_InvSlot::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
+
+	if (!SlotData.isEmpty())
+		OnSlotHovered.Broadcast(SlotData);
+}
+
+void UUK_InvSlot::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseLeave(InMouseEvent);
+	OnSlotUnhovered.Broadcast();
+}
+
 void UUK_InvSlot::UpdateSlot()
 {
 	bool bIsEmpty = SlotData.isEmpty();
