@@ -6,7 +6,7 @@
 
 /**
  * 평화로운 몬스터용 플레이어 감지 서비스
- * 적대적일 때만 플레이어를 감지함
+ * 적대적일 때 Aggressor를 우선 타겟으로 설정
  */
 UCLASS()
 class UK_API UUK_BTService_DetectPlayer_Peaceful : public UBTService
