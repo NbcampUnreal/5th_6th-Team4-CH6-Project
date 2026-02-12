@@ -53,9 +53,7 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 		FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceEnd - TraceStart).ToQuat();
 
 		DrawDebugCapsule(World, Center, HalfHeight, TraceRadius,
-			CapsuleRot, DrawColor, false, DebugDrawDuration, 0, 1.5f);
-		DrawDebugSphere(World, TraceStart, 8.f, 8, FColor::Cyan, false, DebugDrawDuration);
-		DrawDebugSphere(World, TraceEnd, 8.f, 8, FColor::Magenta, false, DebugDrawDuration);
+			CapsuleRot, DrawColor, false, DebugDrawDuration, 0, 3.f);
 	}
 
 	if (!bHit) return;
@@ -66,34 +64,26 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 		AActor* HitActor = Hit.GetActor();
 		if (!HitActor || HitActor == OwnerActor) continue;
 
-		// 몬스터끼리 안 때림
-		if (Cast<AAIMonsterBase>(HitActor)) continue;
+		// ★ 플레이어 캐릭터만 처리 (몬스터, NPC, 기타 액터 전부 무시)
+		AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(HitActor);
+		if (!Player) continue;
 
 		// 중복 히트 방지
 		if (HitActors.Contains(HitActor)) continue;
 		HitActors.Add(HitActor);
 
-		// 피격 디버그
+		// ★ 피격 시 임팩트 구체만 표시 (텍스트 제거)
 		if (bShowDebug)
 		{
-			DrawDebugSphere(World, Hit.ImpactPoint, 15.f, 12,
-				FColor::Yellow, false, DebugDrawDuration * 2.f, 0, 2.f);
-			DrawDebugString(World, Hit.ImpactPoint + FVector(0, 0, 30),
-				FString::Printf(TEXT("HIT: %s\nBone: %s\nDmg: %.0f"),
-					*HitActor->GetName(), *Hit.BoneName.ToString(), Monster->AttackDamage),
-				nullptr, FColor::Yellow, DebugDrawDuration * 2.f, true);
+			DrawDebugSphere(World, Hit.ImpactPoint, 20.f, 12,
+				FColor::Yellow, false, DebugDrawDuration, 0, 3.f);
 		}
 
 		UE_LOG(LogTemp, Warning,
-			TEXT("[MeleeTrace] %s -> %s | Bone: %s | Dmg: %.1f"),
-			*OwnerActor->GetName(), *HitActor->GetName(),
-			*Hit.BoneName.ToString(), Monster->AttackDamage);
+			TEXT("[MeleeTrace] %s -> %s | Dmg: %.1f"),
+			*OwnerActor->GetName(), *HitActor->GetName(), Monster->AttackDamage);
 
-		// 데미지 적용
-		if (AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(HitActor))
-		{
-			Player->ReceiveDamage(Monster->AttackDamage);
-		}
+		Player->ReceiveDamage(Monster->AttackDamage);
 	}
 }
 

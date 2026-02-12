@@ -41,6 +41,8 @@ private:
 	// 감지/소실 이벤트 콜백
 	UFUNCTION()
 	void OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
+	
+	void UpdateFocusOnTarget(AActor* NewTarget);
 
 	// BT 미사용 시
 	void UpdateState();
@@ -57,7 +59,7 @@ private:
 	float ChaseRange = 1000.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
-	float AttackRange = 200.f;
+	float AttackRange = 250.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	float PatrolRadius = 600.f;

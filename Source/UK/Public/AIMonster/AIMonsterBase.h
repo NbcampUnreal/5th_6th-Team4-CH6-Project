@@ -105,7 +105,7 @@ public:
 	void Die();
 
 	UFUNCTION(BlueprintPure, Category = "Monster")
-	bool IsDead() const { return CurrentState == EMonsterState::Dead; }
+	bool IsDead() const { return CurrentState == EMonsterState::Dead || bIsDying; }
 
 	UFUNCTION(BlueprintCallable, Category = "Monster")
 	void ResetHealth();
@@ -163,6 +163,9 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	bool bIsAttacking = false;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Combat")
+	bool bIsDying = false;
 
 	// 랜덤 공격 몽타주 재생 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
@@ -170,12 +173,17 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void PlayDeathMontage();
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Animation")
+	float DeathWithoutMontageDelay = 5.0f;
 
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 	UFUNCTION()
 	void OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	
+	void FinalizeDeath();
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayAttackMontage(int32 MontageIndex);
@@ -188,7 +196,7 @@ public:
 	float AttackDamage = 20.f;
 
 	UPROPERTY(EditAnywhere, Category = "Combat")
-	float AttackRange = 150.f;
+	float AttackRange = 250.f;
 
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	float AttackCooldown = 1.5f;

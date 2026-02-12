@@ -35,13 +35,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trace")
 	FName TraceEndSocket = TEXT("Hand_R_End");
 
-	/** 끝 소켓이 없을 때 전방 트레이스 길이 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trace")
-	float TraceForwardLength = 100.f;
-
-	/** 스윕 반지름 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trace")
-	float TraceRadius = 30.f;
+	float TraceForwardLength = 200.f;
+	float TraceRadius = 50.f;
 
 	/** 디버그 드로우 표시 여부 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
