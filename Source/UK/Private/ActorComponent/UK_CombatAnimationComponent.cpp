@@ -127,7 +127,10 @@ void UUK_CombatAnimationComponent::ServerRPCStartComboAttack_Implementation(cons
 {
 	if ( !OwnerCharactor || !NowWeapon )
 		return;
-
+	if ( NowWeapon->FindAnimsDataAssetByType(AttackType) == nullptr )
+	{
+		return;
+	}
 	CurrentComboCount = 1;
 
 	MulticastPlayCombo(AttackType, CurrentComboCount);

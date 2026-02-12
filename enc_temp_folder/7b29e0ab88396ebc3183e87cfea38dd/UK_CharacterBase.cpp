@@ -232,23 +232,10 @@ void AUK_CharacterBase::LockON()
 			Start,
 			End,
 			FQuat::Identity,
-			ECC_LockOn,/*추후에 카메라 전용 트레이스 채널로 변경 요망*/
+			ECC_Visibility,/*추후에 카메라 전용 트레이스 채널로 변경 요망*/
 			CollisionShape,
 			Params
-		);
-		FColor DrawColor = bHit ? FColor::Green : FColor::Red;
-
-		FQuat CapsuleRot = FRotationMatrix::MakeFromZ(Start - End).ToQuat();
-		DrawDebugCapsule(
-			GetWorld(),
-			( Start + End ) / 2,
-			( End - Start ).Size(),
-			CapsuleRadius,
-			CapsuleRot,
-			DrawColor,
-			false,
-			1.f
-		);
+			);
 		if ( bHit )
 		{
 			bIsLock = true;
@@ -259,7 +246,6 @@ void AUK_CharacterBase::LockON()
 				0.01f,
 				true
 			);
-
 		}
 	}
 	else
@@ -272,7 +258,7 @@ void AUK_CharacterBase::LockON()
 }
 void AUK_CharacterBase::LockONTick()
 {
-	if ( LockOnResult.IsEmpty() == false )
+	if ( LockOnResult.IsEmpty() == false)
 	{
 		int32 size = LockOnResult.Num();
 		if ( size <= index )
@@ -281,7 +267,7 @@ void AUK_CharacterBase::LockONTick()
 		}
 		AActor* Actor = LockOnResult[ index ].GetActor();
 
-		if ( IsValid(Actor) == true )
+		if( IsValid(Actor) == true)
 		{
 			AAIMonsterBase* Monster = Cast<AAIMonsterBase>(Actor);
 			if ( IsValid(Monster) == false )
@@ -312,7 +298,6 @@ void AUK_CharacterBase::LockONTick()
 					DeltaTime,
 					12.f
 				);
-
 				GetController()->SetControlRotation(NewRot);
 
 			}
@@ -321,10 +306,7 @@ void AUK_CharacterBase::LockONTick()
 				LockOnResult.RemoveAtSwap(index);
 			}
 		}
-		else
-		{
-			LockOnResult.RemoveAtSwap(index);
-		}
+
 	}
 	else
 	{
