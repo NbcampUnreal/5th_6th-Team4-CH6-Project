@@ -145,13 +145,21 @@ void AUK_CharacterBase::GiveStartupAbilities()
 
 #pragma region Input
 
-void AUK_CharacterBase::Attack()
+void AUK_CharacterBase::LightAttack()
 {
 	if ( StatusComponent->IsDead() )
 	{
 		return;
 	}
 	AnimationComponent->PlayLightComboAnimation();
+}
+void AUK_CharacterBase::HeavyAttack()
+{
+	if ( StatusComponent->IsDead() )
+	{
+		return;
+	}
+	AnimationComponent->PlayHeavyComboAnimation();
 }
 
 void AUK_CharacterBase::ZoomIn()

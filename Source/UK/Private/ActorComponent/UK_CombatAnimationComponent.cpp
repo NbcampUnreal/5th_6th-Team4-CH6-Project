@@ -92,6 +92,34 @@ void UUK_CombatAnimationComponent::PlayLightComboAnimation()
 		InputType = EAttackInput::Light;
 	}
 }
+// 진입점
+void UUK_CombatAnimationComponent::PlayHeavyComboAnimation()
+{
+	if ( !IsValid(NowWeapon) || !IsValid(OwnerCharactor) )
+		return;
+
+	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
+
+	ensure(PlayerMovement);
+
+	bool bPlayerIsFalling = PlayerMovement->IsFalling();
+
+	if ( CurrentComboCount == 0 )
+	{
+		if ( bPlayerIsFalling )
+		{
+			// 공중 강 공격은 없음
+		}
+		else
+		{
+			ServerRPCStartComboAttack(EComboAttackType::HeavyAttackOnGround);
+		}
+	}
+	else
+	{
+		InputType = EAttackInput::Heavy;
+	}
+}
 
 #pragma region ServerRPCs
 // 콤보 최초 시작
@@ -120,7 +148,10 @@ void UUK_CombatAnimationComponent::MulticastPlayCombo_Implementation(EComboAttac
 {
 
 	AttackAnim = NowWeapon->FindAnimsDataAssetByType(AttackType);
-
+	if ( AttackAnim == nullptr )
+	{
+		return;
+	}
 	FName SectionName = *FString::Printf(TEXT("%s%d"), *AttackAnim->MontageSectionName, ComboCount);
 
 	PlayComboAttackAnimation(AttackType, SectionName);
