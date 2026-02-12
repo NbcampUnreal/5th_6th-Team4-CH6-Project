@@ -93,7 +93,10 @@ private:
 #pragma region Input
 protected:
 	UFUNCTION(BlueprintCallable)
-	void Attack();
+	void LightAttack();
+
+	UFUNCTION(BlueprintCallable)
+	void HeavyAttack();
 
 	UFUNCTION(BlueprintCallable)
 	void ZoomIn();

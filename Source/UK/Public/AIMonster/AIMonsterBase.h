@@ -6,8 +6,9 @@
 #include "AIMonsterBase.generated.h"
 
 class UBehaviorTree;
+class UAnimMontage;
 
-/* AI 상태 관련 정의한 내용 */
+/* AI 상태 */
 UENUM(BlueprintType)
 enum class EMonsterState : uint8
 {
@@ -16,21 +17,22 @@ enum class EMonsterState : uint8
 	Chase,
 	Attack,
 	Dead,
-	Passive,		// 평화로운 상태 (아무것도 안함)
-	Alert,			// 경계 상태 (플레이어가 가까이 옴)
-	Aggressive		// 적대 상태 (공격받아서 화남)
+	Passive,
+	Alert,
+	Aggressive
 };
 
 /* 몬스터 성격 타입 */
 UENUM(BlueprintType)
 enum class EMonsterPersonality : uint8
 {
-	Aggressive,		// 공격적 (기존 몬스터)
-	Peaceful		// 평화로운 (새로운 몬스터)
+	Aggressive,
+	Peaceful
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDeath, class AAIMonsterBase*, DeadMonster);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMonsterAttacked, class AAIMonsterBase*, AttackedMonster, AActor*, Attacker);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMonsterStateChanged, EMonsterState, OldState, EMonsterState, NewState);
 
 UCLASS(Abstract)
 class UK_API AAIMonsterBase : public ACharacter
@@ -40,48 +42,49 @@ class UK_API AAIMonsterBase : public ACharacter
 public:
 	AAIMonsterBase();
 
-	/* 서버 전용 상태에서 요청 할 내용 (Controller가 호출 할 예정)*/
+	/* 서버 전용 상태 요청 */
 	UFUNCTION(Server, Reliable)
 	void RequestState(EMonsterState NewState);
 
 	UFUNCTION(BlueprintPure)
 	EMonsterState GetCurrentState() const { return CurrentState; }
-	
+
+	/** 상태 변경 이벤트 (BT, UI 등에서 반응 가능) */
+	UPROPERTY(BlueprintAssignable, Category = "AI")
+	FOnMonsterStateChanged OnStateChanged;
+
 	/* 몬스터 성격 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Personality")
 	EMonsterPersonality Personality = EMonsterPersonality::Aggressive;
-	
+
 	/* 평화로운 몬스터 설정 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful", meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
-	float AlertDistance = 300.0f;  // 이 거리 이내로 오면 경계 상태
-	
+	float AlertDistance = 300.0f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful", meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
-	float AllyCallRadius = 1000.0f;  // 링크 시스템 반경
-	
+	float AllyCallRadius = 1000.0f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful", meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
-	float ResetDistance = 2000.0f;  // 이 거리 이상 벗어나면 리셋
-	
+	float ResetDistance = 2000.0f;
+
 	UPROPERTY(ReplicatedUsing = OnRep_IsAggressive, BlueprintReadOnly, Category = "AI|Peaceful")
 	bool bIsAggressive = false;
 
 	UFUNCTION()
 	void OnRep_IsAggressive();
 
-	// ✅ AnimBlueprint에서 "Get Is Aggressive" 노드로 사용
 	UFUNCTION(BlueprintPure, Category = "AI|Peaceful")
 	bool GetIsAggressive() const { return bIsAggressive; }
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "AI|Peaceful")
 	AActor* Aggressor = nullptr;
-	
-	/* 링크 시스템 - 주변 동료 부르기 */
+
 	UFUNCTION(BlueprintCallable, Category = "AI|Peaceful")
 	void CallNearbyAllies(AActor* Enemy);
-	
-	/* 복귀 시스템 - 원래 상태로 돌아가기 */
+
 	UFUNCTION(BlueprintCallable, Category = "AI|Peaceful")
 	void ResetToPassive();
-	
+
 #pragma region Spawner System
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
 	UBehaviorTree* BehaviorTree;
@@ -94,7 +97,7 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Monster")
 	FOnMonsterDeath OnDeath;
-	
+
 	UPROPERTY(BlueprintAssignable, Category = "Monster")
 	FOnMonsterAttacked OnAttacked;
 
@@ -106,7 +109,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Monster")
 	void ResetHealth();
-	
+
 	UFUNCTION(BlueprintPure, Category = "Monster")
 	UAI_MonsterStatComponent* GetStatComponent() const { return StatComponent; }
 
@@ -115,23 +118,21 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 	float PatrolRadius = 1000.0f;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 	float LookAtRotationSpeed = 5.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 	float MaxChaseDistance = 1500.0f;
-	
 #pragma endregion
-	
+
 protected:
 	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaTime) override;
+	//virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UAI_MonsterStatComponent* StatComponent;
 
-	/* 초기 상태값 설정 */
 	UPROPERTY(ReplicatedUsing = OnRep_MonsterState)
 	EMonsterState CurrentState = EMonsterState::Idle;
 
@@ -140,23 +141,49 @@ protected:
 
 	void SetServerState(EMonsterState NewState);
 
-	/* AI 활성 / 비활성 스위치 역할을 하게될 값 (Controller가 호출 할 예정) */
 public:
-	void SetAIActive(bool bAcitve);
+	void SetAIActive(bool bActive);
 
-	/* 현재 상태별 실행할 함수들 상속받은 자식클래스에서 override 될 함수 */
+	/* 상태별 가상 함수 (자식 override) */
 	virtual void OnIdle();
 	virtual void OnChase(float DeltaSeconds);
 	virtual void OnPatrol();
 	virtual void OnAttack();
 	virtual void OnDead();
-	virtual void OnPassive();  // 평화로운 상태
-	virtual void OnAlert();    // 경계 상태
+	virtual void OnPassive();
+	virtual void OnAlert();
 
 #pragma region Combat
+	// 몽타주 기반 공격 (랜덤 3종)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Animation")
+	TArray<UAnimMontage*> AttackMontages;
 
-	/* 공격 관련 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Animation")
+	UAnimMontage* DeathMontage = nullptr;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Combat")
+	bool bIsAttacking = false;
+
+	// 랜덤 공격 몽타주 재생 
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	bool PlayRandomAttackMontage();
+
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void PlayDeathMontage();
+
+	UFUNCTION()
+	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION()
+	void OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayAttackMontage(int32 MontageIndex);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayDeathMontage();
+
+	/* 공격 스탯 */
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	float AttackDamage = 20.f;
 
@@ -167,32 +194,10 @@ public:
 	float AttackCooldown = 1.5f;
 
 	float LastAttackTime = 0.f;
-
 #pragma endregion
 
-	/* 기본 최적화 베이스 (깔아는 두고 수정 첨삭 될수 있습니다) */
-#pragma region Optimization
-
-	UPROPERTY(EditDefaultsOnly, Category = "Optimization")
-	float TickIntervalPatrol = 0.6f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Optimization")
-	float TickIntervalChase = 0.2f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Optimization")
-	float TickIntervalAttack = 0.1f;
-	
-	UPROPERTY(EditDefaultsOnly, Category = "Optimization")
-	float TickIntervalPassive = 1.0f;  // 평화로운 상태는 느리게
-	
-	UPROPERTY(EditDefaultsOnly, Category = "Optimization")
-	float TickIntervalAlert = 0.3f;  // 경계 상태
-
-#pragma endregion
 public:
-
 	void ReceiveDamage(float Damage);
 
-	/* Replication */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };
