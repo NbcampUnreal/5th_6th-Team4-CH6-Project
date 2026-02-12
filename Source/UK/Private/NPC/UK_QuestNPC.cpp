@@ -7,13 +7,14 @@
 
 AUK_QuestNPC::AUK_QuestNPC()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	bPlayerInRange = false;
+	QuestState = EQuestState::None;
 
 	InteractionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionSphere"));
 	InteractionSphere->SetupAttachment(RootComponent);
-	InteractionSphere->SetSphereRadius(2300.f); // 마커 띄울 범위 임시 설정
+	InteractionSphere->SetSphereRadius(1000.f); // 마커 띄울 범위 임시 설정
 
 	InteractionSphere->OnComponentBeginOverlap.AddDynamic(this, &AUK_QuestNPC::OnPlayerEnter);
 	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &AUK_QuestNPC::OnPlayerExit);
@@ -22,6 +23,8 @@ AUK_QuestNPC::AUK_QuestNPC()
 	QuestMarker->SetupAttachment(RootComponent);
 	QuestMarker->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
 	QuestMarker->SetVisibility(false);
+
+	QuestID = 0;
 }
 
 void AUK_QuestNPC::BeginPlay()
@@ -31,10 +34,6 @@ void AUK_QuestNPC::BeginPlay()
 	bPlayerInRange = false;
 }
 
-void AUK_QuestNPC::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
 
 void AUK_QuestNPC::OnPlayerEnter(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -89,15 +88,70 @@ void AUK_QuestNPC::Interact_Implementation(AActor* Interactor)
 	if ( !bPlayerInRange ) return;
 
 
-	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(Interactor);
+	AUK_CharacterBase* Player =
+		Cast<AUK_CharacterBase>(Interactor);
 
 	if ( !Player ) return;
 
-	UE_LOG(LogTemp, Log, TEXT("QuestNPC Interact"));
 
+	switch ( QuestState )
+	{
+	case EQuestState::None:
+		GiveQuest(Player);
+		break;
+
+	case EQuestState::InProgress:
+		CheckQuest(Player);
+		break;
+
+	case EQuestState::Completed:
+		GiveReward(Player);
+		break;
+
+	case EQuestState::Rewarded:
+		AlreadyClear();
+		break;
+	}
 	// 여기서 나중에
 	// - 대화 UI
 	// - 퀘스트 지급
 	// - JSON 연동
+}
+
+void AUK_QuestNPC::GiveQuest(AUK_CharacterBase* Player)
+{
+	UE_LOG(LogTemp, Log, TEXT("퀘스트 시작"));
+
+	QuestState = EQuestState::InProgress;
+
+	//퀘스트 매니저 연동
+}
+
+
+
+void AUK_QuestNPC::CheckQuest(AUK_CharacterBase* Player)
+{
+	UE_LOG(LogTemp, Log, TEXT("퀘스트 진행중"));
+
+	// 임시로 바로 완료 처리
+	QuestState = EQuestState::Completed;
+}
+
+
+
+void AUK_QuestNPC::GiveReward(AUK_CharacterBase* Player)
+{
+	UE_LOG(LogTemp, Log, TEXT("보상 지급"));
+
+	QuestState = EQuestState::Rewarded;
+
+	//아이템, 경험치 지급
+}
+
+
+
+void AUK_QuestNPC::AlreadyClear()
+{
+	UE_LOG(LogTemp, Log, TEXT("이미 완료된 퀘스트"));
 }
 
