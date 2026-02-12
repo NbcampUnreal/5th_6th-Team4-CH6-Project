@@ -64,6 +64,7 @@ public:
 	void OnRep_CurrentComboCount();
 
 	void PlayLightComboAnimation();
+	void PlayHeavyComboAnimation();
 
 #pragma region ServerRPCs
 	UFUNCTION(NetMulticast, Reliable)

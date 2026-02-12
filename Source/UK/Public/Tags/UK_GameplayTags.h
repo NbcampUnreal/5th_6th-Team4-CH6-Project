@@ -23,4 +23,12 @@ namespace UK_GameplayTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DefaultWeapon);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dagger);
 	}
+	namespace Food
+	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(FoodRoot);
+	}
+	namespace Material
+	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(MaterialRoot);
+	}
 }
