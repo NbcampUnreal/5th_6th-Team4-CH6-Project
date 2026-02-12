@@ -92,11 +92,10 @@ void AUK_NPCAICtl::DrawSightDebug()
 	FVector Start = GetPawn()->GetActorLocation() + FVector(0.f, 0.f, 50.f);
 	FVector Forward = GetPawn()->GetActorForwardVector();
 
-	// Sight 정보
+
 	float SightRadius = SightConfig->SightRadius;
 	float FOVAngle = SightConfig->PeripheralVisionAngleDegrees;
 
-	// 시야 원뿔(Cone) 그리기
 	DrawDebugCone(
 		GetWorld(),
 		Start,
@@ -104,15 +103,14 @@ void AUK_NPCAICtl::DrawSightDebug()
 		SightRadius,
 		FMath::DegreesToRadians(FOVAngle / 2.f),
 		FMath::DegreesToRadians(FOVAngle / 2.f),
-		12,               // Segments
+		12,              
 		FColor::Red,
-		false,            // persistent
-		0.1f,             // lifetime
-		0,                // depth priority
-		2.f               // thickness
+		false,           
+		0.1f,             
+		0,                
+		2.f              
 	);
 
-	// 감지 최대 거리 원(Sphere) 표시 (선택 사항)
 	DrawDebugSphere(
 		GetWorld(),
 		Start,
