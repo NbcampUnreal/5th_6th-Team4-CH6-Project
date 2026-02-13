@@ -77,6 +77,9 @@ void AAIMonsterBase::OnRep_MonsterState()
 		break;
 	case EMonsterState::Dead:
 		break;
+	default:
+		SetNetDormancy(DORM_Awake);
+		break;
 	}
 }
 
@@ -150,6 +153,44 @@ void AAIMonsterBase::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupt
 	bIsAttacking = false;
 }
 
+void AAIMonsterBase::Die()
+{
+	if (!HasAuthority()) return;
+	if (CurrentState == EMonsterState::Dead || bIsDying) return;
+
+	bIsDying = true;
+	bIsAttacking = false;
+
+	// BT 중지 + 이동 중지 (컨트롤러는 유지! 몽타주 재생에 필요)
+	if (AAIController* AIC = Cast<AAIController>(GetController()))
+	{
+		AIC->StopMovement();
+
+		if (UBrainComponent* Brain = AIC->GetBrainComponent())
+		{
+			Brain->StopLogic(TEXT("Dead"));
+		}
+	}
+
+	// 몽타주를 먼저 재생 (아직 Awake 상태이므로 Multicast 전달됨)
+	if (DeathMontage)
+	{
+		PlayDeathMontage();
+	}
+
+	// 그 다음 상태 변경 (Dead에서 Dormant 안 하므로 안전)
+	SetServerState(EMonsterState::Dead);
+
+	// 몽타주 없으면 딜레이 후 최종 처리
+	if (!DeathMontage)
+	{
+		FTimerHandle DeathTimer;
+		GetWorldTimerManager().SetTimer(
+			DeathTimer, this, &AAIMonsterBase::FinalizeDeath,
+			DeathWithoutMontageDelay, false);
+	}
+}
+
 void AAIMonsterBase::PlayDeathMontage()
 {
 	if (!DeathMontage) return;
@@ -190,9 +231,10 @@ void AAIMonsterBase::Multicast_PlayDeathMontage_Implementation()
 void AAIMonsterBase::OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	UE_LOG(LogTemp, Log, TEXT("[Death] %s: Death montage ended"), *GetName());
-	FinalizeDeath();
+	FinalizeDeath();  // 몽타주 끝난 후에 최종 처리
 }
 
+// 사망 몽타주 끝난 후 호출
 void AAIMonsterBase::FinalizeDeath()
 {
 	SetNetDormancy(DORM_DormantAll);
@@ -272,41 +314,6 @@ void AAIMonsterBase::SetAIActive(bool bActive)
 /* =============================== */
 /*        Spawner / HP              */
 /* =============================== */
-
-void AAIMonsterBase::Die()
-{
-	if (!HasAuthority()) return;
-	if (CurrentState == EMonsterState::Dead || bIsDying) return;
-
-	bIsDying = true;
-	bIsAttacking = false;
-
-	// BT 중지 + 이동 중지 (컨트롤러는 유지 — 몽타주 재생 필요)
-	if (AAIController* AIC = Cast<AAIController>(GetController()))
-	{
-		AIC->StopMovement();
-
-		if (UBrainComponent* Brain = AIC->GetBrainComponent())
-		{
-			Brain->StopLogic(TEXT("Dead"));
-		}
-	}
-
-	if (DeathMontage)
-	{
-		PlayDeathMontage();
-	}
-	
-	SetServerState(EMonsterState::Dead);
-	
-	if (!DeathMontage)
-	{
-		FTimerHandle DeathTimer;
-		GetWorldTimerManager().SetTimer(
-			DeathTimer, this, &AAIMonsterBase::FinalizeDeath,
-			DeathWithoutMontageDelay, false);
-	}
-}
 
 void AAIMonsterBase::ResetHealth()
 {

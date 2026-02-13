@@ -28,11 +28,13 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(OwnerActor);
 	if (!Monster) return;
 
-	// 트레이스 위치 계산
-	FVector TraceStart, TraceEnd;
-	GetTraceLocations(MeshComp, TraceStart, TraceEnd);
+	// 소켓 없이 전방 트레이스
+	const FVector ActorLocation = OwnerActor->GetActorLocation();
+	const FVector ActorForward = OwnerActor->GetActorForwardVector();
+	const FVector TraceStart = ActorLocation + FVector(0, 0, TraceStartHeight);
+	const FVector TraceEnd = TraceStart + ActorForward * TraceForwardLength;
 
-	// 스윕 트레이스 수행
+	// 스윕 트레이스
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(OwnerActor);
 	QueryParams.bTraceComplex = false;
@@ -44,7 +46,7 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 		HitResults, TraceStart, TraceEnd,
 		FQuat::Identity, ECC_Pawn, SweepShape, QueryParams);
 
-	// 디버그 드로우
+	// 디버그: 캡슐만 (초록=미스, 빨강=히트, 노랑=피격점)
 	if (bShowDebug)
 	{
 		FColor DrawColor = bHit ? FColor::Red : FColor::Green;
@@ -58,13 +60,13 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 
 	if (!bHit) return;
 
-	// 히트 처리
+	// 플레이어(UK_CharacterBase)만 히트 처리
 	for (const FHitResult& Hit : HitResults)
 	{
 		AActor* HitActor = Hit.GetActor();
 		if (!HitActor || HitActor == OwnerActor) continue;
 
-		// ★ 플레이어 캐릭터만 처리 (몬스터, NPC, 기타 액터 전부 무시)
+		// 플레이어만 통과, 나머지 전부 무시
 		AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(HitActor);
 		if (!Player) continue;
 
@@ -72,16 +74,12 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 		if (HitActors.Contains(HitActor)) continue;
 		HitActors.Add(HitActor);
 
-		// ★ 피격 시 임팩트 구체만 표시 (텍스트 제거)
+		// 피격 디버그 (노란 구체만)
 		if (bShowDebug)
 		{
 			DrawDebugSphere(World, Hit.ImpactPoint, 20.f, 12,
 				FColor::Yellow, false, DebugDrawDuration, 0, 3.f);
 		}
-
-		UE_LOG(LogTemp, Warning,
-			TEXT("[MeleeTrace] %s -> %s | Dmg: %.1f"),
-			*OwnerActor->GetName(), *HitActor->GetName(), Monster->AttackDamage);
 
 		Player->ReceiveDamage(Monster->AttackDamage);
 	}
@@ -93,26 +91,4 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyEnd(
 {
 	Super::NotifyEnd(MeshComp, Animation, EventReference);
 	HitActors.Empty();
-}
-
-void UAnimNotifyState_UKMonsterMeleeTrace::GetTraceLocations(
-	USkeletalMeshComponent* MeshComp, FVector& OutStart, FVector& OutEnd) const
-{
-	if (!MeshComp) return;
-
-	// 시작 소켓
-	OutStart = MeshComp->DoesSocketExist(TraceStartSocket)
-		? MeshComp->GetSocketLocation(TraceStartSocket)
-		: MeshComp->GetOwner()->GetActorLocation() + FVector(0, 0, 50.f);
-
-	// 끝 소켓
-	if (MeshComp->DoesSocketExist(TraceEndSocket))
-	{
-		OutEnd = MeshComp->GetSocketLocation(TraceEndSocket);
-	}
-	else
-	{
-		// 끝 소켓이 없으면 액터 전방으로 TraceForwardLength만큼
-		OutEnd = OutStart + MeshComp->GetOwner()->GetActorForwardVector() * TraceForwardLength;
-	}
 }

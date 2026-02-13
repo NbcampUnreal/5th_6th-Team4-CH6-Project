@@ -59,7 +59,7 @@ private:
 	float ChaseRange = 1000.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
-	float AttackRange = 250.f;
+	float AttackRange = 200.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	float PatrolRadius = 600.f;

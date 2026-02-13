@@ -5,11 +5,7 @@
 #include "AnimNotifyState_UKMonsterMeleeTrace.generated.h"
 
 /**
- * 공격 애니메이션 구간에서 스윕 트레이스를 수행하는 노티파이 스테이트
- *
- * NotifyBegin : 히트 목록 초기화
- * NotifyTick  : 매 프레임 SweepMulti → 히트 시 데미지 적용
- * NotifyEnd   : 정리
+ * 몬스터 근접 공격 트레이스
  */
 UCLASS(DisplayName = "Monster Melee Trace")
 class UK_API UAnimNotifyState_UKMonsterMeleeTrace : public UAnimNotifyState
@@ -25,31 +21,27 @@ public:
 
 	virtual FString GetNotifyName_Implementation() const override { return TEXT("MeleeTrace"); }
 
-	/* 트레이스 설정 (몽타주 에디터에서 조절 가능) */
-
-	/** 트레이스 시작 소켓 (무기 끝 or 손) */
+	/** 트레이스 시작 높이 오프셋 (액터 위치 기준 위로) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trace")
-	FName TraceStartSocket = TEXT("Hand_R");
+	float TraceStartHeight = 60.f;
 
-	/** 트레이스 끝 소켓 (없으면 전방으로 TraceForwardLength만큼) */
+	/** 전방 트레이스 길이 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trace")
-	FName TraceEndSocket = TEXT("Hand_R_End");
-
 	float TraceForwardLength = 200.f;
+
+	/** 스윕 반지름 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trace")
 	float TraceRadius = 50.f;
 
-	/** 디버그 드로우 표시 여부 */
+	/** 디버그 캡슐 표시 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
 	bool bShowDebug = true;
 
 	/** 디버그 지속 시간 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
-	float DebugDrawDuration = 1.0f;
+	float DebugDrawDuration = 0.5f;
 
 private:
-	/** 이번 공격에서 이미 맞은 액터 (중복 히트 방지) */
 	UPROPERTY()
 	TArray<AActor*> HitActors;
-
-	void GetTraceLocations(USkeletalMeshComponent* MeshComp, FVector& OutStart, FVector& OutEnd) const;
 };
