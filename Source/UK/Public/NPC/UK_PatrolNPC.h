@@ -41,7 +41,7 @@ public:
 	int32 CurrentIndex = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
-	bool bIsWaiting;
+	bool bIsWaiting; 
 
 public:
 
