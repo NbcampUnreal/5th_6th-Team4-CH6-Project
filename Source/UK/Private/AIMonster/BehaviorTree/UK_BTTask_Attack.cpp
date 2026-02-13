@@ -2,12 +2,13 @@
 #include "AIController.h"
 #include "AIMonster/AIMonsterBase.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
+#include "BehaviorTree/BlackboardComponent.h"
 
 UUK_BTTask_Attack::UUK_BTTask_Attack()
 {
 	NodeName = "Attack (Montage)";
 	bNotifyTick = true;
-	bCreateNodeInstance = true;
+	bCreateNodeInstance = true;  // 인스턴스별 상태 보관
 }
 
 EBTNodeResult::Type UUK_BTTask_Attack::ExecuteTask(
@@ -17,12 +18,13 @@ EBTNodeResult::Type UUK_BTTask_Attack::ExecuteTask(
 	if (!AICon) return EBTNodeResult::Failed;
 
 	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(AICon->GetPawn());
-	if (!Monster) return EBTNodeResult::Failed;
+	if (!Monster || Monster->IsDead()) return EBTNodeResult::Failed;
 
-	if (!Monster->PlayRandomAttackMontage())
-		return EBTNodeResult::Failed;
+	// 초기화
+	bMontageStarted = false;
+	FacingWaitElapsed = 0.f;
 
-	// 몽타주 재생 중 → InProgress, TickTask에서 종료 감지
+	//TickTask에서 회전 체크 후 공격
 	return EBTNodeResult::InProgress;
 }
 
@@ -43,7 +45,53 @@ void UUK_BTTask_Attack::TickTask(
 		return;
 	}
 
-	// 공격 몽타주 끝나면 성공 완료
+	if (!bMontageStarted)
+	{
+		FacingWaitElapsed += DeltaSeconds;
+
+		// 타겟 방향 체크
+		bool bFacingTarget = false;
+
+		UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
+		if (BB)
+		{
+			AActor* Target = Cast<AActor>(BB->GetValueAsObject(TEXT("TargetPlayer")));
+			if (Target)
+			{
+				FVector ToTarget = (Target->GetActorLocation() - Monster->GetActorLocation()).GetSafeNormal2D();
+				FVector MonsterForward = Monster->GetActorForwardVector().GetSafeNormal2D();
+
+				float DotProduct = FVector::DotProduct(MonsterForward, ToTarget);
+				float AngleDeg = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(DotProduct, -1.f, 1.f)));
+
+				bFacingTarget = (AngleDeg <= FacingAngleTolerance);
+			}
+			else
+			{
+				// 타겟 없으면 그냥 공격
+				bFacingTarget = true;
+			}
+		}
+		else
+		{
+			bFacingTarget = true;
+		}
+
+		// 타겟을 바라보고 있거나, 대기 시간 초과 시 공격 시작
+		if (bFacingTarget || FacingWaitElapsed >= MaxFacingWaitTime)
+		{
+			if (!Monster->PlayRandomAttackMontage())
+			{
+				FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
+				return;
+			}
+
+			bMontageStarted = true;
+		}
+
+		return;  // 아직 회전 중이면 다음 틱 대기
+	}
+
 	if (!Monster->bIsAttacking)
 	{
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
@@ -66,5 +114,8 @@ EBTNodeResult::Type UUK_BTTask_Attack::AbortTask(
 			}
 		}
 	}
+
+	bMontageStarted = false;
+	FacingWaitElapsed = 0.f;
 	return EBTNodeResult::Aborted;
 }

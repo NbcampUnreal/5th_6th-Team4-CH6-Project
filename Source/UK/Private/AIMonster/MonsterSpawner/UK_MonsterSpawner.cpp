@@ -48,8 +48,6 @@ void AUK_MonsterSpawner::Tick(float DeltaTime)
             TotalSpawnCount,
             TotalDeathCount,
             InactivePooledMonsters.Num());
-        
-        DrawDebugString(GetWorld(), GetActorLocation() + FVector(0, 0, 100), InfoText, nullptr, FColor::White, 0.0f, true);
     }
 }
 

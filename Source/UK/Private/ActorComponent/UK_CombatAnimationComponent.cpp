@@ -127,7 +127,10 @@ void UUK_CombatAnimationComponent::ServerRPCStartComboAttack_Implementation(cons
 {
 	if ( !OwnerCharactor || !NowWeapon )
 		return;
-
+	if ( NowWeapon->FindAnimsDataAssetByType(AttackType) == nullptr )
+	{
+		return;
+	}
 	CurrentComboCount = 1;
 
 	MulticastPlayCombo(AttackType, CurrentComboCount);
@@ -409,6 +412,7 @@ void UUK_CombatAnimationComponent::RightHitCheckProcess()
 				{
 					if ( TObjectPtr<AAIMonsterBase> Monster = Cast<AAIMonsterBase>(HitActor) )
 					{
+						OwnerCharactor->AddTarget(Monster);
 						Monster->ReceiveDamage(OwnerCharactor->ApplyDamage());
 						UE_LOG(LogTemp, Warning, TEXT("Damage Applied to Monster: %s to Damage : %f"), *Monster->GetName(), OwnerCharactor->ApplyDamage());
 					}
@@ -418,6 +422,7 @@ void UUK_CombatAnimationComponent::RightHitCheckProcess()
 				}
 			}
 		}
+		OwnerCharactor->LockON();
 	}
 }
 
