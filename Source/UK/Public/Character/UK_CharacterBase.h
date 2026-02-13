@@ -23,6 +23,7 @@ class UUK_WeaponData;
 class UUK_CombatAnimationComponent;
 class UUK_InventoryComponent;
 class UAIPerceptionStimuliSourceComponent;
+class AAIMonsterBase;
 struct FInputActionValue;
 #pragma endregion
 
@@ -102,18 +103,22 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void ZoomOut();
 
+
+public:
 	UFUNCTION(BlueprintCallable)
 	void LockON();
 
 	UFUNCTION(BlueprintCallable)
 	void LockONTick();
 
+	void AddTarget(const TObjectPtr<AAIMonsterBase> Monster);
+
+	bool Locking()const { return bIsLock; }
 protected:
 	bool bIsLock;
 
 	UPROPERTY()
-	TArray<FHitResult> LockOnResult;
-
+	TArray<TObjectPtr<AAIMonsterBase>> LockOnList;
 	int32 index;
 
 	FTimerHandle LockOnTimer;
