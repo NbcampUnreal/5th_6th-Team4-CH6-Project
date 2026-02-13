@@ -5,6 +5,9 @@
 #include "ActorComponent/StatusComponent.h"
 #include "UK_MainHUD.generated.h"
 
+class UButton;
+class UUK_InvMain;
+
 UCLASS()
 class UK_API UUK_MainHUD : public UUserWidget
 {
@@ -21,4 +24,17 @@ protected:
 	// 위젯에서 만든 프로그레스 바나 이미지를 바인딩 
 	UPROPERTY(meta = ( BindWidget ))
 	class UProgressBar* HealthBar;
+
+	// 인벤토리 버튼
+	UFUNCTION()
+	void OnInventoryButtonClicked();
+
+	UPROPERTY(meta = ( BindWidget ))
+	UButton* InventoryButton; 
+
+	UPROPERTY(EditAnywhere, Category = "UI")
+	TSubclassOf<UUK_InvMain> InvMainClass; // 에디터에서 인벤토리 블루프린트 할당
+
+	UPROPERTY()
+	UUK_InvMain* InvMainWidget; // 생성된 위젯 참조 저장용
 };
