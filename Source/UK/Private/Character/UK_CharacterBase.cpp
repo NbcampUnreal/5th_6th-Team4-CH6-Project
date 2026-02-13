@@ -353,21 +353,22 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 	if ( IsValid(Weapon->GetRightHandWeapon()) )
 	{
 		RightHandWeaponComponent->SetSkeletalMesh(Weapon->GetRightHandWeapon()); // todo : 이후에 서버에서 변경하도록 수정해야함 임시로 클라에서만 변경하고 있음
-		const FName WeaponSocketName = TEXT("Weapon_rSocket");
-		const FName GripSocketName = TEXT("GripSocket");
+		//const FName WeaponSocketName = TEXT("Weapon_rSocket");
+		//const FName GripSocketName = TEXT("GripSocket");
 
-		FTransform GripSocketTransform = RightHandWeaponComponent->GetSocketTransform(
-			GripSocketName,
-			RTS_Component
-		);
+		//FTransform GripSocketTransform = RightHandWeaponComponent->GetSocketTransform(
+		//	GripSocketName,
+		//	RTS_Component
+		//);
 
-		RightHandWeaponComponent->AttachToComponent(
-			CharactorMesh,
-			FAttachmentTransformRules::SnapToTargetIncludingScale,
-			WeaponSocketName
-		);
+		//RightHandWeaponComponent->AttachToComponent(
+		//	CharactorMesh,
+		//	FAttachmentTransformRules::SnapToTargetIncludingScale,
+		//	WeaponSocketName
+		//);
 
-		RightHandWeaponComponent->SetRelativeTransform(GripSocketTransform.Inverse());
+		RightHandWeaponComponent->SetRelativeLocation(Weapon->GetRightLocationOffset());
+		RightHandWeaponComponent->SetRelativeRotation(Weapon->GetRightRotationOffset());
 	}
 	else
 	{
@@ -376,21 +377,22 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 	if ( IsValid(Weapon->GetLeftHandWeapon()) )
 	{
 		LeftHandWeaponComponent->SetSkeletalMesh(Weapon->GetLeftHandWeapon()); // todo : 이후에 서버에서 변경하도록 수정해야함 임시로 클라에서만 변경하고 있음
-		const FName WeaponSocketName = TEXT("Weapon_rSocket");
-		const FName GripSocketName = TEXT("GripSocket");
+		//const FName WeaponSocketName = TEXT("Weapon_rSocket");
+		//const FName GripSocketName = TEXT("GripSocket");
 
-		FTransform GripSocketTransform = LeftHandWeaponComponent->GetSocketTransform(
-			GripSocketName,
-			RTS_Component
-		);
+		//FTransform GripSocketTransform = LeftHandWeaponComponent->GetSocketTransform(
+		//	GripSocketName,
+		//	RTS_Component
+		//);
 
-		LeftHandWeaponComponent->AttachToComponent(
-			CharactorMesh,
-			FAttachmentTransformRules::SnapToTargetIncludingScale,
-			WeaponSocketName
-		);
+		//LeftHandWeaponComponent->AttachToComponent(
+		//	CharactorMesh,
+		//	FAttachmentTransformRules::SnapToTargetIncludingScale,
+		//	WeaponSocketName
+		//);
 
-		LeftHandWeaponComponent->SetRelativeTransform(GripSocketTransform.Inverse());
+		LeftHandWeaponComponent->SetRelativeLocation(Weapon->GetLeftLocationOffset());
+		LeftHandWeaponComponent->SetRelativeRotation(Weapon->GetLeftRotationOffset());
 	}
 	else
 	{
