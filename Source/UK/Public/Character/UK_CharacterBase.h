@@ -8,6 +8,7 @@
 #include "ActorComponent/StatusComponent.h"
 #include "GameplayTagContainer.h"
 #include "UK_CharacterBase.generated.h"
+
 #define ECC_LockOn ECollisionChannel::ECC_GameTraceChannel2
 
 
