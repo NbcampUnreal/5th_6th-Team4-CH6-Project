@@ -36,6 +36,9 @@ void UUK_InvCategoryBase::CreateSlots() //ㅇ
 		SlotWidget->SlotIndex = i;
 		SlotWidget->ItemDataTable = ItemDataTable;
 
+		SlotWidget->OnSlotHovered.AddDynamic(this, &UUK_InvCategoryBase::HandleSlotHovered);
+		SlotWidget->OnSlotUnhovered.AddDynamic(this, &UUK_InvCategoryBase::HandleSlotUnhovered);
+
 		SlotGrid->AddChildToUniformGrid(
 			SlotWidget,
 			i / SlotColumns,
@@ -44,6 +47,7 @@ void UUK_InvCategoryBase::CreateSlots() //ㅇ
 
 		SlotWidgets.Add(SlotWidget);
 	}
+
 }
 
 void UUK_InvCategoryBase::SetInvArraySlots(const TArray<FInventorySlot>& InAllSlots)
@@ -86,6 +90,16 @@ void UUK_InvCategoryBase::UpdateSlots()
 		}
 		SlotWidgets[i]->UpdateSlot();
 	}
+}
+
+void UUK_InvCategoryBase::HandleSlotHovered(const FInventorySlot& SlotData)
+{
+	OnCategorySlotHovered.Broadcast(SlotData);
+}
+
+void UUK_InvCategoryBase::HandleSlotUnhovered()
+{
+	OnCategorySlotUnhovered.Broadcast();
 }
 
 void UUK_InvCategoryBase::AddSlot(int32 AddCount) //ㅇ

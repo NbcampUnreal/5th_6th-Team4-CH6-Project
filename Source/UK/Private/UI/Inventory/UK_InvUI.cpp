@@ -36,6 +36,18 @@ void UUK_InvUI::NativeConstruct()
 	{
 		BindInventoryComponent(CB->GetInventoryComponent());
 	}
+
+	auto BindCategory = [this](UUK_InvCategoryBase* Cat)
+		{
+			if (!Cat) return;
+			Cat->OnCategorySlotHovered.AddDynamic(this, &UUK_InvUI::HandleCategoryHovered);
+			Cat->OnCategorySlotUnhovered.AddDynamic(this, &UUK_InvUI::HandleCategoryUnhovered);
+		};
+
+	BindCategory(CategoryALL);
+	BindCategory(CategoryWeapon);
+	BindCategory(CategoryFood);
+	BindCategory(CategoryMaterial);
 }
 
 void UUK_InvUI::BindInventoryComponent(UUK_InventoryComponent* InInvComp)
@@ -66,6 +78,16 @@ void UUK_InvUI::OnInvCompUpdated()
 	if (CategoryWeapon) CategoryWeapon->SetInvArraySlots(AllSlots);
 	if (CategoryFood) CategoryFood->SetInvArraySlots(AllSlots);
 	if (CategoryMaterial) CategoryMaterial->SetInvArraySlots(AllSlots);
+}
+
+void UUK_InvUI::HandleCategoryHovered(const FInventorySlot& SlotData)
+{
+	OnInvSlotPreview.Broadcast(SlotData);
+}
+
+void UUK_InvUI::HandleCategoryUnhovered()
+{
+	OnInvSlotPreviewCleared.Broadcast();
 }
 
 void UUK_InvUI::CategoryTap(UUK_CategoryTap* CategoryTap)

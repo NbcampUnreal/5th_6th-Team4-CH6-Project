@@ -16,7 +16,9 @@ enum class EInvCategory : uint8
 	Food,
 	Material
 };
-
+//info
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCategorySlotHovered, const FInventorySlot&, SlotData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCategorySlotUnhovered);
 
 UCLASS()
 class UK_API UUK_InvCategoryBase : public UUserWidget
@@ -41,6 +43,18 @@ public:
 	void CreateSlots();
 	//슬롯 정보 업데이트
 	void UpdateSlots();
+	//info
+	UPROPERTY(BlueprintAssignable, Category = "InvHover")
+	FOnCategorySlotHovered OnCategorySlotHovered;
+
+	UPROPERTY(BlueprintAssignable, Category = "InvHover")
+	FOnCategorySlotUnhovered OnCategorySlotUnhovered;
+
+	UFUNCTION()
+	void HandleSlotHovered(const FInventorySlot& SlotData);
+
+	UFUNCTION()
+	void HandleSlotUnhovered();
 
 	//바인드
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
