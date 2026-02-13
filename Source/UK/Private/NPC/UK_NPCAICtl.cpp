@@ -1,6 +1,7 @@
 ﻿
 #include "NPC/UK_NPCAICtl.h"
 #include "NPC/UK_NPCAIBase.h"
+#include "NPC/UK_PatrolNPC.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Character/UK_CharacterBase.h"
@@ -65,9 +66,8 @@ void AUK_NPCAICtl::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 	UBlackboardComponent* BB = GetBlackboardComponent();
 	if ( !BB ) return;
 
-	AUK_CharacterBase* Player =
-		Cast<AUK_CharacterBase>(Actor);
-
+	AUK_CharacterBase* Player =Cast<AUK_CharacterBase>(Actor);
+	AUK_PatrolNPC* NPC = Cast<AUK_PatrolNPC>(GetPawn());
 	if ( !Player ) return;
 
 	// 감지됨
@@ -75,6 +75,7 @@ void AUK_NPCAICtl::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 	{
 		BB->SetValueAsObject("Player", Player);
 		BB->SetValueAsBool("IsAvoiding", true);
+		NPC->bIsWaiting = false;
 	}
 	// 놓침
 	else
