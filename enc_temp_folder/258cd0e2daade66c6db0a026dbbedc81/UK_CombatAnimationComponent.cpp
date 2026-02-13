@@ -158,11 +158,11 @@ void UUK_CombatAnimationComponent::ServerRPCDropAttack_Implementation()
 
 void UUK_CombatAnimationComponent::ServerRPCDropOnFloorAttack_Implementation()
 {
+	MulticastPlayCombo(EComboAttackType::DropAttack, 2);
 	if ( OwnerCharactor->OnFloor.IsBound() )
 	{
 		OwnerCharactor->OnFloor.Unbind();
 	}
-	MulticastPlayCombo(EComboAttackType::DropAttack, 2);
 }
 
 void UUK_CombatAnimationComponent::MulticastPlayCombo_Implementation(EComboAttackType AttackType, uint8 ComboCount)
@@ -308,14 +308,13 @@ void UUK_CombatAnimationComponent::CheckDropAttackProcessable()
 		return;
 
 	ensure(IsValid(OwnerCharactor));
+	TObjectPtr<UAnimMontage> ComboAttackMontage = AttackAnim->ComboMantage;
+	EndComboAttack(ComboAttackMontage, false);
 	//// 입력 감지에 안된다면 콤보 재생종료
 	if ( InputType == EAttackInput::None )
 	{
-		TObjectPtr<UAnimMontage> ComboAttackMontage = AttackAnim->ComboMantage;
-		EndComboAttack(ComboAttackMontage, false);
 		return;
 	}
-	ResetCharacterGravityScale();
 
 	// 애니메이션 재생
 	ServerRPCDropAttack();
