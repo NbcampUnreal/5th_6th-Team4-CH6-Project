@@ -6,7 +6,7 @@
 #include "Components/Button.h"
 #include "Components/EditableText.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "Character/UK_PlayerController.h"
+#include "Character/UK_PlayerController_Title.h"
 
 UUK_Out_MainMenu::UUK_Out_MainMenu(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -15,18 +15,25 @@ UUK_Out_MainMenu::UUK_Out_MainMenu(const FObjectInitializer& ObjectInitializer)
 
 void UUK_Out_MainMenu::NativeConstruct()
 {
-	StartButton.Get()->OnClicked.AddDynamic(this, &ThisClass::OnPlayButtonClicked);
-	ExitButton.Get()->OnClicked.AddDynamic(this, &ThisClass::OnExitButtonClicked);
+	Super::NativeConstruct();
+
+	if (StartButton)
+	{
+		StartButton->OnClicked.AddDynamic(this, &ThisClass::OnPlayButtonClicked);
+	}
+	if (ExitButton)
+	{
+		ExitButton->OnClicked.AddDynamic(this, &ThisClass::OnExitButtonClicked);
+	}
 }
 
 void UUK_Out_MainMenu::OnPlayButtonClicked()
 {
-	AUK_PlayerController* PlayerController = GetOwningPlayer<AUK_PlayerController>();
+	AUK_PlayerController_Title* PlayerController = GetOwningPlayer<AUK_PlayerController_Title>();
 	if ( IsValid(PlayerController) == true )
 	{
 		FText ServerIP = ServerIPEditableText->GetText();
-		// 플레이어 시작 위치
-		//PlayerController->RequestStartGame();
+		PlayerController->StartGame(ServerIP.ToString());
 	}
 }
 

@@ -19,6 +19,7 @@ public:
 	UUK_Out_MainMenu(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
+
 	virtual void NativeConstruct() override;
 
 	UFUNCTION()

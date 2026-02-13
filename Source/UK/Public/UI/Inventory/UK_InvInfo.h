@@ -18,7 +18,7 @@ class UK_API UUK_InvInfo : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	//DT는 InvMain에서 넣어줄 예정 (또는 BP에 고정해도 됨)
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "InvInfo")
 	UDataTable* ItemDataTable = nullptr;
 
@@ -28,9 +28,6 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidgetOptional))
 	UTextBlock* ItemDescriptionText = nullptr;
-
-	UPROPERTY(BlueprintReadWrite, meta = (BindWidgetOptional))
-	UImage* ItemImage = nullptr; 
 
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidgetOptional))
 	UImage* ItemTypeImage = nullptr;
@@ -55,7 +52,6 @@ public:
 	void ClearInfo();
 
 	virtual void NativeConstruct() override;
-
 	void ApplyItemID(FName ItemID);
 	void ApplyItemTag(const struct FGameplayTag& Tag);
 	void SetTooltipPositionClamped(const FVector2D& MousePos, const FVector2D& Offset);

@@ -16,5 +16,8 @@ class UK_API AUKGameModeBase_Title : public AGameModeBase
 
 public:
 	AUKGameModeBase_Title();
+
+	virtual void PostLogin(APlayerController* NewPlayer) override;
+	virtual void GetSeamlessTravelActorList(bool bToTransition, TArray<AActor*>& ActorList) override;
 	
 };
