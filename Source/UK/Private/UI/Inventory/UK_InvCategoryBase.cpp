@@ -3,6 +3,10 @@
 
 //Slot
 #include "UI/Inventory/UK_InvSlot.h"
+//GamePlayTags
+#include "Tags/UK_GameplayTags.h"
+//ItemData
+#include "DataAsset/Data/UK_ItemData.h"
 
 void UUK_InvCategoryBase::NativeConstruct()
 {
@@ -32,6 +36,9 @@ void UUK_InvCategoryBase::CreateSlots() //ㅇ
 		SlotWidget->SlotIndex = i;
 		SlotWidget->ItemDataTable = ItemDataTable;
 
+		SlotWidget->OnSlotHovered.AddDynamic(this, &UUK_InvCategoryBase::HandleSlotHovered);
+		SlotWidget->OnSlotUnhovered.AddDynamic(this, &UUK_InvCategoryBase::HandleSlotUnhovered);
+
 		SlotGrid->AddChildToUniformGrid(
 			SlotWidget,
 			i / SlotColumns,
@@ -40,6 +47,7 @@ void UUK_InvCategoryBase::CreateSlots() //ㅇ
 
 		SlotWidgets.Add(SlotWidget);
 	}
+
 }
 
 void UUK_InvCategoryBase::SetInvArraySlots(const TArray<FInventorySlot>& InAllSlots)
@@ -53,13 +61,13 @@ void UUK_InvCategoryBase::SetInvArraySlots(const TArray<FInventorySlot>& InAllSl
 		if (InvSlot.isEmpty())
 			continue;
 		//카테고리에 맞지 않는 슬롯은 건너뜀
-		if (!IsItemAllowed(InvSlot))
+		if (!IsItemAllowed(InvSlot)) 
 			continue;
 		//필터링된 슬롯에 추가
 		FilteredSlots.Add(InvSlot);
 
 		// UI에 표시 가능한 슬롯 수까지만
-		if (FilteredSlots.Num() >= CurrentSlot)
+		if (FilteredSlots.Num() >= CurrentSlot) 
 			break;
 	}
 
@@ -84,6 +92,16 @@ void UUK_InvCategoryBase::UpdateSlots()
 	}
 }
 
+void UUK_InvCategoryBase::HandleSlotHovered(const FInventorySlot& SlotData)
+{
+	OnCategorySlotHovered.Broadcast(SlotData);
+}
+
+void UUK_InvCategoryBase::HandleSlotUnhovered()
+{
+	OnCategorySlotUnhovered.Broadcast();
+}
+
 void UUK_InvCategoryBase::AddSlot(int32 AddCount) //ㅇ
 {
 	if ( AddCount <= 0 )
@@ -101,6 +119,37 @@ void UUK_InvCategoryBase::AddSlot(int32 AddCount) //ㅇ
 
 bool UUK_InvCategoryBase::IsItemAllowed(const FInventorySlot& InSlot) const
 {
-	//현재 모든 아이템들 들어오게 허용
-	return true;
+	if (CategoryType == EInvCategory::All)
+	{
+		return true;
+	}
+
+	if (!ItemDataTable)
+	{
+		return false;
+	}
+
+	const FUK_ItemData* ItemData = ItemDataTable->FindRow<FUK_ItemData>(InSlot.ItemID, TEXT("IsItemAllowed"));
+
+	if (!ItemData)
+	{
+		return false;
+	}
+
+	const FGameplayTag& ItemTag = ItemData->ItemTag;
+
+	switch (CategoryType)
+	{
+	case EInvCategory::Weapon:
+		return ItemTag.MatchesTag(UK_GameplayTags::Weapon::WeaponRoot);
+
+	case EInvCategory::Food:
+		return ItemTag.MatchesTag(UK_GameplayTags::Food::FoodRoot);
+
+	case EInvCategory::Material:
+		return ItemTag.MatchesTag(UK_GameplayTags::Material::MaterialRoot);
+
+	default:
+		return true;
+	}
 }

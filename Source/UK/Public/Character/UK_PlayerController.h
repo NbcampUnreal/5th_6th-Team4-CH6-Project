@@ -20,6 +20,7 @@ class UK_API AUK_PlayerController : public APlayerController
 	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;
 
+	virtual void PostSeamlessTravel() override;
 	virtual void OnPossess(APawn* pawn) override;
 #pragma endregion
 

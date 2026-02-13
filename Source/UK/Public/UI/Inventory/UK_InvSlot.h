@@ -9,6 +9,9 @@ class UImage;
 class USizeBox;
 class UTextBlock;
 class UDataTable;
+//info
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInvSlotHovered, const FInventorySlot&, SlotData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInvSlotUnhovered);
 
 UCLASS()
 class UK_API UUK_InvSlot : public UUserWidget
@@ -26,6 +29,13 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	UTextBlock* ItemQuantityText;
+
+	//info
+	UPROPERTY(BlueprintAssignable, Category = "InvHover")
+	FOnInvSlotHovered OnSlotHovered;
+
+	UPROPERTY(BlueprintAssignable, Category = "InvHover")
+	FOnInvSlotUnhovered OnSlotUnhovered;
 	
 	//인덱스 변수
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ExposeOnSpawn = "true"))
@@ -43,5 +53,8 @@ public:
 protected:
 	virtual void NativePreConstruct() override;
 
+	//info
+	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
 	
 };

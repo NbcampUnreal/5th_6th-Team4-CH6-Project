@@ -30,11 +30,24 @@ void UUK_InvUI::NativeConstruct()
 	{
 		TapMaterial->OnCategoryTap.AddDynamic(this, &UUK_InvUI::CategoryTap);
 	}
+	//소유한 플레이어 폰의 인벤토리 컴포넌트 바인드
 	AUK_CharacterBase* CB = Cast<AUK_CharacterBase>(GetOwningPlayerPawn());
-	if ( IsValid(CB) )
+	if (IsValid(CB))
 	{
 		BindInventoryComponent(CB->GetInventoryComponent());
 	}
+
+	auto BindCategory = [this](UUK_InvCategoryBase* Cat)
+		{
+			if (!Cat) return;
+			Cat->OnCategorySlotHovered.AddDynamic(this, &UUK_InvUI::HandleCategoryHovered);
+			Cat->OnCategorySlotUnhovered.AddDynamic(this, &UUK_InvUI::HandleCategoryUnhovered);
+		};
+
+	BindCategory(CategoryALL);
+	BindCategory(CategoryWeapon);
+	BindCategory(CategoryFood);
+	BindCategory(CategoryMaterial);
 }
 
 void UUK_InvUI::BindInventoryComponent(UUK_InventoryComponent* InInvComp)
@@ -55,25 +68,26 @@ void UUK_InvUI::BindInventoryComponent(UUK_InventoryComponent* InInvComp)
 
 void UUK_InvUI::OnInvCompUpdated()
 {
-	UE_LOG(LogTemp, Display, TEXT("invUpdate Get!"));
 
-	if ( !InvComp )
-	{
-		UE_LOG(LogTemp, Warning, TEXT("invUpdate Out!"));
-		return;
-	}
+	if ( !InvComp ) return;
 	//인벤토리 컴포넌트에서 모든 슬롯 배열 가져오기
 	const TArray<FInventorySlot>& AllSlots = InvComp->GetItemSlot();
 
 	//CategoryBase에 모든 슬롯 배열 전달
-	if ( CategoryALL )
-	{
-		CategoryALL->SetInvArraySlots(AllSlots);
-		UE_LOG(LogTemp, Log, TEXT("inv CategoryALL"));
-	}
-	if ( CategoryWeapon ) CategoryWeapon->SetInvArraySlots(AllSlots);
-	if ( CategoryFood ) CategoryFood->SetInvArraySlots(AllSlots);
-	if ( CategoryMaterial ) CategoryMaterial->SetInvArraySlots(AllSlots);
+	if (CategoryALL) CategoryALL->SetInvArraySlots(AllSlots);
+	if (CategoryWeapon) CategoryWeapon->SetInvArraySlots(AllSlots);
+	if (CategoryFood) CategoryFood->SetInvArraySlots(AllSlots);
+	if (CategoryMaterial) CategoryMaterial->SetInvArraySlots(AllSlots);
+}
+
+void UUK_InvUI::HandleCategoryHovered(const FInventorySlot& SlotData)
+{
+	OnInvSlotPreview.Broadcast(SlotData);
+}
+
+void UUK_InvUI::HandleCategoryUnhovered()
+{
+	OnInvSlotPreviewCleared.Broadcast();
 }
 
 void UUK_InvUI::CategoryTap(UUK_CategoryTap* CategoryTap)

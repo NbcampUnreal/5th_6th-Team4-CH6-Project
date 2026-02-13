@@ -8,6 +8,17 @@
 class UUniformGridPanel;
 class UUK_InvSlot;
 
+UENUM(BlueprintType)
+enum class EInvCategory : uint8
+{
+	All,
+	Weapon,
+	Food,
+	Material
+};
+//info
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCategorySlotHovered, const FInventorySlot&, SlotData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCategorySlotUnhovered);
 
 UCLASS()
 class UK_API UUK_InvCategoryBase : public UUserWidget
@@ -15,18 +26,35 @@ class UK_API UUK_InvCategoryBase : public UUserWidget
 	GENERATED_BODY()
 	
 public:
-
+	//카테고리 타입
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inv")
+	EInvCategory CategoryType = EInvCategory::All;
+	//인벤토리 슬롯 배열 생성
 	UFUNCTION(BlueprintCallable, Category = "Inv")
 	void SetInvArraySlots(const TArray<FInventorySlot>& InAllSlots);
-
+	//슬롯 갯수 추가
 	UFUNCTION(BlueprintCallable, Category = "Inv")
 	void AddSlot(int32 AddCount);
 
 	virtual void NativeConstruct() override;
+	//슬롯이 허용되는지 여부
 	virtual bool IsItemAllowed(const FInventorySlot& InSlot) const;
-
+	//슬롯 생성
 	void CreateSlots();
+	//슬롯 정보 업데이트
 	void UpdateSlots();
+	//info
+	UPROPERTY(BlueprintAssignable, Category = "InvHover")
+	FOnCategorySlotHovered OnCategorySlotHovered;
+
+	UPROPERTY(BlueprintAssignable, Category = "InvHover")
+	FOnCategorySlotUnhovered OnCategorySlotUnhovered;
+
+	UFUNCTION()
+	void HandleSlotHovered(const FInventorySlot& SlotData);
+
+	UFUNCTION()
+	void HandleSlotUnhovered();
 
 	//바인드
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
