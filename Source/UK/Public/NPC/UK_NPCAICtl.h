@@ -29,7 +29,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UBehaviorTreeComponent* BTComp;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	UBlackboardComponent* BlackboardComp;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)

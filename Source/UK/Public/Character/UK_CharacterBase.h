@@ -8,6 +8,7 @@
 #include "ActorComponent/StatusComponent.h"
 #include "GameplayTagContainer.h"
 #include "UK_CharacterBase.generated.h"
+#define ECC_LockOn ECollisionChannel::ECC_GameTraceChannel2
 
 
 
@@ -22,6 +23,7 @@ class UUK_WeaponData;
 class UUK_CombatAnimationComponent;
 class UUK_InventoryComponent;
 class UAIPerceptionStimuliSourceComponent;
+class AAIMonsterBase;
 struct FInputActionValue;
 #pragma endregion
 
@@ -58,8 +60,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UCameraComponent> Camera;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<USkeletalMeshComponent> MannySkeletalMesh;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
+	TObjectPtr<USkeletalMeshComponent> CharactorMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
 	TObjectPtr<USkeletalMeshComponent> RightHandWeaponComponent;
@@ -104,8 +106,26 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void ZoomOut();
 
-protected:
 
+public:
+	UFUNCTION(BlueprintCallable)
+	void LockON();
+
+	UFUNCTION(BlueprintCallable)
+	void LockONTick();
+
+	void AddTarget(const TObjectPtr<AAIMonsterBase> Monster);
+
+	bool Locking()const { return bIsLock; }
+protected:
+	bool bIsLock;
+
+	UPROPERTY()
+	TArray<TObjectPtr<AAIMonsterBase>> LockOnList;
+	int32 index;
+
+	FTimerHandle LockOnTimer;
+	float MaxLockDistance = 1000.f;
 #pragma endregion
 
 #pragma region Weapon

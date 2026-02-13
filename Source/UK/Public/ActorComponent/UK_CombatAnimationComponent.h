@@ -7,7 +7,7 @@
 #include "Engine/DamageEvents.h"
 #include "UK_CombatAnimationComponent.generated.h"
 
-#define ECC_ATTACK ECollisionChannel::ECC_GameTraceChannel2
+#define ECC_ATTACK ECollisionChannel::ECC_GameTraceChannel1
 
 #pragma region Forward Declaration
 class AUK_CharacterBase;
