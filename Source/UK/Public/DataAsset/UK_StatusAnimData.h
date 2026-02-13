@@ -15,7 +15,8 @@ enum class EComboAttackType : uint8
 	None,
 	AttackOnAir,
 	LightAttackOnGround,
-	HeavyAttackOnGround
+	HeavyAttackOnGround,
+	DropAttack
 };
 UCLASS()
 class UK_API UUK_StatusAnimData : public UDataAsset

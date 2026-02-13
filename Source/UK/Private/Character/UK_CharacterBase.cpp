@@ -115,6 +115,16 @@ void AUK_CharacterBase::PossessedBy(AController* NewController)
 	GiveStartupAbilities();
 }
 
+void AUK_CharacterBase::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+	if ( OnFloor.IsBound() == true)
+	{
+		OnFloor.Execute();
+
+	}
+}
+
 //// Called every frame
 //void AUK_CharacterBase::Tick(float DeltaTime)
 //{
@@ -353,19 +363,6 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 	if ( IsValid(Weapon->GetRightHandWeapon()) )
 	{
 		RightHandWeaponComponent->SetSkeletalMesh(Weapon->GetRightHandWeapon()); // todo : 이후에 서버에서 변경하도록 수정해야함 임시로 클라에서만 변경하고 있음
-		//const FName WeaponSocketName = TEXT("Weapon_rSocket");
-		//const FName GripSocketName = TEXT("GripSocket");
-
-		//FTransform GripSocketTransform = RightHandWeaponComponent->GetSocketTransform(
-		//	GripSocketName,
-		//	RTS_Component
-		//);
-
-		//RightHandWeaponComponent->AttachToComponent(
-		//	CharactorMesh,
-		//	FAttachmentTransformRules::SnapToTargetIncludingScale,
-		//	WeaponSocketName
-		//);
 
 		RightHandWeaponComponent->SetRelativeLocation(Weapon->GetRightLocationOffset());
 		RightHandWeaponComponent->SetRelativeRotation(Weapon->GetRightRotationOffset());
@@ -377,19 +374,6 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 	if ( IsValid(Weapon->GetLeftHandWeapon()) )
 	{
 		LeftHandWeaponComponent->SetSkeletalMesh(Weapon->GetLeftHandWeapon()); // todo : 이후에 서버에서 변경하도록 수정해야함 임시로 클라에서만 변경하고 있음
-		//const FName WeaponSocketName = TEXT("Weapon_rSocket");
-		//const FName GripSocketName = TEXT("GripSocket");
-
-		//FTransform GripSocketTransform = LeftHandWeaponComponent->GetSocketTransform(
-		//	GripSocketName,
-		//	RTS_Component
-		//);
-
-		//LeftHandWeaponComponent->AttachToComponent(
-		//	CharactorMesh,
-		//	FAttachmentTransformRules::SnapToTargetIncludingScale,
-		//	WeaponSocketName
-		//);
 
 		LeftHandWeaponComponent->SetRelativeLocation(Weapon->GetLeftLocationOffset());
 		LeftHandWeaponComponent->SetRelativeRotation(Weapon->GetLeftRotationOffset());
