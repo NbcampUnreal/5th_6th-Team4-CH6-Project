@@ -12,6 +12,7 @@ void UUK_InvMain::NativeConstruct()
 
 	if (InvInfo)
 	{
+		InvInfo->ItemDataTable = ItemDataTable;
 		InvInfo->SetVisibility(ESlateVisibility::Hidden);
 	}
 
@@ -40,7 +41,6 @@ void UUK_InvMain::NativeConstruct()
 void UUK_InvMain::TapClicked(UUK_InvTapbutton* ClickTap)
 {
 	if(!InvSwitcher) return;
-	//탭 버튼에 따른 위젯 스위처 인덱스로 변경, 위젯에서 인덱스에 맞게 표시해야함
 	if(ClickTap == TapInventory)
 	{
 		InvSwitcher->SetActiveWidgetIndex(0);
