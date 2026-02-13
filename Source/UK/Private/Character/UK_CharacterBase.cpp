@@ -4,6 +4,8 @@
 #include "Character/UK_PlayerController.h"
 #include "Character/UK_PlayerState.h"
 #include "Character/Weapon/UK_WeaponBase.h"
+#include "AIMonster/AIMonsterBase.h"
+#include "AIMonster/Component/AI_MonsterStatComponent.h"
 #include "Tags/UK_GameplayTags.h"
 #include "Animation/UK_AnimInstance.h"
 #include "ActorComponent/StatusComponent.h"
@@ -19,6 +21,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "AbilitySystemComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 
 #pragma region Defualt
@@ -27,7 +30,8 @@
 
 // Sets default values
 AUK_CharacterBase::AUK_CharacterBase() :
-	NowWeapon(UK_GameplayTags::Weapon::WeaponRoot)
+	NowWeapon(UK_GameplayTags::Weapon::WeaponRoot),
+	bIsLock(false)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
@@ -60,14 +64,11 @@ AUK_CharacterBase::AUK_CharacterBase() :
 
 #pragma endregion
 
-	MannySkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MannySkeletalMesh"));
-	MannySkeletalMesh->SetupAttachment(GetMesh());
-
 	RightHandWeaponComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RightHandWeaponComponent"));
-	RightHandWeaponComponent->SetupAttachment(MannySkeletalMesh, TEXT("Weapon_rSocket"));
+	RightHandWeaponComponent->SetupAttachment(GetMesh(), TEXT("Weapon_rSocket"));
 
 	LeftHandWeaponComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftHandWeaponComponent"));
-	LeftHandWeaponComponent->SetupAttachment(MannySkeletalMesh, TEXT("Weapon_lSocket"));
+	LeftHandWeaponComponent->SetupAttachment(GetMesh(), TEXT("Weapon_lSocket"));
 
 
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
@@ -204,7 +205,136 @@ void AUK_CharacterBase::ZoomOut()
 		12.f
 	);
 }
-// 어느 타이밍에 호출할지 고민 필요
+
+void AUK_CharacterBase::LockON()
+{
+	if ( bIsLock == false )
+	{
+		AUK_PlayerController* UKPC = Cast<AUK_PlayerController>(GetController());
+		if ( IsValid(UKPC) == false )
+			return;
+		FVector Start;
+		FRotator CameraRot;
+		const float CapsuleRadius = 50.f;
+		// 카메라부터 카메라가 보는 방향으로 트레이스 실시
+		UKPC->GetPlayerViewPoint(Start, CameraRot);
+		FVector ForwardVector = CameraRot.Vector();/*카메라의 방향성*/
+
+		float TraceDistance = 1000.f;
+		FVector End = Start + ( ForwardVector * TraceDistance );
+
+		FCollisionQueryParams Params;
+		Params.AddIgnoredActor(this);
+		FCollisionShape CollisionShape = FCollisionShape::MakeSphere(CapsuleRadius);
+
+		bool bHit = GetWorld()->SweepMultiByChannel(
+			LockOnResult,
+			Start,
+			End,
+			FQuat::Identity,
+			ECC_LockOn,/*추후에 카메라 전용 트레이스 채널로 변경 요망*/
+			CollisionShape,
+			Params
+		);
+		FColor DrawColor = bHit ? FColor::Green : FColor::Red;
+
+		FQuat CapsuleRot = FRotationMatrix::MakeFromZ(Start - End).ToQuat();
+		DrawDebugCapsule(
+			GetWorld(),
+			( Start + End ) / 2,
+			( End - Start ).Size(),
+			CapsuleRadius,
+			CapsuleRot,
+			DrawColor,
+			false,
+			1.f
+		);
+		if ( bHit )
+		{
+			bIsLock = true;
+			GetWorld()->GetTimerManager().SetTimer(
+				LockOnTimer,
+				this,
+				&AUK_CharacterBase::LockONTick,
+				0.01f,
+				true
+			);
+
+		}
+	}
+	else
+	{
+		bIsLock = false;
+		GetWorld()->GetTimerManager().ClearTimer(LockOnTimer);
+		LockOnResult.Reset();
+		LockOnTimer.Invalidate();
+	}
+}
+void AUK_CharacterBase::LockONTick()
+{
+	if ( LockOnResult.IsEmpty() == false )
+	{
+		int32 size = LockOnResult.Num();
+		if ( size <= index )
+		{
+			index = 0;
+		}
+		AActor* Actor = LockOnResult[ index ].GetActor();
+
+		if ( IsValid(Actor) == true )
+		{
+			AAIMonsterBase* Monster = Cast<AAIMonsterBase>(Actor);
+			if ( IsValid(Monster) == false )
+			{
+				LockOnResult.RemoveAtSwap(index);
+				return;
+			}
+
+			if ( Monster->IsDead() == false )
+			{
+				float Distance = FVector::Dist(GetActorLocation(), Monster->GetActorLocation());
+				if ( Distance > MaxLockDistance )
+				{
+					bIsLock = false;
+					GetWorld()->GetTimerManager().ClearTimer(LockOnTimer);
+					LockOnResult.Reset();
+					LockOnTimer.Invalidate();
+					return;
+				}
+				const float DeltaTime = GetWorld()->GetDeltaSeconds();
+				FVector Start = GetActorLocation();
+				FVector End = Monster->GetActorLocation();
+				FRotator Target = UKismetMathLibrary::FindLookAtRotation(Start, End);
+				FRotator NowRot = GetController()->GetControlRotation();
+				FRotator NewRot = FMath::RInterpTo(
+					NowRot,
+					Target,
+					DeltaTime,
+					12.f
+				);
+
+				GetController()->SetControlRotation(NewRot);
+
+			}
+			else if ( Monster->IsDead() == true )
+			{
+				LockOnResult.RemoveAtSwap(index);
+			}
+		}
+		else
+		{
+			LockOnResult.RemoveAtSwap(index);
+		}
+	}
+	else
+	{
+		bIsLock = false;
+		GetWorld()->GetTimerManager().ClearTimer(LockOnTimer);
+		LockOnResult.Reset();
+		LockOnTimer.Invalidate();
+		return;
+	}
+}
 #pragma endregion
 
 #pragma region Weapon

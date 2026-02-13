@@ -8,6 +8,7 @@
 #include "ActorComponent/StatusComponent.h"
 #include "GameplayTagContainer.h"
 #include "UK_CharacterBase.generated.h"
+#define ECC_LockOn ECollisionChannel::ECC_GameTraceChannel2
 
 
 
@@ -58,9 +59,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UCameraComponent> Camera;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<USkeletalMeshComponent> MannySkeletalMesh;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
 	TObjectPtr<USkeletalMeshComponent> RightHandWeaponComponent;
 
@@ -104,8 +102,22 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void ZoomOut();
 
-protected:
+	UFUNCTION(BlueprintCallable)
+	void LockON();
 
+	UFUNCTION(BlueprintCallable)
+	void LockONTick();
+
+protected:
+	bool bIsLock;
+
+	UPROPERTY()
+	TArray<FHitResult> LockOnResult;
+
+	int32 index;
+
+	FTimerHandle LockOnTimer;
+	float MaxLockDistance = 1000.f;
 #pragma endregion
 
 #pragma region Weapon

@@ -9,6 +9,10 @@ class UWidgetSwitcher;
 class UUK_InventoryComponent;
 class UUK_InvCategoryBase;
 
+//info
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInvSlotPreview, const FInventorySlot&, SlotData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInvSlotPreviewCleared);
+
 UCLASS()
 class UK_API UUK_InvUI : public UUserWidget
 {
@@ -22,6 +26,19 @@ public:
 
 	UFUNCTION()
 	void OnInvCompUpdated();
+
+	//info
+	UPROPERTY(BlueprintAssignable, Category = "InvHover")
+	FOnInvSlotPreview OnInvSlotPreview;
+
+	UPROPERTY(BlueprintAssignable, Category = "InvHover")
+	FOnInvSlotPreviewCleared OnInvSlotPreviewCleared;
+
+	UFUNCTION()
+	void HandleCategoryHovered(const FInventorySlot& SlotData);
+
+	UFUNCTION()
+	void HandleCategoryUnhovered();
 
 	//스위쳐 바인드
 	UPROPERTY(meta = (BindWidget))
