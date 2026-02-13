@@ -362,7 +362,7 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 		);
 
 		RightHandWeaponComponent->AttachToComponent(
-			GetMesh(),
+			CharactorMesh,
 			FAttachmentTransformRules::SnapToTargetIncludingScale,
 			WeaponSocketName
 		);
@@ -385,8 +385,8 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 		);
 
 		LeftHandWeaponComponent->AttachToComponent(
-			GetMesh(),
-			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+			CharactorMesh,
+			FAttachmentTransformRules::SnapToTargetIncludingScale,
 			WeaponSocketName
 		);
 
