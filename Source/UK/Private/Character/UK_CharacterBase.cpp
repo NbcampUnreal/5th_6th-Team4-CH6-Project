@@ -64,11 +64,14 @@ AUK_CharacterBase::AUK_CharacterBase() :
 
 #pragma endregion
 
+	CharactorMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("CharactorMesh"));
+	CharactorMesh->SetupAttachment(GetMesh());
+
 	RightHandWeaponComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RightHandWeaponComponent"));
-	RightHandWeaponComponent->SetupAttachment(GetMesh(), TEXT("Weapon_rSocket"));
+	RightHandWeaponComponent->SetupAttachment(CharactorMesh, TEXT("Weapon_rSocket"));
 
 	LeftHandWeaponComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftHandWeaponComponent"));
-	LeftHandWeaponComponent->SetupAttachment(GetMesh(), TEXT("Weapon_lSocket"));
+	LeftHandWeaponComponent->SetupAttachment(CharactorMesh, TEXT("Weapon_lSocket"));
 
 
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
@@ -360,7 +363,7 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 
 		RightHandWeaponComponent->AttachToComponent(
 			GetMesh(),
-			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+			FAttachmentTransformRules::SnapToTargetIncludingScale,
 			WeaponSocketName
 		);
 
