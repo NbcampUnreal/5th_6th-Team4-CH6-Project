@@ -15,20 +15,22 @@ void UUK_MainHUD::NativeConstruct()
 		UStatusComponent* StatusComp = PlayerPawn->FindComponentByClass<UStatusComponent>();
 		if ( StatusComp )
 		{
-			// 델리게이트 바인딩 
+			// HP, MP, 레벨, 스테미나 바인딩
 			StatusComp->HpStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateHealthBar);
+			StatusComp->MpStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateMpBar);
+			StatusComp->LevelStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateLevel);
+			// StatusComp->StaminaStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateStaminaBar);
 
-			// 리플렉션을 이용해 protected 변수인 Status에 강제 접근
 			FStructProperty* StatusProp = FindFieldChecked<FStructProperty>(UStatusComponent::StaticClass(), TEXT("Status"));
-
 			if ( StatusProp )
 			{
-				// StatusComp 인스턴스 내의 실제 Status 구조체 주소를 가져옴
 				const FStatus* StatusPtr = StatusProp->ContainerPtrToValuePtr<FStatus>(StatusComp);
 				if ( StatusPtr )
 				{
-					// 찾은 초기값으로 UpdateHealthBar를 수동 호출하여 UI를 갱신
 					UpdateHealthBar(StatusPtr->CurrentHp, StatusPtr->MaxHp);
+					UpdateMpBar(StatusPtr->CurrentMp, StatusPtr->MaxMp);
+					UpdateLevel(StatusPtr->Level);
+					// UpdateStaminaBar(StatusPtr->Stamina);
 				}
 			}
 		}
@@ -60,6 +62,44 @@ void UUK_MainHUD::UpdateHealthBar(float CurrentHp, float MaxHp)
 		MaxHealthText->SetText(FText::AsNumber(FMath::FloorToInt(MaxHp)));
 	}
 }
+
+void UUK_MainHUD::UpdateMpBar(float CurrentMp, float MaxMp)
+{
+	if ( MpBar && MaxMp > 0.f )
+	{
+		MpBar->SetPercent(CurrentMp / MaxMp);
+	}
+
+	if ( CurrentMpText )
+	{
+		CurrentMpText->SetText(FText::AsNumber(FMath::FloorToInt(CurrentMp)));
+	}
+
+	if ( MaxMpText )
+	{
+		MaxMpText->SetText(FText::AsNumber(FMath::FloorToInt(MaxMp)));
+	}
+}
+
+void UUK_MainHUD::UpdateLevel(int32 NewLevel)
+{
+	if ( LevelText )
+	{
+		LevelText->SetText(FText::AsNumber(NewLevel));
+	}
+}
+
+/*
+void UUK_MainHUD::UpdateStaminaBar(float CurrentStamina) 
+{
+	float MaxStamina = 10.f; // 추후 수정예정
+
+	if ( StaminaBar && MaxStamina > 0.f )
+	{
+		StaminaBar->SetPercent(CurrentStamina / MaxStamina);
+	}
+}
+*/
 
 void UUK_MainHUD::OnInventoryButtonClicked()
 {

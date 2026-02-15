@@ -22,7 +22,6 @@ protected:
 	UFUNCTION()
 	void UpdateHealthBar(float CurrentHp, float MaxHp);
 
-	// 위젯에서 만든 프로그레스 바나 이미지를 바인딩 
 	UPROPERTY(meta = ( BindWidget ))
 	class UProgressBar* HealthBar;
 
@@ -32,6 +31,35 @@ protected:
 
 	UPROPERTY(meta = ( BindWidget ))
 	UTextBlock* MaxHealthText;     // 최대 체력
+
+	// 마나가 변할 때 실행될 함수
+	UFUNCTION()
+	void UpdateMpBar(float CurrentMp, float MaxMp);
+
+	UPROPERTY(meta = ( BindWidget ))
+	class UProgressBar* MpBar;
+
+	// 마나 수치 텍스트
+	UPROPERTY(meta = ( BindWidget ))
+	UTextBlock* CurrentMpText; // 현재 마나
+
+	UPROPERTY(meta = ( BindWidget ))
+	UTextBlock* MaxMpText; // 최대 마나
+
+	// 레벨이 변할 때 실행될 함수
+	UFUNCTION()
+	void UpdateLevel(int32 NewLevel);
+
+	// 레벨 표시용 텍스트 
+	UPROPERTY(meta = ( BindWidget ))
+	UTextBlock* LevelText;
+
+	// 스테미나 변수가 변할 때 실행될 함수
+	// UFUNCTION()
+	// void UpdateStaminaBar(float CurrentStamina);
+
+	// UPROPERTY(meta = ( BindWidget ))
+	// class UProgressBar* StaminaBar;
 
 	// 인벤토리 버튼
 	UFUNCTION()
