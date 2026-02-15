@@ -5,6 +5,7 @@
 #include "ActorComponent/StatusComponent.h"
 #include "UK_MainHUD.generated.h"
 
+class UTextBlock;
 class UButton;
 class UUK_InvMain;
 
@@ -24,6 +25,13 @@ protected:
 	// 위젯에서 만든 프로그레스 바나 이미지를 바인딩 
 	UPROPERTY(meta = ( BindWidget ))
 	class UProgressBar* HealthBar;
+
+	// 체력 수치를 표시할 텍스트 
+	UPROPERTY(meta = ( BindWidget ))
+	UTextBlock* CurrentHealthText; // 현재 체력
+
+	UPROPERTY(meta = ( BindWidget ))
+	UTextBlock* MaxHealthText;     // 최대 체력
 
 	// 인벤토리 버튼
 	UFUNCTION()
