@@ -27,7 +27,7 @@ class UAIPerceptionStimuliSourceComponent;
 class AAIMonsterBase;
 struct FInputActionValue;
 #pragma endregion
-
+DECLARE_DYNAMIC_DELEGATE(FOnFloorDelagate);
 UCLASS()
 class UK_API AUK_CharacterBase : public ACharacter, public IAbilitySystemInterface
 {
@@ -44,6 +44,8 @@ public:
 
 
 	virtual void PossessedBy(AController* NewController) override;
+
+	virtual void Landed(const FHitResult& Hit) override;
 
 	virtual void OnRep_PlayerState();
 	TObjectPtr<USkeletalMeshComponent> GetRightHandWeapon() { return RightHandWeaponComponent; }
@@ -161,7 +163,6 @@ public:
 	UFUNCTION()
 	void Dead();
 
-	UPROPERTY(BlueprintAssignable)
-	FOnDeadDelegate OnDead;
+	FOnFloorDelagate OnFloor;
 #pragma endregion
 };
