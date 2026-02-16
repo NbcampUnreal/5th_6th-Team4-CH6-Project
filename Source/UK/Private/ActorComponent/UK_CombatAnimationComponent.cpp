@@ -92,6 +92,34 @@ void UUK_CombatAnimationComponent::PlayLightComboAnimation()
 		InputType = EAttackInput::Light;
 	}
 }
+// 진입점
+void UUK_CombatAnimationComponent::PlayHeavyComboAnimation()
+{
+	if ( !IsValid(NowWeapon) || !IsValid(OwnerCharactor) )
+		return;
+
+	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
+
+	ensure(PlayerMovement);
+
+	bool bPlayerIsFalling = PlayerMovement->IsFalling();
+
+	if ( CurrentComboCount == 0 )
+	{
+		if ( bPlayerIsFalling )
+		{
+			// 공중 강 공격은 없음
+		}
+		else
+		{
+			ServerRPCStartComboAttack(EComboAttackType::HeavyAttackOnGround);
+		}
+	}
+	else
+	{
+		InputType = EAttackInput::Heavy;
+	}
+}
 
 #pragma region ServerRPCs
 // 콤보 최초 시작
@@ -99,7 +127,10 @@ void UUK_CombatAnimationComponent::ServerRPCStartComboAttack_Implementation(cons
 {
 	if ( !OwnerCharactor || !NowWeapon )
 		return;
-
+	if ( NowWeapon->FindAnimsDataAssetByType(AttackType) == nullptr )
+	{
+		return;
+	}
 	CurrentComboCount = 1;
 
 	MulticastPlayCombo(AttackType, CurrentComboCount);
@@ -116,16 +147,40 @@ void UUK_CombatAnimationComponent::ServerRPCComboAttack_Implementation(const ECo
 	MulticastPlayCombo(AttackType, CurrentComboCount);
 }
 
+void UUK_CombatAnimationComponent::ServerRPCDropAttack_Implementation()
+{
+	if ( OwnerCharactor->OnFloor.IsBound() == false )
+	{
+		OwnerCharactor->OnFloor.BindDynamic(this, &UUK_CombatAnimationComponent::ServerRPCDropOnFloorAttack);
+	}
+	MulticastPlayCombo(EComboAttackType::DropAttack, 1);
+}
+
+void UUK_CombatAnimationComponent::ServerRPCDropOnFloorAttack_Implementation()
+{
+	if ( OwnerCharactor->OnFloor.IsBound() )
+	{
+		OwnerCharactor->OnFloor.Unbind();
+	}
+	MulticastPlayCombo(EComboAttackType::DropAttack, 2);
+}
+
 void UUK_CombatAnimationComponent::MulticastPlayCombo_Implementation(EComboAttackType AttackType, uint8 ComboCount)
 {
 
 	AttackAnim = NowWeapon->FindAnimsDataAssetByType(AttackType);
-
+	if ( AttackAnim == nullptr )
+	{
+		return;
+	}
 	FName SectionName = *FString::Printf(TEXT("%s%d"), *AttackAnim->MontageSectionName, ComboCount);
 
 	PlayComboAttackAnimation(AttackType, SectionName);
 }
 #pragma endregion
+
+
+
 
 void UUK_CombatAnimationComponent::PlayComboAttackAnimation(const EComboAttackType AttackType, FName SectionName)
 {
@@ -190,6 +245,7 @@ void UUK_CombatAnimationComponent::EndComboAttack(UAnimMontage* TargetMontage, b
 		//ServerResetPlayerComboAttackValue();
 		ResetPlayerComboAttackValue();
 		ResetPlayerCharacterMovement();
+
 	}
 }
 
@@ -242,6 +298,27 @@ void UUK_CombatAnimationComponent::CheckComboProcessable(const EComboAttackType 
 
 	// 애니메이션 재생
 	ServerRPCComboAttack(AttackType, NextComboSectionName);
+
+	InputType = EAttackInput::None;
+}
+
+void UUK_CombatAnimationComponent::CheckDropAttackProcessable()
+{
+	if ( !IsValid(NowWeapon) )
+		return;
+
+	ensure(IsValid(OwnerCharactor));
+	//// 입력 감지에 안된다면 콤보 재생종료
+	if ( InputType == EAttackInput::None )
+	{
+		TObjectPtr<UAnimMontage> ComboAttackMontage = AttackAnim->ComboMantage;
+		EndComboAttack(ComboAttackMontage, false);
+		return;
+	}
+	ResetCharacterGravityScale();
+
+	// 애니메이션 재생
+	ServerRPCDropAttack();
 
 	InputType = EAttackInput::None;
 }
@@ -378,6 +455,7 @@ void UUK_CombatAnimationComponent::RightHitCheckProcess()
 				{
 					if ( TObjectPtr<AAIMonsterBase> Monster = Cast<AAIMonsterBase>(HitActor) )
 					{
+						OwnerCharactor->AddTarget(Monster);
 						Monster->ReceiveDamage(OwnerCharactor->ApplyDamage());
 						UE_LOG(LogTemp, Warning, TEXT("Damage Applied to Monster: %s to Damage : %f"), *Monster->GetName(), OwnerCharactor->ApplyDamage());
 					}
@@ -387,6 +465,7 @@ void UUK_CombatAnimationComponent::RightHitCheckProcess()
 				}
 			}
 		}
+		OwnerCharactor->LockON();
 	}
 }
 
@@ -462,7 +541,6 @@ void UUK_CombatAnimationComponent::LeftHitCheckProcess()
 	}
 }
 
-
 void UUK_CombatAnimationComponent::ServerRPCPlaySoundAndEffect_Implementation(USoundBase* Sound)
 {
 	MulticastPlaySoundAndEffect(Sound);
@@ -487,21 +565,15 @@ void UUK_CombatAnimationComponent::MulticastPlaySoundAndEffect_Implementation(US
 }
 #pragma endregion
 
-#pragma region Weapon
-
-void UUK_CombatAnimationComponent::SetNowWeapon(TObjectPtr<UUK_StatusAnimData> NewWeapon)
+void UUK_CombatAnimationComponent::SetNowWeapon(UUK_StatusAnimData* NewWeapon)
 {
-	ServerRPCChangeWeaponMesh(NewWeapon);
+	ServerRPCSetNowWeapon(NewWeapon);
 }
 
-
-void UUK_CombatAnimationComponent::ServerRPCChangeWeaponMesh_Implementation(UUK_StatusAnimData* NewWeapon)
+void UUK_CombatAnimationComponent::ServerRPCSetNowWeapon_Implementation(UUK_StatusAnimData* NewWeapon)
 {
-
 	if ( IsValid(NewWeapon) )
 	{
 		NowWeapon = NewWeapon;
 	}
 }
-
-#pragma endregion

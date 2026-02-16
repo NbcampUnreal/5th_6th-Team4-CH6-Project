@@ -9,6 +9,8 @@
 #include "GameplayTagContainer.h"
 #include "UK_CharacterBase.generated.h"
 
+#define ECC_LockOn ECollisionChannel::ECC_GameTraceChannel2
+
 
 
 #pragma region Forward Declaration
@@ -22,9 +24,10 @@ class UUK_WeaponData;
 class UUK_CombatAnimationComponent;
 class UUK_InventoryComponent;
 class UAIPerceptionStimuliSourceComponent;
+class AAIMonsterBase;
 struct FInputActionValue;
 #pragma endregion
-
+DECLARE_DYNAMIC_DELEGATE(FOnFloorDelagate);
 UCLASS()
 class UK_API AUK_CharacterBase : public ACharacter, public IAbilitySystemInterface
 {
@@ -42,6 +45,8 @@ public:
 
 	virtual void PossessedBy(AController* NewController) override;
 
+	virtual void Landed(const FHitResult& Hit) override;
+
 	virtual void OnRep_PlayerState();
 	TObjectPtr<USkeletalMeshComponent> GetRightHandWeapon() { return RightHandWeaponComponent; }
 	TObjectPtr<USkeletalMeshComponent> GetLeftHandWeapon() { return LeftHandWeaponComponent; }
@@ -58,8 +63,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UCameraComponent> Camera;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<USkeletalMeshComponent> MannySkeletalMesh;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
+	TObjectPtr<USkeletalMeshComponent> CharactorMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
 	TObjectPtr<USkeletalMeshComponent> RightHandWeaponComponent;
@@ -93,7 +98,10 @@ private:
 #pragma region Input
 protected:
 	UFUNCTION(BlueprintCallable)
-	void Attack();
+	void LightAttack();
+
+	UFUNCTION(BlueprintCallable)
+	void HeavyAttack();
 
 	UFUNCTION(BlueprintCallable)
 	void ZoomIn();
@@ -101,8 +109,26 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void ZoomOut();
 
-protected:
 
+public:
+	UFUNCTION(BlueprintCallable)
+	void LockON();
+
+	UFUNCTION(BlueprintCallable)
+	void LockONTick();
+
+	void AddTarget(const TObjectPtr<AAIMonsterBase> Monster);
+
+	bool Locking()const { return bIsLock; }
+protected:
+	bool bIsLock;
+
+	UPROPERTY()
+	TArray<TObjectPtr<AAIMonsterBase>> LockOnList;
+	int32 index;
+
+	FTimerHandle LockOnTimer;
+	float MaxLockDistance = 1000.f;
 #pragma endregion
 
 #pragma region Weapon
@@ -137,7 +163,6 @@ public:
 	UFUNCTION()
 	void Dead();
 
-	UPROPERTY(BlueprintAssignable)
-	FOnDeadDelegate OnDead;
+	FOnFloorDelagate OnFloor;
 #pragma endregion
 };

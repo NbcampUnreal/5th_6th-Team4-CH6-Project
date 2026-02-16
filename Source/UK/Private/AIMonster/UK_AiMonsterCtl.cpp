@@ -4,12 +4,31 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "DrawDebugHelpers.h" //디버그용 드로우 (삭제예정)
+#include "Perception/AIPerceptionComponent.h"
+#include "Perception/AISenseConfig_Sight.h"
+#include "DrawDebugHelpers.h"
 
 AUK_AiMonsterCtl::AUK_AiMonsterCtl()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickInterval = ControllerTickInterval;
+
+	// ===== AIPerception 설정 =====
+	AIPerceptionComp = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerceptionComp"));
+	SetPerceptionComponent(*AIPerceptionComp);
+
+	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("SightConfig"));
+	SightConfig->SightRadius = 1200.f;
+	SightConfig->LoseSightRadius = 1500.f;
+	SightConfig->PeripheralVisionAngleDegrees = 360.f;  // 전방위
+	SightConfig->SetMaxAge(5.f);
+
+	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
+	SightConfig->DetectionByAffiliation.bDetectNeutrals = true;
+	SightConfig->DetectionByAffiliation.bDetectFriendlies = false;
+
+	AIPerceptionComp->ConfigureSense(*SightConfig);
+	AIPerceptionComp->SetDominantSense(SightConfig->GetSenseImplementation());
 }
 
 void AUK_AiMonsterCtl::OnPossess(APawn* InPawn)
@@ -17,45 +36,59 @@ void AUK_AiMonsterCtl::OnPossess(APawn* InPawn)
 	Super::OnPossess(InPawn);
 
 	ControlledMonster = Cast<AAIMonsterBase>(InPawn);
-
-	if (ControlledMonster)
-	{
-		// ===== BehaviorTree =====
-		if (ControlledMonster->BehaviorTree)
-		{
-			RunBehaviorTree(ControlledMonster->BehaviorTree);
-			
-			if (UBlackboardComponent* BlackboardComp = GetBlackboardComponent())
-			{
-				BlackboardComp->SetValueAsVector(TEXT("SpawnLocation"), ControlledMonster->SpawnLocation);
-				BlackboardComp->SetValueAsVector(TEXT("PatrolLocation"), ControlledMonster->SpawnLocation);
-			}
-			
-			UE_LOG(LogTemp, Log, TEXT("UK_AiMonsterCtl: BehaviorTree started for %s"), *InPawn->GetName());
-		}
-		else
-		{
-			ControlledMonster->RequestState(EMonsterState::Idle);
-		}
+	if (!ControlledMonster) return;
 	
-		// ===== RVO =====
-		if (bUseRVOAvoidance)
+	ControlledMonster->bUseControllerRotationYaw = false;
+	if (UCharacterMovementComponent* MoveComp = ControlledMonster->GetCharacterMovement())
+	{
+		MoveComp->bUseControllerDesiredRotation = true;
+		MoveComp->RotationRate = FRotator(0.f, 480.f, 0.f);
+	}
+
+	// Perception 반경을 몬스터 설정에 맞게 조정
+	if (SightConfig)
+	{
+		SightConfig->SightRadius = ControlledMonster->DetectionRadius;
+		SightConfig->LoseSightRadius = ControlledMonster->MaxChaseDistance;
+		AIPerceptionComp->ConfigureSense(*SightConfig);
+		AIPerceptionComp->RequestStimuliListenerUpdate();
+	}
+
+	// Perception 이벤트 바인딩
+	AIPerceptionComp->OnTargetPerceptionUpdated.AddDynamic(
+		this, &AUK_AiMonsterCtl::OnPerceptionUpdated);
+
+	// ===== BehaviorTree =====
+	if (ControlledMonster->BehaviorTree)
+	{
+		RunBehaviorTree(ControlledMonster->BehaviorTree);
+
+		if (UBlackboardComponent* BB = GetBlackboardComponent())
 		{
-			ACharacter* ControlledCharacter = Cast<ACharacter>(InPawn);
-			if (ControlledCharacter)
+			BB->SetValueAsVector(TEXT("SpawnLocation"), ControlledMonster->SpawnLocation);
+			BB->SetValueAsVector(TEXT("PatrolLocation"), ControlledMonster->SpawnLocation);
+		}
+
+		UE_LOG(LogTemp, Log, TEXT("UK_AiMonsterCtl: BT started for %s"), *InPawn->GetName());
+	}
+	else
+	{
+		ControlledMonster->RequestState(EMonsterState::Idle);
+	}
+
+	// ===== RVO =====
+	if (bUseRVOAvoidance)
+	{
+		if (ACharacter* Char = Cast<ACharacter>(InPawn))
+		{
+			if (UCharacterMovementComponent* MoveComp = Char->GetCharacterMovement())
 			{
-				UCharacterMovementComponent* MovementComp = ControlledCharacter->GetCharacterMovement();
-				if (MovementComp)
-				{
-					MovementComp->bUseRVOAvoidance = true;
-					MovementComp->SetAvoidanceGroup(AvoidanceGroup);
-					MovementComp->SetGroupsToAvoid(GroupsToAvoid);
-					MovementComp->SetGroupsToIgnore(GroupsToIgnore);
-					MovementComp->AvoidanceConsiderationRadius = 500.0f;
-					MovementComp->AvoidanceWeight = 0.5f;
-					
-					UE_LOG(LogTemp, Log, TEXT("UK_AiMonsterCtl: RVO Avoidance enabled for %s"), *InPawn->GetName());
-				}
+				MoveComp->bUseRVOAvoidance = true;
+				MoveComp->SetAvoidanceGroup(AvoidanceGroup);
+				MoveComp->SetGroupsToAvoid(GroupsToAvoid);
+				MoveComp->SetGroupsToIgnore(GroupsToIgnore);
+				MoveComp->AvoidanceConsiderationRadius = 500.0f;
+				MoveComp->AvoidanceWeight = 0.5f;
 			}
 		}
 	}
@@ -63,7 +96,13 @@ void AUK_AiMonsterCtl::OnPossess(APawn* InPawn)
 
 void AUK_AiMonsterCtl::OnUnPossess()
 {
-	/* 해제 시키기 */
+	if (AIPerceptionComp)
+	{
+		AIPerceptionComp->OnTargetPerceptionUpdated.RemoveDynamic(
+			this, &AUK_AiMonsterCtl::OnPerceptionUpdated);
+	}
+
+	ClearFocus(EAIFocusPriority::Gameplay);
 	ControlledMonster = nullptr;
 	CurrentTarget = nullptr;
 	bHasPatrolTarget = false;
@@ -71,71 +110,117 @@ void AUK_AiMonsterCtl::OnUnPossess()
 	Super::OnUnPossess();
 }
 
+void AUK_AiMonsterCtl::UpdateFocusOnTarget(AActor* NewTarget)
+{
+	if (NewTarget)
+	{
+		SetFocus(NewTarget, EAIFocusPriority::Gameplay);
+	}
+	else
+	{
+		ClearFocus(EAIFocusPriority::Gameplay);
+	}
+}
+
+/* ============================================================ */
+/* AIPerception 이벤트 콜백                                      */
+/* 타겟 감지/소실 시에만 호출 (매 틱 X)                            */
+/* ============================================================ */
+
+void AUK_AiMonsterCtl::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
+{
+	if (!ControlledMonster || !HasAuthority() || !Actor) return;
+
+	// 몬스터끼리는 무시
+	if (Cast<AAIMonsterBase>(Actor)) return;
+
+	UBlackboardComponent* BB = GetBlackboardComponent();
+
+	if (Stimulus.WasSuccessfullySensed())
+	{
+		// 타겟 감지됨
+		CurrentTarget = Actor;
+
+		if (BB)
+		{
+			BB->SetValueAsObject(TEXT("TargetPlayer"), Actor);
+		}
+
+		UpdateFocusOnTarget(Actor);
+		
+		UE_LOG(LogTemp, Log, TEXT("[Perception] %s detected: %s"),
+			*ControlledMonster->GetName(), *Actor->GetName());
+
+		// BT 미사용 시 상태 전환
+		if (!ControlledMonster->BehaviorTree)
+		{
+			float Dist = FVector::Dist(
+				ControlledMonster->GetActorLocation(), Actor->GetActorLocation());
+
+			if (Dist <= AttackRange)
+				ControlledMonster->RequestState(EMonsterState::Attack);
+			else
+				ControlledMonster->RequestState(EMonsterState::Chase);
+		}
+	}
+	else
+	{
+		// 타겟 소실됨
+		if (CurrentTarget == Actor)
+		{
+			CurrentTarget = nullptr;
+
+			if (BB)
+			{
+				BB->ClearValue(TEXT("TargetPlayer"));
+			}
+
+			UpdateFocusOnTarget(nullptr);
+			
+			UE_LOG(LogTemp, Log, TEXT("[Perception] %s lost: %s"),
+				*ControlledMonster->GetName(), *Actor->GetName());
+
+			if (!ControlledMonster->BehaviorTree)
+			{
+				ControlledMonster->RequestState(EMonsterState::Patrol);
+			}
+		}
+	}
+}
+
+/* ============================================================ */
+/* Tick — BT 사용 시 디버그만, 미사용 시 Fallback                 */
+/* ============================================================ */
+
 void AUK_AiMonsterCtl::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+
+#if WITH_EDITOR
 	DrawAIDebug();
-	if (!ControlledMonster || !HasAuthority())
-		return;
+#endif
 
+	if (!ControlledMonster || !HasAuthority()) return;
 
-	// BehaviorTree 사용중이면 기존 AI 로직 스킵
+	// BT 사용 중이면 Tick AI 로직 스킵
 	if (ControlledMonster->BehaviorTree && GetBrainComponent())
+	{
+		if (UBlackboardComponent* BB = GetBlackboardComponent())
+		{
+			AActor* BBTarget = Cast<AActor>(BB->GetValueAsObject(TEXT("TargetPlayer")));
+			if (BBTarget != CurrentTarget)
+			{
+				CurrentTarget = BBTarget;
+				UpdateFocusOnTarget(CurrentTarget);
+			}
+		}
 		return;
-	
-	UpdateTarget();
+	}
+
+	// Fallback: BT 미사용 시만
 	UpdateState();
 	HandleMovement();
-	
 }
-
-/* Target 탐색 로직 (수정,첨삭 될 수 있음) */
-
-void AUK_AiMonsterCtl::UpdateTarget()
-{
-	if ( !HasAuthority() ) return;
-
-	UBlackboardComponent* BB = GetBlackboardComponent();
-	if ( !BB ) return;
-
-	if ( BB->GetValueAsObject("Target") )
-		return;
-
-	TArray<AActor*> Players;
-	UGameplayStatics::GetAllActorsOfClass(
-		GetWorld(),
-		ACharacter::StaticClass(),
-		Players
-	);
-
-	float ClosestDist = SearchRadius;
-	AActor* ClosestTarget = nullptr;
-
-	for ( AActor* Actor : Players )
-	{
-		if ( !Actor || Actor == ControlledMonster )
-			continue;
-
-		float Dist = FVector::Dist(
-			ControlledMonster->GetActorLocation(),
-			Actor->GetActorLocation()
-		);
-
-		if ( Dist < ClosestDist )
-		{
-			ClosestDist = Dist;
-			ClosestTarget = Actor;
-		}
-	}
-
-	if ( ClosestTarget )
-	{
-		BB->SetValueAsObject("Target", ClosestTarget);
-		CurrentTarget = ClosestTarget;
-	}
-}
-
-/* 상태별 판단 로직 */
 
 void AUK_AiMonsterCtl::UpdateState()
 {
@@ -145,75 +230,54 @@ void AUK_AiMonsterCtl::UpdateState()
 		return;
 	}
 
-	float Distance = FVector::Dist(ControlledMonster->GetActorLocation(),CurrentTarget->GetActorLocation());
+	float Distance = FVector::Dist(
+		ControlledMonster->GetActorLocation(),
+		CurrentTarget->GetActorLocation());
 
 	if (Distance <= AttackRange)
-	{
 		ControlledMonster->RequestState(EMonsterState::Attack);
-	}
 	else if (Distance <= ChaseRange)
-	{
 		ControlledMonster->RequestState(EMonsterState::Chase);
-	}
 	else
 	{
 		CurrentTarget = nullptr;
+		UpdateFocusOnTarget(nullptr);
 		ControlledMonster->RequestState(EMonsterState::Patrol);
 	}
 }
 
-/* 이동 행위 로직 */
-
 void AUK_AiMonsterCtl::HandleMovement()
 {
-	if (!ControlledMonster)
-		return;
+	if (!ControlledMonster) return;
 
 	switch (ControlledMonster->GetCurrentState())
 	{
 	case EMonsterState::Chase:
 		if (CurrentTarget)
-		{
 			MoveToActor(CurrentTarget, AttackRange - 50.f);
-		}
 		break;
-
 	case EMonsterState::Patrol:
 		if (!bHasPatrolTarget)
-		{
 			SetNewPatrolTarget();
-		}
-		MoveToLocation(PatrolTarget, 50.f); 
+		MoveToLocation(PatrolTarget, 50.f);
 		break;
-
-	case EMonsterState::Idle:
-		break;
-	case EMonsterState::Attack:
-		break;
-	case EMonsterState::Dead:
-		break;
-
 	default:
 		StopMovement();
 		break;
 	}
 }
 
-/* Patrol 위치 설정 */
-
 void AUK_AiMonsterCtl::SetNewPatrolTarget()
 {
-	if (!ControlledMonster)
-		return;
+	if (!ControlledMonster) return;
 
 	FVector Origin = ControlledMonster->GetActorLocation();
 	FVector RandomOffset = FMath::VRand() * FMath::FRandRange(200.f, PatrolRadius);
+	RandomOffset.Z = 0.f;
 
 	PatrolTarget = Origin + RandomOffset;
 	bHasPatrolTarget = true;
 }
-
-/* 이동 완료 콜백 */
 
 void AUK_AiMonsterCtl::OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result)
 {
@@ -225,27 +289,20 @@ void AUK_AiMonsterCtl::OnMoveCompleted(FAIRequestID RequestID, const FPathFollow
 	}
 }
 
-/* 디버그용 드로우 (삭제예정) */
-
 void AUK_AiMonsterCtl::DrawAIDebug() const
 {
-	if ( !bDrawDebug || !ControlledMonster )
-		return;
+	if (!bDrawDebug || !ControlledMonster) return;
 
 	const FVector Origin = ControlledMonster->GetActorLocation();
 	const float LifeTime = ControllerTickInterval * 1.2f;
 
-	DrawDebugSphere(GetWorld(), Origin, SearchRadius, 32, FColor::Yellow, false, LifeTime, 0, 1.5f); 	// 탐색 범위 (노랑)
-	DrawDebugSphere(GetWorld(), Origin, ChaseRange, 32, FColor::Blue, false, LifeTime, 0, 1.5f);		// 추적 범위 (파랑)
-	DrawDebugSphere(GetWorld(), Origin, AttackRange, 32, FColor::Red, false, LifeTime, 0, 2.5f);		// 공격 범위 (빨강)
-	DrawDebugSphere(GetWorld(), Origin, PatrolRadius, 32, FColor::Green, false, LifeTime, 0, 1.0f);		// 순찰 반경 (초록)
-
-	if ( CurrentTarget ) // 현재 타겟 표시
+	if (CurrentTarget)
 	{
-		DrawDebugLine(GetWorld(), Origin, CurrentTarget->GetActorLocation(), FColor::Red, false, LifeTime, 0, 2.f);
+		DrawDebugLine(GetWorld(), Origin, CurrentTarget->GetActorLocation(),
+			FColor::Red, false, LifeTime, 0, 2.f);
 	}
 
-	if ( bHasPatrolTarget )
+	if (bHasPatrolTarget)
 	{
 		DrawDebugSphere(GetWorld(), PatrolTarget, 50.f, 12, FColor::Green, false, LifeTime, 0, 1.5f);
 	}

@@ -29,6 +29,7 @@ void UStatusComponent::BeginPlay()
 	Super::BeginPlay();
 
 	Status.CurrentHp = Status.MaxHp;
+	Status.CurrentMp = Status.MaxMp;
 }
 // Called every frame
 //void UStatusComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -58,6 +59,69 @@ void UStatusComponent::SetHp(const float CurrentHp)
 	}
 }
 
+void UStatusComponent::SetMp(const float CurrentMp)
+{
+	if ( GetOwnerRole() != ROLE_Authority || !IsValid(GetOwner()) )
+	{
+		return;
+	}
+	if ( IsDead() )
+	{
+		return;
+	}
+	Status.CurrentMp = FMath::Clamp(CurrentMp, 0.f, Status.MaxMp);
+
+	MpStatusDelegate.Broadcast(Status.CurrentMp, Status.MaxMp);
+
+}
+
+void UStatusComponent::TakeMP(const float CurrentMp)
+{
+	if( !IsValid(GetOwner()) || GetOwnerRole() != ROLE_Authority )
+		return;
+	if ( Status.CurrentMp < CurrentMp )
+	{
+		return;
+	}
+
+	SetMp(Status.CurrentMp - CurrentMp);
+
+	UE_LOG(LogTemp, Warning, TEXT("CurrentMp : %f Charactor MP : %f"), CurrentMp, Status.CurrentHp);
+	
+}
+
+void UStatusComponent::LevelUp()
+{
+	if ( !IsValid(GetOwner()) || GetOwnerRole() != ROLE_Authority )
+		return;
+	if ( Status.Level >= Status.MaxLevel )
+	{
+		return;
+	}
+	++Status.Level;
+	LevelStatusDelegate.Broadcast(Status.Level);
+}
+
+void UStatusComponent::SetStamina(const float CurrentStamina)
+{
+	if ( !IsValid(GetOwner()) || GetOwnerRole() != ROLE_Authority )
+		return;
+
+}
+
+void UStatusComponent::TakeStamina(const float CurrentStamina)
+{
+	if ( !IsValid(GetOwner()) || GetOwnerRole() != ROLE_Authority )
+		return;
+
+	if ( Status.Stamina < CurrentStamina )
+		return;
+
+	SetStamina(Status.Stamina - CurrentStamina);
+
+	StaminaStatusDelegate.Broadcast(Status.Stamina);
+}
+
 bool UStatusComponent::IsDead() const
 {
 	return Status.CurrentHp <= 0.f;
@@ -66,6 +130,10 @@ bool UStatusComponent::IsDead() const
 void UStatusComponent::OnRepStatus()
 {
 	HpStatusDelegate.Broadcast(Status.CurrentHp, Status.MaxHp);
+	MpStatusDelegate.Broadcast(Status.CurrentMp, Status.MaxMp);
+	LevelStatusDelegate.Broadcast(Status.Level);
+	PowerStatusDelegate.Broadcast(Status.Power);
+	StaminaStatusDelegate.Broadcast(Status.Stamina);
 }
 
 #pragma endregion
@@ -74,7 +142,7 @@ void UStatusComponent::OnRepStatus()
 
 float UStatusComponent::ApplyDamage()
 {
-	return Status.Str;
+	return Status.Power;
 }
 
 void UStatusComponent::TakeDamage(const float Damage)

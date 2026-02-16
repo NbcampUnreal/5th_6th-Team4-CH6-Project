@@ -6,10 +6,12 @@
 #include "Character/UK_CharacterBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "BrainComponent.h"
+#include "TimerManager.h"
 
 AAIMonsterBase::AAIMonsterBase()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false; 
 
 	bReplicates = true;
 	SetReplicateMovement(true);
@@ -23,10 +25,8 @@ void AAIMonsterBase::BeginPlay()
 
 	if (HasAuthority())
 	{
-		SetActorTickEnabled(false);
 		SpawnLocation = GetActorLocation();
-		
-		// 평화로운 몬스터는 Passive 상태로 시작
+
 		if (Personality == EMonsterPersonality::Peaceful)
 		{
 			CurrentState = EMonsterState::Passive;
@@ -39,138 +39,244 @@ void AAIMonsterBase::BeginPlay()
 	}
 }
 
-void AAIMonsterBase::Tick(float DeltaSeconds)
-{
-	Super::Tick(DeltaSeconds);
+// Tick() 제거
+// 타겟 탐지: AIPerceptionComponent (이벤트 콜백)
+// 타겟 갱신: BTService_DetectPlayer (0.5초 주기)
+// AI 판단: BehaviorTree
+// 공격: 몽타주 + AnimNotifyState (이벤트)
+// 상태 전환: RequestState → OnStateChanged 델리게이트
 
-    if (!HasAuthority()) return;
-}
-
-/* 서버로 상태 요청을 보내는 구간 */
+/* =============================== */
+/*         서버 상태 관리            */
+/* =============================== */
 
 void AAIMonsterBase::RequestState_Implementation(EMonsterState NewState)
 {
-    if (!HasAuthority()) return;
-    if (CurrentState == NewState) return;
-
-    SetServerState(NewState);
+	if (!HasAuthority()) return;
+	if (CurrentState == NewState) return;
+	SetServerState(NewState);
 }
 
 void AAIMonsterBase::SetServerState(EMonsterState NewState)
 {
-    CurrentState = NewState;
+	EMonsterState OldState = CurrentState;
+	CurrentState = NewState;
 
-    if (CurrentState == EMonsterState::Dead)
-    {
-        DetachFromControllerPendingDestroy();
-    }
-
-    OnRep_MonsterState();
+	OnStateChanged.Broadcast(OldState, NewState);
+	OnRep_MonsterState();
 }
 
 void AAIMonsterBase::OnRep_MonsterState()
 {
-    switch (CurrentState)
-    {
-    case EMonsterState::Idle:
-        SetActorTickEnabled(false);
-        SetNetDormancy(DORM_DormantAll);
-        break;
-
-    case EMonsterState::Patrol:
-        SetActorTickEnabled(true);
-        PrimaryActorTick.TickInterval = TickIntervalPatrol;
-        SetNetDormancy(DORM_Awake);
-        break;
-
-    case EMonsterState::Chase:
-        SetActorTickEnabled(true);
-        PrimaryActorTick.TickInterval = TickIntervalChase;
-        SetNetDormancy(DORM_Awake);
-        break;
-
-    case EMonsterState::Attack:
-        SetActorTickEnabled(true);
-        PrimaryActorTick.TickInterval = TickIntervalAttack;
-        SetNetDormancy(DORM_Awake);
-        break;
-
-    case EMonsterState::Dead:
-        SetActorTickEnabled(false);
-        SetNetDormancy(DORM_DormantAll);
-        break;
-        
-    case EMonsterState::Passive:
-        SetActorTickEnabled(true);
-        PrimaryActorTick.TickInterval = TickIntervalPassive;
-        SetNetDormancy(DORM_Awake);
-        break;
-        
-    case EMonsterState::Alert:
-        SetActorTickEnabled(true);
-        PrimaryActorTick.TickInterval = TickIntervalAlert;
-        SetNetDormancy(DORM_Awake);
-        break;
-        
-    case EMonsterState::Aggressive:
-        SetActorTickEnabled(true);
-        PrimaryActorTick.TickInterval = TickIntervalChase;
-        SetNetDormancy(DORM_Awake);
-        break;
-    }
+	// Dormancy만 관리 Tick 토글 제거
+	switch (CurrentState)
+	{
+	case EMonsterState::Idle:
+	case EMonsterState::Passive:
+		SetNetDormancy(DORM_DormantAll);
+		break;
+	case EMonsterState::Dead:
+		break;
+	default:
+		SetNetDormancy(DORM_Awake);
+		break;
+	}
 }
 
-// bIsAggressive 복제 시 클라이언트에서 호출
 void AAIMonsterBase::OnRep_IsAggressive()
 {
-    // AnimBlueprint가 bIsAggressive 변경을 감지할 수 있도록
-    // 추가 처리가 필요하면 여기에 작성
-    UE_LOG(LogTemp, Log, TEXT("[OnRep] %s bIsAggressive = %d"), *GetName(), bIsAggressive);
+	UE_LOG(LogTemp, Log, TEXT("[OnRep] %s bIsAggressive = %d"), *GetName(), bIsAggressive);
 }
 
-/* 링크 시스템 - 주변 동료들 부르기 */
-void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
+/* =============================== */
+/*      몽타주 기반 공격 시스템       */
+/* =============================== */
+
+bool AAIMonsterBase::PlayRandomAttackMontage()
+{
+	if (bIsAttacking || bIsDying) return false;
+
+	float Now = GetWorld()->GetTimeSeconds();
+	if (Now - LastAttackTime < AttackCooldown) return false;
+
+	if (AttackMontages.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Attack] %s: AttackMontages is empty!"), *GetName());
+		return false;
+	}
+
+	int32 RandomIndex = FMath::RandRange(0, AttackMontages.Num() - 1);
+	UAnimMontage* SelectedMontage = AttackMontages[RandomIndex];
+
+	if (!SelectedMontage)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Attack] %s: Montage[%d] is null!"), *GetName(), RandomIndex);
+		return false;
+	}
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance) return false;
+
+	float MontageLength = AnimInstance->Montage_Play(SelectedMontage, 1.0f);
+	if (MontageLength <= 0.f) return false;
+
+	bIsAttacking = true;
+	LastAttackTime = Now;
+
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindUObject(this, &AAIMonsterBase::OnAttackMontageEnded);
+	AnimInstance->Montage_SetEndDelegate(EndDelegate, SelectedMontage);
+
+	UE_LOG(LogTemp, Log, TEXT("[Attack] %s: Montage[%d] %s (%.2fs)"),
+		*GetName(), RandomIndex, *SelectedMontage->GetName(), MontageLength);
+
+	Multicast_PlayAttackMontage(RandomIndex);
+	return true;
+}
+
+void AAIMonsterBase::Multicast_PlayAttackMontage_Implementation(int32 MontageIndex)
+{
+	if (HasAuthority()) return;
+	if (!AttackMontages.IsValidIndex(MontageIndex)) return;
+
+	UAnimMontage* Montage = AttackMontages[MontageIndex];
+	if (!Montage) return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance) return;
+
+	AnimInstance->Montage_Play(Montage, 1.0f);
+}
+
+void AAIMonsterBase::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	bIsAttacking = false;
+}
+
+void AAIMonsterBase::Die()
 {
 	if (!HasAuthority()) return;
-	if (!Enemy) return;
-	
+	if (CurrentState == EMonsterState::Dead || bIsDying) return;
+
+	bIsDying = true;
+	bIsAttacking = false;
+
+	// BT 중지 + 이동 중지 (컨트롤러는 유지! 몽타주 재생에 필요)
+	if (AAIController* AIC = Cast<AAIController>(GetController()))
+	{
+		AIC->StopMovement();
+
+		if (UBrainComponent* Brain = AIC->GetBrainComponent())
+		{
+			Brain->StopLogic(TEXT("Dead"));
+		}
+	}
+
+	// 몽타주를 먼저 재생 (아직 Awake 상태이므로 Multicast 전달됨)
+	if (DeathMontage)
+	{
+		PlayDeathMontage();
+	}
+
+	// 그 다음 상태 변경 (Dead에서 Dormant 안 하므로 안전)
+	SetServerState(EMonsterState::Dead);
+
+	// 몽타주 없으면 딜레이 후 최종 처리
+	if (!DeathMontage)
+	{
+		FTimerHandle DeathTimer;
+		GetWorldTimerManager().SetTimer(
+			DeathTimer, this, &AAIMonsterBase::FinalizeDeath,
+			DeathWithoutMontageDelay, false);
+	}
+}
+
+void AAIMonsterBase::PlayDeathMontage()
+{
+	if (!DeathMontage) return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance) return;
+
+	AnimInstance->StopAllMontages(0.2f);
+
+	float MontageLength = AnimInstance->Montage_Play(DeathMontage, 1.0f);
+	if (MontageLength > 0.f)
+	{
+		FOnMontageEnded EndDelegate;
+		EndDelegate.BindUObject(this, &AAIMonsterBase::OnDeathMontageEnded);
+		AnimInstance->Montage_SetEndDelegate(EndDelegate, DeathMontage);
+	}
+	else
+	{
+		// 재생 실패 시 바로 마무리
+		FinalizeDeath();
+	}
+
+	Multicast_PlayDeathMontage();
+}
+
+void AAIMonsterBase::Multicast_PlayDeathMontage_Implementation()
+{
+	if (HasAuthority()) return;
+	if (!DeathMontage) return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance) return;
+
+	AnimInstance->StopAllMontages(0.2f);
+	AnimInstance->Montage_Play(DeathMontage, 1.0f);
+}
+
+void AAIMonsterBase::OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	UE_LOG(LogTemp, Log, TEXT("[Death] %s: Death montage ended"), *GetName());
+	FinalizeDeath();  // 몽타주 끝난 후에 최종 처리
+}
+
+// 사망 몽타주 끝난 후 호출
+void AAIMonsterBase::FinalizeDeath()
+{
+	SetNetDormancy(DORM_DormantAll);
+	DetachFromControllerPendingDestroy();
+	OnDeath.Broadcast(this);
+	UE_LOG(LogTemp, Log, TEXT("[Death] %s: FinalizeDeath complete"), *GetName());
+}
+
+
+/* =============================== */
+/*          링크 시스템              */
+/* =============================== */
+
+void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
+{
+	if (!HasAuthority() || !Enemy) return;
+
 	TArray<AActor*> FoundActors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), GetClass(), FoundActors);
-	
+
 	for (AActor* Actor : FoundActors)
 	{
 		if (!Actor || Actor == this) continue;
-		
-		AAIMonsterBase* AllyMonster = Cast<AAIMonsterBase>(Actor);
-		if (!AllyMonster) continue;
-		
-		// 같은 성격의 몬스터만
-		if (AllyMonster->Personality != EMonsterPersonality::Peaceful) continue;
-		
-		// 이미 적대적이면 패스
-		if (AllyMonster->bIsAggressive) continue;
-		
-		// 죽었으면 패스
-		if (AllyMonster->IsDead()) continue;
-		
-		// 거리 체크
-		float Distance = FVector::Dist(GetActorLocation(), AllyMonster->GetActorLocation());
+
+		AAIMonsterBase* Ally = Cast<AAIMonsterBase>(Actor);
+		if (!Ally) continue;
+		if (Ally->Personality != EMonsterPersonality::Peaceful) continue;
+		if (Ally->bIsAggressive || Ally->IsDead()) continue;
+
+		float Distance = FVector::Dist(GetActorLocation(), Ally->GetActorLocation());
 		if (Distance > AllyCallRadius) continue;
-		
-		// 동료 몬스터를 적대적으로 만들기
-		AllyMonster->bIsAggressive = true;
-		AllyMonster->Aggressor = Enemy;
-		AllyMonster->RequestState(EMonsterState::Aggressive);
-		
-		// 동료 Blackboard에 TargetPlayer 설정
-		if (AAIController* AllyAIC = Cast<AAIController>(AllyMonster->GetController()))
+
+		Ally->bIsAggressive = true;
+		Ally->Aggressor = Enemy;
+		Ally->RequestState(EMonsterState::Aggressive);
+
+		if (AAIController* AllyAIC = Cast<AAIController>(Ally->GetController()))
 		{
 			if (UBlackboardComponent* BB = AllyAIC->GetBlackboardComponent())
 			{
 				BB->SetValueAsObject(TEXT("TargetPlayer"), Enemy);
 			}
-    
-			// 동료 BT 즉시 재시작 (Passive Wait에서 깨우기)
 			if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AllyAIC->GetBrainComponent()))
 			{
 				BTComp->RestartTree();
@@ -179,159 +285,108 @@ void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
 	}
 }
 
-/* 복귀 시스템 - 원래 상태로 돌아가기 */
 void AAIMonsterBase::ResetToPassive()
 {
 	if (!HasAuthority()) return;
-	
+
 	bIsAggressive = false;
+	bIsAttacking = false;
+	bIsDying = false;
 	Aggressor = nullptr;
-	
-	// 체력 회복
+
 	if (StatComponent)
 	{
 		StatComponent->SetHP(StatComponent->GetMaxHP());
-		UE_LOG(LogTemp, Log, TEXT("[Reset] %s reset to passive and healed"), *GetName());
 	}
-	
+
 	RequestState(EMonsterState::Passive);
 }
 
-/* AI 활성화 제어 스위치 같은 역할 */
+/* =============================== */
+/*           AI 활성화              */
+/* =============================== */
 
 void AAIMonsterBase::SetAIActive(bool bActive)
 {
 	/* 로직 수정 중 */
 }
 
-/* Spawner System*/
-void AAIMonsterBase::Die()
-{
-	if (!HasAuthority()) return;
-	if (IsDead()) return;
-
-	SetServerState(EMonsterState::Dead);
-	OnDeath.Broadcast(this);
-}
+/* =============================== */
+/*        Spawner / HP              */
+/* =============================== */
 
 void AAIMonsterBase::ResetHealth()
 {
-	if (HasAuthority())
+	if (!HasAuthority()) return;
+
+	if (StatComponent)
 	{
-		if (StatComponent)
-		{
-			StatComponent->SetHP(StatComponent->GetMaxHP());
-		}
-		
-		// 평화로운 몬스터는 Passive로 리셋
-		if (Personality == EMonsterPersonality::Peaceful)
-		{
-			ResetToPassive();
-		}
-		else
-		{
-			SetServerState(EMonsterState::Idle);
-		}
+		StatComponent->SetHP(StatComponent->GetMaxHP());
+	}
+
+	bIsAttacking = false;
+	bIsDying = false;
+
+	if (Personality == EMonsterPersonality::Peaceful)
+	{
+		ResetToPassive();
+	}
+	else
+	{
+		SetServerState(EMonsterState::Idle);
 	}
 }
 
 void AAIMonsterBase::ReceiveDamage(float Damage)
 {
-	if ( !HasAuthority() ) return;
+	if (!HasAuthority()) return;
+	if (bIsDying) return;
 
-	if ( StatComponent )
+	if (StatComponent)
 	{
 		float BeforeHp = StatComponent->GetHP();
-
 		StatComponent->TakeDamage(Damage);
 
-		float AfterHp = StatComponent->GetHP();
-
 		UE_LOG(LogTemp, Warning,
-			TEXT("[Monster Hit] %s | Damage: %.1f | HP: %.1f -> %.1f"),
-			*GetName(),
-			Damage,
-			BeforeHp,
-			AfterHp
-		);
+			TEXT("[Monster Hit] %s | Dmg: %.1f | HP: %.1f -> %.1f"),
+			*GetName(), Damage, BeforeHp, StatComponent->GetHP());
 	}
-	
+
 	// 평화로운 몬스터가 처음 공격받았을 때
 	if (Personality == EMonsterPersonality::Peaceful && !bIsAggressive)
 	{
-		// 플레이어 직접 가져오기 (가장 확실한 방법)
 		AActor* ClosestPlayer = nullptr;
 		
-		// 방법 1: PlayerController를 통해 플레이어 가져오기
-		APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-		if (PC && PC->GetPawn())
+		for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 		{
-			APawn* PlayerPawn = PC->GetPawn();
-			float Distance = FVector::Dist(GetActorLocation(), PlayerPawn->GetActorLocation());
-			
-			// 500 유닛 안에 있으면 (공격 범위 추정)
-			if (Distance <= 500.0f)
+			APlayerController* PC = It->Get();
+			if (!PC || !PC->GetPawn()) continue;
+
+			float Dist = FVector::Dist(GetActorLocation(), PC->GetPawn()->GetActorLocation());
+			if (Dist <= 500.0f)
 			{
-				ClosestPlayer = PlayerPawn;
+				ClosestPlayer = PC->GetPawn();
+				break;
 			}
 		}
-		
-		// 방법 2: PlayerController 실패 시 백업 (AI Controller가 아닌 Character 찾기)
-		if (!ClosestPlayer)
-		{
-			TArray<AActor*> FoundActors;
-			UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACharacter::StaticClass(), FoundActors);
-			
-			float ClosestDist = 500.0f;
-			
-			for (AActor* Actor : FoundActors)
-			{
-				if (!Actor || Actor == this) continue;
-				
-				// AI Controller를 가진 Character는 제외 (몬스터)
-				if (ACharacter* Char = Cast<ACharacter>(Actor))
-				{
-					if (Cast<AAIController>(Char->GetController()))
-						continue;  // AI Controller면 몬스터이므로 제외
-				}
-				
-				float Dist = FVector::Dist(GetActorLocation(), Actor->GetActorLocation());
-				if (Dist < ClosestDist)
-				{
-					ClosestDist = Dist;
-					ClosestPlayer = Actor;
-				}
-			}
-		}
-		
+
 		if (ClosestPlayer)
 		{
 			bIsAggressive = true;
 			Aggressor = ClosestPlayer;
-			
-			UE_LOG(LogTemp, Warning, TEXT("[Peaceful Monster] %s became aggressive!"), *GetName());
-			
-			// Blackboard에 즉시 타겟 설정 (추격을 위해)
-			AAIController* AIController = Cast<AAIController>(GetController());
-			if (AIController)
+
+			if (AAIController* AIC = Cast<AAIController>(GetController()))
 			{
-				UBlackboardComponent* BlackboardComp = AIController->GetBlackboardComponent();
-				if (BlackboardComp)
+				if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
 				{
-					BlackboardComp->SetValueAsObject(TEXT("TargetPlayer"), ClosestPlayer);
-					UE_LOG(LogTemp, Log, TEXT("[Peaceful Monster] TargetPlayer set to %s"), *ClosestPlayer->GetName());
+					BB->SetValueAsObject(TEXT("TargetPlayer"), ClosestPlayer);
 				}
 			}
-			
-			// 주변 동료들 부르기
+
 			CallNearbyAllies(ClosestPlayer);
-			
-			// 공격받았다는 이벤트 발생
 			OnAttacked.Broadcast(this, ClosestPlayer);
-			
-			// 상태 변경
 			RequestState(EMonsterState::Aggressive);
-			
+
 			if (AAIController* AIC = Cast<AAIController>(GetController()))
 			{
 				if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AIC->GetBrainComponent()))
@@ -343,124 +398,34 @@ void AAIMonsterBase::ReceiveDamage(float Damage)
 	}
 }
 
-/* 상태별 기본적인 동작 혹은 행위 */
-/* 자식 클래스에서 상속 받아서 사용 될 함수 */
+/* =============================== */
+/*       상태별 가상 함수            */
+/* =============================== */
 
-void AAIMonsterBase::OnIdle()
-{
-}
-
-void AAIMonsterBase::OnPatrol()
-{
-}
-
-void AAIMonsterBase::OnChase(float DeltaSeconds)
-{
-}
+void AAIMonsterBase::OnIdle() {}
+void AAIMonsterBase::OnPatrol() {}
+void AAIMonsterBase::OnChase(float DeltaSeconds) {}
 
 void AAIMonsterBase::OnAttack()
 {
-	UE_LOG(LogTemp, Warning,
-		TEXT("=== OnAttack Start | Authority: %d ==="),
-		HasAuthority()
-	);
-
-	if ( !HasAuthority() )
-	{
-		UE_LOG(LogTemp, Error, TEXT("Not Server!"));
-		return;
-	}
-
-	float Now = GetWorld()->GetTimeSeconds();
-
-	if ( Now - LastAttackTime < AttackCooldown )
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Cooldown"));
-		return;
-	}
-
-	AUK_AiMonsterCtl* AI =
-		Cast<AUK_AiMonsterCtl>(GetController());
-
-	if ( !AI )
-	{
-		UE_LOG(LogTemp, Error, TEXT("No AIController"));
-		return;
-	}
-
-	AActor* Target = AI->GetCurrentTarget();
-
-	UE_LOG(LogTemp, Warning,
-		TEXT("Target: %s"),
-		Target ? *Target->GetName() : TEXT("NULL")
-	);
-
-	if ( !Target ) return;
-
-	float Dist = FVector::Dist(
-		GetActorLocation(),
-		Target->GetActorLocation()
-	);
-
-	UE_LOG(LogTemp, Warning,
-		TEXT("Distance: %.1f / Range: %.1f"),
-		Dist,
-		AttackRange
-	);
-
-	if ( Dist > AttackRange )
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Out of Range"));
-		return;
-	}
-
-	AUK_CharacterBase* Player =
-		Cast<AUK_CharacterBase>(Target);
-
-	if ( !Player )
-	{
-		UE_LOG(LogTemp, Error,
-			TEXT("Cast Failed: %s"),
-			*Target->GetClass()->GetName()
-		);
-		return;
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("Before Damage"));
-
-	Player->ReceiveDamage(AttackDamage);
-
-	UE_LOG(LogTemp, Warning,
-		TEXT("[Monster Attack] %s -> %s | Damage: %.1f"),
-		*GetName(),
-		*Player->GetName(),
-		AttackDamage
-	);
-
-	LastAttackTime = Now;
+	// 데미지는 AnimNotifyState_MonsterMeleeTrace에서 트레이스 처리
+	if (!HasAuthority()) return;
+	PlayRandomAttackMontage();
 }
 
-void AAIMonsterBase::OnDead()
-{
-}
+void AAIMonsterBase::OnDead() {}
+void AAIMonsterBase::OnPassive() {}
+void AAIMonsterBase::OnAlert() {}
 
-void AAIMonsterBase::OnPassive()
-{
-	// 평화로운 상태 - 풀 뜯기, 잠자기 등의 행동
-	// 애니메이션은 블루프린트에서 처리
-}
-
-void AAIMonsterBase::OnAlert()
-{
-	// 경계 상태 - 으르렁, 뒷걸음질
-	// 애니메이션은 블루프린트에서 처리
-}
+/* =============================== */
+/*          Replication             */
+/* =============================== */
 
 void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-    DOREPLIFETIME(AAIMonsterBase, CurrentState);
-    DOREPLIFETIME(AAIMonsterBase, bIsAggressive); 
-    DOREPLIFETIME(AAIMonsterBase, Aggressor);      
+	DOREPLIFETIME(AAIMonsterBase, CurrentState);
+	DOREPLIFETIME(AAIMonsterBase, bIsAggressive);
+	DOREPLIFETIME(AAIMonsterBase, Aggressor);
 }

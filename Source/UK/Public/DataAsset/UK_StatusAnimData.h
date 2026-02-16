@@ -15,7 +15,8 @@ enum class EComboAttackType : uint8
 	None,
 	AttackOnAir,
 	LightAttackOnGround,
-	HeavyAttackOnGround
+	HeavyAttackOnGround,
+	DropAttack
 };
 UCLASS()
 class UK_API UUK_StatusAnimData : public UDataAsset
@@ -25,12 +26,31 @@ public:
 	UUK_AnimData* FindAnimsDataAssetByType(const EComboAttackType AttackType);
 	TObjectPtr<USkeletalMesh> GetLeftHandWeapon() const { return LeftHandWeapon; }
 	TObjectPtr<USkeletalMesh> GetRightHandWeapon() const { return RightHandWeapon; }
+
+	FVector GetLeftLocationOffset()const { return LeftLocationOffset; }
+	FRotator GetLeftRotationOffset()const { return LeftRotationOffset; }
+
+	FVector GetRightLocationOffset()const { return RightLocationOffset; }
+	FRotator GetRightRotationOffset()const { return RightRotationOffset; }
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ComboAttack")
+	TMap<EComboAttackType, TObjectPtr<UUK_AnimData>> ComboAnimationDatas;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon")
 	TObjectPtr<USkeletalMesh> LeftHandWeapon;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ComboAttack")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon")
 	TObjectPtr<USkeletalMesh> RightHandWeapon;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ComboAttack")
-	TMap<EComboAttackType, TObjectPtr<UUK_AnimData>> ComboAnimationDatas;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	FVector LeftLocationOffset;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	FRotator LeftRotationOffset;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	FVector RightLocationOffset;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	FRotator RightRotationOffset;
 };
