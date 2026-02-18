@@ -37,6 +37,13 @@ void AUK_AiMonsterCtl::OnPossess(APawn* InPawn)
 
 	ControlledMonster = Cast<AAIMonsterBase>(InPawn);
 	if (!ControlledMonster) return;
+	
+	ControlledMonster->bUseControllerRotationYaw = false;
+	if (UCharacterMovementComponent* MoveComp = ControlledMonster->GetCharacterMovement())
+	{
+		MoveComp->bUseControllerDesiredRotation = true;
+		MoveComp->RotationRate = FRotator(0.f, 480.f, 0.f);
+	}
 
 	// Perception 반경을 몬스터 설정에 맞게 조정
 	if (SightConfig)
@@ -95,11 +102,24 @@ void AUK_AiMonsterCtl::OnUnPossess()
 			this, &AUK_AiMonsterCtl::OnPerceptionUpdated);
 	}
 
+	ClearFocus(EAIFocusPriority::Gameplay);
 	ControlledMonster = nullptr;
 	CurrentTarget = nullptr;
 	bHasPatrolTarget = false;
 
 	Super::OnUnPossess();
+}
+
+void AUK_AiMonsterCtl::UpdateFocusOnTarget(AActor* NewTarget)
+{
+	if (NewTarget)
+	{
+		SetFocus(NewTarget, EAIFocusPriority::Gameplay);
+	}
+	else
+	{
+		ClearFocus(EAIFocusPriority::Gameplay);
+	}
 }
 
 /* ============================================================ */
@@ -126,6 +146,8 @@ void AUK_AiMonsterCtl::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 			BB->SetValueAsObject(TEXT("TargetPlayer"), Actor);
 		}
 
+		UpdateFocusOnTarget(Actor);
+		
 		UE_LOG(LogTemp, Log, TEXT("[Perception] %s detected: %s"),
 			*ControlledMonster->GetName(), *Actor->GetName());
 
@@ -153,6 +175,8 @@ void AUK_AiMonsterCtl::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 				BB->ClearValue(TEXT("TargetPlayer"));
 			}
 
+			UpdateFocusOnTarget(nullptr);
+			
 			UE_LOG(LogTemp, Log, TEXT("[Perception] %s lost: %s"),
 				*ControlledMonster->GetName(), *Actor->GetName());
 
@@ -180,7 +204,18 @@ void AUK_AiMonsterCtl::Tick(float DeltaSeconds)
 
 	// BT 사용 중이면 Tick AI 로직 스킵
 	if (ControlledMonster->BehaviorTree && GetBrainComponent())
+	{
+		if (UBlackboardComponent* BB = GetBlackboardComponent())
+		{
+			AActor* BBTarget = Cast<AActor>(BB->GetValueAsObject(TEXT("TargetPlayer")));
+			if (BBTarget != CurrentTarget)
+			{
+				CurrentTarget = BBTarget;
+				UpdateFocusOnTarget(CurrentTarget);
+			}
+		}
 		return;
+	}
 
 	// Fallback: BT 미사용 시만
 	UpdateState();
@@ -206,6 +241,7 @@ void AUK_AiMonsterCtl::UpdateState()
 	else
 	{
 		CurrentTarget = nullptr;
+		UpdateFocusOnTarget(nullptr);
 		ControlledMonster->RequestState(EMonsterState::Patrol);
 	}
 }
@@ -259,10 +295,6 @@ void AUK_AiMonsterCtl::DrawAIDebug() const
 
 	const FVector Origin = ControlledMonster->GetActorLocation();
 	const float LifeTime = ControllerTickInterval * 1.2f;
-
-	DrawDebugSphere(GetWorld(), Origin, SearchRadius, 24, FColor::Yellow, false, LifeTime, 0, 1.0f);
-	DrawDebugSphere(GetWorld(), Origin, ChaseRange, 24, FColor::Blue, false, LifeTime, 0, 1.0f);
-	DrawDebugSphere(GetWorld(), Origin, AttackRange, 24, FColor::Red, false, LifeTime, 0, 1.5f);
 
 	if (CurrentTarget)
 	{

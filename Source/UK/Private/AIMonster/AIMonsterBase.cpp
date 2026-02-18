@@ -6,6 +6,8 @@
 #include "Character/UK_CharacterBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "BrainComponent.h"
+#include "TimerManager.h"
 
 AAIMonsterBase::AAIMonsterBase()
 {
@@ -60,11 +62,6 @@ void AAIMonsterBase::SetServerState(EMonsterState NewState)
 	EMonsterState OldState = CurrentState;
 	CurrentState = NewState;
 
-	if (CurrentState == EMonsterState::Dead)
-	{
-		DetachFromControllerPendingDestroy();
-	}
-
 	OnStateChanged.Broadcast(OldState, NewState);
 	OnRep_MonsterState();
 }
@@ -75,9 +72,10 @@ void AAIMonsterBase::OnRep_MonsterState()
 	switch (CurrentState)
 	{
 	case EMonsterState::Idle:
-	case EMonsterState::Dead:
 	case EMonsterState::Passive:
 		SetNetDormancy(DORM_DormantAll);
+		break;
+	case EMonsterState::Dead:
 		break;
 	default:
 		SetNetDormancy(DORM_Awake);
@@ -96,7 +94,7 @@ void AAIMonsterBase::OnRep_IsAggressive()
 
 bool AAIMonsterBase::PlayRandomAttackMontage()
 {
-	if (bIsAttacking) return false;
+	if (bIsAttacking || bIsDying) return false;
 
 	float Now = GetWorld()->GetTimeSeconds();
 	if (Now - LastAttackTime < AttackCooldown) return false;
@@ -155,6 +153,44 @@ void AAIMonsterBase::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupt
 	bIsAttacking = false;
 }
 
+void AAIMonsterBase::Die()
+{
+	if (!HasAuthority()) return;
+	if (CurrentState == EMonsterState::Dead || bIsDying) return;
+
+	bIsDying = true;
+	bIsAttacking = false;
+
+	// BT 중지 + 이동 중지 (컨트롤러는 유지! 몽타주 재생에 필요)
+	if (AAIController* AIC = Cast<AAIController>(GetController()))
+	{
+		AIC->StopMovement();
+
+		if (UBrainComponent* Brain = AIC->GetBrainComponent())
+		{
+			Brain->StopLogic(TEXT("Dead"));
+		}
+	}
+
+	// 몽타주를 먼저 재생 (아직 Awake 상태이므로 Multicast 전달됨)
+	if (DeathMontage)
+	{
+		PlayDeathMontage();
+	}
+
+	// 그 다음 상태 변경 (Dead에서 Dormant 안 하므로 안전)
+	SetServerState(EMonsterState::Dead);
+
+	// 몽타주 없으면 딜레이 후 최종 처리
+	if (!DeathMontage)
+	{
+		FTimerHandle DeathTimer;
+		GetWorldTimerManager().SetTimer(
+			DeathTimer, this, &AAIMonsterBase::FinalizeDeath,
+			DeathWithoutMontageDelay, false);
+	}
+}
+
 void AAIMonsterBase::PlayDeathMontage()
 {
 	if (!DeathMontage) return;
@@ -170,6 +206,11 @@ void AAIMonsterBase::PlayDeathMontage()
 		FOnMontageEnded EndDelegate;
 		EndDelegate.BindUObject(this, &AAIMonsterBase::OnDeathMontageEnded);
 		AnimInstance->Montage_SetEndDelegate(EndDelegate, DeathMontage);
+	}
+	else
+	{
+		// 재생 실패 시 바로 마무리
+		FinalizeDeath();
 	}
 
 	Multicast_PlayDeathMontage();
@@ -190,7 +231,18 @@ void AAIMonsterBase::Multicast_PlayDeathMontage_Implementation()
 void AAIMonsterBase::OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	UE_LOG(LogTemp, Log, TEXT("[Death] %s: Death montage ended"), *GetName());
+	FinalizeDeath();  // 몽타주 끝난 후에 최종 처리
 }
+
+// 사망 몽타주 끝난 후 호출
+void AAIMonsterBase::FinalizeDeath()
+{
+	SetNetDormancy(DORM_DormantAll);
+	DetachFromControllerPendingDestroy();
+	OnDeath.Broadcast(this);
+	UE_LOG(LogTemp, Log, TEXT("[Death] %s: FinalizeDeath complete"), *GetName());
+}
+
 
 /* =============================== */
 /*          링크 시스템              */
@@ -239,6 +291,7 @@ void AAIMonsterBase::ResetToPassive()
 
 	bIsAggressive = false;
 	bIsAttacking = false;
+	bIsDying = false;
 	Aggressor = nullptr;
 
 	if (StatComponent)
@@ -262,16 +315,6 @@ void AAIMonsterBase::SetAIActive(bool bActive)
 /*        Spawner / HP              */
 /* =============================== */
 
-void AAIMonsterBase::Die()
-{
-	if (!HasAuthority() || IsDead()) return;
-
-	bIsAttacking = false;
-	PlayDeathMontage();
-	SetServerState(EMonsterState::Dead);
-	OnDeath.Broadcast(this);
-}
-
 void AAIMonsterBase::ResetHealth()
 {
 	if (!HasAuthority()) return;
@@ -282,6 +325,7 @@ void AAIMonsterBase::ResetHealth()
 	}
 
 	bIsAttacking = false;
+	bIsDying = false;
 
 	if (Personality == EMonsterPersonality::Peaceful)
 	{
@@ -296,6 +340,7 @@ void AAIMonsterBase::ResetHealth()
 void AAIMonsterBase::ReceiveDamage(float Damage)
 {
 	if (!HasAuthority()) return;
+	if (bIsDying) return;
 
 	if (StatComponent)
 	{

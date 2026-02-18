@@ -13,6 +13,11 @@ struct FStatus
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+	int32 MaxLevel = 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+	int32 Level = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
 	float MaxHp = 100.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
@@ -25,11 +30,24 @@ public:
 	float CurrentMp = 100.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
-	float Str = 10.f;
+	float Power = 10.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+	float CurrentPower = 10.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+	float Stamina = 10.f;
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadDelegate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHpStatusDelegate, float, CurrentHp, float, MaxHp);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMpStatusDelegate, float, CurrentMp, float, MaxMp);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLevelStatusDelegate, int32, Level);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPowerStatusDelegate, float, Power);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStaminaStatusDelegate, float, Stamina);
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class UK_API UStatusComponent : public UActorComponent
 {
@@ -50,6 +68,16 @@ protected:
 #pragma region Status
 public:
 	void SetHp(const float CurrentHp);
+
+	void SetMp(const float CurrentMp);
+
+	void TakeMP(const float CurrentMp);
+
+	void LevelUp();
+
+	void SetStamina(const float CurrentStamina);
+
+	void TakeStamina(const float CurrentStamina);
 
 	bool IsDead() const;
 
@@ -72,6 +100,18 @@ public:
 #pragma region Delegate
 	UPROPERTY(BlueprintAssignable)
 	FOnHpStatusDelegate HpStatusDelegate;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnMpStatusDelegate MpStatusDelegate;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnLevelStatusDelegate LevelStatusDelegate;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnPowerStatusDelegate PowerStatusDelegate;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnStaminaStatusDelegate StaminaStatusDelegate;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnDeadDelegate OnDeadDelegate;
