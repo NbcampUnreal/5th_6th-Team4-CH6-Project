@@ -19,7 +19,7 @@ void UUK_MainHUD::NativeConstruct()
 			StatusComp->HpStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateHealthBar);
 			StatusComp->MpStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateMpBar);
 			StatusComp->LevelStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateLevel);
-			// StatusComp->StaminaStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateStaminaBar);
+			StatusComp->StaminaStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateStaminaBar);
 
 			FStructProperty* StatusProp = FindFieldChecked<FStructProperty>(UStatusComponent::StaticClass(), TEXT("Status"));
 			if ( StatusProp )
@@ -30,7 +30,7 @@ void UUK_MainHUD::NativeConstruct()
 					UpdateHealthBar(StatusPtr->CurrentHp, StatusPtr->MaxHp);
 					UpdateMpBar(StatusPtr->CurrentMp, StatusPtr->MaxMp);
 					UpdateLevel(StatusPtr->Level);
-					// UpdateStaminaBar(StatusPtr->Stamina);
+					UpdateStaminaBar(StatusPtr->CurrentStamina, StatusPtr->MaxStamina); 
 				}
 			}
 		}
@@ -89,17 +89,15 @@ void UUK_MainHUD::UpdateLevel(int32 NewLevel)
 	}
 }
 
-/*
-void UUK_MainHUD::UpdateStaminaBar(float CurrentStamina) 
+void UUK_MainHUD::UpdateStaminaBar(float CurrentStamina, float MaxStamina)
 {
-	float MaxStamina = 10.f; // 추후 수정예정
-
 	if ( StaminaBar && MaxStamina > 0.f )
+
 	{
+		// 0.0 ~ 1.0 사이의 값으로 게이지 반영
 		StaminaBar->SetPercent(CurrentStamina / MaxStamina);
 	}
 }
-*/
 
 void UUK_MainHUD::OnInventoryButtonClicked()
 {
