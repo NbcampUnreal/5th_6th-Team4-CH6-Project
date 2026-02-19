@@ -70,6 +70,9 @@ private:
     void ReturnMonsterToPool(AAIMonsterBase* Monster);
     void ActivateMonster(AAIMonsterBase* Monster);
     void DeactivateMonster(AAIMonsterBase* Monster);
+    
+    // GameMode 등록
+    void RegisterMonsterToGameMode(AAIMonsterBase* Monster);
 
     // 스포너 상태
     UPROPERTY()

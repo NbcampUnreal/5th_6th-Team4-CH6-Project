@@ -12,6 +12,8 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "BrainComponent.h"
+#include "GameFramework/GameModeBase.h"
+#include "server/UKGameMode.h"
 
 AUK_MonsterSpawner::AUK_MonsterSpawner()
 {
@@ -156,49 +158,49 @@ void AUK_MonsterSpawner::SpawnInitialMonsters()
 
 FVector AUK_MonsterSpawner::GetRandomSpawnLocation() const
 {
-	FVector BaseLocation = GetActorLocation();
+    FVector BaseLocation = GetActorLocation();
     
-	const int32 MaxAttempts = 20;
-	const float MinDistanceBetweenMonsters = 200.0f;
-	const float MinDistanceFromCenter = 150.0f;  // 스포너 중심에서 최소 거리
+    const int32 MaxAttempts = 20;
+    const float MinDistanceBetweenMonsters = 200.0f;
+    const float MinDistanceFromCenter = 150.0f;
     
-	for (int32 Attempt = 0; Attempt < MaxAttempts; Attempt++)
-	{
-		FVector RandomOffset = UKismetMathLibrary::RandomUnitVector() * FMath::RandRange(MinDistanceFromCenter, SpawnRadius);
-		RandomOffset.Z = 0.0f;
+    for (int32 Attempt = 0; Attempt < MaxAttempts; Attempt++)
+    {
+        FVector RandomOffset = UKismetMathLibrary::RandomUnitVector() * FMath::RandRange(MinDistanceFromCenter, SpawnRadius);
+        RandomOffset.Z = 0.0f;
         
-		FVector CandidateLocation = BaseLocation + RandomOffset;
+        FVector CandidateLocation = BaseLocation + RandomOffset;
         
-		// 스포너 중심과 거리 체크
-		if (FVector::Dist2D(CandidateLocation, BaseLocation) < MinDistanceFromCenter)
-		{
-			continue;
-		}
+        // 스포너 중심과 거리 체크
+        if (FVector::Dist2D(CandidateLocation, BaseLocation) < MinDistanceFromCenter)
+        {
+            continue;
+        }
         
-		// 기존 활성 몬스터들과 거리 체크
-		bool bTooClose = false;
-		for (AAIMonsterBase* Monster : ActiveMonsters)
-		{
-			if (IsValid(Monster))
-			{
-				if (FVector::Dist2D(CandidateLocation, Monster->GetActorLocation()) < MinDistanceBetweenMonsters)
-				{
-					bTooClose = true;
-					break;
-				}
-			}
-		}
+        // 기존 활성 몬스터들과 거리 체크
+        bool bTooClose = false;
+        for (AAIMonsterBase* Monster : ActiveMonsters)
+        {
+            if (IsValid(Monster))
+            {
+                if (FVector::Dist2D(CandidateLocation, Monster->GetActorLocation()) < MinDistanceBetweenMonsters)
+                {
+                    bTooClose = true;
+                    break;
+                }
+            }
+        }
         
-		if (!bTooClose)
-		{
-			return CandidateLocation;
-		}
-	}
+        if (!bTooClose)
+        {
+            return CandidateLocation;
+        }
+    }
     
-	// 폴백 - 최소한 중심에서는 떨어뜨리기
-	FVector RandomOffset = UKismetMathLibrary::RandomUnitVector() * FMath::RandRange(MinDistanceFromCenter, SpawnRadius);
-	RandomOffset.Z = 0.0f;
-	return BaseLocation + RandomOffset;
+    // 폴백 - 최소한 중심에서는 떨어뜨리기
+    FVector RandomOffset = UKismetMathLibrary::RandomUnitVector() * FMath::RandRange(MinDistanceFromCenter, SpawnRadius);
+    RandomOffset.Z = 0.0f;
+    return BaseLocation + RandomOffset;
 }
 
 void AUK_MonsterSpawner::InitializeObjectPool()
@@ -231,7 +233,7 @@ void AUK_MonsterSpawner::InitializeObjectPool()
             Monster->OwningSpawner = this;
             Monster->OnDeath.AddDynamic(this, &AUK_MonsterSpawner::OnMonsterDied);
             
-            // 비활성 상태로 시작 (AI는 활성화 시 생성)
+            // 비활성 상태로 시작
             Monster->SetActorHiddenInGame(true);
             Monster->SetActorEnableCollision(false);
             Monster->SetActorTickEnabled(false);
@@ -327,7 +329,6 @@ void AUK_MonsterSpawner::ActivateMonster(AAIMonsterBase* Monster)
         }
         else if (Monster->BehaviorTree)
         {
-            // BrainComponent가 없으면 처음부터 시작
             AIController->RunBehaviorTree(Monster->BehaviorTree);
         }
         
@@ -343,19 +344,71 @@ void AUK_MonsterSpawner::ActivateMonster(AAIMonsterBase* Monster)
     // 체력과 상태 초기화
     Monster->ResetHealth();
 
-	// HP 확인 로그
-	if (UAI_MonsterStatComponent* StatComp = Monster->GetStatComponent())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("몬스터 리스폰: %s | HP: %.1f / %.1f | 위치: %s"), 
-			*Monster->GetName(),
-			StatComp->GetHP(),
-			StatComp->GetMaxHP(),
-			*NewLocation.ToString());
-	}
-	
+    // HP 확인 로그
+    if (UAI_MonsterStatComponent* StatComp = Monster->GetStatComponent())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Monster Respawn: %s | HP: %.1f / %.1f | Location: %s"), 
+            *Monster->GetName(),
+            StatComp->GetHP(),
+            StatComp->GetMaxHP(),
+            *NewLocation.ToString());
+    }
+    
     ActiveMonsters.Add(Monster);
 
+    // GameMode에 몬스터 등록 (킬 알림 시스템)
+    RegisterMonsterToGameMode(Monster);
+
     UE_LOG(LogTemp, Log, TEXT("UK_MonsterSpawner: Activated monster from pool. Active: %d"), ActiveMonsters.Num());
+}
+
+void AUK_MonsterSpawner::RegisterMonsterToGameMode(AAIMonsterBase* Monster)
+{
+    if (!Monster)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[Spawner] RegisterMonsterToGameMode: Monster is NULL!"));
+        return;
+    }
+
+    // World 체크
+    UWorld* World = GetWorld();
+    if (!World)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[Spawner] RegisterMonsterToGameMode: World is NULL!"));
+        return;
+    }
+
+    // Authority 체크 (서버인지 확인)
+    if (!HasAuthority())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[Spawner] RegisterMonsterToGameMode: Not on server (Client)"));
+        return;
+    }
+
+    // GameMode 가져오기
+    AGameModeBase* GameModeBase = World->GetAuthGameMode();
+    if (!GameModeBase)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[Spawner] RegisterMonsterToGameMode: GameMode is NULL!"));
+        return;
+    }
+
+    // GameMode 타입 확인
+    UE_LOG(LogTemp, Warning, TEXT("[Spawner] GameMode found: %s"), *GameModeBase->GetClass()->GetName());
+
+    // AUKGameMode로 캐스팅
+    AUKGameMode* GameMode = Cast<AUKGameMode>(GameModeBase);
+    if (!GameMode)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[Spawner] RegisterMonsterToGameMode: Failed to cast to AUKGameMode!"));
+        UE_LOG(LogTemp, Error, TEXT("[Spawner] Current GameMode class: %s"), *GameModeBase->GetClass()->GetName());
+        return;
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("[Spawner] Successfully cast to AUKGameMode! Calling OnMonsterSpawned..."));
+    GameMode->OnMonsterSpawned(Monster);
+    
+    UE_LOG(LogTemp, Warning, TEXT("[Spawner] Successfully registered %s to GameMode"), *Monster->GetName());
 }
 
 void AUK_MonsterSpawner::DeactivateMonster(AAIMonsterBase* Monster)
