@@ -34,6 +34,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDeath, class AAIMonsterBas
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMonsterAttacked, class AAIMonsterBase*, AttackedMonster, AActor*, Attacker);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMonsterStateChanged, EMonsterState, OldState, EMonsterState, NewState);
 
+DECLARE_DELEGATE_OneParam(FOnAttackFinished, bool /*bSucceeded*/);
+
 UCLASS(Abstract)
 class UK_API AAIMonsterBase : public ACharacter
 {
@@ -42,22 +44,20 @@ class UK_API AAIMonsterBase : public ACharacter
 public:
 	AAIMonsterBase();
 
-	/* 서버 전용 상태 요청 */
+	virtual void PostInitializeComponents() override;
+
 	UFUNCTION(Server, Reliable)
 	void RequestState(EMonsterState NewState);
 
 	UFUNCTION(BlueprintPure)
 	EMonsterState GetCurrentState() const { return CurrentState; }
 
-	/** 상태 변경 이벤트 (BT, UI 등에서 반응 가능) */
 	UPROPERTY(BlueprintAssignable, Category = "AI")
 	FOnMonsterStateChanged OnStateChanged;
 
-	/* 몬스터 성격 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Personality")
 	EMonsterPersonality Personality = EMonsterPersonality::Aggressive;
 
-	/* 평화로운 몬스터 설정 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful", meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
 	float AlertDistance = 300.0f;
 
@@ -104,7 +104,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Monster")
 	void Die();
 
-	// bIsDying 포함 — 사망 몽타주 재생 중에도 Dead 판정
 	UFUNCTION(BlueprintPure, Category = "Monster")
 	bool IsDead() const { return CurrentState == EMonsterState::Dead || bIsDying; }
 
@@ -144,7 +143,6 @@ protected:
 public:
 	void SetAIActive(bool bActive);
 
-	/* 상태별 가상 함수 (자식 override) */
 	virtual void OnIdle();
 	virtual void OnChase(float DeltaSeconds);
 	virtual void OnPatrol();
@@ -154,37 +152,32 @@ public:
 	virtual void OnAlert();
 
 #pragma region Combat
-	// 몽타주 기반 공격 (랜덤)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Animation")
 	TArray<UAnimMontage*> AttackMontages;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Animation")
 	UAnimMontage* DeathMontage = nullptr;
 
-	// 사망 몽타주 없을 때 사체 유지 시간
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Animation")
 	float DeathWithoutMontageDelay = 5.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Animation")
+	float CorpseLingerTime = 5.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	bool bIsAttacking = false;
 
-	// 사망 진행 중 플래그
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	bool bIsDying = false;
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	bool PlayRandomAttackMontage();
 
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void PlayDeathMontage();
+	FOnAttackFinished OnAttackFinished;
 
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
-	UFUNCTION()
-	void OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-
-	// 사망 몽타주 끝난 후 최종 처리
 	void FinalizeDeath();
 
 	UFUNCTION(NetMulticast, Reliable)
@@ -193,12 +186,17 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayDeathMontage();
 
-	/* 공격 스탯 */
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_HideCorpse();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_ResetAppearance();
+
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	float AttackDamage = 20.f;
 
 	UPROPERTY(EditAnywhere, Category = "Combat")
-	float AttackRange = 250.f;  // 150→250
+	float AttackRange = 250.f;
 
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	float AttackCooldown = 1.5f;
@@ -210,4 +208,9 @@ public:
 	void ReceiveDamage(float Damage);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+private:
+	FTimerHandle CorpseTimerHandle;
+	FTimerHandle DeathMontageTimerHandle;
+	void HideAndBroadcastDeath();
 };
