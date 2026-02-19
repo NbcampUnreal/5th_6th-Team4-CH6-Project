@@ -18,9 +18,18 @@ public:
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+	
+	UPROPERTY(EditAnywhere, Category = "Attack")
+	float FacingAngleTolerance = 30.f;
 
+	UPROPERTY(EditAnywhere, Category = "Attack")
+	float MaxFacingWaitTime = 1.0f;
+	
 private:
-	TWeakObjectPtr<UBehaviorTreeComponent> CachedOwnerComp;
+	/** 몽타주가 이미 시작됐는지 */
+	bool bMontageStarted = false;
 
-	void OnAttackFinished(bool bSucceeded);
+	/** 회전 대기 누적 시간 */
+	float FacingWaitElapsed = 0.f;
 };

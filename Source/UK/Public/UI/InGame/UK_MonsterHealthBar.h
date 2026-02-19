@@ -1,31 +1,29 @@
-﻿#include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
-#include "UK_MonsterHealthBar.generated.h"
+﻿#pragma once
 
-// 전방 선언
-class UAI_MonsterStatComponent;
-class UProgressBar;
+#include "CoreMinimal.h"
+#include "Blueprint/UserWidget.h"
+#include "AIMonster/Component/AI_MonsterStatComponent.h"
+#include "UK_MonsterHealthBar.generated.h"
 
 UCLASS()
 class UK_API UUK_MonsterHealthBar : public UUserWidget
 {
 	GENERATED_BODY()
-
+	
 protected:
-	// 매 프레임 체력을 감시하기 위해 Tick 추가
-	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
-
+	// 초기화를 위해 NativeConstruct 오버라이드 
+	virtual void NativeConstruct() override;
+	
+	// 델리게이트를 통해 호출될 함수
 	UFUNCTION()
 	void UpdateHPBar(float CurrentHP, float MaxHP);
 
+	// 에디터 위젯과 연결
 	UPROPERTY(meta = ( BindWidget ))
-	UProgressBar* MonsterHPBar;
-
-	// 현재 감시 중인 스탯 컴포넌트 저장용
-	UPROPERTY()
-	UAI_MonsterStatComponent* TargetStatComp;
+	class UProgressBar* MonsterHPBar;
 
 public:
+	// 몬스터의 스탯 컴포넌트와 UI를 연결해주는 핵심 함수
 	UFUNCTION(BlueprintCallable, Category = "UI")
-	void BindMonsterStats(UAI_MonsterStatComponent* StatComp);
+	void BindMonsterStats(class UAI_MonsterStatComponent* StatComp);
 };

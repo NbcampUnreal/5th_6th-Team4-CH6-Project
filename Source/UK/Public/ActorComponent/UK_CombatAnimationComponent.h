@@ -75,13 +75,6 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void ServerRPCComboAttack(const EComboAttackType AttackType, FName SectionName);
-
-	UFUNCTION(Server, Reliable)
-	void ServerRPCDropAttack();
-
-	UFUNCTION(Server, Reliable)
-	void ServerRPCDropOnFloorAttack();
-
 #pragma endregion
 
 	void PlayComboAttackAnimation(const EComboAttackType AttackType, FName SectionName);
@@ -97,7 +90,6 @@ public:
 #pragma endregion
 
 	void CheckComboProcessable(const EComboAttackType AttackType);
-	void CheckDropAttackProcessable();
 
 	EComboAttackType GetNextAttackType();
 
@@ -139,9 +131,11 @@ protected:
 
 #pragma region Weapon
 public:
-	void SetNowWeapon(UUK_StatusAnimData* NewWeapon);
+	void SetNowWeapon(TObjectPtr<UUK_StatusAnimData> NewWeapon);
+
 	UFUNCTION(Server, Reliable)
-	void ServerRPCSetNowWeapon(UUK_StatusAnimData* NewWeapon);
+	void ServerRPCChangeWeaponMesh(UUK_StatusAnimData* NewWeapon);
+
 protected:
 
 	UPROPERTY(EditAnywhere,BlueprintReadOnly)

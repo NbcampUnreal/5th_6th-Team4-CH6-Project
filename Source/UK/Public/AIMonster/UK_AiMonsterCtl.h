@@ -44,9 +44,6 @@ private:
 	
 	void UpdateFocusOnTarget(AActor* NewTarget);
 
-	//  플레이어 판별
-	bool IsPlayerCharacter(AActor* Actor) const;
-
 	// BT 미사용 시
 	void UpdateState();
 	void HandleMovement();

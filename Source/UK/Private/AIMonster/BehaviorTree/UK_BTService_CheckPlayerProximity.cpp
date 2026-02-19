@@ -38,47 +38,24 @@ void UUK_BTService_CheckPlayerProximity::TickNode(UBehaviorTreeComponent& OwnerC
 	// 공격적인 상태면 이 서비스 실행 안 함
 	if (Monster->bIsAggressive) return;
 
-	//  모든 플레이어 순회 (기존: GetPlayerCharacter(0)만)
-	//   서버에서 실행되므로 모든 PlayerController를 순회해서 가장 가까운 플레이어 찾기
-	UWorld* World = GetWorld();
-	if (!World)
+	// 플레이어 찾기
+	ACharacter* PlayerCharacter = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
+	if (!PlayerCharacter)
 	{
 		BlackboardComp->SetValueAsBool(IsPlayerCloseKey.SelectedKeyName, false);
 		return;
 	}
 
-	AActor* ClosestPlayer = nullptr;
-	float ClosestDistance = MAX_FLT;
-
-	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
-	{
-		APlayerController* PC = It->Get();
-		if (!PC || !PC->GetPawn()) continue;
-
-		APawn* PlayerPawn = PC->GetPawn();
-		float Distance = FVector::Dist(ControlledPawn->GetActorLocation(), PlayerPawn->GetActorLocation());
-
-		if (Distance < ClosestDistance)
-		{
-			ClosestDistance = Distance;
-			ClosestPlayer = PlayerPawn;
-		}
-	}
-
-	if (!ClosestPlayer)
-	{
-		BlackboardComp->SetValueAsBool(IsPlayerCloseKey.SelectedKeyName, false);
-		return;
-	}
+	float Distance = FVector::Dist(ControlledPawn->GetActorLocation(), PlayerCharacter->GetActorLocation());
 
 	// 경계 거리 체크
-	if (ClosestDistance <= Monster->AlertDistance)
+	if (Distance <= Monster->AlertDistance)
 	{
 		BlackboardComp->SetValueAsBool(IsPlayerCloseKey.SelectedKeyName, true);
-		BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, ClosestPlayer);
+		BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, PlayerCharacter);
 		
 		UE_LOG(LogTemp, Log, TEXT("[Proximity] %s detected player nearby (%.1f)"), 
-			*Monster->GetName(), ClosestDistance);
+			*Monster->GetName(), Distance);
 	}
 	else
 	{
