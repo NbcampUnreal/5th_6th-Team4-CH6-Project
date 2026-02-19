@@ -30,9 +30,26 @@ enum class EMonsterPersonality : uint8
 	Peaceful
 };
 
+/* 몬스터 종류 (보상 지급용) */
+UENUM(BlueprintType)
+enum class EMonsterType : uint8
+{
+	None = 0,
+	Golem = 1,
+	
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDeath, class AAIMonsterBase*, DeadMonster);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMonsterAttacked, class AAIMonsterBase*, AttackedMonster, AActor*, Attacker);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMonsterStateChanged, EMonsterState, OldState, EMonsterState, NewState);
+
+/* 몬스터 킬 알림 델리게이트 (서버 → GameMode) */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(
+	FOnMonsterKilled, 
+	class AAIMonsterBase*, KilledMonster,
+	EMonsterType, MonsterType,
+	class APlayerController*, KillerController
+);
 
 DECLARE_DELEGATE_OneParam(FOnAttackFinished, bool /*bSucceeded*/);
 
@@ -57,6 +74,14 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Personality")
 	EMonsterPersonality Personality = EMonsterPersonality::Aggressive;
+
+	/* 몬스터 종류 (에디터에서 설정) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Type")
+	EMonsterType MonsterType = EMonsterType::None;
+
+	/* 몬스터 킬 알림 (GameMode가 Subscribe) */
+	UPROPERTY(BlueprintAssignable, Category = "Monster|Events")
+	FOnMonsterKilled OnMonsterKilled;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful", meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
 	float AlertDistance = 300.0f;
@@ -140,6 +165,10 @@ protected:
 
 	void SetServerState(EMonsterState NewState);
 
+	/* 마지막 공격자 추적 (보상 지급용) */
+	UPROPERTY(Replicated)
+	APlayerController* LastAttackerController = nullptr;
+
 public:
 	void SetAIActive(bool bActive);
 
@@ -207,10 +236,16 @@ public:
 public:
 	void ReceiveDamage(float Damage);
 
+	/* 데미지를 준 공격자 추적 */
+	void ReceiveDamageFrom(float Damage, AController* InstigatorController);
+
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 private:
 	FTimerHandle CorpseTimerHandle;
 	FTimerHandle DeathMontageTimerHandle;
 	void HideAndBroadcastDeath();
+	
+	/* 킬 알림 전송 */
+	void NotifyMonsterKilled();
 };
