@@ -501,6 +501,8 @@ void AUK_CharacterBase::SlotWeaponThree()
 }
 void AUK_CharacterBase::SwapWeapon(int32 Index)
 {
+	if ( AnimationComponent->GetCurrentComboCount() != 0 )
+		return;
 	FInventorySlot* WeaponSlot = InventoryComponent->FindWeaponSlotbyIndex(Index);
 	if ( WeaponSlot->isEmpty() )
 	{
