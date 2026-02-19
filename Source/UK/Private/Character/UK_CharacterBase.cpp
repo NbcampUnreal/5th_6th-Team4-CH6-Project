@@ -119,9 +119,9 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	}
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Move, ETriggerEvent::Triggered, this, &ThisClass::Move);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Look, ETriggerEvent::Triggered, this, &ThisClass::Look);
-	////UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Jump, ETriggerEvent::Started, this, &ThisClass::Jump);
-	////UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Jump, ETriggerEvent::Canceled, this, &ThisClass::StopJumping);
-	////UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Sprint, ETriggerEvent::Started, this, &ThisClass::Sprint);
+	//UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Jump, ETriggerEvent::Started, this, &ThisClass::Jump);
+	//UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Jump, ETriggerEvent::Canceled, this, &ThisClass::StopJumping);
+	//UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Sprint, ETriggerEvent::Started, this, &ThisClass::Sprint);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ZoomIn, ETriggerEvent::Triggered, this, &ThisClass::ZoomIn);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ZoomOut, ETriggerEvent::Triggered, this, &ThisClass::ZoomOut);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::LightAttack, ETriggerEvent::Started, this, &ThisClass::LightAttack);
