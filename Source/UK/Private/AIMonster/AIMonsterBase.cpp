@@ -483,6 +483,12 @@ void AAIMonsterBase::ResetToPassive()
 	bIsAggressive = false;
 	bIsAttacking = false;
 	Aggressor = nullptr;
+	
+	if (StatComponent)
+	{
+		StatComponent->SetHP(StatComponent->GetMaxHP());
+		UE_LOG(LogTemp, Warning, TEXT("[ResetToPassive] %s: Health restored to Max"), *GetName());
+	}
 
 	RequestState(EMonsterState::Passive);
 	
