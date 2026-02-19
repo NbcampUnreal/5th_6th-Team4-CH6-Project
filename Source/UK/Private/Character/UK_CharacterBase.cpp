@@ -4,13 +4,17 @@
 #include "Character/UK_PlayerController.h"
 #include "Character/UK_PlayerState.h"
 #include "Character/Weapon/UK_WeaponBase.h"
+#include "AIMonster/AIMonsterBase.h"
+#include "AIMonster/Component/AI_MonsterStatComponent.h"
 #include "Tags/UK_GameplayTags.h"
 #include "Animation/UK_AnimInstance.h"
 #include "ActorComponent/StatusComponent.h"
 #include "ActorComponent/UK_CombatAnimationComponent.h"
 #include "ActorComponent/UK_InventoryComponent.h"
+#include "ActorComponent/UK_InputComponent.h"
 #include "DataAsset/UK_WeaponData.h"
 #include "DataAsset/UK_StatusAnimData.h"
+#include "DataAsset/UK_InputConfig.h"
 #include "DataAsset/Data/UK_ItemData.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -19,6 +23,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "AbilitySystemComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 
 #pragma region Defualt
@@ -27,7 +32,9 @@
 
 // Sets default values
 AUK_CharacterBase::AUK_CharacterBase() :
-	NowWeapon(UK_GameplayTags::Weapon::WeaponRoot)
+	NowWeapon(UK_GameplayTags::Weapon::WeaponRoot),
+	bIsLock(false),
+	bIsCrouched(false)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
@@ -60,14 +67,16 @@ AUK_CharacterBase::AUK_CharacterBase() :
 
 #pragma endregion
 
-	MannySkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MannySkeletalMesh"));
-	MannySkeletalMesh->SetupAttachment(GetMesh());
+	CharactorMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("CharactorMesh"));
+	CharactorMesh->SetupAttachment(GetMesh());
 
 	RightHandWeaponComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RightHandWeaponComponent"));
-	RightHandWeaponComponent->SetupAttachment(MannySkeletalMesh, TEXT("Weapon_rSocket"));
+	RightHandWeaponComponent->SetupAttachment(CharactorMesh, TEXT("Weapon_rSocket"));
+	RightHandWeaponComponent->SetLeaderPoseComponent(CharactorMesh);
 
 	LeftHandWeaponComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftHandWeaponComponent"));
-	LeftHandWeaponComponent->SetupAttachment(MannySkeletalMesh, TEXT("Weapon_lSocket"));
+	LeftHandWeaponComponent->SetupAttachment(CharactorMesh, TEXT("Weapon_lSocket"));
+	LeftHandWeaponComponent->SetLeaderPoseComponent(CharactorMesh);
 
 
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
@@ -91,6 +100,35 @@ void AUK_CharacterBase::BeginPlay()
 	StatusComponent->OnDeadDelegate.AddDynamic(this, &AUK_CharacterBase::Dead);
 }
 
+void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	ULocalPlayer* LocalPlayer = GetController<APlayerController>()->GetLocalPlayer();
+	check(LocalPlayer);
+	UEnhancedInputLocalPlayerSubsystem* SubSystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer);
+	check(SubSystem);
+	if ( IsValid(InputMappingConfig) == false )
+	{
+		return;
+	}
+	SubSystem->AddMappingContext(InputMappingConfig->GetIMC(), 0);
+
+	UUK_InputComponent* UKInputComp = Cast<UUK_InputComponent>(PlayerInputComponent);
+	if ( IsValid(UKInputComp) == false )
+	{
+		return;
+	}
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Move, ETriggerEvent::Triggered, this, &ThisClass::Move);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Look, ETriggerEvent::Triggered, this, &ThisClass::Look);
+	//UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Jump, ETriggerEvent::Started, this, &ThisClass::Jump);
+	//UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Jump, ETriggerEvent::Canceled, this, &ThisClass::StopJumping);
+	//UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Sprint, ETriggerEvent::Started, this, &ThisClass::Sprint);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ZoomIn, ETriggerEvent::Triggered, this, &ThisClass::ZoomIn);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ZoomOut, ETriggerEvent::Triggered, this, &ThisClass::ZoomOut);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::LightAttack, ETriggerEvent::Started, this, &ThisClass::LightAttack);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::HeavyAttack, ETriggerEvent::Started, this, &ThisClass::HeavyAttack);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Crouch, ETriggerEvent::Started, this, &ThisClass::CrouchInput);
+}
+
 void AUK_CharacterBase::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
@@ -109,6 +147,16 @@ void AUK_CharacterBase::PossessedBy(AController* NewController)
 
 	GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
 	GiveStartupAbilities();
+}
+
+void AUK_CharacterBase::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+	if ( OnFloor.IsBound() == true)
+	{
+		OnFloor.Execute();
+
+	}
 }
 
 //// Called every frame
@@ -145,6 +193,55 @@ void AUK_CharacterBase::GiveStartupAbilities()
 
 #pragma region Input
 
+void AUK_CharacterBase::Move(const FInputActionValue& InputActionValue)
+{
+	const FVector2D MovementVector = InputActionValue.Get<FVector2D>();
+	const FRotator MovementRotation(0.f, Controller->GetControlRotation().Yaw, 0.f);
+
+	if ( FMath::IsNearlyZero(MovementVector.X) == false )
+	{
+		const FVector ForwardDirection = MovementRotation.RotateVector(FVector::ForwardVector);
+		AddMovementInput(ForwardDirection, MovementVector.X);
+	}
+
+	if ( FMath::IsNearlyZero(MovementVector.Y) == false )
+	{
+		const FVector RightDirection = MovementRotation.RotateVector(FVector::RightVector);
+		AddMovementInput(RightDirection, MovementVector.Y);
+	}
+}
+
+void AUK_CharacterBase::Look(const FInputActionValue& InputActionValue)
+{
+	const FVector2D LookAxisVector = InputActionValue.Get<FVector2D>();
+
+	if ( FMath::IsNearlyZero(LookAxisVector.X) == false )
+	{
+		AddControllerYawInput(LookAxisVector.X);
+	}
+	if ( FMath::IsNearlyZero(LookAxisVector.Y) == false )
+	{
+		AddControllerPitchInput(LookAxisVector.Y);
+	}
+}
+
+void AUK_CharacterBase::Sprint()
+{
+	if ( StatusComponent->IsDead() )
+		return;
+
+	if ( bIsSprinted == false )
+	{
+		GetCharacterMovement()->MaxWalkSpeed = 800.f;
+		bIsSprinted = true;
+	}
+	else if ( bIsSprinted == true )
+	{
+		GetCharacterMovement()->MaxWalkSpeed = 500.f;
+		bIsSprinted = false;
+	}
+}
+
 void AUK_CharacterBase::LightAttack()
 {
 	if ( StatusComponent->IsDead() )
@@ -160,6 +257,25 @@ void AUK_CharacterBase::HeavyAttack()
 		return;
 	}
 	AnimationComponent->PlayHeavyComboAnimation();
+}
+
+void AUK_CharacterBase::CrouchInput()
+{
+	if ( StatusComponent->IsDead() )
+		return;
+	if ( GetCharacterMovement()->IsFalling() == true )
+		return;
+
+	if ( bIsCrouched == true )
+	{
+		UnCrouch();
+		bIsCrouched = false;
+	}
+	else if ( bIsCrouched == false )
+	{
+		Crouch();
+		bIsCrouched = true;
+	}
 }
 
 void AUK_CharacterBase::ZoomIn()
@@ -204,7 +320,137 @@ void AUK_CharacterBase::ZoomOut()
 		12.f
 	);
 }
-// 어느 타이밍에 호출할지 고민 필요
+
+void AUK_CharacterBase::LockON()
+{
+	if ( bIsLock == false )
+	{
+		//	AUK_PlayerController* UKPC = Cast<AUK_PlayerController>(GetController());
+		//	if ( IsValid(UKPC) == false )
+		//		return;
+		//	FVector Start;
+		//	FRotator CameraRot;
+		//	const float CapsuleRadius = 50.f;
+		//	// 카메라부터 카메라가 보는 방향으로 트레이스 실시
+		//	UKPC->GetPlayerViewPoint(Start, CameraRot);
+		//	FVector ForwardVector = CameraRot.Vector();/*카메라의 방향성*/
+
+		//	float TraceDistance = 1000.f;
+		//	FVector End = Start + ( ForwardVector * TraceDistance );
+
+		//	FCollisionQueryParams Params;
+		//	Params.AddIgnoredActor(this);
+		//	FCollisionShape CollisionShape = FCollisionShape::MakeSphere(CapsuleRadius);
+
+		//	bool bHit = GetWorld()->SweepMultiByChannel(
+		//		LockOnResult,
+		//		Start,
+		//		End,
+		//		FQuat::Identity,
+		//		ECC_LockOn,/*추후에 카메라 전용 트레이스 채널로 변경 요망*/
+		//		CollisionShape,
+		//		Params
+		//	);
+		//	FColor DrawColor = bHit ? FColor::Green : FColor::Red;
+
+		//	FQuat CapsuleRot = FRotationMatrix::MakeFromZ(Start - End).ToQuat();
+		//	DrawDebugCapsule(
+		//		GetWorld(),
+		//		( Start + End ) / 2,
+		//		( End - Start ).Size(),
+		//		CapsuleRadius,
+		//		CapsuleRot,
+		//		DrawColor,
+		//		false,
+		//		1.f
+		//	);
+		//	if ( bHit )
+		//	{
+		bIsLock = true;
+		bUseControllerRotationYaw = true;
+		GetCharacterMovement()->bOrientRotationToMovement = false;
+		GetWorld()->GetTimerManager().SetTimer(
+			LockOnTimer,
+			this,
+			&AUK_CharacterBase::LockONTick,
+			0.01f,
+			true
+		);
+
+		//}
+	}
+	//else
+	//{
+	//	bIsLock = false;
+	//	GetWorld()->GetTimerManager().ClearTimer(LockOnTimer);
+	//	LockOnList.Reset();
+	//	LockOnTimer.Invalidate();
+	//}
+}
+void AUK_CharacterBase::LockONTick()
+{
+	if ( LockOnList.IsEmpty() == false )
+	{
+		int32 size = LockOnList.Num();
+		if ( size <= index )
+		{
+			index = 0;
+		}
+		AAIMonsterBase* Monster = LockOnList[ index ];
+		if ( IsValid(Monster) == false )
+		{
+			LockOnList.RemoveAtSwap(index);
+			return;
+		}
+
+		if ( Monster->IsDead() == false )
+		{
+			float Distance = FVector::Dist(GetActorLocation(), Monster->GetActorLocation());
+			if ( Distance > MaxLockDistance )
+			{
+				bIsLock = false;
+				GetWorld()->GetTimerManager().ClearTimer(LockOnTimer);
+				LockOnList.Reset();
+				LockOnTimer.Invalidate();
+				bUseControllerRotationYaw = false;
+				GetCharacterMovement()->bOrientRotationToMovement = true;
+				return;
+			}
+			const float DeltaTime = GetWorld()->GetDeltaSeconds();
+			FVector Start = GetActorLocation();
+			FVector End = Monster->GetActorLocation();
+			FRotator Target = UKismetMathLibrary::FindLookAtRotation(Start, End);
+			FRotator NowRot = GetController()->GetControlRotation();
+			FRotator NewRot = FMath::RInterpTo(
+				NowRot,
+				Target,
+				DeltaTime,
+				12.f
+			);
+
+			GetController()->SetControlRotation(NewRot);
+
+		}
+		else if ( Monster->IsDead() == true )
+		{
+			LockOnList.RemoveAtSwap(index);
+		}
+	}
+	else
+	{
+		bIsLock = false;
+		GetWorld()->GetTimerManager().ClearTimer(LockOnTimer);
+		LockOnList.Reset();
+		LockOnTimer.Invalidate();
+		bUseControllerRotationYaw = false;
+		GetCharacterMovement()->bOrientRotationToMovement = true;
+		return;
+	}
+}
+void AUK_CharacterBase::AddTarget(const TObjectPtr<AAIMonsterBase> Monster)
+{
+	LockOnList.AddUnique(Monster);
+}
 #pragma endregion
 
 #pragma region Weapon
@@ -219,10 +465,24 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 	if ( IsValid(Weapon->GetRightHandWeapon()) )
 	{
 		RightHandWeaponComponent->SetSkeletalMesh(Weapon->GetRightHandWeapon()); // todo : 이후에 서버에서 변경하도록 수정해야함 임시로 클라에서만 변경하고 있음
+
+		RightHandWeaponComponent->SetRelativeLocation(Weapon->GetRightLocationOffset());
+		RightHandWeaponComponent->SetRelativeRotation(Weapon->GetRightRotationOffset());
+	}
+	else
+	{
+		RightHandWeaponComponent->SetSkeletalMesh(nullptr);
 	}
 	if ( IsValid(Weapon->GetLeftHandWeapon()) )
 	{
 		LeftHandWeaponComponent->SetSkeletalMesh(Weapon->GetLeftHandWeapon()); // todo : 이후에 서버에서 변경하도록 수정해야함 임시로 클라에서만 변경하고 있음
+
+		LeftHandWeaponComponent->SetRelativeLocation(Weapon->GetLeftLocationOffset());
+		LeftHandWeaponComponent->SetRelativeRotation(Weapon->GetLeftRotationOffset());
+	}
+	else
+	{
+		LeftHandWeaponComponent->SetSkeletalMesh(nullptr);
 	}
 	AnimationComponent->SetNowWeapon(Weapon);
 	GetAbilitySystemComponent()->AddLooseGameplayTag(NowWeapon);
