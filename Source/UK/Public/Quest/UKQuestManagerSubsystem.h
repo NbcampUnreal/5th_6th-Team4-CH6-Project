@@ -4,6 +4,9 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "UKQuestTypes.h"
 #include "Quest/UKQuestRewardTypes.h"
+#include "Quest/UKQuestObjectiveTypes.h"
+#include "Engine/DataTable.h"
+#include "DataAsset/Data/UK_ItemData.h"
 
 // [Preset] 추가 include
 #include "Quest/UKQuestPresetAsset.h"
@@ -14,7 +17,7 @@
 
 #include "UKQuestManagerSubsystem.generated.h"
 
-UCLASS()
+UCLASS(BlueprintType, Blueprintable)
 class UK_API UUKQuestManagerSubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
@@ -56,7 +59,7 @@ protected:
 	class UDataTable* ItemDataTable;
 
 	// 데이터 테이블에서 아이템 정보를 찾아오는 헬퍼 함수
-	struct FUK_ItemData* GetItemData(FName ItemRowName);
+	const FUK_ItemData* GetItemData(FName ItemRowName) const;
 
 public:
 	// 퀘스트 보상을 실제로 지급하는 함수
@@ -66,17 +69,13 @@ public:
 protected:
 	// [Reward v2] RewardId -> RewardRow(DataTable)
 	UPROPERTY(EditDefaultsOnly, Category = "UK|Quest|Reward")
-	UDataTable* RewardDataTable = nullptr;
+	TObjectPtr<UDataTable> RewardDataTable = nullptr;
 
-	// DT 경로로 로드하기(초기 뼈대용)
 	UPROPERTY(EditDefaultsOnly, Category = "UK|Quest|Reward")
 	FSoftObjectPath RewardDataTablePath;
 
-	// RewardRow 조회
-	const FUKRewardRow* GetRewardRow(FName RewardId) const;
-
-	// Reward 적용(지급/플래그/카운터)
-	void ApplyReward(FName RewardId);
+	// RewardId로 DT를 읽어 실제 지급/반영
+	bool ApplyRewardById(FName RewardId, FName QuestId /*로그용*/);
 
 protected:
 
