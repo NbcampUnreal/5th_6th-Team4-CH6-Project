@@ -35,7 +35,9 @@ public:
 	float CurrentPower = 10.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
-	float Stamina = 10.f;
+	float MaxStamina = 10.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
+	float CurrentStamina = 10.f;
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadDelegate);
@@ -47,7 +49,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLevelStatusDelegate, int32, Level
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPowerStatusDelegate, float, Power);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStaminaStatusDelegate, float, Stamina);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStaminaStatusDelegate, float, CurrentStamina, float, MaxStamina);
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class UK_API UStatusComponent : public UActorComponent
 {
