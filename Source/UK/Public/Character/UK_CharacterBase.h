@@ -55,6 +55,7 @@ protected:
 	virtual void BeginPlay() override;
 
 protected:
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USpringArmComponent> SpringArmComp;
 
