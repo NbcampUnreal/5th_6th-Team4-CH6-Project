@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "UKQuestTypes.h"
+#include "Quest/UKQuestRewardTypes.h"
 
 // [Preset] 추가 include
 #include "Quest/UKQuestPresetAsset.h"
@@ -61,6 +62,21 @@ public:
 	// 퀘스트 보상을 실제로 지급하는 함수
 	UFUNCTION(BlueprintCallable, Category = "UK|Quest")
 	void GiveQuestReward(FName ItemRowName, int32 Amount);
+
+protected:
+	// [Reward v2] RewardId -> RewardRow(DataTable)
+	UPROPERTY(EditDefaultsOnly, Category = "UK|Quest|Reward")
+	UDataTable* RewardDataTable = nullptr;
+
+	// DT 경로로 로드하기(초기 뼈대용)
+	UPROPERTY(EditDefaultsOnly, Category = "UK|Quest|Reward")
+	FSoftObjectPath RewardDataTablePath;
+
+	// RewardRow 조회
+	const FUKRewardRow* GetRewardRow(FName RewardId) const;
+
+	// Reward 적용(지급/플래그/카운터)
+	void ApplyReward(FName RewardId);
 
 protected:
 
