@@ -138,6 +138,6 @@ protected:
 	void  SetFlag(FQuestProgress& P, FName FlagKey);
 
 	bool  IsObjectiveComplete(const FQuestProgress& P, const FUKQuestObjectiveDef& Obj, FName QuestId) const;
-	void  TryAutoCompleteQuest(FName QuestId);
-
-};
+	void  TryAutoCompleteQuest(FName QuestId); 
+	 
+}; 
