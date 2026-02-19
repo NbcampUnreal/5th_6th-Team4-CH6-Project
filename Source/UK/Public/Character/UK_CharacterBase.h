@@ -25,11 +25,9 @@ class UUK_CombatAnimationComponent;
 class UUK_InventoryComponent;
 class UAIPerceptionStimuliSourceComponent;
 class AAIMonsterBase;
-class UUK_InputConfig;
 struct FInputActionValue;
 #pragma endregion
 
-DECLARE_DYNAMIC_DELEGATE(FOnFloorDelagate);
 UCLASS()
 class UK_API AUK_CharacterBase : public ACharacter, public IAbilitySystemInterface
 {
@@ -47,8 +45,6 @@ public:
 
 	virtual void PossessedBy(AController* NewController) override;
 
-	virtual void Landed(const FHitResult& Hit) override;
-
 	virtual void OnRep_PlayerState();
 	TObjectPtr<USkeletalMeshComponent> GetRightHandWeapon() { return RightHandWeaponComponent; }
 	TObjectPtr<USkeletalMeshComponent> GetLeftHandWeapon() { return LeftHandWeaponComponent; }
@@ -57,7 +53,6 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -100,33 +95,18 @@ private:
 
 #pragma region Input
 protected:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-	UUK_InputConfig* InputMappingConfig;
-protected:
-
-	UFUNCTION()
-	void Move(const FInputActionValue& InputActionValue);
-
-	UFUNCTION()
-	void Look(const FInputActionValue& InputActionValue);
-
-	UFUNCTION()
-	void Sprint();
-
-	UFUNCTION()
-	void ZoomIn();
-
-	UFUNCTION()
-	void ZoomOut();
-	
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void LightAttack();
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void HeavyAttack();
 
-	UFUNCTION()
-	void CrouchInput();
+	UFUNCTION(BlueprintCallable)
+	void ZoomIn();
+
+	UFUNCTION(BlueprintCallable)
+	void ZoomOut();
+
 
 public:
 	UFUNCTION(BlueprintCallable)
@@ -139,16 +119,10 @@ public:
 
 	bool Locking()const { return bIsLock; }
 protected:
-
 	bool bIsLock;
-
-	bool bIsCrouched;
-
-	bool bIsSprinted;
 
 	UPROPERTY()
 	TArray<TObjectPtr<AAIMonsterBase>> LockOnList;
-
 	int32 index;
 
 	FTimerHandle LockOnTimer;
@@ -187,6 +161,7 @@ public:
 	UFUNCTION()
 	void Dead();
 
-	FOnFloorDelagate OnFloor;
+	UPROPERTY(BlueprintAssignable)
+	FOnDeadDelegate OnDead;
 #pragma endregion
 };

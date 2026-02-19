@@ -29,19 +29,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void EmitQuestEvent(FName EventId);
 
-protected:
-	// 에디터에서 할당할 아이템 정보 데이터 테이블 
-	UPROPERTY(EditDefaultsOnly, Category = "UK|Config")
-	class UDataTable* ItemDataTable;
-
-	// 데이터 테이블에서 아이템 정보를 찾아오는 헬퍼 함수 
-	struct FUK_ItemData* GetItemData(FName ItemRowName);
-
-public:
-	// 퀘스트 보상을 실제로 지급하는 함수 
-	UFUNCTION(BlueprintCallable, Category = "UK|Quest")
-	void GiveQuestReward(FName ItemRowName, int32 Amount);
-
 	// ---- Save/Load ----
 	UFUNCTION(BlueprintCallable)
 	bool SaveToSlot(const FString& SlotName = TEXT("UK_Save"), int32 UserIndex = 0);

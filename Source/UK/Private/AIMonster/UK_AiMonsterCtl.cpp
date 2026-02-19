@@ -6,7 +6,6 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
-#include "Character/UK_CharacterBase.h"  
 #include "DrawDebugHelpers.h"
 
 AUK_AiMonsterCtl::AUK_AiMonsterCtl()
@@ -14,13 +13,14 @@ AUK_AiMonsterCtl::AUK_AiMonsterCtl()
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickInterval = ControllerTickInterval;
 
+	// ===== AIPerception 설정 =====
 	AIPerceptionComp = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerceptionComp"));
 	SetPerceptionComponent(*AIPerceptionComp);
 
 	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("SightConfig"));
 	SightConfig->SightRadius = 1200.f;
 	SightConfig->LoseSightRadius = 1500.f;
-	SightConfig->PeripheralVisionAngleDegrees = 360.f;
+	SightConfig->PeripheralVisionAngleDegrees = 360.f;  // 전방위
 	SightConfig->SetMaxAge(5.f);
 
 	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
@@ -39,17 +39,13 @@ void AUK_AiMonsterCtl::OnPossess(APawn* InPawn)
 	if (!ControlledMonster) return;
 	
 	ControlledMonster->bUseControllerRotationYaw = false;
-	
 	if (UCharacterMovementComponent* MoveComp = ControlledMonster->GetCharacterMovement())
 	{
-		MoveComp->bUseControllerDesiredRotation = false;
-		MoveComp->bOrientRotationToMovement = true;
-		MoveComp->RotationRate = FRotator(0.f, 540.f, 0.f);
-		
-		MoveComp->bEnablePhysicsInteraction = false;  
-		MoveComp->bSweepWhileNavWalking = true;  
+		MoveComp->bUseControllerDesiredRotation = true;
+		MoveComp->RotationRate = FRotator(0.f, 480.f, 0.f);
 	}
 
+	// Perception 반경을 몬스터 설정에 맞게 조정
 	if (SightConfig)
 	{
 		SightConfig->SightRadius = ControlledMonster->DetectionRadius;
@@ -58,9 +54,11 @@ void AUK_AiMonsterCtl::OnPossess(APawn* InPawn)
 		AIPerceptionComp->RequestStimuliListenerUpdate();
 	}
 
+	// Perception 이벤트 바인딩
 	AIPerceptionComp->OnTargetPerceptionUpdated.AddDynamic(
 		this, &AUK_AiMonsterCtl::OnPerceptionUpdated);
 
+	// ===== BehaviorTree =====
 	if (ControlledMonster->BehaviorTree)
 	{
 		RunBehaviorTree(ControlledMonster->BehaviorTree);
@@ -78,6 +76,7 @@ void AUK_AiMonsterCtl::OnPossess(APawn* InPawn)
 		ControlledMonster->RequestState(EMonsterState::Idle);
 	}
 
+	// ===== RVO =====
 	if (bUseRVOAvoidance)
 	{
 		if (ACharacter* Char = Cast<ACharacter>(InPawn))
@@ -113,56 +112,46 @@ void AUK_AiMonsterCtl::OnUnPossess()
 
 void AUK_AiMonsterCtl::UpdateFocusOnTarget(AActor* NewTarget)
 {
-	// Focus 사용 안 함
+	if (NewTarget)
+	{
+		SetFocus(NewTarget, EAIFocusPriority::Gameplay);
+	}
+	else
+	{
+		ClearFocus(EAIFocusPriority::Gameplay);
+	}
 }
 
 /* ============================================================ */
-/* 플레이어 판별                                                  */
+/* AIPerception 이벤트 콜백                                      */
+/* 타겟 감지/소실 시에만 호출 (매 틱 X)                            */
 /* ============================================================ */
-
-bool AUK_AiMonsterCtl::IsPlayerCharacter(AActor* Actor) const
-{
-	if (!Actor) return false;
-
-	if (Cast<AUK_CharacterBase>(Actor))
-	{
-		return true;
-	}
-
-	if (APawn* TestPawn = Cast<APawn>(Actor))
-	{
-		if (TestPawn->IsPlayerControlled())
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
 
 void AUK_AiMonsterCtl::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
 	if (!ControlledMonster || !HasAuthority() || !Actor) return;
 
-	if (!IsPlayerCharacter(Actor))
-	{
-		return;
-	}
+	// 몬스터끼리는 무시
+	if (Cast<AAIMonsterBase>(Actor)) return;
 
 	UBlackboardComponent* BB = GetBlackboardComponent();
 
 	if (Stimulus.WasSuccessfullySensed())
 	{
+		// 타겟 감지됨
 		CurrentTarget = Actor;
 
 		if (BB)
 		{
 			BB->SetValueAsObject(TEXT("TargetPlayer"), Actor);
 		}
+
+		UpdateFocusOnTarget(Actor);
 		
-		UE_LOG(LogTemp, Log, TEXT("[Perception] %s detected player: %s"),
+		UE_LOG(LogTemp, Log, TEXT("[Perception] %s detected: %s"),
 			*ControlledMonster->GetName(), *Actor->GetName());
 
+		// BT 미사용 시 상태 전환
 		if (!ControlledMonster->BehaviorTree)
 		{
 			float Dist = FVector::Dist(
@@ -176,6 +165,7 @@ void AUK_AiMonsterCtl::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 	}
 	else
 	{
+		// 타겟 소실됨
 		if (CurrentTarget == Actor)
 		{
 			CurrentTarget = nullptr;
@@ -184,8 +174,10 @@ void AUK_AiMonsterCtl::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 			{
 				BB->ClearValue(TEXT("TargetPlayer"));
 			}
+
+			UpdateFocusOnTarget(nullptr);
 			
-			UE_LOG(LogTemp, Log, TEXT("[Perception] %s lost player: %s"),
+			UE_LOG(LogTemp, Log, TEXT("[Perception] %s lost: %s"),
 				*ControlledMonster->GetName(), *Actor->GetName());
 
 			if (!ControlledMonster->BehaviorTree)
@@ -197,7 +189,7 @@ void AUK_AiMonsterCtl::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 }
 
 /* ============================================================ */
-/* Tick                                                          */
+/* Tick — BT 사용 시 디버그만, 미사용 시 Fallback                 */
 /* ============================================================ */
 
 void AUK_AiMonsterCtl::Tick(float DeltaSeconds)
@@ -210,6 +202,7 @@ void AUK_AiMonsterCtl::Tick(float DeltaSeconds)
 
 	if (!ControlledMonster || !HasAuthority()) return;
 
+	// BT 사용 중이면 Tick AI 로직 스킵
 	if (ControlledMonster->BehaviorTree && GetBrainComponent())
 	{
 		if (UBlackboardComponent* BB = GetBlackboardComponent())
@@ -218,11 +211,13 @@ void AUK_AiMonsterCtl::Tick(float DeltaSeconds)
 			if (BBTarget != CurrentTarget)
 			{
 				CurrentTarget = BBTarget;
+				UpdateFocusOnTarget(CurrentTarget);
 			}
 		}
 		return;
 	}
 
+	// Fallback: BT 미사용 시만
 	UpdateState();
 	HandleMovement();
 }
@@ -246,6 +241,7 @@ void AUK_AiMonsterCtl::UpdateState()
 	else
 	{
 		CurrentTarget = nullptr;
+		UpdateFocusOnTarget(nullptr);
 		ControlledMonster->RequestState(EMonsterState::Patrol);
 	}
 }
@@ -275,7 +271,7 @@ void AUK_AiMonsterCtl::SetNewPatrolTarget()
 {
 	if (!ControlledMonster) return;
 
-	FVector Origin = ControlledMonster->SpawnLocation;
+	FVector Origin = ControlledMonster->GetActorLocation();
 	FVector RandomOffset = FMath::VRand() * FMath::FRandRange(200.f, PatrolRadius);
 	RandomOffset.Z = 0.f;
 

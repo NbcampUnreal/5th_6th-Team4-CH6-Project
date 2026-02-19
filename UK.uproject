@@ -12,8 +12,7 @@
 				"Engine",
 				"AIModule",
 				"UMG",
-				"UMGEditor",
-				"EnhancedInput"
+				"UMGEditor"
 			]
 		}
 	],

@@ -3,14 +3,12 @@
 #include "AIMonster/AIMonsterBase.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
-#include "Kismet/KismetMathLibrary.h"
 
 UUK_BTTask_Attack::UUK_BTTask_Attack()
 {
 	NodeName = "Attack (Montage)";
-	bNotifyTick = false;         
-	bCreateNodeInstance = true;
+	bNotifyTick = true;
+	bCreateNodeInstance = true;  // 인스턴스별 상태 보관
 }
 
 EBTNodeResult::Type UUK_BTTask_Attack::ExecuteTask(
@@ -22,59 +20,82 @@ EBTNodeResult::Type UUK_BTTask_Attack::ExecuteTask(
 	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(AICon->GetPawn());
 	if (!Monster || Monster->IsDead()) return EBTNodeResult::Failed;
 
-	// ★★★ 이동 완전 정지 (텔레포트 방지)
-	AICon->StopMovement();
-	if (UCharacterMovementComponent* MoveComp = Monster->GetCharacterMovement())
-	{
-		MoveComp->StopMovementImmediately();
-	}
+	// 초기화
+	bMontageStarted = false;
+	FacingWaitElapsed = 0.f;
 
-	// 타겟 방향 회전
-	UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
-	if (BB)
-	{
-		AActor* TargetPlayer = Cast<AActor>(BB->GetValueAsObject(TEXT("TargetPlayer")));
-		if (TargetPlayer)
-		{
-			FVector DirectionToTarget = TargetPlayer->GetActorLocation() - Monster->GetActorLocation();
-			DirectionToTarget.Z = 0.f;
-			
-			if (!DirectionToTarget.IsNearlyZero())
-			{
-				FRotator TargetRotation = DirectionToTarget.Rotation();
-				Monster->SetActorRotation(TargetRotation);
-			}
-		}
-	}
-
-	// 공격 몽타주 재생
-	if (!Monster->PlayRandomAttackMontage())
-	{
-		return EBTNodeResult::Failed;
-	}
-
-	CachedOwnerComp = &OwnerComp;
-	Monster->OnAttackFinished.BindUObject(this, &UUK_BTTask_Attack::OnAttackFinished);
-
+	//TickTask에서 회전 체크 후 공격
 	return EBTNodeResult::InProgress;
 }
 
-void UUK_BTTask_Attack::OnAttackFinished(bool bSucceeded)
+void UUK_BTTask_Attack::TickTask(
+	UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
-	if (!CachedOwnerComp.IsValid()) return;
-
-	UBehaviorTreeComponent& OwnerComp = *CachedOwnerComp.Get();
-
-	if (AAIController* AICon = OwnerComp.GetAIOwner())
+	AAIController* AICon = OwnerComp.GetAIOwner();
+	if (!AICon)
 	{
-		if (AAIMonsterBase* Monster = Cast<AAIMonsterBase>(AICon->GetPawn()))
-		{
-			Monster->OnAttackFinished.Unbind();
-		}
+		FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
+		return;
 	}
 
-	FinishLatentTask(OwnerComp, bSucceeded ? EBTNodeResult::Succeeded : EBTNodeResult::Failed);
-	CachedOwnerComp.Reset();
+	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(AICon->GetPawn());
+	if (!Monster || Monster->IsDead())
+	{
+		FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
+		return;
+	}
+
+	if (!bMontageStarted)
+	{
+		FacingWaitElapsed += DeltaSeconds;
+
+		// 타겟 방향 체크
+		bool bFacingTarget = false;
+
+		UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
+		if (BB)
+		{
+			AActor* Target = Cast<AActor>(BB->GetValueAsObject(TEXT("TargetPlayer")));
+			if (Target)
+			{
+				FVector ToTarget = (Target->GetActorLocation() - Monster->GetActorLocation()).GetSafeNormal2D();
+				FVector MonsterForward = Monster->GetActorForwardVector().GetSafeNormal2D();
+
+				float DotProduct = FVector::DotProduct(MonsterForward, ToTarget);
+				float AngleDeg = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(DotProduct, -1.f, 1.f)));
+
+				bFacingTarget = (AngleDeg <= FacingAngleTolerance);
+			}
+			else
+			{
+				// 타겟 없으면 그냥 공격
+				bFacingTarget = true;
+			}
+		}
+		else
+		{
+			bFacingTarget = true;
+		}
+
+		// 타겟을 바라보고 있거나, 대기 시간 초과 시 공격 시작
+		if (bFacingTarget || FacingWaitElapsed >= MaxFacingWaitTime)
+		{
+			if (!Monster->PlayRandomAttackMontage())
+			{
+				FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
+				return;
+			}
+
+			bMontageStarted = true;
+		}
+
+		return;  // 아직 회전 중이면 다음 틱 대기
+	}
+
+	if (!Monster->bIsAttacking)
+	{
+		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+	}
 }
 
 EBTNodeResult::Type UUK_BTTask_Attack::AbortTask(
@@ -86,7 +107,6 @@ EBTNodeResult::Type UUK_BTTask_Attack::AbortTask(
 		AAIMonsterBase* Monster = Cast<AAIMonsterBase>(AICon->GetPawn());
 		if (Monster)
 		{
-			Monster->OnAttackFinished.Unbind();
 			Monster->bIsAttacking = false;
 			if (UAnimInstance* Anim = Monster->GetMesh()->GetAnimInstance())
 			{
@@ -95,6 +115,7 @@ EBTNodeResult::Type UUK_BTTask_Attack::AbortTask(
 		}
 	}
 
-	CachedOwnerComp.Reset();
+	bMontageStarted = false;
+	FacingWaitElapsed = 0.f;
 	return EBTNodeResult::Aborted;
 }
