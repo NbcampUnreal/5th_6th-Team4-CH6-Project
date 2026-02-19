@@ -54,12 +54,13 @@ protected:
 	UPROPERTY(meta = ( BindWidget ))
 	UTextBlock* LevelText;
 
-	// 스테미나 변수가 변할 때 실행될 함수
-	// UFUNCTION()
-	// void UpdateStaminaBar(float CurrentStamina);
+	// 스테미나가 변할 때 실행될 함수
+	UFUNCTION()
+	void UpdateStaminaBar(float CurrentStamina, float MaxStamina);
 
-	// UPROPERTY(meta = ( BindWidget ))
-	// class UProgressBar* StaminaBar;
+	// 스테미나 게이지 바
+	UPROPERTY(meta = ( BindWidget ))
+	class UProgressBar* StaminaBar;
 
 	// 인벤토리 버튼
 	UFUNCTION()

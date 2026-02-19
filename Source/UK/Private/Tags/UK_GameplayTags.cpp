@@ -7,13 +7,15 @@ namespace UK_GameplayTags
 {
 	namespace Input
 	{
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(InputMove, "Input.Default.Move", "Default Movement Ability")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(InputLook, "Input.Default.Look", "Default Movement Ability")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(InputJump, "Input.Default.Jump", "Default Movement Ability")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(InputSprint, "Input.Default.Sprint", "Default Movement Ability")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(InputZoomIn, "Input.Default.Zoom.In", "Default Movement Ability")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(InputZoomOut, "Input.Default.Zoom.Out", "Default Movement Ability")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(InputAttack, "Input.Default.Attack", "Default Movement Ability")
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Move, "Input.Default.Move", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Look, "Input.Default.Look", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Jump, "Input.Default.Jump", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Sprint, "Input.Default.Sprint", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(ZoomIn, "Input.Default.Zoom.In", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(ZoomOut, "Input.Default.Zoom.Out", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(LightAttack, "Input.Default.LightAttack", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HeavyAttack, "Input.Default.HeavyAttack", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Crouch, "Input.Default.Crouch", "Default Movement Ability")
 	}
 	namespace Weapon
 	{

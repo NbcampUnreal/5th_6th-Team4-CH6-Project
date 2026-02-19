@@ -11,8 +11,10 @@
 #include "ActorComponent/StatusComponent.h"
 #include "ActorComponent/UK_CombatAnimationComponent.h"
 #include "ActorComponent/UK_InventoryComponent.h"
+#include "ActorComponent/UK_InputComponent.h"
 #include "DataAsset/UK_WeaponData.h"
 #include "DataAsset/UK_StatusAnimData.h"
+#include "DataAsset/UK_InputConfig.h"
 #include "DataAsset/Data/UK_ItemData.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -31,7 +33,8 @@
 // Sets default values
 AUK_CharacterBase::AUK_CharacterBase() :
 	NowWeapon(UK_GameplayTags::Weapon::WeaponRoot),
-	bIsLock(false)
+	bIsLock(false),
+	bIsCrouched(false)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
@@ -69,9 +72,11 @@ AUK_CharacterBase::AUK_CharacterBase() :
 
 	RightHandWeaponComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RightHandWeaponComponent"));
 	RightHandWeaponComponent->SetupAttachment(CharactorMesh, TEXT("Weapon_rSocket"));
+	RightHandWeaponComponent->SetLeaderPoseComponent(CharactorMesh);
 
 	LeftHandWeaponComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftHandWeaponComponent"));
 	LeftHandWeaponComponent->SetupAttachment(CharactorMesh, TEXT("Weapon_lSocket"));
+	LeftHandWeaponComponent->SetLeaderPoseComponent(CharactorMesh);
 
 
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
@@ -93,6 +98,35 @@ void AUK_CharacterBase::BeginPlay()
 	Super::BeginPlay();
 
 	StatusComponent->OnDeadDelegate.AddDynamic(this, &AUK_CharacterBase::Dead);
+}
+
+void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	ULocalPlayer* LocalPlayer = GetController<APlayerController>()->GetLocalPlayer();
+	check(LocalPlayer);
+	UEnhancedInputLocalPlayerSubsystem* SubSystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer);
+	check(SubSystem);
+	if ( IsValid(InputMappingConfig) == false )
+	{
+		return;
+	}
+	SubSystem->AddMappingContext(InputMappingConfig->GetIMC(), 0);
+
+	UUK_InputComponent* UKInputComp = Cast<UUK_InputComponent>(PlayerInputComponent);
+	if ( IsValid(UKInputComp) == false )
+	{
+		return;
+	}
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Move, ETriggerEvent::Triggered, this, &ThisClass::Move);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Look, ETriggerEvent::Triggered, this, &ThisClass::Look);
+	////UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Jump, ETriggerEvent::Started, this, &ThisClass::Jump);
+	////UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Jump, ETriggerEvent::Canceled, this, &ThisClass::StopJumping);
+	////UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Sprint, ETriggerEvent::Started, this, &ThisClass::Sprint);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ZoomIn, ETriggerEvent::Triggered, this, &ThisClass::ZoomIn);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ZoomOut, ETriggerEvent::Triggered, this, &ThisClass::ZoomOut);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::LightAttack, ETriggerEvent::Started, this, &ThisClass::LightAttack);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::HeavyAttack, ETriggerEvent::Started, this, &ThisClass::HeavyAttack);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Crouch, ETriggerEvent::Started, this, &ThisClass::CrouchInput);
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -159,6 +193,55 @@ void AUK_CharacterBase::GiveStartupAbilities()
 
 #pragma region Input
 
+void AUK_CharacterBase::Move(const FInputActionValue& InputActionValue)
+{
+	const FVector2D MovementVector = InputActionValue.Get<FVector2D>();
+	const FRotator MovementRotation(0.f, Controller->GetControlRotation().Yaw, 0.f);
+
+	if ( FMath::IsNearlyZero(MovementVector.X) == false )
+	{
+		const FVector ForwardDirection = MovementRotation.RotateVector(FVector::ForwardVector);
+		AddMovementInput(ForwardDirection, MovementVector.X);
+	}
+
+	if ( FMath::IsNearlyZero(MovementVector.Y) == false )
+	{
+		const FVector RightDirection = MovementRotation.RotateVector(FVector::RightVector);
+		AddMovementInput(RightDirection, MovementVector.Y);
+	}
+}
+
+void AUK_CharacterBase::Look(const FInputActionValue& InputActionValue)
+{
+	const FVector2D LookAxisVector = InputActionValue.Get<FVector2D>();
+
+	if ( FMath::IsNearlyZero(LookAxisVector.X) == false )
+	{
+		AddControllerYawInput(LookAxisVector.X);
+	}
+	if ( FMath::IsNearlyZero(LookAxisVector.Y) == false )
+	{
+		AddControllerPitchInput(LookAxisVector.Y);
+	}
+}
+
+void AUK_CharacterBase::Sprint()
+{
+	if ( StatusComponent->IsDead() )
+		return;
+
+	if ( bIsSprinted == false )
+	{
+		GetCharacterMovement()->MaxWalkSpeed = 800.f;
+		bIsSprinted = true;
+	}
+	else if ( bIsSprinted == true )
+	{
+		GetCharacterMovement()->MaxWalkSpeed = 500.f;
+		bIsSprinted = false;
+	}
+}
+
 void AUK_CharacterBase::LightAttack()
 {
 	if ( StatusComponent->IsDead() )
@@ -174,6 +257,25 @@ void AUK_CharacterBase::HeavyAttack()
 		return;
 	}
 	AnimationComponent->PlayHeavyComboAnimation();
+}
+
+void AUK_CharacterBase::CrouchInput()
+{
+	if ( StatusComponent->IsDead() )
+		return;
+	if ( GetCharacterMovement()->IsFalling() == true )
+		return;
+
+	if ( bIsCrouched == true )
+	{
+		UnCrouch();
+		bIsCrouched = false;
+	}
+	else if ( bIsCrouched == false )
+	{
+		Crouch();
+		bIsCrouched = true;
+	}
 }
 
 void AUK_CharacterBase::ZoomIn()

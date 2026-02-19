@@ -114,12 +114,12 @@ void UStatusComponent::TakeStamina(const float CurrentStamina)
 	if ( !IsValid(GetOwner()) || GetOwnerRole() != ROLE_Authority )
 		return;
 
-	if ( Status.Stamina < CurrentStamina )
+	if ( Status.CurrentStamina < CurrentStamina )
 		return;
 
-	SetStamina(Status.Stamina - CurrentStamina);
+	SetStamina(Status.CurrentStamina - CurrentStamina);
 
-	StaminaStatusDelegate.Broadcast(Status.Stamina);
+	StaminaStatusDelegate.Broadcast(Status.CurrentStamina, Status.MaxStamina);
 }
 
 bool UStatusComponent::IsDead() const
@@ -133,7 +133,7 @@ void UStatusComponent::OnRepStatus()
 	MpStatusDelegate.Broadcast(Status.CurrentMp, Status.MaxMp);
 	LevelStatusDelegate.Broadcast(Status.Level);
 	PowerStatusDelegate.Broadcast(Status.Power);
-	StaminaStatusDelegate.Broadcast(Status.Stamina);
+	StaminaStatusDelegate.Broadcast(Status.CurrentStamina, Status.MaxStamina);
 }
 
 #pragma endregion
