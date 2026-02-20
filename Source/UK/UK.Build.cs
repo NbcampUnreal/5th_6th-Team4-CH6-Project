@@ -26,7 +26,8 @@ public class UK : ModuleRules
             "OnlineSubsystem",
             "OnlineSubsystemUtils",
 			"Json",
-			"JsonUtilities"
+			"JsonUtilities",
+			"AssetRegistry"
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
