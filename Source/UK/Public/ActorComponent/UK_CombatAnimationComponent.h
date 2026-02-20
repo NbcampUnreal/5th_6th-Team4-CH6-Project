@@ -40,7 +40,7 @@ public:
 	//virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	// Called when the game starts
 	virtual void BeginPlay() override;
-
+	uint8 GetCurrentComboCount() const { return CurrentComboCount; }
 protected:
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentComboCount, BlueprintReadOnly, Category = "Combat")
 	uint8 CurrentComboCount;

@@ -25,8 +25,10 @@ class UUK_CombatAnimationComponent;
 class UUK_InventoryComponent;
 class UAIPerceptionStimuliSourceComponent;
 class AAIMonsterBase;
+class UUK_InputConfig;
 struct FInputActionValue;
 #pragma endregion
+
 DECLARE_DYNAMIC_DELEGATE(FOnFloorDelagate);
 UCLASS()
 class UK_API AUK_CharacterBase : public ACharacter, public IAbilitySystemInterface
@@ -55,8 +57,10 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 protected:
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USpringArmComponent> SpringArmComp;
 
@@ -97,18 +101,33 @@ private:
 
 #pragma region Input
 protected:
-	UFUNCTION(BlueprintCallable)
-	void LightAttack();
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	UUK_InputConfig* InputMappingConfig;
+protected:
 
-	UFUNCTION(BlueprintCallable)
-	void HeavyAttack();
+	UFUNCTION()
+	void Move(const FInputActionValue& InputActionValue);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
+	void Look(const FInputActionValue& InputActionValue);
+
+	UFUNCTION()
+	void Sprint();
+
+	UFUNCTION()
 	void ZoomIn();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void ZoomOut();
+	
+	UFUNCTION()
+	void LightAttack();
 
+	UFUNCTION()
+	void HeavyAttack();
+
+	UFUNCTION()
+	void CrouchInput();
 
 public:
 	UFUNCTION(BlueprintCallable)
@@ -121,10 +140,16 @@ public:
 
 	bool Locking()const { return bIsLock; }
 protected:
+
 	bool bIsLock;
+
+	bool bIsCrouched;
+
+	bool bIsSprinted;
 
 	UPROPERTY()
 	TArray<TObjectPtr<AAIMonsterBase>> LockOnList;
+
 	int32 index;
 
 	FTimerHandle LockOnTimer;

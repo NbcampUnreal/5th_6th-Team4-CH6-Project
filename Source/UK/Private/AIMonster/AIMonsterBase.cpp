@@ -8,6 +8,8 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BrainComponent.h"
 #include "TimerManager.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 AAIMonsterBase::AAIMonsterBase()
 {
@@ -17,6 +19,22 @@ AAIMonsterBase::AAIMonsterBase()
 	SetReplicateMovement(true);
 	StatComponent = CreateDefaultSubobject<UAI_MonsterStatComponent>(TEXT("StatComponent"));
 	NetDormancy = DORM_DormantAll;
+	
+	bUseControllerRotationYaw = false;
+	
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->bOrientRotationToMovement = true;
+		GetCharacterMovement()->bUseControllerDesiredRotation = false;
+		GetCharacterMovement()->RotationRate = FRotator(0.f, 540.f, 0.f);
+		
+		GetCharacterMovement()->NetworkSimulatedSmoothLocationTime = 0.15f;
+		GetCharacterMovement()->NetworkSimulatedSmoothRotationTime = 0.15f;
+		GetCharacterMovement()->ListenServerNetworkSimulatedSmoothLocationTime = 0.15f;
+		GetCharacterMovement()->ListenServerNetworkSimulatedSmoothRotationTime = 0.15f;
+		GetCharacterMovement()->NetworkMaxSmoothUpdateDistance = 256.f;
+		GetCharacterMovement()->NetworkNoSmoothUpdateDistance = 512.f;
+	}
 }
 
 void AAIMonsterBase::BeginPlay()
@@ -31,24 +49,24 @@ void AAIMonsterBase::BeginPlay()
 		{
 			CurrentState = EMonsterState::Passive;
 		}
-	}
-
-	if (StatComponent)
-	{
-		StatComponent->OnDeath.AddDynamic(this, &AAIMonsterBase::Die);
+		
+		UE_LOG(LogTemp, Warning, TEXT("[BeginPlay] %s: Initialized (Type=%d)"), 
+			*GetName(), (int32)MonsterType);
 	}
 }
 
-// Tick() 제거
-// 타겟 탐지: AIPerceptionComponent (이벤트 콜백)
-// 타겟 갱신: BTService_DetectPlayer (0.5초 주기)
-// AI 판단: BehaviorTree
-// 공격: 몽타주 + AnimNotifyState (이벤트)
-// 상태 전환: RequestState → OnStateChanged 델리게이트
-
-/* =============================== */
-/*         서버 상태 관리            */
-/* =============================== */
+void AAIMonsterBase::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	
+	if (HasAuthority() && StatComponent)
+	{
+		StatComponent->OnDeath.RemoveAll(this);
+		StatComponent->OnDeath.AddDynamic(this, &AAIMonsterBase::Die);
+		
+		UE_LOG(LogTemp, Warning, TEXT("[PostInit] %s: OnDeath delegate bound"), *GetName());
+	}
+}
 
 void AAIMonsterBase::RequestState_Implementation(EMonsterState NewState)
 {
@@ -68,7 +86,6 @@ void AAIMonsterBase::SetServerState(EMonsterState NewState)
 
 void AAIMonsterBase::OnRep_MonsterState()
 {
-	// Dormancy만 관리 Tick 토글 제거
 	switch (CurrentState)
 	{
 	case EMonsterState::Idle:
@@ -88,13 +105,10 @@ void AAIMonsterBase::OnRep_IsAggressive()
 	UE_LOG(LogTemp, Log, TEXT("[OnRep] %s bIsAggressive = %d"), *GetName(), bIsAggressive);
 }
 
-/* =============================== */
-/*      몽타주 기반 공격 시스템       */
-/* =============================== */
-
 bool AAIMonsterBase::PlayRandomAttackMontage()
 {
 	if (bIsAttacking || bIsDying) return false;
+	if (!HasAuthority()) return false;
 
 	float Now = GetWorld()->GetTimeSeconds();
 	if (Now - LastAttackTime < AttackCooldown) return false;
@@ -114,29 +128,16 @@ bool AAIMonsterBase::PlayRandomAttackMontage()
 		return false;
 	}
 
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if (!AnimInstance) return false;
-
-	float MontageLength = AnimInstance->Montage_Play(SelectedMontage, 1.0f);
-	if (MontageLength <= 0.f) return false;
-
 	bIsAttacking = true;
 	LastAttackTime = Now;
 
-	FOnMontageEnded EndDelegate;
-	EndDelegate.BindUObject(this, &AAIMonsterBase::OnAttackMontageEnded);
-	AnimInstance->Montage_SetEndDelegate(EndDelegate, SelectedMontage);
-
-	UE_LOG(LogTemp, Log, TEXT("[Attack] %s: Montage[%d] %s (%.2fs)"),
-		*GetName(), RandomIndex, *SelectedMontage->GetName(), MontageLength);
-
 	Multicast_PlayAttackMontage(RandomIndex);
+	
 	return true;
 }
 
 void AAIMonsterBase::Multicast_PlayAttackMontage_Implementation(int32 MontageIndex)
 {
-	if (HasAuthority()) return;
 	if (!AttackMontages.IsValidIndex(MontageIndex)) return;
 
 	UAnimMontage* Montage = AttackMontages[MontageIndex];
@@ -145,23 +146,47 @@ void AAIMonsterBase::Multicast_PlayAttackMontage_Implementation(int32 MontageInd
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (!AnimInstance) return;
 
-	AnimInstance->Montage_Play(Montage, 1.0f);
+	float Length = AnimInstance->Montage_Play(Montage, 1.0f);
+	
+	if (HasAuthority() && Length > 0.f)
+	{
+		FOnMontageEnded EndDelegate;
+		EndDelegate.BindUObject(this, &AAIMonsterBase::OnAttackMontageEnded);
+		AnimInstance->Montage_SetEndDelegate(EndDelegate, Montage);
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("[Attack] %s: Playing attack montage[%d] on %s"), 
+		*GetName(), MontageIndex, HasAuthority() ? TEXT("Server") : TEXT("Client"));
 }
 
 void AAIMonsterBase::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	bIsAttacking = false;
+	OnAttackFinished.ExecuteIfBound(!bInterrupted);
 }
 
 void AAIMonsterBase::Die()
 {
-	if (!HasAuthority()) return;
-	if (CurrentState == EMonsterState::Dead || bIsDying) return;
-
+	if (!HasAuthority())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Die] %s: Called on client!"), *GetName());
+		return;
+	}
+	
+	if (bIsDying)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Die] %s: ALREADY DYING! Duplicate call BLOCKED!"), *GetName());
+		return;
+	}
+	
 	bIsDying = true;
+	
+	UE_LOG(LogTemp, Warning, TEXT("[Die] %s (Type=%d): Die() CALLED"), 
+		*GetName(), (int32)MonsterType);
+
 	bIsAttacking = false;
 
-	// BT 중지 + 이동 중지 (컨트롤러는 유지! 몽타주 재생에 필요)
+	// AI 정지
 	if (AAIController* AIC = Cast<AAIController>(GetController()))
 	{
 		AIC->StopMovement();
@@ -172,17 +197,22 @@ void AAIMonsterBase::Die()
 		}
 	}
 
-	// 몽타주를 먼저 재생 (아직 Awake 상태이므로 Multicast 전달됨)
-	if (DeathMontage)
-	{
-		PlayDeathMontage();
-	}
-
-	// 그 다음 상태 변경 (Dead에서 Dormant 안 하므로 안전)
+	// 상태 변경
 	SetServerState(EMonsterState::Dead);
 
-	// 몽타주 없으면 딜레이 후 최종 처리
-	if (!DeathMontage)
+	// 사망 몽타주 재생
+	if (DeathMontage)
+	{
+		Multicast_PlayDeathMontage();
+		
+		float MontageLength = DeathMontage->GetPlayLength();
+		GetWorldTimerManager().SetTimer(
+			DeathMontageTimerHandle, this, &AAIMonsterBase::FinalizeDeath,
+			MontageLength, false);
+			
+		UE_LOG(LogTemp, Warning, TEXT("[Die] %s: Death montage timer set (%.2fs)"), *GetName(), MontageLength);
+	}
+	else
 	{
 		FTimerHandle DeathTimer;
 		GetWorldTimerManager().SetTimer(
@@ -191,62 +221,223 @@ void AAIMonsterBase::Die()
 	}
 }
 
-void AAIMonsterBase::PlayDeathMontage()
+void AAIMonsterBase::Multicast_PlayDeathMontage_Implementation()
 {
 	if (!DeathMontage) return;
 
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (!AnimInstance) return;
 
-	AnimInstance->StopAllMontages(0.2f);
-
-	float MontageLength = AnimInstance->Montage_Play(DeathMontage, 1.0f);
-	if (MontageLength > 0.f)
+	if (AnimInstance->Montage_IsPlaying(DeathMontage))
 	{
-		FOnMontageEnded EndDelegate;
-		EndDelegate.BindUObject(this, &AAIMonsterBase::OnDeathMontageEnded);
-		AnimInstance->Montage_SetEndDelegate(EndDelegate, DeathMontage);
+		UE_LOG(LogTemp, Error, TEXT("[Death] %s: Death montage ALREADY PLAYING! BLOCKED!"), *GetName());
+		return;
+	}
+
+	AnimInstance->StopAllMontages(0.2f);
+	float Length = AnimInstance->Montage_Play(DeathMontage, 1.0f);
+	
+	UE_LOG(LogTemp, Warning, TEXT("[Death] %s: Death montage STARTED (%.2fs) on %s"), 
+		*GetName(), Length, HasAuthority() ? TEXT("Server") : TEXT("Client"));
+}
+
+void AAIMonsterBase::FinalizeDeath()
+{
+	if (!HasAuthority()) return;
+	
+	UE_LOG(LogTemp, Warning, TEXT("[FinalizeDeath] %s: Starting"), *GetName());
+	
+	GetWorldTimerManager().ClearTimer(DeathMontageTimerHandle);
+	
+	if (GetCapsuleComponent())
+	{
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->DisableMovement();
+	}
+
+	if (CorpseLingerTime > 0.f)
+	{
+		GetWorldTimerManager().SetTimer(
+			CorpseTimerHandle, this, &AAIMonsterBase::HideAndBroadcastDeath,
+			CorpseLingerTime, false);
+			
+		UE_LOG(LogTemp, Warning, TEXT("[FinalizeDeath] %s: Corpse will linger %.1fs"), 
+			*GetName(), CorpseLingerTime);
 	}
 	else
 	{
-		// 재생 실패 시 바로 마무리
-		FinalizeDeath();
+		HideAndBroadcastDeath();
+	}
+}
+
+void AAIMonsterBase::HideAndBroadcastDeath()
+{
+	if (!HasAuthority()) return;
+	
+	UE_LOG(LogTemp, Warning, TEXT("[HideAndBroadcast] %s: Hiding and broadcasting"), *GetName());
+	
+	Multicast_HideCorpse();
+	SetNetDormancy(DORM_DormantAll);
+
+	// 킬 알림 전송 (서버 → GameMode)
+	NotifyMonsterKilled();
+
+	OnDeath.Broadcast(this);
+}
+
+void AAIMonsterBase::NotifyMonsterKilled()
+{
+	if (!HasAuthority()) return;
+
+	// GameMode나 다른 시스템이 이걸 받아서 보상 처리
+	OnMonsterKilled.Broadcast(this, MonsterType, LastAttackerController);
+	
+	UE_LOG(LogTemp, Error, TEXT("[Kill] %s (Type=%d) killed by %s"), 
+		*GetName(), 
+		(int32)MonsterType,
+		LastAttackerController ? *LastAttackerController->GetName() : TEXT("UNKNOWN"));
+}
+
+void AAIMonsterBase::Multicast_HideCorpse_Implementation()
+{
+	SetActorHiddenInGame(true);
+	UE_LOG(LogTemp, Log, TEXT("[HideCorpse] %s: Hidden"), *GetName());
+}
+
+void AAIMonsterBase::ResetHealth()
+{
+	if (!HasAuthority()) return;
+
+	GetWorldTimerManager().ClearTimer(CorpseTimerHandle);
+	GetWorldTimerManager().ClearTimer(DeathMontageTimerHandle);
+
+	// 플래그 리셋
+	bIsAttacking = false;
+	bIsDying = false;
+	LastAttackerController = nullptr; 
+
+	// Stat 복원
+	if (StatComponent)
+	{
+		StatComponent->SetHP(StatComponent->GetMaxHP());
 	}
 
-	Multicast_PlayDeathMontage();
+	// 상태 복원
+	if (Personality == EMonsterPersonality::Peaceful)
+	{
+		bIsAggressive = false;
+		Aggressor = nullptr;
+		SetServerState(EMonsterState::Passive);
+	}
+	else
+	{
+		SetServerState(EMonsterState::Idle);
+	}
+
+	// 충돌/이동 복원
+	if (GetCapsuleComponent())
+	{
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	}
+
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+		GetCharacterMovement()->StopMovementImmediately();
+	}
+
+	// 위치 초기화
+	SetActorLocation(SpawnLocation, false, nullptr, ETeleportType::ResetPhysics);
+	SetActorRotation(FRotator::ZeroRotator);
+
+	// Dormancy 해제
+	FlushNetDormancy();
+	SetNetDormancy(DORM_Awake);
+
+	// 외형 + 애니메이션 완전 리셋
+	Multicast_ResetAppearance();
+
+	// AI 재시작
+	if (AAIController* AIC = Cast<AAIController>(GetController()))
+	{
+		if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
+		{
+			BB->SetValueAsVector(TEXT("SpawnLocation"), SpawnLocation);
+			BB->SetValueAsVector(TEXT("PatrolLocation"), SpawnLocation);
+			BB->ClearValue(TEXT("TargetPlayer"));
+		}
+
+		if (BehaviorTree)
+		{
+			if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AIC->GetBrainComponent()))
+			{
+				BTComp->StopTree();
+				
+				FTimerHandle RestartTimer;
+				GetWorldTimerManager().SetTimer(
+					RestartTimer, 
+					[this, AIC]()
+					{
+						if (BehaviorTree && AIC && AIC->GetBrainComponent())
+						{
+							if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AIC->GetBrainComponent()))
+							{
+								BTComp->StartTree(*BehaviorTree);
+							}
+						}
+					},
+					0.5f, false);
+			}
+		}
+	}
 }
 
-void AAIMonsterBase::Multicast_PlayDeathMontage_Implementation()
+void AAIMonsterBase::Multicast_ResetAppearance_Implementation()
 {
-	if (HasAuthority()) return;
-	if (!DeathMontage) return;
+	SetActorHiddenInGame(false);
 
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if (!AnimInstance) return;
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	if (MeshComp)
+	{
+		MeshComp->SetAllBodiesSimulatePhysics(false);
+	}
 
-	AnimInstance->StopAllMontages(0.2f);
-	AnimInstance->Montage_Play(DeathMontage, 1.0f);
+	UAnimInstance* AnimInstance = MeshComp ? MeshComp->GetAnimInstance() : nullptr;
+	if (AnimInstance)
+	{
+		AnimInstance->Montage_Stop(0.f);
+		AnimInstance->StopAllMontages(0.f);
+		
+		if (UAnimMontage* CurrentMontage = AnimInstance->GetCurrentActiveMontage())
+		{
+			AnimInstance->Montage_Stop(0.f, CurrentMontage);
+		}
+	}
+
+	if (MeshComp && MeshComp->AnimClass)
+	{
+		UClass* AnimClass = MeshComp->AnimClass;
+		MeshComp->SetAnimInstanceClass(nullptr);
+		
+		FTimerHandle AnimResetTimer;
+		GetWorld()->GetTimerManager().SetTimer(
+			AnimResetTimer,
+			[this, MeshComp, AnimClass]()
+			{
+				if (MeshComp && AnimClass)
+				{
+					MeshComp->SetAnimInstanceClass(AnimClass);
+					MeshComp->InitializeAnimScriptInstance(true);
+				}
+			},
+			0.1f, false
+		);
+	}
 }
-
-void AAIMonsterBase::OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted)
-{
-	UE_LOG(LogTemp, Log, TEXT("[Death] %s: Death montage ended"), *GetName());
-	FinalizeDeath();  // 몽타주 끝난 후에 최종 처리
-}
-
-// 사망 몽타주 끝난 후 호출
-void AAIMonsterBase::FinalizeDeath()
-{
-	SetNetDormancy(DORM_DormantAll);
-	DetachFromControllerPendingDestroy();
-	OnDeath.Broadcast(this);
-	UE_LOG(LogTemp, Log, TEXT("[Death] %s: FinalizeDeath complete"), *GetName());
-}
-
-
-/* =============================== */
-/*          링크 시스템              */
-/* =============================== */
 
 void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
 {
@@ -291,56 +482,50 @@ void AAIMonsterBase::ResetToPassive()
 
 	bIsAggressive = false;
 	bIsAttacking = false;
-	bIsDying = false;
 	Aggressor = nullptr;
-
+	
 	if (StatComponent)
 	{
 		StatComponent->SetHP(StatComponent->GetMaxHP());
+		UE_LOG(LogTemp, Warning, TEXT("[ResetToPassive] %s: Health restored to Max"), *GetName());
 	}
 
 	RequestState(EMonsterState::Passive);
+	
+	UE_LOG(LogTemp, Warning, TEXT("[ResetToPassive] %s: Reset to passive"), *GetName());
 }
 
-/* =============================== */
-/*           AI 활성화              */
-/* =============================== */
-
-void AAIMonsterBase::SetAIActive(bool bActive)
-{
-	/* 로직 수정 중 */
-}
-
-/* =============================== */
-/*        Spawner / HP              */
-/* =============================== */
-
-void AAIMonsterBase::ResetHealth()
-{
-	if (!HasAuthority()) return;
-
-	if (StatComponent)
-	{
-		StatComponent->SetHP(StatComponent->GetMaxHP());
-	}
-
-	bIsAttacking = false;
-	bIsDying = false;
-
-	if (Personality == EMonsterPersonality::Peaceful)
-	{
-		ResetToPassive();
-	}
-	else
-	{
-		SetServerState(EMonsterState::Idle);
-	}
-}
+void AAIMonsterBase::SetAIActive(bool bActive) {}
 
 void AAIMonsterBase::ReceiveDamage(float Damage)
 {
 	if (!HasAuthority()) return;
-	if (bIsDying) return;
+	if (bIsDying)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ReceiveDamage] %s: Already dying, ignoring damage"), *GetName());
+		return;
+	}
+
+	// 공격자 정보가 없으면 자동으로 가장 가까운 플레이어 찾기
+	if (!LastAttackerController)
+	{
+		float ClosestDistance = 1000.0f;  // 10m 이내
+		
+		for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+		{
+			APlayerController* PC = It->Get();
+			if (!PC || !PC->GetPawn()) continue;
+
+			float Distance = FVector::Dist(GetActorLocation(), PC->GetPawn()->GetActorLocation());
+			if (Distance < ClosestDistance)
+			{
+				LastAttackerController = PC;
+				ClosestDistance = Distance;
+				UE_LOG(LogTemp, Warning, TEXT("[Damage] Auto-detected attacker: %s (%.1fm away)"), 
+					*PC->GetName(), Distance / 100.0f);
+			}
+		}
+	}
 
 	if (StatComponent)
 	{
@@ -352,7 +537,6 @@ void AAIMonsterBase::ReceiveDamage(float Damage)
 			*GetName(), Damage, BeforeHp, StatComponent->GetHP());
 	}
 
-	// 평화로운 몬스터가 처음 공격받았을 때
 	if (Personality == EMonsterPersonality::Peaceful && !bIsAggressive)
 	{
 		AActor* ClosestPlayer = nullptr;
@@ -398,9 +582,22 @@ void AAIMonsterBase::ReceiveDamage(float Damage)
 	}
 }
 
-/* =============================== */
-/*       상태별 가상 함수            */
-/* =============================== */
+void AAIMonsterBase::ReceiveDamageFrom(float Damage, AController* InstigatorController)
+{
+	if (!HasAuthority()) return;
+	if (bIsDying) return;
+
+	// 마지막 공격자 저장
+	if (InstigatorController && InstigatorController->IsA(APlayerController::StaticClass()))
+	{
+		LastAttackerController = Cast<APlayerController>(InstigatorController);
+		UE_LOG(LogTemp, Log, TEXT("[DamageFrom] %s: Last attacker set to %s"), 
+			*GetName(), *LastAttackerController->GetName());
+	}
+
+	// 기존 ReceiveDamage 로직 실행
+	ReceiveDamage(Damage);
+}
 
 void AAIMonsterBase::OnIdle() {}
 void AAIMonsterBase::OnPatrol() {}
@@ -408,7 +605,6 @@ void AAIMonsterBase::OnChase(float DeltaSeconds) {}
 
 void AAIMonsterBase::OnAttack()
 {
-	// 데미지는 AnimNotifyState_MonsterMeleeTrace에서 트레이스 처리
 	if (!HasAuthority()) return;
 	PlayRandomAttackMontage();
 }
@@ -417,10 +613,6 @@ void AAIMonsterBase::OnDead() {}
 void AAIMonsterBase::OnPassive() {}
 void AAIMonsterBase::OnAlert() {}
 
-/* =============================== */
-/*          Replication             */
-/* =============================== */
-
 void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -428,4 +620,5 @@ void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(AAIMonsterBase, CurrentState);
 	DOREPLIFETIME(AAIMonsterBase, bIsAggressive);
 	DOREPLIFETIME(AAIMonsterBase, Aggressor);
+	DOREPLIFETIME(AAIMonsterBase, LastAttackerController);  // ★★★ 추가
 }

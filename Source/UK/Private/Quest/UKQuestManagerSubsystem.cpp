@@ -1,14 +1,212 @@
 ﻿#include "Quest/UKQuestManagerSubsystem.h"
+
 #include "DataAsset/Data/UK_ItemData.h"
 #include "Kismet/GameplayStatics.h"
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "UObject/SoftObjectPath.h"
 #include "server/UKSaveGame.h"
 
+// Preset
+#include "Quest/UKQuestPresetLibrary.h" // ApplyPresetToProgress
+
+// Quest Definition / Objective / Event Parsing
+#include "Quest/DataAsset/UKQuestDefinitionAsset.h"
+#include "Quest/UKQuestObjectiveTypes.h"
+#include "Quest/UKQuestEventParsing.h"
+
+
+// [1] Subsystem Lifecycle
+void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Super::Initialize(Collection);
+
+	// [Preset] Load
+	if ( !PresetAssetPath.IsValid() )
+	{
+		PresetAssetPath = FSoftObjectPath(TEXT("DataAsset'/Game/Quests/Preset/DA_QuestPresets.DA_QuestPresets'"));
+	}
+
+	if ( PresetAssetPath.IsValid() )
+	{
+		UObject* Loaded = PresetAssetPath.TryLoad();
+		PresetAsset = Cast<UUKQuestPresetAsset>(Loaded);
+
+		if ( !PresetAsset )
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Quest][Preset] PresetAsset load FAILED. Path=%s"),
+				*PresetAssetPath.ToString());
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Quest][Preset] PresetAssetPath invalid."));
+	}
+
+	// [Reward] Load 
+	if ( !RewardDataTable ) // 에디터에서 직접 할당했으면 그걸 우선 사용
+	{
+		if ( !RewardDataTablePath.IsValid() )
+		{
+			// 예: DataTable'/Game/Rewards/DT_RewardTable.DT_RewardTable'
+			// 실제 경로는 에셋 우클릭 -> Copy Reference로 교체
+			RewardDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/Rewards/DT_RewardTable.DT_RewardTable'"));
+		}
+
+		if ( RewardDataTablePath.IsValid() )
+		{
+			UObject* LoadedDT = RewardDataTablePath.TryLoad();
+			RewardDataTable = Cast<UDataTable>(LoadedDT);
+
+			if ( !RewardDataTable )
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] RewardDataTable load FAILED. Path=%s"),
+					*RewardDataTablePath.ToString());
+			}
+			else
+			{
+				UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] RewardDataTable loaded OK. Path=%s"),
+					*RewardDataTablePath.ToString());
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] RewardDataTablePath invalid."));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] RewardDataTable already assigned in editor."));
+	}
+
+	// [Quest Definitions] Auto Scan & Register
+	{
+		const FName ScanPath = FName(TEXT("/Game/Quests"));
+
+		FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+		IAssetRegistry& Registry = ARM.Get();
+
+		FARFilter Filter;
+		Filter.bRecursivePaths = true;
+		Filter.PackagePaths.Add(ScanPath);
+
+		// UE5 권장: ClassPaths 사용
+		Filter.ClassPaths.Add(UUKQuestDefinitionAsset::StaticClass()->GetClassPathName());
+
+		TArray<FAssetData> Assets;
+		Registry.GetAssets(Filter, Assets);
+
+		int32 RegisteredCount = 0;
+
+		for ( const FAssetData& AD : Assets )
+		{
+			// 로드해서 실제 UObject 얻기
+			UObject* LoadedObj = AD.GetAsset();
+			const UUKQuestDefinitionAsset* Def = Cast<UUKQuestDefinitionAsset>(LoadedObj);
+			if ( !Def ) continue;
+
+			if ( RegisterQuestDefinition(Def) )
+			{
+				RegisteredCount++;
+				UE_LOG(LogTemp, Log, TEXT("[Quest][DefScan] Registered: %s"), *Def->QuestId.ToString());
+			}
+		}
+
+		UE_LOG(LogTemp, Log, TEXT("[Quest][DefScan] Done. Found=%d Registered=%d Path=%s"),
+			Assets.Num(), RegisteredCount, *ScanPath.ToString());
+	}
+}
+
+
+// [2] Preset Helper
+bool UUKQuestManagerSubsystem::ParseQuestTagFromQuestId(FName QuestId, EUKQuestTag& OutTag) const
+{
+	// QuestID 규칙: Q_<Zone>_<M|S|T>_<Tag>_<NNN>
+	const FString S = QuestId.ToString();
+
+	TArray<FString> Parts;
+	S.ParseIntoArray(Parts, TEXT("_"), true);
+
+	// 예: Q Start S HNT 001 -> 5토큰
+	// 즉, 퀘스트 영구키의 정상확인장치
+	if ( Parts.Num() < 5 ) return false;
+
+	const FString& TagStr = Parts[ 3 ];
+
+	if ( TagStr == "WPN" ) { OutTag = EUKQuestTag::WPN; return true; }
+	if ( TagStr == "SKL" ) { OutTag = EUKQuestTag::SKL; return true; }
+	if ( TagStr == "CFT" ) { OutTag = EUKQuestTag::CFT; return true; }
+	if ( TagStr == "EXP" ) { OutTag = EUKQuestTag::EXP; return true; }
+	if ( TagStr == "HNT" ) { OutTag = EUKQuestTag::HNT; return true; }
+	if ( TagStr == "DLV" ) { OutTag = EUKQuestTag::DLV; return true; }
+	if ( TagStr == "DIA" ) { OutTag = EUKQuestTag::DIA; return true; }
+	if ( TagStr == "ESC" ) { OutTag = EUKQuestTag::ESC; return true; }
+	if ( TagStr == "DEF" ) { OutTag = EUKQuestTag::DEF; return true; }
+	if ( TagStr == "COL" ) { OutTag = EUKQuestTag::COL; return true; }
+	if ( TagStr == "BOS" ) { OutTag = EUKQuestTag::BOS; return true; }
+	if ( TagStr == "DNG" ) { OutTag = EUKQuestTag::DNG; return true; }
+
+	return false;
+}
+
+
+// [3] Quest 기본 API
 bool UUKQuestManagerSubsystem::StartQuest(FName QuestId)
 {
 	if ( QuestId.IsNone() ) return false;
-	if ( RuntimeProgress.Contains(QuestId) ) return true;
 
-	RuntimeProgress.Add(QuestId, FQuestProgress{});
+	UE_LOG(LogTemp, Log, TEXT("[Quest] StartQuest called: %s"), *QuestId.ToString());
+
+	if ( RuntimeProgress.Contains(QuestId) )
+		return true;
+
+	// 1) 빈 진행도 생성
+	FQuestProgress NewProgress{};
+
+	// 경고 StartQuest에서 Definition 존재를 체크
+	const UUKQuestDefinitionAsset* Def = GetQuestDefinition(QuestId);
+	if ( !Def )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Quest] StartQuest but no Definition registered: %s"), *QuestId.ToString());
+	}
+	else
+	{
+		if ( Def->RewardId.IsNone() )
+		{
+			UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] Quest=%s (no RewardId)"), *QuestId.ToString());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] Quest=%s has RewardId=%s (will apply on Complete)"),
+				*QuestId.ToString(), *Def->RewardId.ToString());
+		}
+	}
+
+	// 2) QuestID에서 Tag 파싱 -> 프리셋 적용
+	if ( PresetAsset )
+	{
+		EUKQuestTag Tag;
+		if ( ParseQuestTagFromQuestId(QuestId, Tag) )
+		{
+			UUKQuestPresetLibrary::ApplyPresetToProgress(PresetAsset, Tag, NewProgress);
+
+			UE_LOG(LogTemp, Log, TEXT("[Quest][Preset] Applied. Step=%d Counters=%d Flags=%d"),
+				NewProgress.Step, NewProgress.Counters.Num(), NewProgress.Flags.Num());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Quest][Preset] Tag parse FAILED: %s"), *QuestId.ToString());
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Quest][Preset] PresetAsset is null. Check PresetAssetPath."));
+	}
+
+	// Accepted 플래그 세팅 (명명규칙: F.<QuestID>.Accepted)
+	SetFlag(NewProgress, MakeFlagKey(QuestId, FName("Accepted")));
+
+	// 3) 런타임 등록
+	RuntimeProgress.Add(QuestId, NewProgress);
 	return true;
 }
 
@@ -18,27 +216,25 @@ bool UUKQuestManagerSubsystem::CompleteQuest(FName QuestId)
 	if ( !P ) return false;
 
 	P->bCompleted = true;
-	//추가: 보상 지급 및 해금 로직
 
-	// 1. 구체적인 퀘스트별 보상 처리 (예시: 허수아비, 골렘 퀘스트)
-	if (QuestId == "Quest_Scarecrow")
-	{
-		// 경험치 지급(100);
-		UE_LOG(LogTemp, Log, TEXT("허수아비 퀘스트 완료: 경험치 획득!"));
-		
-		
-	}
-	else if (QuestId == "Quest_Golem")
-	{
-		// 아이템 보상
-		GiveQuestReward(TEXT("Item_Stone"), 5);
-		GiveQuestReward(TEXT("Item_GolemCore"), 1);
+	// Completed 플래그 세팅 (명명규칙: F.<QuestID>.Completed)
+	SetFlag(*P, MakeFlagKey(QuestId, FName("Completed")));
 
-		// 경험치 지급 (HUD나 캐릭터 시스템에 신호)
-		// 경험치 지급(500)
-		UE_LOG(LogTemp, Log, TEXT("골렘 퀘스트 완료: Get Stone and GolemCore!"));
+	// 보상처리
+	const UUKQuestDefinitionAsset* Def = GetQuestDefinition(QuestId);
+	if ( Def && !Def->RewardId.IsNone() )
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] Quest=%s RewardId=%s"),
+			*QuestId.ToString(),
+			*Def->RewardId.ToString());
+
+		ApplyRewardById(Def->RewardId, QuestId);
 	}
-	
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] Quest=%s (no RewardId)"), *QuestId.ToString());
+	}
+
 	return true;
 }
 
@@ -51,20 +247,185 @@ bool UUKQuestManagerSubsystem::SetQuestStep(FName QuestId, int32 NewStep)
 	return true;
 }
 
+
+// [4] Event → Objective 매칭 → Progress 갱신 + 자동완료
 void UUKQuestManagerSubsystem::EmitQuestEvent(FName EventId)
 {
-	// TODO: 나중에 DA/JSON과 연결해서 이벤트->진행도 갱신 로직을 여기서 수행
-	// 지금은 뼈대만 둡니다.
+	// 0) 이벤트 파싱: QuestEvent.<Category>.<Detail>
+	FUKQuestParsedEvent Ev;
+	if ( !UK_ParseQuestEventId(EventId, Ev) || !Ev.bValid )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Quest] Invalid EventId: %s"), *EventId.ToString());
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[Quest] EmitQuestEvent: %s (Cat=%d, Detail=%s)"),
+		*EventId.ToString(),
+		static_cast< int32 >( Ev.Category ),
+		*Ev.Detail.ToString());
+
+	// 상태 이벤트는 목표 매칭 전에 "즉시 처리"
+	// JSON에서 emit 되는 QuestEvent.Accepted.<QuestId>, QuestEvent.Completed.<QuestId> 처리용
+	if ( Ev.Category == EUKQuestEventCategory::Accepted )
+	{
+		// Detail이 QuestId여야 함: QuestEvent.Accepted.<QuestId>
+		StartQuest(Ev.Detail);
+		return;
+	}
+	if ( Ev.Category == EUKQuestEventCategory::Completed )
+	{
+		CompleteQuest(Ev.Detail);
+		return;
+	}
+	// (선택) Failed도 나중에 FailQuest 만들면 여기서 처리
+
+
+
+
+	// 공통 타입 매칭 람다(중복 선언 방지)
+	auto MatchesType = [ & ] (EUKQuestObjectiveType T, EUKQuestEventCategory C) -> bool
+		{
+			switch ( T )
+			{
+			case EUKQuestObjectiveType::EnteredZone: return C == EUKQuestEventCategory::EnteredZone;
+			case EUKQuestObjectiveType::TalkedTo:    return C == EUKQuestEventCategory::TalkedTo;
+			case EUKQuestObjectiveType::GotItem:     return C == EUKQuestEventCategory::GotItem;
+			case EUKQuestObjectiveType::Killed:      return C == EUKQuestEventCategory::Killed;
+			case EUKQuestObjectiveType::Custom:      return C == EUKQuestEventCategory::Custom;
+			default: return false;
+			}
+		};
+
+	// 1) 활성 퀘스트 순회
+	for ( auto& It : RuntimeProgress )
+	{
+		const FName QuestId = It.Key;
+		FQuestProgress& Prog = It.Value;
+
+		if ( Prog.bCompleted )
+			continue;
+
+		const UUKQuestDefinitionAsset* Def = GetQuestDefinition(QuestId);
+		if ( !Def )
+			continue;
+
+		// [Filter 1] 이번 이벤트 카테고리에 반응할 목표가 하나라도 있는지 빠르게 검사
+		bool bHasAnyMatchingType = false;
+		for ( const FUKQuestObjectiveDef& ObjDef : Def->Objectives )
+		{
+			if ( MatchesType(ObjDef.Type, Ev.Category) )
+			{
+				bHasAnyMatchingType = true;
+				break;
+			}
+		}
+		if ( !bHasAnyMatchingType )
+			continue;
+
+		// [Filter 2] EnteredZone 이벤트라면 ZoneName 체크 (Common은 예외)
+		if ( Ev.Category == EUKQuestEventCategory::EnteredZone )
+		{
+			const bool bIsCommonQuest = ( Def->ZoneName == FName("Common") );
+			if ( !bIsCommonQuest && !Def->ZoneName.IsNone() && Def->ZoneName != Ev.Detail )
+			{
+				continue;
+			}
+		}
+
+		bool bAnyChanged = false;
+
+		// 2) 목표 순회하며 매칭
+		for ( const FUKQuestObjectiveDef& Obj : Def->Objectives )
+		{
+			if ( IsObjectiveComplete(Prog, Obj, QuestId) )
+				continue;
+
+			// Type ↔ Category 매칭
+			if ( !MatchesType(Obj.Type, Ev.Category) )
+				continue;
+
+			// Target 매칭(Detail == TargetId)
+			if ( !Obj.TargetId.IsNone() && Obj.TargetId != Ev.Detail )
+				continue;
+
+			UE_LOG(LogTemp, Log, TEXT("[Quest][Match] Quest=%s Obj=%s Type=%d Target=%s"),
+				*QuestId.ToString(),
+				*Obj.ObjectiveId.ToString(),
+				static_cast< int32 >( Obj.Type ),
+				*Obj.TargetId.ToString());
+
+			// 3) 카운터 갱신(있으면 1 증가)
+			if ( !Obj.CounterName.IsNone() )
+			{
+				const FName CounterKey = MakeCounterKey(QuestId, Obj.CounterName);
+				AddCounter(Prog, CounterKey, 1);
+				bAnyChanged = true;
+
+				UE_LOG(LogTemp, Log, TEXT("[Quest][Counter] %s = %d / %d"),
+					*CounterKey.ToString(),
+					GetCounter(Prog, CounterKey),
+					Obj.RequiredCount);
+			}
+
+			// 4) 플래그 갱신(CompleteFlagCategory가 있으면)
+			if ( !Obj.CompleteFlagCategory.IsNone() )
+			{
+				// 카운터 목표(RequiredCount>1)면 도달 시 플래그 찍기
+				if ( !Obj.CounterName.IsNone() && Obj.RequiredCount > 1 )
+				{
+					const FName CounterKey = MakeCounterKey(QuestId, Obj.CounterName);
+					if ( GetCounter(Prog, CounterKey) >= Obj.RequiredCount )
+					{
+						const FName FlagKey = MakeFlagKey(QuestId, Obj.CompleteFlagCategory);
+						SetFlag(Prog, FlagKey);
+						bAnyChanged = true;
+
+						UE_LOG(LogTemp, Log, TEXT("[Quest][Flag] Set %s"), *FlagKey.ToString());
+					}
+				}
+				else
+				{
+					// 그 외: 이벤트 1회 매칭으로 완료 플래그 찍기
+					const FName FlagKey = MakeFlagKey(QuestId, Obj.CompleteFlagCategory);
+					SetFlag(Prog, FlagKey);
+					bAnyChanged = true;
+
+					UE_LOG(LogTemp, Log, TEXT("[Quest][Flag] Set %s"), *FlagKey.ToString());
+				}
+			}
+		}
+
+		// 5) 변경이 있었다면 자동 완료 시도
+		if ( bAnyChanged )
+		{
+			TryAutoCompleteQuest(QuestId);
+		}
+	}
 }
 
+// [5] Save/Load (보존형 저장)
 bool UUKQuestManagerSubsystem::SaveToSlot(const FString& SlotName, int32 UserIndex)
 {
-	UUKSaveGame* SaveObj = Cast<UUKSaveGame>(UGameplayStatics::CreateSaveGameObject(UUKSaveGame::StaticClass()));
+	UUKSaveGame* SaveObj = nullptr;
+
+	// 1) 기존 슬롯이 있으면 로드해서 기존 필드 보존
+	if ( UGameplayStatics::DoesSaveGameExist(SlotName, UserIndex) )
+	{
+		SaveObj = Cast<UUKSaveGame>(UGameplayStatics::LoadGameFromSlot(SlotName, UserIndex));
+	}
+
+	// 2) 없거나 로드 실패면 새로 생성
+	if ( !SaveObj )
+	{
+		SaveObj = Cast<UUKSaveGame>(UGameplayStatics::CreateSaveGameObject(UUKSaveGame::StaticClass()));
+	}
+
 	if ( !SaveObj ) return false;
 
-	// 기존 SaveGame 필드가 있을 수 있으니, QuestProgressMap만 갱신하는 방식으로
+	// 3) 내가 책임지는 필드만 갱신
 	SaveObj->QuestProgressMap = RuntimeProgress;
 
+	// 4) 저장
 	return UGameplayStatics::SaveGameToSlot(SaveObj, SlotName, UserIndex);
 }
 
@@ -83,6 +444,7 @@ bool UUKQuestManagerSubsystem::LoadFromSlot(const FString& SlotName, int32 UserI
 	return true;
 }
 
+// [6] 조회
 bool UUKQuestManagerSubsystem::GetProgress(FName QuestId, FQuestProgress& OutProgress) const
 {
 	if ( const FQuestProgress* P = RuntimeProgress.Find(QuestId) )
@@ -93,22 +455,233 @@ bool UUKQuestManagerSubsystem::GetProgress(FName QuestId, FQuestProgress& OutPro
 	return false;
 }
 
-// 아이템 정보를 테이블에서 가져오는 함수들
-
-FUK_ItemData* UUKQuestManagerSubsystem::GetItemData(FName ItemRowName)
+// [7] Reward / ItemDataTable (기존 유지)
+const FUK_ItemData* UUKQuestManagerSubsystem::GetItemData(FName ItemRowName) const
 {
-	if (!ItemDataTable) return nullptr;
-
+	if ( !ItemDataTable ) return nullptr;
 	return ItemDataTable->FindRow<FUK_ItemData>(ItemRowName, TEXT("QuestRewardLookup"));
 }
 
 void UUKQuestManagerSubsystem::GiveQuestReward(FName ItemRowName, int32 Amount)
 {
-	FUK_ItemData* Data = GetItemData(ItemRowName);
-	if (!Data) return;
+	const FUK_ItemData* Data = GetItemData(ItemRowName);
+	if ( !Data ) return;
 
-	// 인벤토리 컴포넌트 연결
-	// 예: InventoryComponent->AddItem(Data, Amount);
-    
+	// 인벤토리 컴포넌트 연결 (추후)
+	// InventoryComponent->AddItem(Data, Amount);
+
 	UE_LOG(LogTemp, Warning, TEXT("Reward Given: %s x%d"), *Data->ItemName.ToString(), Amount);
+}
+
+
+// [8] Quest Definition 등록/조회
+bool UUKQuestManagerSubsystem::RegisterQuestDefinition(const UUKQuestDefinitionAsset* Definition)
+{
+	if ( !Definition ) return false;
+	if ( Definition->QuestId.IsNone() ) return false;
+
+	QuestDefinitions.Add(Definition->QuestId, Definition);
+	return true;
+}
+
+const UUKQuestDefinitionAsset* UUKQuestManagerSubsystem::GetQuestDefinition(FName QuestId) const
+{
+	if ( const TObjectPtr<const UUKQuestDefinitionAsset>* Found = QuestDefinitions.Find(QuestId) )
+	{
+		return Found->Get();
+	}
+	return nullptr;
+}
+
+
+// [9] Progress Helpers (명명규칙 키 생성)
+FName UUKQuestManagerSubsystem::MakeCounterKey(FName QuestId, FName CounterName) const
+{
+	// C.<QuestID>.<Name>
+	return FName(*FString::Printf(TEXT("C.%s.%s"), *QuestId.ToString(), *CounterName.ToString()));
+}
+
+FName UUKQuestManagerSubsystem::MakeFlagKey(FName QuestId, FName Category) const
+{
+	// F.<QuestID>.<Category>
+	return FName(*FString::Printf(TEXT("F.%s.%s"), *QuestId.ToString(), *Category.ToString()));
+}
+
+int32 UUKQuestManagerSubsystem::GetCounter(const FQuestProgress& P, FName CounterKey) const
+{
+	if ( const int32* V = P.Counters.Find(CounterKey) ) return *V;
+	return 0;
+}
+
+void UUKQuestManagerSubsystem::SetCounter(FQuestProgress& P, FName CounterKey, int32 Value)
+{
+	P.Counters.FindOrAdd(CounterKey) = Value;
+}
+
+void UUKQuestManagerSubsystem::AddCounter(FQuestProgress& P, FName CounterKey, int32 Delta)
+{
+	const int32 Cur = GetCounter(P, CounterKey);
+	SetCounter(P, CounterKey, Cur + Delta);
+}
+
+bool UUKQuestManagerSubsystem::HasFlag(const FQuestProgress& P, FName FlagKey) const
+{
+	return P.Flags.Contains(FlagKey);
+}
+
+void UUKQuestManagerSubsystem::SetFlag(FQuestProgress& P, FName FlagKey)
+{
+	P.Flags.Add(FlagKey);
+}
+
+bool UUKQuestManagerSubsystem::IsObjectiveComplete(const FQuestProgress& P, const FUKQuestObjectiveDef& Obj, FName QuestId) const
+{
+	// 1) 목표 완료 플래그 우선
+	if ( !Obj.CompleteFlagCategory.IsNone() )
+	{
+		const FName FlagKey = MakeFlagKey(QuestId, Obj.CompleteFlagCategory);
+		if ( HasFlag(P, FlagKey) ) return true;
+	}
+
+	// 2) 카운터 기반 목표면 RequiredCount 비교
+	if ( !Obj.CounterName.IsNone() && Obj.RequiredCount > 0 )
+	{
+		const FName CounterKey = MakeCounterKey(QuestId, Obj.CounterName);
+		return GetCounter(P, CounterKey) >= Obj.RequiredCount;
+	}
+
+	// 3) 카운터/플래그 둘 다 없다면, 운영상 CompleteFlagCategory를 쓰는 편이 안정적
+	return false;
+}
+
+// [10] Auto Complete
+void UUKQuestManagerSubsystem::TryAutoCompleteQuest(FName QuestId)
+{
+	FQuestProgress* Prog = RuntimeProgress.Find(QuestId);
+	if ( !Prog ) return;
+	if ( Prog->bCompleted ) return;
+
+	const UUKQuestDefinitionAsset* Def = GetQuestDefinition(QuestId);
+	if ( !Def ) return;
+
+	// 목표 전부 완료인지 검사
+	for ( const FUKQuestObjectiveDef& Obj : Def->Objectives )
+	{
+		if ( !IsObjectiveComplete(*Prog, Obj, QuestId) )
+		{
+			return;
+		}
+	}
+
+	// 전부 완료 => 완료 처리
+	CompleteQuest(QuestId);
+	UE_LOG(LogTemp, Log, TEXT("[Quest] Auto Completed: %s"), *QuestId.ToString());
+}
+
+
+// [11] 보상적용
+// ApplyRewardById 구현
+bool UUKQuestManagerSubsystem::ApplyRewardById(FName RewardId, FName QuestId)
+{
+	if ( RewardId.IsNone() )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] RewardId is None. Quest=%s"), *QuestId.ToString());
+		return false;
+	}
+
+	if ( !RewardDataTable )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] RewardDataTable is null. Quest=%s RewardId=%s"),
+			*QuestId.ToString(), *RewardId.ToString());
+		return false;
+	}
+
+	// RowName == RewardId 규칙
+	const FUKRewardRow* Row = RewardDataTable->FindRow<FUKRewardRow>(RewardId, TEXT("QuestRewardLookup"));
+	if ( !Row )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] Row NOT found. Quest=%s RewardId=%s"),
+			*QuestId.ToString(), *RewardId.ToString());
+		return false;
+	}
+
+	// 1) Gold / XP (지금은 로그만. 나중에 PlayerState/Inventory로 연결)
+	if ( Row->Gold != 0 )
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] Gold +%d (Quest=%s RewardId=%s)"),
+			Row->Gold, *QuestId.ToString(), *RewardId.ToString());
+
+		// TODO: 실제 골드 지급 연결
+		// 예: UKCurrencySubsystem->AddGold(Row->Gold);
+	}
+
+	if ( Row->XP != 0 )
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] XP +%d (Quest=%s RewardId=%s)"),
+			Row->XP, *QuestId.ToString(), *RewardId.ToString());
+
+		// TODO: 실제 XP 지급 연결
+		// 예: UKExpSubsystem->AddXP(Row->XP);
+	}
+
+	// 2) Items 지급
+	for ( const FUKRewardItemGrant& Grant : Row->Items )
+	{
+		if ( Grant.ItemId.IsNone() || Grant.Amount <= 0 )
+			continue;
+
+		// 지금 프로젝트 구조상 GiveQuestReward(ItemRowName, Amount)가 “아이템 지급 훅” 역할
+		GiveQuestReward(Grant.ItemId, Grant.Amount);
+
+		UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] Item %s x%d (Quest=%s RewardId=%s)"),
+			*Grant.ItemId.ToString(), Grant.Amount,
+			*QuestId.ToString(), *RewardId.ToString());
+	}
+
+	// 3) SetFlags 반영 (전역/퀘스트 둘 다 가능)
+	// - 현재는 QuestProgress 내부 Flags(TSet<FName>)에 넣는 방식으로만 처리(뼈대)
+	// - 전역 플래그(F.Common.*)는 SaveGame의 별도 GlobalFlags로 확장 예정
+	if ( FQuestProgress* Prog = RuntimeProgress.Find(QuestId) )
+	{
+		for ( const FName FlagKey : Row->SetFlags )
+		{
+			if ( !FlagKey.IsNone() )
+			{
+				Prog->Flags.Add(FlagKey);
+				UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] SetFlag %s"), *FlagKey.ToString());
+			}
+		}
+
+		// 4) AddCounters 반영
+		for ( const auto& Pair : Row->AddCounters )
+		{
+			const FName CounterKey = Pair.Key;
+			const int32 Delta = Pair.Value;
+
+			if ( CounterKey.IsNone() || Delta == 0 )
+				continue;
+
+			const int32 Cur = Prog->Counters.FindRef(CounterKey);
+			Prog->Counters.Add(CounterKey, Cur + Delta);
+
+			UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] AddCounter %s %+d => %d"),
+				*CounterKey.ToString(), Delta, Cur + Delta);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] Quest progress not found when applying flags/counters. Quest=%s"),
+			*QuestId.ToString());
+	}
+
+	return true;
+}
+
+void UUKQuestManagerSubsystem::Deinitialize()
+{
+	RuntimeProgress.Empty();
+	QuestDefinitions.Empty();
+	PresetAsset = nullptr;
+	RewardDataTable = nullptr;
+	Super::Deinitialize();
 }
