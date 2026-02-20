@@ -18,6 +18,7 @@ namespace UK_GameplayTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(LightAttack);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(HeavyAttack);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Crouch);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(ToggleMouse);
 	}
 	namespace Weapon
 	{

@@ -16,6 +16,7 @@ namespace UK_GameplayTags
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(LightAttack, "Input.Default.LightAttack", "Default Movement Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HeavyAttack, "Input.Default.HeavyAttack", "Default Movement Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Crouch, "Input.Default.Crouch", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(ToggleMouse, "Input.Default.ToggleMouse", "Default Movement Ability")
 	}
 	namespace Weapon
 	{
