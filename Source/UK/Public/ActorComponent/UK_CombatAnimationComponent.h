@@ -22,7 +22,9 @@ enum class EAttackInput : uint8
 {
 	None,
 	Light,
-	Heavy
+	Heavy,
+	NomalSkill,
+	UltimateSkill
 };
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -65,6 +67,8 @@ public:
 
 	void PlayLightComboAnimation();
 	void PlayHeavyComboAnimation();
+	void PlayNomalSkillComboAnimation();
+	void PlayUltimateSkillComboAnimation();
 
 #pragma region ServerRPCs
 	UFUNCTION(NetMulticast, Reliable)

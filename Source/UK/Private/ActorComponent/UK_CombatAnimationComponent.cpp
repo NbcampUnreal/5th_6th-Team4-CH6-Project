@@ -120,6 +120,60 @@ void UUK_CombatAnimationComponent::PlayHeavyComboAnimation()
 		InputType = EAttackInput::Heavy;
 	}
 }
+void UUK_CombatAnimationComponent::PlayNomalSkillComboAnimation()
+{
+	if ( !IsValid(NowWeapon) || !IsValid(OwnerCharactor) )
+		return;
+
+	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
+
+	ensure(PlayerMovement);
+
+	bool bPlayerIsFalling = PlayerMovement->IsFalling();
+
+	if ( CurrentComboCount == 0 )
+	{
+		if ( bPlayerIsFalling )
+		{
+			// 공중 강 공격은 없음
+		}
+		else
+		{
+			ServerRPCStartComboAttack(EComboAttackType::NomalSkill);
+		}
+	}
+	else
+	{
+		InputType = EAttackInput::NomalSkill;
+	}
+}
+void UUK_CombatAnimationComponent::PlayUltimateSkillComboAnimation()
+{
+	if ( !IsValid(NowWeapon) || !IsValid(OwnerCharactor) )
+		return;
+
+	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
+
+	ensure(PlayerMovement);
+
+	bool bPlayerIsFalling = PlayerMovement->IsFalling();
+
+	if ( CurrentComboCount == 0 )
+	{
+		if ( bPlayerIsFalling )
+		{
+			// 공중 강 공격은 없음
+		}
+		else
+		{
+			ServerRPCStartComboAttack(EComboAttackType::UltimateSkill);
+		}
+	}
+	else
+	{
+		InputType = EAttackInput::UltimateSkill;
+	}
+}
 
 #pragma region ServerRPCs
 // 콤보 최초 시작
