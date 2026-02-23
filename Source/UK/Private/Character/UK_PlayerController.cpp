@@ -35,8 +35,6 @@ void AUK_PlayerController::PostSeamlessTravel()
 	bShowMouseCursor = false;
 
 	DisableMouseCursorMode();
-	//SetIgnoreMoveInput(false);
-	//SetIgnoreLookInput(false);
 }
 
 void AUK_PlayerController::OnPossess(APawn* pawn)
