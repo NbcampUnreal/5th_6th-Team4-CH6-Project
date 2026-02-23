@@ -8,15 +8,6 @@
 
 class AUK_CharacterBase;
 
-UENUM(BlueprintType)
-enum class EQuestState : uint8
-{
-	None,        // 아직 안받음
-	InProgress, // 진행중
-	Completed,  // 완료
-	Rewarded    // 보상 끝
-};
-
 UCLASS()
 class UK_API AUK_QuestNPC : public AUK_NPCAIBase
 {
@@ -30,7 +21,7 @@ public:
 
 	bool CanInteract() const {return bPlayerInRange;}
 
-	virtual void Interact_Implementation(AActor* Interactor);
+	virtual void Interact_Implementation(AActor* Interactor) override;
 
 	// 퀘스트 마커를 표시할 영역
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC")
@@ -45,9 +36,6 @@ public:
 	// 가까이 있으면 상호작용 가능
 	bool bPlayerInRange;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
-	EQuestState QuestState;
-
 	UFUNCTION()
 	void OnPlayerEnter(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,bool bFromSweep, const FHitResult& SweepResult);
 
@@ -59,8 +47,6 @@ public:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Quest")
 	int32 QuestID;
 
-	void GiveQuest(AUK_CharacterBase* Player);
-	void CheckQuest(AUK_CharacterBase* Player);
-	void GiveReward(AUK_CharacterBase* Player);
-	void AlreadyClear();
+	UFUNCTION(Server, Reliable)
+	void Server_Interact(AUK_CharacterBase* Player);
 };
