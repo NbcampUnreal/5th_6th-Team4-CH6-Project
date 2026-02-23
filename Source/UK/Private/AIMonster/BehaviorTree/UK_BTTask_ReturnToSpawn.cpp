@@ -41,7 +41,7 @@ EBTNodeResult::Type UUK_BTTask_ReturnToSpawn::ExecuteTask(UBehaviorTreeComponent
 			Monster->ResetToPassive();
 		}
 		
-		return EBTNodeResult::Succeeded;
+		return EBTNodeResult::Failed; 
 	}
 
 	// 속도 부스트
@@ -111,7 +111,7 @@ void UUK_BTTask_ReturnToSpawn::TickTask(UBehaviorTreeComponent& OwnerComp, uint8
 		}
 
 		UE_LOG(LogTemp, Warning, TEXT("[Return] %s: Arrived at spawn!"), *ControlledPawn->GetName());
-		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+		FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
 		return;
 	}
 

@@ -39,7 +39,7 @@ AUK_PeacefulMonster::AUK_PeacefulMonster()
 	AttackDamage = 15.0f;
 	
 	// 공격 범위
-	AttackRange = 150.0f;
+	AttackRange = 200.0f;
 }
 
 void AUK_PeacefulMonster::BeginPlay()
