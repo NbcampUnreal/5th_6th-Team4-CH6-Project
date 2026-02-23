@@ -38,6 +38,7 @@ void AUK_PlayerController_Title::StartGame(FString Text)
 		if ( World )
 		{
 			World->ServerTravel(TEXT("/Game/Level/Maps/BK_Level?listen"), true);
+			UE_LOG(LogTemp, Error, TEXT("Seamless Travel"));
 		}
 	}
 	else
