@@ -36,7 +36,9 @@ enum class EMonsterType : uint8
 {
 	None = 0,
 	Golem = 1,
-	
+	Wolf = 2,
+	Fox = 3,
+	Reindeer = 4,
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDeath, class AAIMonsterBase*, DeadMonster);
