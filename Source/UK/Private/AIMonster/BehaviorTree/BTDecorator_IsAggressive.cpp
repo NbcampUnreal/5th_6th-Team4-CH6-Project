@@ -28,12 +28,6 @@ bool UBTDecorator_IsAggressive::CalculateRawConditionValue(UBehaviorTreeComponen
 	// 적대적인 상태인지 체크
 	bool bResult = Monster->bIsAggressive;
 	
-	UE_LOG(LogTemp, Warning, TEXT("[IsAggressive Decorator] %s | bIsAggressive=%d | Inverse=%d | FinalResult=%d"), 
-		*Monster->GetName(), 
-		bResult, 
-		IsInversed(), 
-		IsInversed() ? !bResult : bResult);
-	
 	return bResult;
 }
 

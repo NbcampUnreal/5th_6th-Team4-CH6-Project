@@ -76,9 +76,6 @@ void UUK_BTService_CheckPlayerProximity::TickNode(UBehaviorTreeComponent& OwnerC
 	{
 		BlackboardComp->SetValueAsBool(IsPlayerCloseKey.SelectedKeyName, true);
 		BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, ClosestPlayer);
-		
-		UE_LOG(LogTemp, Log, TEXT("[Proximity] %s detected player nearby (%.1f)"), 
-			*Monster->GetName(), ClosestDistance);
 	}
 	else
 	{

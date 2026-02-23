@@ -39,15 +39,9 @@ EBTNodeResult::Type UUK_BTTask_CheckResetDistance::ExecuteTask(UBehaviorTreeComp
 	
 	float DistanceFromSpawn = FVector::Dist(CurrentLocation, SpawnLocation);
 
-	UE_LOG(LogTemp, Log, TEXT("[CheckResetDistance] %s | Distance: %.1f / %.1f"), 
-		*Monster->GetName(), DistanceFromSpawn, Monster->ResetDistance);
-
 	// 리셋 거리를 벗어났는지 체크
 	if (DistanceFromSpawn > Monster->ResetDistance)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[Reset] %s too far from spawn (%.1f > %.1f), resetting..."), 
-			*Monster->GetName(), DistanceFromSpawn, Monster->ResetDistance);
-
 		// 타겟 클리어
 		BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
 		
