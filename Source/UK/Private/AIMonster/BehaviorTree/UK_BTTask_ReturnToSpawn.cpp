@@ -35,8 +35,6 @@ EBTNodeResult::Type UUK_BTTask_ReturnToSpawn::ExecuteTask(UBehaviorTreeComponent
 	// 이미 스폰 근처면 즉시 성공
 	if (DistFromSpawn < ArrivalDistance)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[Return] %s: Already at spawn"), *ControlledPawn->GetName());
-		
 		AAIMonsterBase* Monster = Cast<AAIMonsterBase>(ControlledPawn);
 		if (Monster && Monster->Personality == EMonsterPersonality::Peaceful && Monster->GetIsAggressive())
 		{
@@ -55,9 +53,6 @@ EBTNodeResult::Type UUK_BTTask_ReturnToSpawn::ExecuteTask(UBehaviorTreeComponent
 			OriginalMaxWalkSpeed = MoveComp->MaxWalkSpeed;
 			MoveComp->MaxWalkSpeed = OriginalMaxWalkSpeed * ReturnSpeedMultiplier;
 			bSpeedBoosted = true;
-
-			UE_LOG(LogTemp, Warning, TEXT("[Return] %s: Speed boost %.0f → %.0f (dist: %.0f)"),
-				*Monster->GetName(), OriginalMaxWalkSpeed, MoveComp->MaxWalkSpeed, DistFromSpawn);
 		}
 	}
 
@@ -135,8 +130,6 @@ void UUK_BTTask_ReturnToSpawn::TickTask(UBehaviorTreeComponent& OwnerComp, uint8
 				MoveRequest.SetUsePathfinding(true);
 				
 				AICon->MoveTo(MoveRequest);
-				
-				UE_LOG(LogTemp, Log, TEXT("[Return] %s: Re-issuing move command (stuck prevention)"), *Monster->GetName());
 			}
 		}
 	}
@@ -165,9 +158,6 @@ void UUK_BTTask_ReturnToSpawn::RestoreSpeed(APawn* InPawn)
 			if (UCharacterMovementComponent* MoveComp = Char->GetCharacterMovement())
 			{
 				MoveComp->MaxWalkSpeed = OriginalMaxWalkSpeed;
-
-				UE_LOG(LogTemp, Warning, TEXT("[Return] %s: Speed restored → %.0f"),
-					*InPawn->GetName(), OriginalMaxWalkSpeed);
 			}
 		}
 	}
