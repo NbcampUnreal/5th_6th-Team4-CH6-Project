@@ -17,4 +17,10 @@ void UUKAIMonsterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	bIsDead = OwnerMonster->IsDead();
 	bIsAttacking = OwnerMonster->bIsAttacking;
 	bIsAggressive = OwnerMonster->GetIsAggressive();
+	
+	const FVector ForwardVector = OwnerMonster->GetActorForwardVector();
+	const FVector RightVector = OwnerMonster->GetActorRightVector();
+	
+	ForwardSpeed = FVector::DotProduct(ForwardVector, OwnerMonster->GetVelocity());
+	RightSpeed   = FVector::DotProduct(RightVector, OwnerMonster->GetVelocity());
 }
