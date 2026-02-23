@@ -18,6 +18,7 @@ namespace UK_GameplayTags
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(NomalSkill, "Input.Default.NomalSkill", "Default Movement Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(UltimateSkill, "Input.Default.UltimateSkill", "Default Movement Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Crouch, "Input.Default.Crouch", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(ToggleMouse, "Input.Default.ToggleMouse", "Default Movement Ability")
 	}
 	namespace Weapon
 	{

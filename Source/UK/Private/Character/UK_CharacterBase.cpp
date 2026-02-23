@@ -127,6 +127,7 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::LightAttack, ETriggerEvent::Started, this, &ThisClass::LightAttack);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::HeavyAttack, ETriggerEvent::Started, this, &ThisClass::HeavyAttack);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Crouch, ETriggerEvent::Started, this, &ThisClass::CrouchInput);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ToggleMouse, ETriggerEvent::Started, this, &ThisClass::ToggleMouse);
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -276,6 +277,18 @@ void AUK_CharacterBase::CrouchInput()
 		Crouch();
 		bIsCrouched = true;
 	}
+}
+
+void AUK_CharacterBase::ToggleMouse()
+{
+	if(StatusComponent->IsDead())
+		return;
+
+	AUK_PlayerController* PC = Cast<AUK_PlayerController>(GetController());
+	if ( PC == nullptr )
+		return;
+
+	PC->ToggleMouseCursor();
 }
 
 void AUK_CharacterBase::ZoomIn()

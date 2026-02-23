@@ -15,13 +15,22 @@ UCLASS()
 class UK_API AUK_PlayerController : public APlayerController
 {
 	GENERATED_BODY()
-#pragma region Defualt
+
+public:
+
 	AUK_PlayerController();
+
 	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;
-
 	virtual void PostSeamlessTravel() override;
 	virtual void OnPossess(APawn* pawn) override;
-#pragma endregion
+	void ToggleMouseCursor();
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	bool bMouseCursorEnabled = false;
+
+private:
+
+	void EnableMouseCursorMode();
+	void DisableMouseCursorMode();
 };
