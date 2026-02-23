@@ -3,6 +3,10 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "UKQuestTypes.h"
+#include "Quest/UKQuestRewardTypes.h"
+#include "Quest/UKQuestObjectiveTypes.h"
+#include "Engine/DataTable.h"
+#include "DataAsset/Data/UK_ItemData.h"
 
 // [Preset] 추가 include
 #include "Quest/UKQuestPresetAsset.h"
@@ -13,7 +17,7 @@
 
 #include "UKQuestManagerSubsystem.generated.h"
 
-UCLASS()
+UCLASS(BlueprintType, Blueprintable)
 class UK_API UUKQuestManagerSubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
@@ -55,12 +59,23 @@ protected:
 	class UDataTable* ItemDataTable;
 
 	// 데이터 테이블에서 아이템 정보를 찾아오는 헬퍼 함수
-	struct FUK_ItemData* GetItemData(FName ItemRowName);
+	const FUK_ItemData* GetItemData(FName ItemRowName) const;
 
 public:
 	// 퀘스트 보상을 실제로 지급하는 함수
 	UFUNCTION(BlueprintCallable, Category = "UK|Quest")
 	void GiveQuestReward(FName ItemRowName, int32 Amount);
+
+protected:
+	// [Reward v2] RewardId -> RewardRow(DataTable)
+	UPROPERTY(EditDefaultsOnly, Category = "UK|Quest|Reward")
+	TObjectPtr<UDataTable> RewardDataTable = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UK|Quest|Reward")
+	FSoftObjectPath RewardDataTablePath;
+
+	// RewardId로 DT를 읽어 실제 지급/반영
+	bool ApplyRewardById(FName RewardId, FName QuestId /*로그용*/);
 
 protected:
 
@@ -122,6 +137,6 @@ protected:
 	void  SetFlag(FQuestProgress& P, FName FlagKey);
 
 	bool  IsObjectiveComplete(const FQuestProgress& P, const FUKQuestObjectiveDef& Obj, FName QuestId) const;
-	void  TryAutoCompleteQuest(FName QuestId);
-
-};
+	void  TryAutoCompleteQuest(FName QuestId); 
+	 
+}; 

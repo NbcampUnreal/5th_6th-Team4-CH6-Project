@@ -119,9 +119,9 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	}
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Move, ETriggerEvent::Triggered, this, &ThisClass::Move);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Look, ETriggerEvent::Triggered, this, &ThisClass::Look);
-	////UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Jump, ETriggerEvent::Started, this, &ThisClass::Jump);
-	////UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Jump, ETriggerEvent::Canceled, this, &ThisClass::StopJumping);
-	////UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Sprint, ETriggerEvent::Started, this, &ThisClass::Sprint);
+	//UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Jump, ETriggerEvent::Started, this, &ThisClass::Jump);
+	//UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Jump, ETriggerEvent::Canceled, this, &ThisClass::StopJumping);
+	//UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Sprint, ETriggerEvent::Started, this, &ThisClass::Sprint);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ZoomIn, ETriggerEvent::Triggered, this, &ThisClass::ZoomIn);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ZoomOut, ETriggerEvent::Triggered, this, &ThisClass::ZoomOut);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::LightAttack, ETriggerEvent::Started, this, &ThisClass::LightAttack);
@@ -464,7 +464,7 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 	UUK_StatusAnimData* Weapon = WeaponList->FindAnimsDataAssetByTag(NowWeapon);
 	if ( IsValid(Weapon->GetRightHandWeapon()) )
 	{
-		RightHandWeaponComponent->SetSkeletalMesh(Weapon->GetRightHandWeapon()); // todo : 이후에 서버에서 변경하도록 수정해야함 임시로 클라에서만 변경하고 있음
+		RightHandWeaponComponent->SetSkeletalMesh(Weapon->GetRightHandWeapon());         // todo : 이후에 서버에서 변경하도록 수정해야함 임시로 클라에서만 변경하고 있음
 
 		RightHandWeaponComponent->SetRelativeLocation(Weapon->GetRightLocationOffset());
 		RightHandWeaponComponent->SetRelativeRotation(Weapon->GetRightRotationOffset());
@@ -475,7 +475,7 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 	}
 	if ( IsValid(Weapon->GetLeftHandWeapon()) )
 	{
-		LeftHandWeaponComponent->SetSkeletalMesh(Weapon->GetLeftHandWeapon()); // todo : 이후에 서버에서 변경하도록 수정해야함 임시로 클라에서만 변경하고 있음
+		LeftHandWeaponComponent->SetSkeletalMesh(Weapon->GetLeftHandWeapon());             // todo : 이후에 서버에서 변경하도록 수정해야함 임시로 클라에서만 변경하고 있음
 
 		LeftHandWeaponComponent->SetRelativeLocation(Weapon->GetLeftLocationOffset());
 		LeftHandWeaponComponent->SetRelativeRotation(Weapon->GetLeftRotationOffset());
@@ -501,6 +501,8 @@ void AUK_CharacterBase::SlotWeaponThree()
 }
 void AUK_CharacterBase::SwapWeapon(int32 Index)
 {
+	if ( AnimationComponent->GetCurrentComboCount() != 0 )
+		return;
 	FInventorySlot* WeaponSlot = InventoryComponent->FindWeaponSlotbyIndex(Index);
 	if ( WeaponSlot->isEmpty() )
 	{

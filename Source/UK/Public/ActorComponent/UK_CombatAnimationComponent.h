@@ -22,7 +22,9 @@ enum class EAttackInput : uint8
 {
 	None,
 	Light,
-	Heavy
+	Heavy,
+	NomalSkill,
+	UltimateSkill
 };
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -40,7 +42,7 @@ public:
 	//virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	// Called when the game starts
 	virtual void BeginPlay() override;
-
+	uint8 GetCurrentComboCount() const { return CurrentComboCount; }
 protected:
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentComboCount, BlueprintReadOnly, Category = "Combat")
 	uint8 CurrentComboCount;
@@ -65,6 +67,8 @@ public:
 
 	void PlayLightComboAnimation();
 	void PlayHeavyComboAnimation();
+	void PlayNomalSkillComboAnimation();
+	void PlayUltimateSkillComboAnimation();
 
 #pragma region ServerRPCs
 	UFUNCTION(NetMulticast, Reliable)
