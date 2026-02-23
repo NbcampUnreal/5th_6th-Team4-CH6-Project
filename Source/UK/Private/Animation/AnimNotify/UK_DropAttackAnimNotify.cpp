@@ -21,7 +21,7 @@ void UUK_DropAttackAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 		UUK_CombatAnimationComponent* CombatAnimComp = Cast<UUK_CombatAnimationComponent>(Actorcomp);
 		if ( IsValid(CombatAnimComp) )
 		{
-			CombatAnimComp->CheckDropAttackProcessable();
+			//CombatAnimComp->CheckDropAttackProcessable();
 		}
 
 	}

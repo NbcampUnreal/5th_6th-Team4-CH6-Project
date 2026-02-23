@@ -44,7 +44,7 @@ public:
 	virtual void BeginPlay() override;
 	uint8 GetCurrentComboCount() const { return CurrentComboCount; }
 protected:
-	UPROPERTY(ReplicatedUsing = OnRep_CurrentComboCount, BlueprintReadOnly, Category = "Combat")
+	//UPROPERTY(ReplicatedUsing = OnRep_CurrentComboCount, BlueprintReadOnly, Category = "Combat")
 	uint8 CurrentComboCount;
 
 	float DefaultGravityValue;
@@ -63,32 +63,32 @@ protected:
 
 public:
 	UFUNCTION()
-	void OnRep_CurrentComboCount();
+	//void OnRep_CurrentComboCount();
 
-	void PlayLightComboAnimation();
+	//void PlayLightComboAnimation();
 	void PlayHeavyComboAnimation();
 	void PlayNomalSkillComboAnimation();
 	void PlayUltimateSkillComboAnimation();
 
 #pragma region ServerRPCs
-	UFUNCTION(NetMulticast, Reliable)
-	void MulticastPlayCombo(EComboAttackType AttackType, uint8 ComboCount);
+	//UFUNCTION(NetMulticast, Reliable)
+	//void MulticastPlayCombo(EComboAttackType AttackType, uint8 ComboCount);
 
 	UFUNCTION(Server, Reliable)
 	void ServerRPCStartComboAttack(const EComboAttackType AttackType);
 
-	UFUNCTION(Server, Reliable)
-	void ServerRPCComboAttack(const EComboAttackType AttackType, FName SectionName);
+	//UFUNCTION(Server, Reliable)
+	//void ServerRPCComboAttack(const EComboAttackType AttackType, FName SectionName);
 
-	UFUNCTION(Server, Reliable)
-	void ServerRPCDropAttack();
+	//UFUNCTION(Server, Reliable)
+	//void ServerRPCDropAttack();
 
-	UFUNCTION(Server, Reliable)
-	void ServerRPCDropOnFloorAttack();
+	//UFUNCTION(Server, Reliable)
+	//void ServerRPCDropOnFloorAttack();
 
 #pragma endregion
 
-	void PlayComboAttackAnimation(const EComboAttackType AttackType, FName SectionName);
+	//void PlayComboAttackAnimation(const EComboAttackType AttackType, FName SectionName);
 
 	void StopJumpAndFly();
 #pragma region EndCombo
