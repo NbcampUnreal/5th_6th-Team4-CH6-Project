@@ -7,9 +7,9 @@ public class UKEditorTarget : TargetRules
 {
 	public UKEditorTarget(TargetInfo Target) : base(Target)
 	{
-		Type = TargetType.Editor;
-		DefaultBuildSettings = BuildSettingsVersion.V5;
-		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_6;
-		ExtraModuleNames.Add("UK");
+		 Type = TargetType.Editor;
+		 DefaultBuildSettings = BuildSettingsVersion.V6;
+		 IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_7;
+		 ExtraModuleNames.Add("UK");
 	}
 }

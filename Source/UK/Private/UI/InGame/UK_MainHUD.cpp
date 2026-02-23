@@ -91,11 +91,11 @@ void UUK_MainHUD::UpdateLevel(int32 NewLevel)
 
 void UUK_MainHUD::UpdateStaminaBar(float CurrentStamina, float MaxStamina)
 {
-	if ( StaminaBar && MaxStamina > 0.f )
-
+	if ( WBP_Stamina && MaxStamina > 0.f )
 	{
-		// 0.0 ~ 1.0 사이의 값으로 게이지 반영
-		StaminaBar->SetPercent(CurrentStamina / MaxStamina);
+		float PercentValue = CurrentStamina / MaxStamina;
+        FString Command = FString::Printf(TEXT("Setpercent %f"), PercentValue);
+        WBP_Stamina->CallFunctionByNameWithArguments(*Command, *GLog, nullptr, true);
 	}
 }
 

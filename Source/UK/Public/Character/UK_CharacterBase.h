@@ -129,6 +129,9 @@ protected:
 	UFUNCTION()
 	void CrouchInput();
 
+	UFUNCTION()
+	void ToggleMouse();
+
 public:
 	UFUNCTION(BlueprintCallable)
 	void LockON();

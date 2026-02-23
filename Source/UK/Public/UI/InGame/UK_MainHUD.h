@@ -60,7 +60,7 @@ protected:
 
 	// 스테미나 게이지 바
 	UPROPERTY(meta = ( BindWidget ))
-	class UProgressBar* StaminaBar;
+	UUserWidget* WBP_Stamina;
 
 	// 인벤토리 버튼
 	UFUNCTION()
