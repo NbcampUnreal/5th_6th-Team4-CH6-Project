@@ -36,10 +36,10 @@ AUK_PeacefulMonster::AUK_PeacefulMonster()
 	MaxChaseDistance = 2000.0f;
 	
 	// 공격력 (화나면 세게 때림)
-	AttackDamage = 25.0f;
+	AttackDamage = 15.0f;
 	
 	// 공격 범위
-	AttackRange = 150.0f;
+	AttackRange = 200.0f;
 }
 
 void AUK_PeacefulMonster::BeginPlay()

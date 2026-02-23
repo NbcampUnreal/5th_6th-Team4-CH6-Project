@@ -200,54 +200,18 @@ void AAIMonsterBase::Die()
 	// 상태 변경
 	SetServerState(EMonsterState::Dead);
 
-	// 사망 몽타주 재생
-	if (DeathMontage)
-	{
-		Multicast_PlayDeathMontage();
-		
-		float MontageLength = DeathMontage->GetPlayLength();
-		GetWorldTimerManager().SetTimer(
-			DeathMontageTimerHandle, this, &AAIMonsterBase::FinalizeDeath,
-			MontageLength, false);
-			
-		UE_LOG(LogTemp, Warning, TEXT("[Die] %s: Death montage timer set (%.2fs)"), *GetName(), MontageLength);
-	}
-	else
-	{
-		FTimerHandle DeathTimer;
-		GetWorldTimerManager().SetTimer(
-			DeathTimer, this, &AAIMonsterBase::FinalizeDeath,
-			DeathWithoutMontageDelay, false);
-	}
+	// 고정 딜레이 후 FinalizeDeath
+	FTimerHandle DeathTimer;
+	GetWorldTimerManager().SetTimer(DeathTimer, this, &AAIMonsterBase::FinalizeDeath, CorpseLingerTime > 0.f ? 1.0f : 0.1f, false);
+
 }
 
-void AAIMonsterBase::Multicast_PlayDeathMontage_Implementation()
-{
-	if (!DeathMontage) return;
-
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if (!AnimInstance) return;
-
-	if (AnimInstance->Montage_IsPlaying(DeathMontage))
-	{
-		UE_LOG(LogTemp, Error, TEXT("[Death] %s: Death montage ALREADY PLAYING! BLOCKED!"), *GetName());
-		return;
-	}
-
-	AnimInstance->StopAllMontages(0.2f);
-	float Length = AnimInstance->Montage_Play(DeathMontage, 1.0f);
-	
-	UE_LOG(LogTemp, Warning, TEXT("[Death] %s: Death montage STARTED (%.2fs) on %s"), 
-		*GetName(), Length, HasAuthority() ? TEXT("Server") : TEXT("Client"));
-}
 
 void AAIMonsterBase::FinalizeDeath()
 {
 	if (!HasAuthority()) return;
 	
 	UE_LOG(LogTemp, Warning, TEXT("[FinalizeDeath] %s: Starting"), *GetName());
-	
-	GetWorldTimerManager().ClearTimer(DeathMontageTimerHandle);
 	
 	if (GetCapsuleComponent())
 	{
@@ -313,7 +277,6 @@ void AAIMonsterBase::ResetHealth()
 	if (!HasAuthority()) return;
 
 	GetWorldTimerManager().ClearTimer(CorpseTimerHandle);
-	GetWorldTimerManager().ClearTimer(DeathMontageTimerHandle);
 
 	// 플래그 리셋
 	bIsAttacking = false;
@@ -497,6 +460,77 @@ void AAIMonsterBase::ResetToPassive()
 
 void AAIMonsterBase::SetAIActive(bool bActive) {}
 
+bool AAIMonsterBase::PlayRandomIdleMontage()
+{
+	if (IdleMontages.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Idle] %s: IdleMontages is empty!"), *GetName());
+		return false;
+	}
+
+	TArray<int32> ValidIndices;
+	for (int32 i = 0; i < IdleMontages.Num(); ++i)
+	{
+		if (IdleMontages[i] != nullptr)
+		{
+			ValidIndices.Add(i);
+		}
+	}
+
+	if (ValidIndices.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Idle] %s: All IdleMontages slots are null!"), *GetName());
+		return false;
+	}
+
+	const int32 PickedIndex = ValidIndices[FMath::RandRange(0, ValidIndices.Num() - 1)];
+	UE_LOG(LogTemp, Log, TEXT("[Idle] %s: Playing IdleMontage[%d] (valid count=%d)"),
+		*GetName(), PickedIndex, ValidIndices.Num());
+
+	Multicast_PlayIdleMontage(PickedIndex);
+	return true;
+}
+
+void AAIMonsterBase::Multicast_PlayIdleMontage_Implementation(int32 MontageIndex)
+{
+	if (!IdleMontages.IsValidIndex(MontageIndex))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Idle] %s: Invalid montage index %d"), *GetName(), MontageIndex);
+		return;
+	}
+
+	UAnimMontage* Montage = IdleMontages[MontageIndex];
+	if (!Montage)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Idle] %s: Montage at index %d is null"), *GetName(), MontageIndex);
+		return;
+	}
+
+	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (!AnimInstance)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Idle] %s: AnimInstance is null"), *GetName());
+		return;
+	}
+
+	AnimInstance->Montage_Play(Montage);
+	UE_LOG(LogTemp, Log, TEXT("[Idle] %s: Montage_Play called — %s"), *GetName(), *Montage->GetName());
+
+	// 서버에서만 종료 콜백 바인딩
+	if (HasAuthority())
+	{
+		FOnMontageEnded EndDelegate;
+		EndDelegate.BindUObject(this, &AAIMonsterBase::OnIdleMontageEnded);
+		AnimInstance->Montage_SetEndDelegate(EndDelegate, Montage);
+	}
+}
+
+void AAIMonsterBase::OnIdleMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	UE_LOG(LogTemp, Log, TEXT("[Idle] %s: Montage ended (interrupted=%d)"), *GetName(), bInterrupted);
+	OnIdleMontageFinished.ExecuteIfBound();
+}
+
 void AAIMonsterBase::ReceiveDamage(float Damage)
 {
 	if (!HasAuthority()) return;
@@ -620,5 +654,5 @@ void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(AAIMonsterBase, CurrentState);
 	DOREPLIFETIME(AAIMonsterBase, bIsAggressive);
 	DOREPLIFETIME(AAIMonsterBase, Aggressor);
-	DOREPLIFETIME(AAIMonsterBase, LastAttackerController);  // ★★★ 추가
+	DOREPLIFETIME(AAIMonsterBase, LastAttackerController);  
 }
