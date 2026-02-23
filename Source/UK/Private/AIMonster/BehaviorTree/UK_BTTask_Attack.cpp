@@ -22,7 +22,7 @@ EBTNodeResult::Type UUK_BTTask_Attack::ExecuteTask(
 	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(AICon->GetPawn());
 	if (!Monster || Monster->IsDead()) return EBTNodeResult::Failed;
 
-	// ★★★ 이동 완전 정지 (텔레포트 방지)
+	// 이동 완전 정지 (텔레포트 방지)
 	AICon->StopMovement();
 	if (UCharacterMovementComponent* MoveComp = Monster->GetCharacterMovement())
 	{

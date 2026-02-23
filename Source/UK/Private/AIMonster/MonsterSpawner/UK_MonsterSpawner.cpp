@@ -42,8 +42,6 @@ void AUK_MonsterSpawner::Tick(float DeltaTime)
 
     if (bShowDebugInfo)
     {
-        DrawDebugSphere(GetWorld(), GetActorLocation(), SpawnRadius, 32, FColor::Green, false, -1.0f, 0, 2.0f);
-        
         FString InfoText = FString::Printf(TEXT("Active: %d/%d\nSpawned: %d\nDeaths: %d\nPooled: %d"),
             ActiveMonsters.Num(),
             MaxMonsters,
@@ -152,8 +150,6 @@ void AUK_MonsterSpawner::SpawnInitialMonsters()
             ActivateMonster(Monster);
         }
     }
-    
-    UE_LOG(LogTemp, Log, TEXT("UK_MonsterSpawner: Spawned %d initial monsters"), ActiveMonsters.Num());
 }
 
 FVector AUK_MonsterSpawner::GetRandomSpawnLocation() const
@@ -161,7 +157,7 @@ FVector AUK_MonsterSpawner::GetRandomSpawnLocation() const
     FVector BaseLocation = GetActorLocation();
     
     const int32 MaxAttempts = 20;
-    const float MinDistanceBetweenMonsters = 200.0f;
+    const float MinDistanceBetweenMonsters = 300.0f;
     const float MinDistanceFromCenter = 150.0f;
     
     for (int32 Attempt = 0; Attempt < MaxAttempts; Attempt++)
