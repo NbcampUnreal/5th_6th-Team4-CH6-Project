@@ -53,15 +53,6 @@ protected:
 	// 레벨 표시용 텍스트 
 	UPROPERTY(meta = ( BindWidget ))
 	UTextBlock* LevelText;
-
-	// 스테미나가 변할 때 실행될 함수
-	UFUNCTION()
-	void UpdateStaminaBar(float CurrentStamina, float MaxStamina);
-
-	// 스테미나 게이지 바
-	UPROPERTY(meta = ( BindWidget ))
-	UUserWidget* WBP_Stamina;
-
 	// 인벤토리 버튼
 	UFUNCTION()
 	void OnInventoryButtonClicked();
