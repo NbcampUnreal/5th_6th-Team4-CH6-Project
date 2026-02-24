@@ -65,102 +65,102 @@ void UUK_CombatAnimationComponent::BeginPlay()
 //}
 
 // 진입점
-void UUK_CombatAnimationComponent::PlayHeavyComboAnimation()
-{
-	if ( !IsValid(NowWeapon) || !IsValid(OwnerCharactor) )
-		return;
-
-	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
-
-	ensure(PlayerMovement);
-
-	bool bPlayerIsFalling = PlayerMovement->IsFalling();
-
-	if ( CurrentComboCount == 0 )
-	{
-		if ( bPlayerIsFalling )
-		{
-			// 공중 강 공격은 없음
-		}
-		else
-		{
-			ServerRPCStartComboAttack(EComboAttackType::HeavyAttackOnGround);
-		}
-	}
-	else
-	{
-		InputType = EAttackInput::Heavy;
-	}
-}
-void UUK_CombatAnimationComponent::PlayNomalSkillComboAnimation()
-{
-	if ( !IsValid(NowWeapon) || !IsValid(OwnerCharactor) )
-		return;
-
-	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
-
-	ensure(PlayerMovement);
-
-	bool bPlayerIsFalling = PlayerMovement->IsFalling();
-
-	if ( CurrentComboCount == 0 )
-	{
-		if ( bPlayerIsFalling )
-		{
-			// 공중 강 공격은 없음
-		}
-		else
-		{
-			ServerRPCStartComboAttack(EComboAttackType::NomalSkill);
-		}
-	}
-	else
-	{
-		InputType = EAttackInput::NomalSkill;
-	}
-}
-void UUK_CombatAnimationComponent::PlayUltimateSkillComboAnimation()
-{
-	if ( !IsValid(NowWeapon) || !IsValid(OwnerCharactor) )
-		return;
-
-	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
-
-	ensure(PlayerMovement);
-
-	bool bPlayerIsFalling = PlayerMovement->IsFalling();
-
-	if ( CurrentComboCount == 0 )
-	{
-		if ( bPlayerIsFalling )
-		{
-			// 공중 강 공격은 없음
-		}
-		else
-		{
-			ServerRPCStartComboAttack(EComboAttackType::UltimateSkill);
-		}
-	}
-	else
-	{
-		InputType = EAttackInput::UltimateSkill;
-	}
-}
+//void UUK_CombatAnimationComponent::PlayHeavyComboAnimation()
+//{
+//	if ( !IsValid(NowWeapon) || !IsValid(OwnerCharactor) )
+//		return;
+//
+//	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
+//
+//	ensure(PlayerMovement);
+//
+//	bool bPlayerIsFalling = PlayerMovement->IsFalling();
+//
+//	if ( CurrentComboCount == 0 )
+//	{
+//		if ( bPlayerIsFalling )
+//		{
+//			// 공중 강 공격은 없음
+//		}
+//		else
+//		{
+//			ServerRPCStartComboAttack(EComboAttackType::HeavyAttackOnGround);
+//		}
+//	}
+//	else
+//	{
+//		InputType = EAttackInput::Heavy;
+//	}
+//}
+//void UUK_CombatAnimationComponent::PlayNomalSkillComboAnimation()
+//{
+//	if ( !IsValid(NowWeapon) || !IsValid(OwnerCharactor) )
+//		return;
+//
+//	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
+//
+//	ensure(PlayerMovement);
+//
+//	bool bPlayerIsFalling = PlayerMovement->IsFalling();
+//
+//	if ( CurrentComboCount == 0 )
+//	{
+//		if ( bPlayerIsFalling )
+//		{
+//			// 공중 강 공격은 없음
+//		}
+//		else
+//		{
+//			ServerRPCStartComboAttack(EComboAttackType::NomalSkill);
+//		}
+//	}
+//	else
+//	{
+//		InputType = EAttackInput::NomalSkill;
+//	}
+//}
+//void UUK_CombatAnimationComponent::PlayUltimateSkillComboAnimation()
+//{
+//	if ( !IsValid(NowWeapon) || !IsValid(OwnerCharactor) )
+//		return;
+//
+//	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
+//
+//	ensure(PlayerMovement);
+//
+//	bool bPlayerIsFalling = PlayerMovement->IsFalling();
+//
+//	if ( CurrentComboCount == 0 )
+//	{
+//		if ( bPlayerIsFalling )
+//		{
+//			// 공중 강 공격은 없음
+//		}
+//		else
+//		{
+//			ServerRPCStartComboAttack(EComboAttackType::UltimateSkill);
+//		}
+//	}
+//	else
+//	{
+//		InputType = EAttackInput::UltimateSkill;
+//	}
+//}
 
 #pragma region ServerRPCs
 // 콤보 최초 시작
-void UUK_CombatAnimationComponent::ServerRPCStartComboAttack_Implementation(const EComboAttackType AttackType)
-{
-	if ( !OwnerCharactor || !NowWeapon )
-		return;
-	if ( NowWeapon->FindAnimsDataAssetByType(AttackType) == nullptr )
-	{
-		return;
-	}
-	CurrentComboCount = 1;
-
-	//MulticastPlayCombo(AttackType, CurrentComboCount);
-}
+//void UUK_CombatAnimationComponent::ServerRPCStartComboAttack_Implementation(const EComboAttackType AttackType)
+//{
+//	if ( !OwnerCharactor || !NowWeapon )
+//		return;
+//	if ( NowWeapon->FindAnimsDataAssetByType(AttackType) == nullptr )
+//	{
+//		return;
+//	}
+//	CurrentComboCount = 1;
+//
+//	//MulticastPlayCombo(AttackType, CurrentComboCount);
+//}
 
 //void UUK_CombatAnimationComponent::ServerRPCComboAttack_Implementation(const EComboAttackType AttackType, FName SectionName)
 //{
@@ -262,118 +262,118 @@ void UUK_CombatAnimationComponent::ServerRPCStartComboAttack_Implementation(cons
 //}
 
 #pragma region EndCombo
-void UUK_CombatAnimationComponent::EndComboAttack(UAnimMontage* TargetMontage, bool bInterrupted)
-{
-	if ( !bInterrupted )
-	{
-		UE_LOG(LogTemp, Display, TEXT("EndComboAttack()"));
-		ResetCharacterGravityScale();
-		//ServerResetPlayerComboAttackValue();
-		ResetPlayerComboAttackValue();
-		ResetPlayerCharacterMovement();
-
-	}
-}
-
-void UUK_CombatAnimationComponent::ResetCharacterGravityScale()
-{
-	if ( !IsValid(OwnerCharactor) )
-	{
-		UE_LOG(LogTemp, Display, TEXT("ResetCharacterGravityScale()return"));
-		return;
-	}
-	UE_LOG(LogTemp, Display, TEXT("Reset()"));
-	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
-	PlayerMovement->GravityScale = DefaultGravityValue;
-}
-
-void UUK_CombatAnimationComponent::ResetPlayerComboAttackValue()
-{
-	InputType = EAttackInput::None;
-
-	CurrentComboCount = 0;
-}
-
-void UUK_CombatAnimationComponent::ResetPlayerCharacterMovement()
-{
-	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
-	if ( IsValid(PlayerMovement) )
-	{
-		PlayerMovement->SetMovementMode(EMovementMode::MOVE_Walking);
-		PlayerMovement->SetJumpAllowed(true);
-	}
-}
-#pragma endregion
-
-void UUK_CombatAnimationComponent::CheckComboProcessable(const EComboAttackType AttackType)
-{
-	if ( !IsValid(NowWeapon) )
-		return;
-
-	ensure(IsValid(OwnerCharactor));
-	//// 입력 감지에 안된다면 콤보 재생종료
-	if ( InputType == EAttackInput::None )
-	{
-		return;
-		TObjectPtr<UAnimMontage> ComboAttackMontage = AttackAnim->ComboMantage;
-
-		EndComboAttack(ComboAttackMontage, false);
-		return;
-	}
-
-	FName NextComboSectionName = *FString::Printf(TEXT("%s%d"), *AttackAnim->MontageSectionName, CurrentComboCount);
-
-	// 애니메이션 재생
-	//ServerRPCComboAttack(AttackType, NextComboSectionName);
-
-	InputType = EAttackInput::None;
-}
-
-void UUK_CombatAnimationComponent::CheckDropAttackProcessable()
-{
-	if ( !IsValid(NowWeapon) )
-		return;
-
-	ensure(IsValid(OwnerCharactor));
-	//// 입력 감지에 안된다면 콤보 재생종료
-	if ( InputType == EAttackInput::None )
-	{
-		return;
-		TObjectPtr<UAnimMontage> ComboAttackMontage = AttackAnim->ComboMantage;
-		EndComboAttack(ComboAttackMontage, false);
-		return;
-	}
-	ResetCharacterGravityScale();
-
-	// 애니메이션 재생
-	//ServerRPCDropAttack();
-
-	InputType = EAttackInput::None;
-}
-
-// 현재 상태에 따른 어택타입 가져오기
-EComboAttackType UUK_CombatAnimationComponent::GetNextAttackType()
-{
-	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
-	bool bPlayerIsFalling = PlayerMovement->IsFalling();
-
-	if ( bPlayerIsFalling )
-	{
-		return EComboAttackType::AttackOnAir;
-	}
-	else
-	{
-		if ( EAttackInput::Light == InputType )
-		{
-			return EComboAttackType::LightAttackOnGround;
-		}
-		else if ( EAttackInput::Heavy == InputType )
-		{
-			return EComboAttackType::HeavyAttackOnGround;
-		}
-	}
-	return EComboAttackType::None;
-}
+//void UUK_CombatAnimationComponent::EndComboAttack(UAnimMontage* TargetMontage, bool bInterrupted)
+//{
+//	if ( !bInterrupted )
+//	{
+//		UE_LOG(LogTemp, Display, TEXT("EndComboAttack()"));
+//		ResetCharacterGravityScale();
+//		//ServerResetPlayerComboAttackValue();
+//		ResetPlayerComboAttackValue();
+//		ResetPlayerCharacterMovement();
+//
+//	}
+//}
+//
+//void UUK_CombatAnimationComponent::ResetCharacterGravityScale()
+//{
+//	if ( !IsValid(OwnerCharactor) )
+//	{
+//		UE_LOG(LogTemp, Display, TEXT("ResetCharacterGravityScale()return"));
+//		return;
+//	}
+//	UE_LOG(LogTemp, Display, TEXT("Reset()"));
+//	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
+//	PlayerMovement->GravityScale = DefaultGravityValue;
+//}
+//
+//void UUK_CombatAnimationComponent::ResetPlayerComboAttackValue()
+//{
+//	InputType = EAttackInput::None;
+//
+//	CurrentComboCount = 0;
+//}
+//
+//void UUK_CombatAnimationComponent::ResetPlayerCharacterMovement()
+//{
+//	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
+//	if ( IsValid(PlayerMovement) )
+//	{
+//		PlayerMovement->SetMovementMode(EMovementMode::MOVE_Walking);
+//		PlayerMovement->SetJumpAllowed(true);
+//	}
+//}
+//#pragma endregion
+//
+//void UUK_CombatAnimationComponent::CheckComboProcessable(const EComboAttackType AttackType)
+//{
+//	if ( !IsValid(NowWeapon) )
+//		return;
+//
+//	ensure(IsValid(OwnerCharactor));
+//	//// 입력 감지에 안된다면 콤보 재생종료
+//	if ( InputType == EAttackInput::None )
+//	{
+//		return;
+//		TObjectPtr<UAnimMontage> ComboAttackMontage = AttackAnim->ComboMantage;
+//
+//		EndComboAttack(ComboAttackMontage, false);
+//		return;
+//	}
+//
+//	FName NextComboSectionName = *FString::Printf(TEXT("%s%d"), *AttackAnim->MontageSectionName, CurrentComboCount);
+//
+//	// 애니메이션 재생
+//	//ServerRPCComboAttack(AttackType, NextComboSectionName);
+//
+//	InputType = EAttackInput::None;
+//}
+//
+//void UUK_CombatAnimationComponent::CheckDropAttackProcessable()
+//{
+//	if ( !IsValid(NowWeapon) )
+//		return;
+//
+//	ensure(IsValid(OwnerCharactor));
+//	//// 입력 감지에 안된다면 콤보 재생종료
+//	if ( InputType == EAttackInput::None )
+//	{
+//		return;
+//		TObjectPtr<UAnimMontage> ComboAttackMontage = AttackAnim->ComboMantage;
+//		EndComboAttack(ComboAttackMontage, false);
+//		return;
+//	}
+//	ResetCharacterGravityScale();
+//
+//	// 애니메이션 재생
+//	//ServerRPCDropAttack();
+//
+//	InputType = EAttackInput::None;
+//}
+//
+//// 현재 상태에 따른 어택타입 가져오기
+//EComboAttackType UUK_CombatAnimationComponent::GetNextAttackType()
+//{
+//	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
+//	bool bPlayerIsFalling = PlayerMovement->IsFalling();
+//
+//	if ( bPlayerIsFalling )
+//	{
+//		return EComboAttackType::AttackOnAir;
+//	}
+//	else
+//	{
+//		if ( EAttackInput::Light == InputType )
+//		{
+//			return EComboAttackType::LightAttackOnGround;
+//		}
+//		else if ( EAttackInput::Heavy == InputType )
+//		{
+//			return EComboAttackType::HeavyAttackOnGround;
+//		}
+//	}
+//	return EComboAttackType::None;
+//}
 
 #pragma region Battle
 void UUK_CombatAnimationComponent::SetEnableRightHitCheck(bool bEnablaHitCheck)
@@ -597,15 +597,15 @@ void UUK_CombatAnimationComponent::MulticastPlaySoundAndEffect_Implementation(US
 }
 #pragma endregion
 
-void UUK_CombatAnimationComponent::SetNowWeapon(UUK_StatusAnimData* NewWeapon)
-{
-	ServerRPCSetNowWeapon(NewWeapon);
-}
-
-void UUK_CombatAnimationComponent::ServerRPCSetNowWeapon_Implementation(UUK_StatusAnimData* NewWeapon)
-{
-	if ( IsValid(NewWeapon) )
-	{
-		NowWeapon = NewWeapon;
-	}
-}
+//void UUK_CombatAnimationComponent::SetNowWeapon(UUK_StatusAnimData* NewWeapon)
+//{
+//	ServerRPCSetNowWeapon(NewWeapon);
+//}
+//
+//void UUK_CombatAnimationComponent::ServerRPCSetNowWeapon_Implementation(UUK_StatusAnimData* NewWeapon)
+//{
+//	if ( IsValid(NewWeapon) )
+//	{
+//		NowWeapon = NewWeapon;
+//	}
+//}

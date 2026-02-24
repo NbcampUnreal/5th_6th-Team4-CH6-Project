@@ -24,6 +24,5 @@ EBTNodeResult::Type UUK_BTTask_SetWaiting::ExecuteTask(
 		return EBTNodeResult::Failed;
 
 	NPC->bIsWaiting = bWaiting;
-	UE_LOG(LogTemp, Warning, TEXT("Waiting: %d"), bWaiting);
 	return EBTNodeResult::Succeeded;
 }
