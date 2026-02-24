@@ -65,6 +65,7 @@ public:
 	bool RemoveWeapon(FName ItemID, int32 index);
 
 	FInventorySlot* FindWeaponSlot(FName ItemID);
+
 	FInventorySlot* FindWeaponSlotbyIndex(int32 index);
 	FInventorySlot* FindEmptyWeaponSlot();
 

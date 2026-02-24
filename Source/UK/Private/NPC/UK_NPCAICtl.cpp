@@ -41,13 +41,11 @@ void AUK_NPCAICtl::OnPossess(APawn* InPawn)
 
 	if (!NPC)
 	{
-		UE_LOG(LogTemp, Error, TEXT("NPC Cast Failed"));
 		return;
 	}
 
 	if (!NPC->BehaviorTree)
 	{
-		UE_LOG(LogTemp, Error, TEXT("BehaviorTree is NULL"));
 		return;
 	}
 
@@ -58,7 +56,6 @@ void AUK_NPCAICtl::OnPossess(APawn* InPawn)
 
 	BTComp->StartTree(*NPC->BehaviorTree);
 
-	UE_LOG(LogTemp, Warning, TEXT("BT Started: %s"), *GetName());
 }
 
 void AUK_NPCAICtl::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
