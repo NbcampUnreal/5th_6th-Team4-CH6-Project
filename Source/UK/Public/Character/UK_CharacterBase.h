@@ -82,21 +82,35 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
 	TObjectPtr<UStatusComponent> StatusComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UUK_CombatAnimationComponent> AnimationComponent;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	//TObjectPtr<UUK_CombatAnimationComponent> AnimationComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUK_InventoryComponent> InventoryComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UAIPerceptionStimuliSourceComponent> StimuliSource;
+#pragma endregion
 
+#pragma region Interaction And Quest
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUK_InteractionComponent> InteractionComp;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUK_QuestComponent> QuestComp;
 
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UUserWidget> InteractWidgetClass;
+
+	UPROPERTY()
+	UUserWidget* InteractWidget;
+
+	UFUNCTION(Client, Reliable)
+	void Client_ShowInteractUI();
+
+	UFUNCTION(Client, Reliable)
+	void Client_HideInteractUI();
 
 #pragma endregion
 #pragma region GAS
@@ -192,6 +206,8 @@ public:
 	void OnRep_CurrentWeaponTag();
 	UFUNCTION()
 	void OnRep_NowWeapon();
+
+	UUK_StatusAnimData* GetNowWeaponStatus() const { return NowWeapon; }
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<UUK_WeaponData> WeaponList;
@@ -215,6 +231,7 @@ public:
 	void EndComboAttack();
 
 	void ReceiveDamage(float Damage);
+
 	float ApplyDamage();
 
 	UFUNCTION()

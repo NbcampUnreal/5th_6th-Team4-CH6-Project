@@ -2,7 +2,6 @@
 
 
 #include "Animation/AnimNotify/UK_CheckAttackNotify.h"
-#include "ActorComponent/UK_CombatAnimationComponent.h"
 #include "Character/UK_CharacterBase.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
