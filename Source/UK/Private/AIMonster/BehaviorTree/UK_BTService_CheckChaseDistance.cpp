@@ -62,8 +62,6 @@ void UUK_BTService_CheckChaseDistance::TickNode(UBehaviorTreeComponent& OwnerCom
 	{
 		// 이 경우는 추격 중단이 아니라 공격으로 전환되어야 함
 		// BT의 InAttackRange 데코레이터가 처리하므로 여기서는 체크만
-		UE_LOG(LogTemp, Log, TEXT("[ChaseDistance] %s: In attack range (%.1f <= %.1f)"),
-			*Monster->GetName(), DistanceToPlayer, Monster->AttackRange);
 		return;
 	}
 

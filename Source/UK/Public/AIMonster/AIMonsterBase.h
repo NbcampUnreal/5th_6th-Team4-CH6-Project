@@ -36,7 +36,9 @@ enum class EMonsterType : uint8
 {
 	None = 0,
 	Golem = 1,
-	
+	Wolf = 2,
+	Fox = 3,
+	Reindeer = 4,
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDeath, class AAIMonsterBase*, DeadMonster);
@@ -185,12 +187,6 @@ public:
 	TArray<UAnimMontage*> AttackMontages;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Animation")
-	UAnimMontage* DeathMontage = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Animation")
-	float DeathWithoutMontageDelay = 5.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Animation")
 	float CorpseLingerTime = 5.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
@@ -213,9 +209,6 @@ public:
 	void Multicast_PlayAttackMontage(int32 MontageIndex);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayDeathMontage();
-
-	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_HideCorpse();
 
 	UFUNCTION(NetMulticast, Reliable)
@@ -233,6 +226,31 @@ public:
 	float LastAttackTime = 0.f;
 #pragma endregion
 
+#pragma region Idle Animation
+	/** 배회 중 목적지 도착 시 재생할 아이들 몽타주 목록 (평화 몬스터용) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Idle|Animation",
+		meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
+	TArray<UAnimMontage*> IdleMontages;
+
+	/**
+	 * 랜덤 아이들 몽타주 재생 (Multicast)
+	 * @return 재생 성공 여부 (IdleMontages가 비어있으면 false)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Idle|Animation")
+	bool PlayRandomIdleMontage();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayIdleMontage(int32 MontageIndex);
+
+	/** 아이들 몽타주 재생 완료 콜백 */
+	UFUNCTION()
+	void OnIdleMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	/** 아이들 몽타주 종료 시 BT 태스크에 알림 */
+	DECLARE_DELEGATE(FOnIdleMontageFinished);
+	FOnIdleMontageFinished OnIdleMontageFinished;
+#pragma endregion
+	
 public:
 	void ReceiveDamage(float Damage);
 
@@ -243,7 +261,6 @@ public:
 
 private:
 	FTimerHandle CorpseTimerHandle;
-	FTimerHandle DeathMontageTimerHandle;
 	void HideAndBroadcastDeath();
 	
 	/* 킬 알림 전송 */
