@@ -21,6 +21,7 @@ class UAbilitySystemComponent;
 class UGameplayAbility;
 class AUK_WeaponBase;
 class UUK_WeaponData;
+class UUK_StatusAnimData;
 class UUK_CombatAnimationComponent;
 class UUK_InventoryComponent;
 class UAIPerceptionStimuliSourceComponent;
@@ -53,7 +54,7 @@ public:
 	TObjectPtr<USkeletalMeshComponent> GetRightHandWeapon() { return RightHandWeaponComponent; }
 	TObjectPtr<USkeletalMeshComponent> GetLeftHandWeapon() { return LeftHandWeaponComponent; }
 	TObjectPtr<UUK_InventoryComponent> GetInventoryComponent() { return InventoryComponent; }
-
+	void OnRep_RightHandWeapon();
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -67,13 +68,13 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UCameraComponent> Camera;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkeletalMeshComponent> CharactorMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkeletalMeshComponent> RightHandWeaponComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkeletalMeshComponent> LeftHandWeaponComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
@@ -161,6 +162,7 @@ protected:
 
 #pragma region Weapon
 public:
+	UFUNCTION(BlueprintCallable)
 	void EquipWeapon(FGameplayTag NewWeapon);
 
 	UFUNCTION(BlueprintCallable)
@@ -170,27 +172,49 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SlotWeaponThree();
 
+	UFUNCTION(BlueprintCallable)
 	void SwapWeapon(int32 Index);
 
+
+	UFUNCTION()
+	void OnRep_CurrentWeaponTag();
+	UFUNCTION()
+	void OnRep_NowWeapon();
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<UUK_WeaponData> WeaponList;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_NowWeapon)
+	UUK_StatusAnimData* NowWeapon;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	TObjectPtr<UDataTable> ItmeDataTable;
 
-	FGameplayTag NowWeapon;
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentWeaponTag)
+	FGameplayTag CurrentWeaponTag;
 #pragma endregion
 
 #pragma region Battle
 public:
+	UFUNCTION(BlueprintCallable)
+	void StopJumpAndFly();
+
+	UFUNCTION(BlueprintCallable)
+	void EndComboAttack();
+
 	void ReceiveDamage(float Damage);
 	float ApplyDamage();
 
 	UFUNCTION()
 	void Dead();
 
+	UFUNCTION()
+	void OnRep_InInput();
+
+	UPROPERTY(BlueprintReadWrite, ReplicatedUsing = OnRep_InInput)
+	bool bIsInInput = false;
+
+	float DefaultGravityValue;
 	FOnFloorDelagate OnFloor;
 #pragma endregion
 };
