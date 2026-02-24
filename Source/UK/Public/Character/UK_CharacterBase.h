@@ -27,6 +27,8 @@ class UUK_InventoryComponent;
 class UAIPerceptionStimuliSourceComponent;
 class AAIMonsterBase;
 class UUK_InputConfig;
+class UUK_InteractionComponent;
+class UUK_QuestComponent;
 struct FInputActionValue;
 #pragma endregion
 
@@ -89,6 +91,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UAIPerceptionStimuliSourceComponent> StimuliSource;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UUK_InteractionComponent> InteractionComp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UUK_QuestComponent> QuestComp;
+
+
 #pragma endregion
 #pragma region GAS
 protected:
@@ -132,6 +141,9 @@ protected:
 
 	UFUNCTION()
 	void ToggleMouse();
+
+	UFUNCTION()
+	void Interaction();
 
 public:
 	UFUNCTION(BlueprintCallable)

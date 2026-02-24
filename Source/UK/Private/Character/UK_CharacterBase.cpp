@@ -12,6 +12,8 @@
 #include "ActorComponent/UK_CombatAnimationComponent.h"
 #include "ActorComponent/UK_InventoryComponent.h"
 #include "ActorComponent/UK_InputComponent.h"
+#include "NPC/Component/UK_InteractionComponent.h"
+#include "NPC/Component/UK_QuestComponent.h"
 #include "DataAsset/UK_WeaponData.h"
 #include "DataAsset/UK_StatusAnimData.h"
 #include "DataAsset/UK_InputConfig.h"
@@ -82,6 +84,8 @@ AUK_CharacterBase::AUK_CharacterBase() :
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
 	InventoryComponent = CreateDefaultSubobject<UUK_InventoryComponent>(TEXT("InventoryComponent"));
 	AnimationComponent = CreateDefaultSubobject<UUK_CombatAnimationComponent>(TEXT("AnimComponent"));
+	InteractionComp = CreateDefaultSubobject<UUK_InteractionComponent>(TEXT("InteractionComponent"));
+	QuestComp = CreateDefaultSubobject<UUK_QuestComponent>(TEXT("QuestComponent"));
 }
 
 void AUK_CharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -135,6 +139,7 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::HeavyAttack, ETriggerEvent::Started, this, &ThisClass::HeavyAttack);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Crouch, ETriggerEvent::Started, this, &ThisClass::CrouchInput);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ToggleMouse, ETriggerEvent::Started, this, &ThisClass::ToggleMouse);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Interaction, ETriggerEvent::Started, this, &ThisClass::Interaction);
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -301,6 +306,11 @@ void AUK_CharacterBase::ToggleMouse()
 		return;
 
 	PC->ToggleMouseCursor();
+}
+
+void AUK_CharacterBase::Interaction()
+{
+
 }
 
 void AUK_CharacterBase::ZoomIn()
