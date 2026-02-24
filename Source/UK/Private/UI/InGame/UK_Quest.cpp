@@ -22,3 +22,13 @@ void UUK_Quest::NativeConstruct()
 		//Button_1->OnClicked.AddDynamic(this, &ThisClass::);
 	}
 }
+
+void UUK_Quest::OnPlayButtonClicked()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Play Button Clicked"));
+}
+
+void UUK_Quest::OnExitButtonClicked()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Exit Button Clicked"));
+}
