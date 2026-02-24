@@ -4,9 +4,9 @@
 #include "Character/UK_PlayerController.h"
 #include "EnhancedInputSubsystems.h"
 
-AUK_PlayerController::AUK_PlayerController() : bMouseCursorEnabled(false)
+AUK_PlayerController::AUK_PlayerController() 
+	: bMouseCursorEnabled(false)
 {
-
 }
 void AUK_PlayerController::PostInitializeComponents()
 {
@@ -22,6 +22,8 @@ void AUK_PlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 	DisableMouseCursorMode();
+	StaminaWidget = CreateWidget<UUK_Stamina>(this, StaminaWidgetClass);
+	StaminaWidget->AddToViewport();
 }
 
 
@@ -40,6 +42,65 @@ void AUK_PlayerController::PostSeamlessTravel()
 void AUK_PlayerController::OnPossess(APawn* pawn)
 {
 	Super::OnPossess(pawn);
+	ConnectStaminaWidget();
+}
+
+void AUK_PlayerController::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if ( !StaminaWidget ) return;
+
+	APawn* MyPawn = GetPawn();
+	if ( !MyPawn )
+	{
+		StaminaWidget->SetTrackingPosition(FVector2D::ZeroVector, 1.f, false);
+		return;
+	}
+
+	FVector CamLoc = PlayerCameraManager->GetCameraLocation();
+	FRotator CamRot = PlayerCameraManager->GetCameraRotation();
+
+	FVector CamRight = FRotationMatrix(CamRot).GetUnitAxis(EAxis::Y);
+	FVector CamForward = FRotationMatrix(CamRot).GetUnitAxis(EAxis::X);
+
+	FVector BaseLocation = MyPawn->GetActorLocation() + Stemina_Location;
+	FVector TargetWorldPos = BaseLocation + ( CamRight * SideDistance );
+
+	FVector2D ScreenPos;
+	bool bProjected = ProjectWorldLocationToScreen(TargetWorldPos, ScreenPos, true);
+
+	if ( !bProjected )
+	{
+		StaminaWidget->SetTrackingPosition(ScreenPos, 1.f, false);
+		return;
+	}
+
+	FVector ToTarget = ( TargetWorldPos - CamLoc ).GetSafeNormal();
+	float Dot = FVector::DotProduct(CamForward, ToTarget);
+
+	if ( Dot < 0.15f )
+	{
+		StaminaWidget->SetTrackingPosition(ScreenPos, 1.f, false);
+		return;
+	}
+
+	float Dist = FVector::Dist(CamLoc, TargetWorldPos);
+
+	float Scale = FMath::GetMappedRangeValueClamped(
+		FVector2D(DistanceMin, DistanceMax),
+		FVector2D(ScaleNear, ScaleFar),
+		Dist
+	);
+
+	int32 SizeX, SizeY;
+	GetViewportSize(SizeX, SizeY);
+
+	bool bInside =
+		ScreenPos.X > -50 && ScreenPos.X < SizeX + 50 &&
+		ScreenPos.Y > -50 && ScreenPos.Y < SizeY + 50;
+
+	StaminaWidget->SetTrackingPosition(ScreenPos, Scale, bInside);
 }
 
 
@@ -67,6 +128,21 @@ void AUK_PlayerController::DisableMouseCursorMode()
 	SetInputMode(InputMode);
 
 	SetIgnoreLookInput(false);
+}
+
+void AUK_PlayerController::ConnectStaminaWidget()
+{
+	if ( !StaminaWidget ) return;
+
+	APawn* MyPawn = GetPawn();
+	if ( !MyPawn ) return;
+
+	UStatusComponent* StatusComp =
+		MyPawn->FindComponentByClass<UStatusComponent>();
+
+	if ( !StatusComp ) return;
+
+	StaminaWidget->BindStatusComponent(StatusComp);
 }
 
 void AUK_PlayerController::ToggleMouseCursor()

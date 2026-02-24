@@ -12,6 +12,8 @@
 #include "ActorComponent/UK_CombatAnimationComponent.h"
 #include "ActorComponent/UK_InventoryComponent.h"
 #include "ActorComponent/UK_InputComponent.h"
+#include "NPC/Component/UK_InteractionComponent.h"
+#include "NPC/Component/UK_QuestComponent.h"
 #include "DataAsset/UK_WeaponData.h"
 #include "DataAsset/UK_StatusAnimData.h"
 #include "DataAsset/UK_InputConfig.h"
@@ -32,7 +34,7 @@
 
 // Sets default values
 AUK_CharacterBase::AUK_CharacterBase() :
-	NowWeapon(UK_GameplayTags::Weapon::WeaponRoot),
+	NowWeapon(nullptr),
 	bIsLock(false),
 	bIsCrouched(false)
 {
@@ -81,7 +83,9 @@ AUK_CharacterBase::AUK_CharacterBase() :
 
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
 	InventoryComponent = CreateDefaultSubobject<UUK_InventoryComponent>(TEXT("InventoryComponent"));
-	AnimationComponent = CreateDefaultSubobject<UUK_CombatAnimationComponent>(TEXT("AnimComponent"));
+	//AnimationComponent = CreateDefaultSubobject<UUK_CombatAnimationComponent>(TEXT("AnimComponent"));
+	InteractionComp = CreateDefaultSubobject<UUK_InteractionComponent>(TEXT("InteractionComponent"));
+	QuestComp = CreateDefaultSubobject<UUK_QuestComponent>(TEXT("QuestComponent"));
 }
 
 void AUK_CharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -89,7 +93,13 @@ void AUK_CharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(AUK_CharacterBase, StatusComponent, COND_None);
+	DOREPLIFETIME_CONDITION(AUK_CharacterBase, CurrentWeaponTag, COND_None);
+	DOREPLIFETIME_CONDITION(AUK_CharacterBase, bIsInInput, COND_None);
 
+}
+
+void AUK_CharacterBase::OnRep_RightHandWeapon()
+{
 }
 
 // Called when the game starts or when spawned
@@ -98,6 +108,7 @@ void AUK_CharacterBase::BeginPlay()
 	Super::BeginPlay();
 
 	StatusComponent->OnDeadDelegate.AddDynamic(this, &AUK_CharacterBase::Dead);
+	DefaultGravityValue = GetCharacterMovement()->GravityScale;
 }
 
 void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -124,10 +135,11 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	//UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Sprint, ETriggerEvent::Started, this, &ThisClass::Sprint);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ZoomIn, ETriggerEvent::Triggered, this, &ThisClass::ZoomIn);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ZoomOut, ETriggerEvent::Triggered, this, &ThisClass::ZoomOut);
-	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::LightAttack, ETriggerEvent::Started, this, &ThisClass::LightAttack);
-	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::HeavyAttack, ETriggerEvent::Started, this, &ThisClass::HeavyAttack);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Action::LightAttack, ETriggerEvent::Started, this, &ThisClass::LightAttack);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Action::HeavyAttack, ETriggerEvent::Started, this, &ThisClass::HeavyAttack);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Crouch, ETriggerEvent::Started, this, &ThisClass::CrouchInput);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ToggleMouse, ETriggerEvent::Started, this, &ThisClass::ToggleMouse);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Interaction, ETriggerEvent::Started, this, &ThisClass::Interaction);
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -153,11 +165,16 @@ void AUK_CharacterBase::PossessedBy(AController* NewController)
 void AUK_CharacterBase::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
-	if ( OnFloor.IsBound() == true)
+	if ( OnFloor.IsBound() == true )
 	{
 		OnFloor.Execute();
 
 	}
+
+	FGameplayEventData EventData;
+	EventData.EventTag = FGameplayTag::RequestGameplayTag("Action.DropAttack");
+
+	GetAbilitySystemComponent()->HandleGameplayEvent(EventData.EventTag, &EventData);
 }
 
 //// Called every frame
@@ -249,7 +266,18 @@ void AUK_CharacterBase::LightAttack()
 	{
 		return;
 	}
-	AnimationComponent->PlayLightComboAnimation();
+	bIsInInput = true;
+	FGameplayTagContainer Container;
+	if ( GetCharacterMovement()->IsFalling() == true )
+	{
+		Container.AddTag(UK_GameplayTags::Action::AirAttack);
+		GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
+	}
+	else if( GetCharacterMovement()->IsFalling() == false )
+	{
+		Container.AddTag(UK_GameplayTags::Action::LightAttack);
+		GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
+	}
 }
 void AUK_CharacterBase::HeavyAttack()
 {
@@ -257,7 +285,11 @@ void AUK_CharacterBase::HeavyAttack()
 	{
 		return;
 	}
-	AnimationComponent->PlayHeavyComboAnimation();
+	bIsInInput = true;
+	FGameplayTagContainer Container;
+	Container.AddTag(UK_GameplayTags::Action::HeavyAttack);
+	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
+
 }
 
 void AUK_CharacterBase::CrouchInput()
@@ -281,7 +313,7 @@ void AUK_CharacterBase::CrouchInput()
 
 void AUK_CharacterBase::ToggleMouse()
 {
-	if(StatusComponent->IsDead())
+	if ( StatusComponent->IsDead() )
 		return;
 
 	AUK_PlayerController* PC = Cast<AUK_PlayerController>(GetController());
@@ -289,6 +321,11 @@ void AUK_CharacterBase::ToggleMouse()
 		return;
 
 	PC->ToggleMouseCursor();
+}
+
+void AUK_CharacterBase::Interaction()
+{
+
 }
 
 void AUK_CharacterBase::ZoomIn()
@@ -468,13 +505,11 @@ void AUK_CharacterBase::AddTarget(const TObjectPtr<AAIMonsterBase> Monster)
 
 #pragma region Weapon
 
-
 void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 {
-
-	GetAbilitySystemComponent()->RemoveLooseGameplayTag(NowWeapon);
-	NowWeapon = NewWeapon;
-	UUK_StatusAnimData* Weapon = WeaponList->FindAnimsDataAssetByTag(NowWeapon);
+	CurrentWeaponTag = NewWeapon;
+	UUK_StatusAnimData* Weapon = WeaponList->FindAnimsDataAssetByTag(NewWeapon);
+	NowWeapon = Weapon;
 	if ( IsValid(Weapon->GetRightHandWeapon()) )
 	{
 		RightHandWeaponComponent->SetSkeletalMesh(Weapon->GetRightHandWeapon());         // todo : 이후에 서버에서 변경하도록 수정해야함 임시로 클라에서만 변경하고 있음
@@ -497,25 +532,30 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 	{
 		LeftHandWeaponComponent->SetSkeletalMesh(nullptr);
 	}
-	AnimationComponent->SetNowWeapon(Weapon);
-	GetAbilitySystemComponent()->AddLooseGameplayTag(NowWeapon);
+	//AnimationComponent->SetNowWeapon(Weapon);
 }
 void AUK_CharacterBase::SlotWeaponOne()
 {
-	SwapWeapon(0);
+	FGameplayTagContainer Container;
+	Container.AddTag(UK_GameplayTags::Action::Swap1);
+	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
 }
 void AUK_CharacterBase::SlotWeaponTwo()
 {
-	SwapWeapon(1);
+	FGameplayTagContainer Container;
+	Container.AddTag(UK_GameplayTags::Action::Swap2);
+	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
 }
 void AUK_CharacterBase::SlotWeaponThree()
 {
-	SwapWeapon(2);
+	FGameplayTagContainer Container;
+	Container.AddTag(UK_GameplayTags::Action::Swap3);
+	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
 }
 void AUK_CharacterBase::SwapWeapon(int32 Index)
 {
-	if ( AnimationComponent->GetCurrentComboCount() != 0 )
-		return;
+	//if ( AnimationComponent->GetCurrentComboCount() != 0 )
+	//	return;
 	FInventorySlot* WeaponSlot = InventoryComponent->FindWeaponSlotbyIndex(Index);
 	if ( WeaponSlot->isEmpty() )
 	{
@@ -528,9 +568,57 @@ void AUK_CharacterBase::SwapWeapon(int32 Index)
 	}
 	EquipWeapon(ItemData->ItemTag);
 }
+void AUK_CharacterBase::OnRep_CurrentWeaponTag()
+{
+	UUK_StatusAnimData* Weapon = WeaponList->FindAnimsDataAssetByTag(CurrentWeaponTag);
+	NowWeapon = Weapon;
+	if ( IsValid(Weapon->GetRightHandWeapon()) )
+	{
+		RightHandWeaponComponent->SetSkeletalMesh(Weapon->GetRightHandWeapon());         // todo : 이후에 서버에서 변경하도록 수정해야함 임시로 클라에서만 변경하고 있음
+
+		RightHandWeaponComponent->SetRelativeLocation(Weapon->GetRightLocationOffset());
+		RightHandWeaponComponent->SetRelativeRotation(Weapon->GetRightRotationOffset());
+	}
+	else
+	{
+		RightHandWeaponComponent->SetSkeletalMesh(nullptr);
+	}
+	if ( IsValid(Weapon->GetLeftHandWeapon()) )
+	{
+		LeftHandWeaponComponent->SetSkeletalMesh(Weapon->GetLeftHandWeapon());             // todo : 이후에 서버에서 변경하도록 수정해야함 임시로 클라에서만 변경하고 있음
+
+		LeftHandWeaponComponent->SetRelativeLocation(Weapon->GetLeftLocationOffset());
+		LeftHandWeaponComponent->SetRelativeRotation(Weapon->GetLeftRotationOffset());
+	}
+	else
+	{
+		LeftHandWeaponComponent->SetSkeletalMesh(nullptr);
+	}
+}
+void AUK_CharacterBase::OnRep_NowWeapon()
+{
+}
 #pragma endregion
 
 #pragma region Battle
+
+void AUK_CharacterBase::StopJumpAndFly()
+{
+	UCharacterMovementComponent* PlayerMovement = GetCharacterMovement();
+
+	PlayerMovement->GravityScale = 0.f;
+	PlayerMovement->Velocity = FVector::ZeroVector;
+	StopJumping();
+
+	PlayerMovement->SetJumpAllowed(false);
+}
+void AUK_CharacterBase::EndComboAttack()
+{
+	UCharacterMovementComponent* PlayerMovement = GetCharacterMovement();
+	GetCharacterMovement()->GravityScale = DefaultGravityValue;
+	PlayerMovement->SetMovementMode(EMovementMode::MOVE_Walking);
+	PlayerMovement->SetJumpAllowed(true);
+}
 
 void AUK_CharacterBase::ReceiveDamage(float Damage)
 {
@@ -553,5 +641,9 @@ float AUK_CharacterBase::ApplyDamage()
 void AUK_CharacterBase::Dead()
 {
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+}
+void AUK_CharacterBase::OnRep_InInput()
+{
+
 }
 #pragma endregion
