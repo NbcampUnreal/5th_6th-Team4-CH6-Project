@@ -27,6 +27,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
+#include "Blueprint/UserWidget.h"
 
 #pragma region Defualt
 
@@ -310,7 +311,11 @@ void AUK_CharacterBase::ToggleMouse()
 
 void AUK_CharacterBase::Interaction()
 {
-
+	if (InteractionComp)
+	{
+		InteractionComp->TryInteract();
+	}
+	UE_LOG(LogTemp, Log, TEXT("상호 작용 시도"));
 }
 
 void AUK_CharacterBase::ZoomIn()
@@ -632,3 +637,29 @@ void AUK_CharacterBase::OnRep_InInput()
 
 }
 #pragma endregion
+
+void AUK_CharacterBase::Client_ShowInteractUI_Implementation()
+{
+	if (InteractWidget) return;
+
+	if (!InteractWidgetClass) return;
+
+	InteractWidget =
+		CreateWidget<UUserWidget>(
+			GetWorld(),
+			InteractWidgetClass
+		);
+
+	if (InteractWidget)
+	{
+		InteractWidget->AddToViewport();
+	}
+}
+
+void AUK_CharacterBase::Client_HideInteractUI_Implementation()
+{
+	if (!InteractWidget) return;
+
+	InteractWidget->RemoveFromParent();
+	InteractWidget = nullptr;
+}

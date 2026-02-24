@@ -13,11 +13,11 @@ void UUK_Quest::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	if ( Button_0 )
+	if (Accept_Button)
 	{
 		//Button_0->OnClicked.AddDynamic(this, &ThisClass::);
 	}
-	if ( Button_1 )
+	if (Exit_Button)
 	{
 		//Button_1->OnClicked.AddDynamic(this, &ThisClass::);
 	}

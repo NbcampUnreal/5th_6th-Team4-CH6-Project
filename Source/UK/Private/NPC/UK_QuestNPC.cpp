@@ -4,6 +4,8 @@
 #include "Character/UK_CharacterBase.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SphereComponent.h"
+#include "NPC/Component/UK_InteractionComponent.h"
+#include "NPC/Component/UK_QuestComponent.h"
 
 AUK_QuestNPC::AUK_QuestNPC()
 {
@@ -36,17 +38,13 @@ void AUK_QuestNPC::BeginPlay()
 
 void AUK_QuestNPC::OnPlayerEnter(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,bool bFromSweep, const FHitResult& SweepResult)
 {
-	if ( !HasAuthority() ) return;
-
 	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(OtherActor);
 
-	if ( Player )
+	if (Player && Player->InteractionComp)
 	{
 		bPlayerInRange = true;
 
-		//Player->SetNearNPC(this);   
-
-		//Player->Client_ShowInteractUI(); 
+		Player->InteractionComp->SetNearActor(this);
 
 		if ( QuestMarker )
 		{
@@ -64,17 +62,14 @@ void AUK_QuestNPC::OnPlayerEnter(UPrimitiveComponent* OverlappedComp, AActor* Ot
 
 void AUK_QuestNPC::OnPlayerExit(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if ( !HasAuthority() ) return;
-
 	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(OtherActor);
 
-	if ( Player )
+	if (Player && Player->InteractionComp)
+
 	{
 		bPlayerInRange = false;
 
-		//Player->ClearNearNPC();
-
-		//Player->Client_HideInteractUI();
+		Player->InteractionComp->ClearNearActor();
 
 		if ( QuestMarker )
 		{
@@ -101,22 +96,22 @@ void AUK_QuestNPC::UpdateMarkerRotation()
 void AUK_QuestNPC::Interact_Implementation(AActor* Interactor)
 {
 	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(Interactor);
-	if ( !Player ) return;
+	if (!Player) return;
 
 	Server_Interact(Player);
 }
 
 void AUK_QuestNPC::Server_Interact_Implementation(AUK_CharacterBase* Player)
 {
-	if ( !Player ) return;
+	if (!Player) return;
 
-	if ( !bPlayerInRange ) return;
+	if (!bPlayerInRange) return;
 
-	// Player의 QuestComponent에게 전달
-	/*if ( Player->QuestComponent )
+	//Player의 QuestComponent에게 전달
+	if (Player->QuestComp)
 	{
-		Player->QuestComponent->ProcessQuest(QuestID, this);
-	}*/
+		Player->QuestComp->ProcessQuest(QuestID, this);
+	}
 }
 
 
