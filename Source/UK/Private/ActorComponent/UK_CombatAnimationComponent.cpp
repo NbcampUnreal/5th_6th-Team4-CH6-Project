@@ -46,10 +46,10 @@ UUK_CombatAnimationComponent::UUK_CombatAnimationComponent() :
 
 void UUK_CombatAnimationComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UUK_CombatAnimationComponent, CurrentComboCount);
-	DOREPLIFETIME(UUK_CombatAnimationComponent, NowWeapon);
-
+//	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+//	DOREPLIFETIME(UUK_CombatAnimationComponent, CurrentComboCount);
+//	DOREPLIFETIME(UUK_CombatAnimationComponent, NowWeapon);
+//
 }
 
 // Called when the game starts
@@ -60,38 +60,10 @@ void UUK_CombatAnimationComponent::BeginPlay()
 }
 #pragma endregion
 
-void UUK_CombatAnimationComponent::OnRep_CurrentComboCount()
-{
-}
+//void UUK_CombatAnimationComponent::OnRep_CurrentComboCount()
+//{
+//}
 
-// 진입점
-void UUK_CombatAnimationComponent::PlayLightComboAnimation()
-{
-	if ( !IsValid(NowWeapon) || !IsValid(OwnerCharactor) )
-		return;
-
-	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
-
-	ensure(PlayerMovement);
-
-	bool bPlayerIsFalling = PlayerMovement->IsFalling();
-
-	if ( CurrentComboCount == 0 )
-	{
-		if ( bPlayerIsFalling )
-		{
-			ServerRPCStartComboAttack(EComboAttackType::AttackOnAir);
-		}
-		else
-		{
-			ServerRPCStartComboAttack(EComboAttackType::LightAttackOnGround);
-		}
-	}
-	else
-	{
-		InputType = EAttackInput::Light;
-	}
-}
 // 진입점
 void UUK_CombatAnimationComponent::PlayHeavyComboAnimation()
 {
@@ -187,107 +159,107 @@ void UUK_CombatAnimationComponent::ServerRPCStartComboAttack_Implementation(cons
 	}
 	CurrentComboCount = 1;
 
-	MulticastPlayCombo(AttackType, CurrentComboCount);
+	//MulticastPlayCombo(AttackType, CurrentComboCount);
 }
 
-void UUK_CombatAnimationComponent::ServerRPCComboAttack_Implementation(const EComboAttackType AttackType, FName SectionName)
-{
-	if ( !NowWeapon ) return;
+//void UUK_CombatAnimationComponent::ServerRPCComboAttack_Implementation(const EComboAttackType AttackType, FName SectionName)
+//{
+//	if ( !NowWeapon ) return;
+//
+//	EComboAttackType NextAttack = GetNextAttackType();
+//
+//	CurrentComboCount++;
+//
+//	MulticastPlayCombo(AttackType, CurrentComboCount);
+//}
 
-	EComboAttackType NextAttack = GetNextAttackType();
+//void UUK_CombatAnimationComponent::ServerRPCDropAttack_Implementation()
+//{
+//	if ( OwnerCharactor->OnFloor.IsBound() == false )
+//	{
+//		OwnerCharactor->OnFloor.BindDynamic(this, &UUK_CombatAnimationComponent::ServerRPCDropOnFloorAttack);
+//	}
+//	MulticastPlayCombo(EComboAttackType::DropAttack, 1);
+//}
+//
+//void UUK_CombatAnimationComponent::ServerRPCDropOnFloorAttack_Implementation()
+//{
+//	if ( OwnerCharactor->OnFloor.IsBound() )
+//	{
+//		OwnerCharactor->OnFloor.Unbind();
+//	}
+//	MulticastPlayCombo(EComboAttackType::DropAttack, 2);
+//}
 
-	CurrentComboCount++;
-
-	MulticastPlayCombo(AttackType, CurrentComboCount);
-}
-
-void UUK_CombatAnimationComponent::ServerRPCDropAttack_Implementation()
-{
-	if ( OwnerCharactor->OnFloor.IsBound() == false )
-	{
-		OwnerCharactor->OnFloor.BindDynamic(this, &UUK_CombatAnimationComponent::ServerRPCDropOnFloorAttack);
-	}
-	MulticastPlayCombo(EComboAttackType::DropAttack, 1);
-}
-
-void UUK_CombatAnimationComponent::ServerRPCDropOnFloorAttack_Implementation()
-{
-	if ( OwnerCharactor->OnFloor.IsBound() )
-	{
-		OwnerCharactor->OnFloor.Unbind();
-	}
-	MulticastPlayCombo(EComboAttackType::DropAttack, 2);
-}
-
-void UUK_CombatAnimationComponent::MulticastPlayCombo_Implementation(EComboAttackType AttackType, uint8 ComboCount)
-{
-
-	AttackAnim = NowWeapon->FindAnimsDataAssetByType(AttackType);
-	if ( AttackAnim == nullptr )
-	{
-		return;
-	}
-	FName SectionName = *FString::Printf(TEXT("%s%d"), *AttackAnim->MontageSectionName, ComboCount);
-
-	PlayComboAttackAnimation(AttackType, SectionName);
-}
+//void UUK_CombatAnimationComponent::MulticastPlayCombo_Implementation(EComboAttackType AttackType, uint8 ComboCount)
+//{
+//
+//	AttackAnim = NowWeapon->FindAnimsDataAssetByType(AttackType);
+//	if ( AttackAnim == nullptr )
+//	{
+//		return;
+//	}
+//	FName SectionName = *FString::Printf(TEXT("%s%d"), *AttackAnim->MontageSectionName, ComboCount);
+//
+//	PlayComboAttackAnimation(AttackType, SectionName);
+//}
 #pragma endregion
 
 
 
 
-void UUK_CombatAnimationComponent::PlayComboAttackAnimation(const EComboAttackType AttackType, FName SectionName)
-{
-	if ( !OwnerCharactor )
-		return;
-	if ( !IsValid(NowWeapon) )
-		return;
-	UAnimInstance* PlayerAnimInstance = OwnerCharactor->GetMesh()->GetAnimInstance();
+//void UUK_CombatAnimationComponent::PlayComboAttackAnimation(const EComboAttackType AttackType, FName SectionName)
+//{
+//	if ( !OwnerCharactor )
+//		return;
+//	if ( !IsValid(NowWeapon) )
+//		return;
+//	UAnimInstance* PlayerAnimInstance = OwnerCharactor->GetMesh()->GetAnimInstance();
+//
+//	if ( !IsValid(PlayerAnimInstance) )
+//		return;
+//
+//	// 플레이될 몽타주 가져옴
+//	TObjectPtr<UAnimMontage> ComboAttackMontage = AttackAnim->ComboMantage;
+//
+//	if ( !IsValid(ComboAttackMontage) )
+//	{
+//		EndComboAttack(ComboAttackMontage, false);
+//		return;
+//	}
+//
+//	// 몽타주 재생이 안되고 있을 때만 진입
+//	if ( !PlayerAnimInstance->Montage_IsPlaying(ComboAttackMontage) )
+//	{
+//		if ( AttackType == EComboAttackType::AttackOnAir )
+//		{
+//			// 공중 공격시 공중에 유지
+//			StopJumpAndFly();
+//		}
+//		// 애니메이션 재생
+//		PlayerAnimInstance->Montage_Play(ComboAttackMontage);
+//
+//		FOnMontageBlendingOutStarted EndDelegate;
+//
+//		//애니메이션이 끝나면 자동으로 종료
+//		EndDelegate.BindUObject(this, &UUK_CombatAnimationComponent::EndComboAttack);
+//		PlayerAnimInstance->Montage_SetEndDelegate(EndDelegate, ComboAttackMontage);
+//	}
+//	// 출력될 애니메이션 섹션으로 점프
+//	PlayerAnimInstance->Montage_JumpToSection(SectionName, ComboAttackMontage);
+//}
 
-	if ( !IsValid(PlayerAnimInstance) )
-		return;
-
-	// 플레이될 몽타주 가져옴
-	TObjectPtr<UAnimMontage> ComboAttackMontage = AttackAnim->ComboMantage;
-
-	if ( !IsValid(ComboAttackMontage) )
-	{
-		EndComboAttack(ComboAttackMontage, false);
-		return;
-	}
-
-	// 몽타주 재생이 안되고 있을 때만 진입
-	if ( !PlayerAnimInstance->Montage_IsPlaying(ComboAttackMontage) )
-	{
-		if ( AttackType == EComboAttackType::AttackOnAir )
-		{
-			// 공중 공격시 공중에 유지
-			StopJumpAndFly();
-		}
-		// 애니메이션 재생
-		PlayerAnimInstance->Montage_Play(ComboAttackMontage);
-
-		FOnMontageBlendingOutStarted EndDelegate;
-
-		//애니메이션이 끝나면 자동으로 종료
-		EndDelegate.BindUObject(this, &UUK_CombatAnimationComponent::EndComboAttack);
-		PlayerAnimInstance->Montage_SetEndDelegate(EndDelegate, ComboAttackMontage);
-	}
-	// 출력될 애니메이션 섹션으로 점프
-	PlayerAnimInstance->Montage_JumpToSection(SectionName, ComboAttackMontage);
-}
-
-void UUK_CombatAnimationComponent::StopJumpAndFly()
-{
-	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
-	ensure(PlayerMovement);
-
-	PlayerMovement->GravityScale = 0.f;
-	PlayerMovement->Velocity = FVector::ZeroVector;
-	OwnerCharactor->StopJumping();
-
-	PlayerMovement->SetJumpAllowed(false);
-}
+//void UUK_CombatAnimationComponent::StopJumpAndFly()
+//{
+//	UCharacterMovementComponent* PlayerMovement = OwnerCharactor->GetCharacterMovement();
+//	ensure(PlayerMovement);
+//
+//	PlayerMovement->GravityScale = 0.f;
+//	PlayerMovement->Velocity = FVector::ZeroVector;
+//	OwnerCharactor->StopJumping();
+//
+//	PlayerMovement->SetJumpAllowed(false);
+//}
 
 #pragma region EndCombo
 void UUK_CombatAnimationComponent::EndComboAttack(UAnimMontage* TargetMontage, bool bInterrupted)
@@ -342,6 +314,7 @@ void UUK_CombatAnimationComponent::CheckComboProcessable(const EComboAttackType 
 	//// 입력 감지에 안된다면 콤보 재생종료
 	if ( InputType == EAttackInput::None )
 	{
+		return;
 		TObjectPtr<UAnimMontage> ComboAttackMontage = AttackAnim->ComboMantage;
 
 		EndComboAttack(ComboAttackMontage, false);
@@ -351,7 +324,7 @@ void UUK_CombatAnimationComponent::CheckComboProcessable(const EComboAttackType 
 	FName NextComboSectionName = *FString::Printf(TEXT("%s%d"), *AttackAnim->MontageSectionName, CurrentComboCount);
 
 	// 애니메이션 재생
-	ServerRPCComboAttack(AttackType, NextComboSectionName);
+	//ServerRPCComboAttack(AttackType, NextComboSectionName);
 
 	InputType = EAttackInput::None;
 }
@@ -365,6 +338,7 @@ void UUK_CombatAnimationComponent::CheckDropAttackProcessable()
 	//// 입력 감지에 안된다면 콤보 재생종료
 	if ( InputType == EAttackInput::None )
 	{
+		return;
 		TObjectPtr<UAnimMontage> ComboAttackMontage = AttackAnim->ComboMantage;
 		EndComboAttack(ComboAttackMontage, false);
 		return;
@@ -372,7 +346,7 @@ void UUK_CombatAnimationComponent::CheckDropAttackProcessable()
 	ResetCharacterGravityScale();
 
 	// 애니메이션 재생
-	ServerRPCDropAttack();
+	//ServerRPCDropAttack();
 
 	InputType = EAttackInput::None;
 }
@@ -415,6 +389,8 @@ void UUK_CombatAnimationComponent::SetEnableRightHitCheck(bool bEnablaHitCheck)
 			0.1f,
 			true
 		);
+		if ( IsValid(AttackAnim) == false )
+			return;
 		TObjectPtr<USoundBase> AttackSound = AttackAnim->AttackSound;
 		ServerRPCPlaySoundAndEffect(AttackSound);
 	}
@@ -438,6 +414,8 @@ void UUK_CombatAnimationComponent::SetEnableLeftHitCheck(bool bEnablaHitCheck)
 			0.1f,
 			true
 		);
+		if ( IsValid(AttackAnim) == false )
+			return;
 		TObjectPtr<USoundBase> AttackSound = AttackAnim->AttackSound;
 		ServerRPCPlaySoundAndEffect(AttackSound);
 	}
@@ -492,7 +470,7 @@ void UUK_CombatAnimationComponent::RightHitCheckProcess()
 		);
 #endif
 	}
-
+	return;
 	if ( bIsHit )
 	{
 		for ( const FHitResult& Hit : HitResult )

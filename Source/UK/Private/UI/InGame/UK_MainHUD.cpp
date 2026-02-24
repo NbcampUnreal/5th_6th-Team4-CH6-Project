@@ -19,7 +19,6 @@ void UUK_MainHUD::NativeConstruct()
 			StatusComp->HpStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateHealthBar);
 			StatusComp->MpStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateMpBar);
 			StatusComp->LevelStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateLevel);
-			StatusComp->StaminaStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateStaminaBar);
 
 			FStructProperty* StatusProp = FindFieldChecked<FStructProperty>(UStatusComponent::StaticClass(), TEXT("Status"));
 			if ( StatusProp )
@@ -30,7 +29,7 @@ void UUK_MainHUD::NativeConstruct()
 					UpdateHealthBar(StatusPtr->CurrentHp, StatusPtr->MaxHp);
 					UpdateMpBar(StatusPtr->CurrentMp, StatusPtr->MaxMp);
 					UpdateLevel(StatusPtr->Level);
-					UpdateStaminaBar(StatusPtr->CurrentStamina, StatusPtr->MaxStamina); 
+					//UpdateStaminaBar(StatusPtr->CurrentStamina, StatusPtr->MaxStamina); 
 				}
 			}
 		}
@@ -86,16 +85,6 @@ void UUK_MainHUD::UpdateLevel(int32 NewLevel)
 	if ( LevelText )
 	{
 		LevelText->SetText(FText::AsNumber(NewLevel));
-	}
-}
-
-void UUK_MainHUD::UpdateStaminaBar(float CurrentStamina, float MaxStamina)
-{
-	if ( WBP_Stamina && MaxStamina > 0.f )
-	{
-		float PercentValue = CurrentStamina / MaxStamina;
-        FString Command = FString::Printf(TEXT("Setpercent %f"), PercentValue);
-        WBP_Stamina->CallFunctionByNameWithArguments(*Command, *GLog, nullptr, true);
 	}
 }
 

@@ -21,6 +21,7 @@ namespace UK_GameplayTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UltimateSkill);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Crouch);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(ToggleMouse);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Interaction);
 	}
 	namespace Weapon
 	{
@@ -28,6 +29,21 @@ namespace UK_GameplayTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DefaultWeapon);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dagger);
 	}
+	namespace Action
+	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Swap1);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Swap2);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Swap3);
+
+	}
+	namespace Attack
+	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attacking);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Next);
+
+	}
+
+
 	namespace Food
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(FoodRoot);

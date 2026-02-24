@@ -31,6 +31,12 @@ public:
 	/** 적대 상태 여부 (평화 몬스터용) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
 	bool bIsAggressive = false;
+	
+	// BS2D Forward, Right Movespeed
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement")
+	float ForwardSpeed;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement")
+	float RightSpeed;
 
 private:
 	UPROPERTY()
