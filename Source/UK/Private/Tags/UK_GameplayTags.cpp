@@ -19,12 +19,25 @@ namespace UK_GameplayTags
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(UltimateSkill, "Input.Default.UltimateSkill", "Default Movement Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Crouch, "Input.Default.Crouch", "Default Movement Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(ToggleMouse, "Input.Default.ToggleMouse", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Interaction, "Input.Default.Interaction", "Default Movement Ability")
 	}
 	namespace Weapon
 	{
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(WeaponRoot, "Weapon", "Root Weapon Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(DefaultWeapon, "Weapon.Default", "Default Weapon Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Dagger, "Weapon.Dagger", "Dagger Weapon Ability")
+	}
+	namespace Action
+	{
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Swap1, "Action.Swap1", "Swap Weapon Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Swap2, "Action.Swap2", "Swap Weapon Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Swap3, "Action.Swap3", "Swap Weapon Ability")
+
+	}
+	namespace Attack
+	{
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attacking, "Attack.Attacking", "Attacking Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Next, "Attack.Next", "Attacking Ability")
 	}
 	namespace Food
 	{

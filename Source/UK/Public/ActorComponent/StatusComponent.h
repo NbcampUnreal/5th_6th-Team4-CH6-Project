@@ -18,10 +18,10 @@ public:
 	int32 Level = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
-	float MaxHp = 100.f;
+	float MaxHp = 300.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
-	float CurrentHp = 100.f;
+	float CurrentHp = 300.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
 	float MaxMp = 100.f;
@@ -30,7 +30,7 @@ public:
 	float CurrentMp = 100.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
-	float Power = 10.f;
+	float Power = 20.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Status")
 	float CurrentPower = 10.f;
 
