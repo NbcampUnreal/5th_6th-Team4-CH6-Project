@@ -28,5 +28,6 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void Server_TryInteract(AActor* Target);
-		
+	void Server_TryInteract_Implementation(AActor* Target);
+
 };

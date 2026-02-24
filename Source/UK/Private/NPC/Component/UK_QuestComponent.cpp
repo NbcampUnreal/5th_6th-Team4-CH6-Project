@@ -12,7 +12,7 @@ void UUK_QuestComponent::BeginPlay()
 	Super::BeginPlay();
 }
 
-void UUK_QuestComponent::ProcessQuest(int32 QuestID)
+void UUK_QuestComponent::ProcessQuest(int32 QuestID, class AUK_QuestNPC* NPC)
 {
 	if (GetOwnerRole() < ROLE_Authority)
 	{
