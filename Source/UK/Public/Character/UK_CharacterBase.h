@@ -82,8 +82,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
 	TObjectPtr<UStatusComponent> StatusComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UUK_CombatAnimationComponent> AnimationComponent;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	//TObjectPtr<UUK_CombatAnimationComponent> AnimationComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUK_InventoryComponent> InventoryComponent;
@@ -192,6 +192,8 @@ public:
 	void OnRep_CurrentWeaponTag();
 	UFUNCTION()
 	void OnRep_NowWeapon();
+
+	UUK_StatusAnimData* GetNowWeaponStatus() const { return NowWeapon; }
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<UUK_WeaponData> WeaponList;
@@ -215,6 +217,7 @@ public:
 	void EndComboAttack();
 
 	void ReceiveDamage(float Damage);
+
 	float ApplyDamage();
 
 	UFUNCTION()

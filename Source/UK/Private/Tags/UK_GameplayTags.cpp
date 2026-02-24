@@ -13,8 +13,6 @@ namespace UK_GameplayTags
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Sprint, "Input.Default.Sprint", "Default Movement Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(ZoomIn, "Input.Default.Zoom.In", "Default Movement Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(ZoomOut, "Input.Default.Zoom.Out", "Default Movement Ability")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(LightAttack, "Input.Default.LightAttack", "Default Movement Ability")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HeavyAttack, "Input.Default.HeavyAttack", "Default Movement Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(NomalSkill, "Input.Default.NomalSkill", "Default Movement Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(UltimateSkill, "Input.Default.UltimateSkill", "Default Movement Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Crouch, "Input.Default.Crouch", "Default Movement Ability")
@@ -32,6 +30,11 @@ namespace UK_GameplayTags
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Swap1, "Action.Swap1", "Swap Weapon Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Swap2, "Action.Swap2", "Swap Weapon Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Swap3, "Action.Swap3", "Swap Weapon Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(LightAttack, "Action.LightAttack", "LightAttack Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HeavyAttack, "Action.HeavyAttack", "HeavyAttack Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(AirAttack, "Action.AirAttack", "AirAttack Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(DropAttack, "Action.DropAttack", "DropAttack Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(OnGroundAttack, "Action.OnGroundAttack", "OnGroundAttack Ability")
 
 	}
 	namespace Attack

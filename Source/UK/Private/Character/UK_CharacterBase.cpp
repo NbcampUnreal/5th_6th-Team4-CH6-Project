@@ -83,7 +83,7 @@ AUK_CharacterBase::AUK_CharacterBase() :
 
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
 	InventoryComponent = CreateDefaultSubobject<UUK_InventoryComponent>(TEXT("InventoryComponent"));
-	AnimationComponent = CreateDefaultSubobject<UUK_CombatAnimationComponent>(TEXT("AnimComponent"));
+	//AnimationComponent = CreateDefaultSubobject<UUK_CombatAnimationComponent>(TEXT("AnimComponent"));
 	InteractionComp = CreateDefaultSubobject<UUK_InteractionComponent>(TEXT("InteractionComponent"));
 	QuestComp = CreateDefaultSubobject<UUK_QuestComponent>(TEXT("QuestComponent"));
 }
@@ -135,8 +135,8 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	//UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Sprint, ETriggerEvent::Started, this, &ThisClass::Sprint);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ZoomIn, ETriggerEvent::Triggered, this, &ThisClass::ZoomIn);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ZoomOut, ETriggerEvent::Triggered, this, &ThisClass::ZoomOut);
-	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::LightAttack, ETriggerEvent::Started, this, &ThisClass::LightAttack);
-	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::HeavyAttack, ETriggerEvent::Started, this, &ThisClass::HeavyAttack);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Action::LightAttack, ETriggerEvent::Started, this, &ThisClass::LightAttack);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Action::HeavyAttack, ETriggerEvent::Started, this, &ThisClass::HeavyAttack);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Crouch, ETriggerEvent::Started, this, &ThisClass::CrouchInput);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ToggleMouse, ETriggerEvent::Started, this, &ThisClass::ToggleMouse);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Interaction, ETriggerEvent::Started, this, &ThisClass::Interaction);
@@ -170,6 +170,11 @@ void AUK_CharacterBase::Landed(const FHitResult& Hit)
 		OnFloor.Execute();
 
 	}
+
+	FGameplayEventData EventData;
+	EventData.EventTag = FGameplayTag::RequestGameplayTag("Action.DropAttack");
+
+	GetAbilitySystemComponent()->HandleGameplayEvent(EventData.EventTag, &EventData);
 }
 
 //// Called every frame
@@ -263,10 +268,16 @@ void AUK_CharacterBase::LightAttack()
 	}
 	bIsInInput = true;
 	FGameplayTagContainer Container;
-	Container.AddTag(UK_GameplayTags::Input::LightAttack);
-	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
-
-	//AnimationComponent->PlayLightComboAnimation();
+	if ( GetCharacterMovement()->IsFalling() == true )
+	{
+		Container.AddTag(UK_GameplayTags::Action::AirAttack);
+		GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
+	}
+	else if( GetCharacterMovement()->IsFalling() == false )
+	{
+		Container.AddTag(UK_GameplayTags::Action::LightAttack);
+		GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
+	}
 }
 void AUK_CharacterBase::HeavyAttack()
 {
@@ -274,7 +285,11 @@ void AUK_CharacterBase::HeavyAttack()
 	{
 		return;
 	}
-	AnimationComponent->PlayHeavyComboAnimation();
+	bIsInInput = true;
+	FGameplayTagContainer Container;
+	Container.AddTag(UK_GameplayTags::Action::HeavyAttack);
+	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
+
 }
 
 void AUK_CharacterBase::CrouchInput()
@@ -517,7 +532,7 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 	{
 		LeftHandWeaponComponent->SetSkeletalMesh(nullptr);
 	}
-	AnimationComponent->SetNowWeapon(Weapon);
+	//AnimationComponent->SetNowWeapon(Weapon);
 }
 void AUK_CharacterBase::SlotWeaponOne()
 {
@@ -539,8 +554,8 @@ void AUK_CharacterBase::SlotWeaponThree()
 }
 void AUK_CharacterBase::SwapWeapon(int32 Index)
 {
-	if ( AnimationComponent->GetCurrentComboCount() != 0 )
-		return;
+	//if ( AnimationComponent->GetCurrentComboCount() != 0 )
+	//	return;
 	FInventorySlot* WeaponSlot = InventoryComponent->FindWeaponSlotbyIndex(Index);
 	if ( WeaponSlot->isEmpty() )
 	{
