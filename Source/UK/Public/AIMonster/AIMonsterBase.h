@@ -251,6 +251,22 @@ public:
 	FOnIdleMontageFinished OnIdleMontageFinished;
 #pragma endregion
 	
+#pragma region Hit Animation
+	/** 피격 시 재생할 몽타주 목록 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hit|Animation")
+	TArray<UAnimMontage*> HitMontages;
+
+	/**
+	 * 랜덤 피격 몽타주 재생 (Multicast)
+	 * @return 재생 성공 여부 (HitMontages가 비어있으면 false)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Hit|Animation")
+	bool PlayRandomHitMontage();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayHitMontage(int32 MontageIndex);
+#pragma endregion
+	
 public:
 	void ReceiveDamage(float Damage);
 
