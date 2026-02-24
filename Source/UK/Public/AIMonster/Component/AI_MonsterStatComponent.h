@@ -5,6 +5,7 @@
 #include "AI_MonsterStatComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMonsterDeathSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHPChanged, float, NewHP);
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class UK_API UAI_MonsterStatComponent : public UActorComponent
@@ -24,6 +25,10 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Stats")
 	float CurrentHP = 100.0f;
+
+	UPROPERTY(BlueprintAssignable, Category = "Stats")
+	FOnHPChanged OnHPChanged;
+
 
 	// Damage
 	UFUNCTION(BlueprintCallable, Category = "Stats")

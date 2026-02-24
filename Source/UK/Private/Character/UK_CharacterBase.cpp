@@ -27,6 +27,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
+#include "Engine/OverlapResult.h"
 
 #pragma region Defualt
 
@@ -109,6 +110,16 @@ void AUK_CharacterBase::BeginPlay()
 
 	StatusComponent->OnDeadDelegate.AddDynamic(this, &AUK_CharacterBase::Dead);
 	DefaultGravityValue = GetCharacterMovement()->GravityScale;
+
+	PC = Cast<AUK_PlayerController>(GetController());
+
+	GetWorldTimerManager().SetTimer(
+		DetectTimer,
+		this,
+		&AUK_CharacterBase::UpdateMonsterDetection,
+		0.3f,
+		true
+	);
 }
 
 void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -140,6 +151,7 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Crouch, ETriggerEvent::Started, this, &ThisClass::CrouchInput);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ToggleMouse, ETriggerEvent::Started, this, &ThisClass::ToggleMouse);
 	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Interaction, ETriggerEvent::Started, this, &ThisClass::Interaction);
+	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Setting, ETriggerEvent::Started, this, &ThisClass::Setting);
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -301,7 +313,6 @@ void AUK_CharacterBase::ToggleMouse()
 	if ( StatusComponent->IsDead() )
 		return;
 
-	AUK_PlayerController* PC = Cast<AUK_PlayerController>(GetController());
 	if ( PC == nullptr )
 		return;
 
@@ -311,6 +322,17 @@ void AUK_CharacterBase::ToggleMouse()
 void AUK_CharacterBase::Interaction()
 {
 
+}
+
+void AUK_CharacterBase::Setting()
+{
+	if ( StatusComponent->IsDead() )
+		return;
+
+	if ( PC == nullptr )
+		return;
+
+	PC->Setting_UI();
 }
 
 void AUK_CharacterBase::ZoomIn()
@@ -630,5 +652,35 @@ void AUK_CharacterBase::Dead()
 void AUK_CharacterBase::OnRep_InInput()
 {
 
+}
+void AUK_CharacterBase::UpdateMonsterDetection() {
+	if ( !IsLocallyControlled() ) 
+		return; 
+	TArray<FOverlapResult> Results; 
+	FCollisionShape Sphere = FCollisionShape::MakeSphere(DetectRadius); 
+	GetWorld()->OverlapMultiByObjectType(Results, GetActorLocation(), FQuat::Identity, FCollisionObjectQueryParams(ECC_Pawn), Sphere); 
+	DrawDebugSphere(GetWorld(), GetActorLocation(), DetectRadius, 32, FColor::Green, false, 0.31f); TSet<AAIMonsterBase*> NewSet; 
+	// overlap이 되는 것들의 data result 결과들
+	for ( const FOverlapResult& Result : Results ) 
+	{ 
+		AActor* OverlappedActor = Result.OverlapObjectHandle.FetchActor(); 
+		if ( AAIMonsterBase* Monster = Cast<AAIMonsterBase>(OverlappedActor) ) 
+		{ 
+			NewSet.Add(Monster); 
+			if ( !NearbyMonsters.Contains(Monster) ) 
+			{
+				Monster->ShowHPBar(); 
+			} 
+		} 
+	} 
+	// 범위가 벗어났는지 확인 
+	for ( AAIMonsterBase* OldMonster : NearbyMonsters ) 
+	{ 
+		if ( IsValid(OldMonster) && !NewSet.Contains(OldMonster) ) 
+		{ 
+			OldMonster->HideHPBar(); 
+		} 
+	} 
+	NearbyMonsters = NewSet; 
 }
 #pragma endregion

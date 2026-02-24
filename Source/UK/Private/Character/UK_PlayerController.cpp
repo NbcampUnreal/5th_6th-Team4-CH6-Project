@@ -24,6 +24,17 @@ void AUK_PlayerController::BeginPlay()
 	DisableMouseCursorMode();
 	StaminaWidget = CreateWidget<UUK_Stamina>(this, StaminaWidgetClass);
 	StaminaWidget->AddToViewport();
+
+	if ( SettingWidgetClass )
+	{
+		SettingWidget = CreateWidget<UUK_Setting>(this, SettingWidgetClass);
+
+		if ( SettingWidget )
+		{
+			SettingWidget->AddToViewport();
+			SettingWidget->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
 }
 
 
@@ -140,8 +151,6 @@ void AUK_PlayerController::ConnectStaminaWidget()
 	UStatusComponent* StatusComp =
 		MyPawn->FindComponentByClass<UStatusComponent>();
 
-	if ( !StatusComp ) return;
-
 	StaminaWidget->BindStatusComponent(StatusComp);
 }
 
@@ -158,5 +167,37 @@ void AUK_PlayerController::ToggleMouseCursor()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("DisableMouseCursorMode()"));
 		DisableMouseCursorMode();
+	}
+}
+
+void AUK_PlayerController::Setting_UI()
+{
+	EnableMouseCursorMode();
+
+	if ( !SettingWidget ) return;
+
+	bIsSetting = !bIsSetting;
+
+	if ( bIsSetting )
+	{
+		// ===== 열기 =====
+		SettingWidget->SetVisibility(ESlateVisibility::Visible);
+
+		SetShowMouseCursor(true);
+
+		FInputModeGameAndUI Mode;
+		Mode.SetWidgetToFocus(SettingWidget->TakeWidget());
+		Mode.SetHideCursorDuringCapture(false);
+		SetInputMode(Mode);
+	}
+	else
+	{
+		// ===== 닫기 =====
+		SettingWidget->SetVisibility(ESlateVisibility::Collapsed);
+
+		SetShowMouseCursor(false);
+
+		FInputModeGameOnly Mode;
+		SetInputMode(Mode);
 	}
 }

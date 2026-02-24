@@ -20,6 +20,7 @@ namespace UK_GameplayTags
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Crouch, "Input.Default.Crouch", "Default Movement Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(ToggleMouse, "Input.Default.ToggleMouse", "Default Movement Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Interaction, "Input.Default.Interaction", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Setting, "Input.Default.Setting", "Default Movement Ability")
 	}
 	namespace Weapon
 	{

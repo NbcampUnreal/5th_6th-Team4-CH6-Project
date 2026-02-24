@@ -44,7 +44,9 @@ void UAI_MonsterStatComponent::SetHP(float NewHP)
 {
 	float OldHP = CurrentHP;
 	CurrentHP = FMath::Clamp(NewHP, 0.f, MaxHP);
-	
+
+	OnHPChanged.Broadcast(CurrentHP);
+
 	UE_LOG(LogTemp, Log, TEXT("[StatComp] %s: SetHP %.1f → %.1f"),
 		*GetOwner()->GetName(), OldHP, CurrentHP);
 }

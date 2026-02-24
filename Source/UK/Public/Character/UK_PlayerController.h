@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "UI/InGame/UK_Stamina.h"
+#include "UI/InGame/UK_Setting.h"
 #include "UK_PlayerController.generated.h"
 
 
@@ -27,12 +28,34 @@ public:
 	virtual void PostSeamlessTravel() override;
 	virtual void OnPossess(APawn* pawn) override;
 	virtual void Tick(float DeltaSeconds) override;
-	void ToggleMouseCursor();
 
+public:
+	// ------- Input -------
+
+	//Toggle
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	bool bMouseCursorEnabled = false;
 
-	// UI 위치 조정
+	void ToggleMouseCursor();
+
+	//Setting
+
+	UPROPERTY()
+	UUK_Setting* SettingWidget;
+
+	UPROPERTY(EditAnywhere, Category = "UI")
+	TSubclassOf<UUK_Setting> SettingWidgetClass;
+
+	bool bIsSetting = false;
+
+	void Setting_UI();
+private:
+
+	void EnableMouseCursorMode();
+	void DisableMouseCursorMode();
+
+public:
+	// ----- Stamina UI 위치 조정 ------
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TrackingUI")
 	FVector Stemina_Location = FVector(0.f, 0.f, 110.f);
@@ -51,11 +74,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TrackingUI")
 	float ScaleFar = 0.55f;
-
-private:
-
-	void EnableMouseCursorMode();
-	void DisableMouseCursorMode();
 
 private:
 
