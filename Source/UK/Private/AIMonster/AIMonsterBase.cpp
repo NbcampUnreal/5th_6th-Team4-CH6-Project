@@ -531,6 +531,54 @@ void AAIMonsterBase::OnIdleMontageEnded(UAnimMontage* Montage, bool bInterrupted
 	OnIdleMontageFinished.ExecuteIfBound();
 }
 
+bool AAIMonsterBase::PlayRandomHitMontage()
+{
+	if (bIsDying) return false;
+	if (!HasAuthority()) return false;
+
+	if (HitMontages.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Hit] %s: HitMontages is empty!"), *GetName());
+		return false;
+	}
+
+	TArray<int32> ValidIndices;
+	for (int32 i = 0; i < HitMontages.Num(); ++i)
+	{
+		if (HitMontages[i] != nullptr)
+		{
+			ValidIndices.Add(i);
+		}
+	}
+
+	if (ValidIndices.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Hit] %s: All HitMontages slots are null!"), *GetName());
+		return false;
+	}
+
+	const int32 PickedIndex = ValidIndices[FMath::RandRange(0, ValidIndices.Num() - 1)];
+	Multicast_PlayHitMontage(PickedIndex);
+	return true;
+}
+
+void AAIMonsterBase::Multicast_PlayHitMontage_Implementation(int32 MontageIndex)
+{
+	if (!HitMontages.IsValidIndex(MontageIndex)) return;
+
+	UAnimMontage* Montage = HitMontages[MontageIndex];
+	if (!Montage) return;
+
+	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (!AnimInstance) return;
+
+	// 공격 몽타주 재생 중이면 피격 몽타주로 블렌딩 
+	AnimInstance->Montage_Play(Montage, 1.0f);
+
+	UE_LOG(LogTemp, Log, TEXT("[Hit] %s: Playing hit montage[%d] on %s"),
+		*GetName(), MontageIndex, HasAuthority() ? TEXT("Server") : TEXT("Client"));
+}
+
 void AAIMonsterBase::ReceiveDamage(float Damage)
 {
 	if (!HasAuthority()) return;
@@ -569,6 +617,12 @@ void AAIMonsterBase::ReceiveDamage(float Damage)
 		UE_LOG(LogTemp, Warning,
 			TEXT("[Monster Hit] %s | Dmg: %.1f | HP: %.1f -> %.1f"),
 			*GetName(), Damage, BeforeHp, StatComponent->GetHP());
+	}
+
+	// 피격 몽타주 재생 (죽지 않은 경우에만)
+	if (!bIsDying)
+	{
+		PlayRandomHitMontage();
 	}
 
 	if (Personality == EMonsterPersonality::Peaceful && !bIsAggressive)
