@@ -26,7 +26,7 @@ void AUK_MapManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	GetWorldTimerManager().SetTimer(CaptureTimer, this, &AUK_MapManager::CaptureMap, 0.2f, false);
+	GetWorldTimerManager().SetTimer(CaptureTimer, this, &AUK_MapManager::CaptureMap, 0.2f, true);
 }
 
 void AUK_MapManager::CaptureMap()
@@ -36,18 +36,12 @@ void AUK_MapManager::CaptureMap()
 	UpdateCaptureTransform();
 
 	MapCaptureComponent->OrthoWidth = MapData.MapSize;
-	MapCaptureComponent->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
 
-	//노출 고정
-	MapCaptureComponent->PostProcessSettings.bOverride_AutoExposureMethod = true;
-	MapCaptureComponent->PostProcessSettings.AutoExposureMethod = EAutoExposureMethod::AEM_Manual;
-	MapCaptureComponent->PostProcessSettings.bOverride_AutoExposureBias = true;
-	MapCaptureComponent->PostProcessSettings.AutoExposureBias = 0.f;
-
-	if (UTextureRenderTarget2D* RTMap = Cast<UTextureRenderTarget2D>(MapData.MapTexture))
+	if ( MapData.MapTexture )
 	{
-		MapCaptureComponent->TextureTarget = RTMap;
+		MapCaptureComponent->TextureTarget = MapData.MapTexture.Get();
 	}
+
 	MapCaptureComponent->CaptureScene();
 }
 
