@@ -35,10 +35,11 @@ UENUM(BlueprintType)
 enum class EMonsterType : uint8
 {
 	None = 0,
-	Golem = 1,
-	Wolf = 2,
-	Fox = 3,
-	Reindeer = 4,
+	EliteGolem = 1,
+	Golem = 2,
+	Wolf = 3,
+	Fox = 4,
+	Reindeer = 5,
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDeath, class AAIMonsterBase*, DeadMonster);
@@ -221,7 +222,7 @@ public:
 	float AttackRange = 250.f;
 
 	UPROPERTY(EditAnywhere, Category = "Combat")
-	float AttackCooldown = 1.5f;
+	float AttackCooldown = 0.5f;
 
 	float LastAttackTime = 0.f;
 #pragma endregion
@@ -249,6 +250,22 @@ public:
 	/** 아이들 몽타주 종료 시 BT 태스크에 알림 */
 	DECLARE_DELEGATE(FOnIdleMontageFinished);
 	FOnIdleMontageFinished OnIdleMontageFinished;
+#pragma endregion
+	
+#pragma region Hit Animation
+	/** 피격 시 재생할 몽타주 목록 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hit|Animation")
+	TArray<UAnimMontage*> HitMontages;
+
+	/**
+	 * 랜덤 피격 몽타주 재생 (Multicast)
+	 * @return 재생 성공 여부 (HitMontages가 비어있으면 false)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Hit|Animation")
+	bool PlayRandomHitMontage();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayHitMontage(int32 MontageIndex);
 #pragma endregion
 	
 public:

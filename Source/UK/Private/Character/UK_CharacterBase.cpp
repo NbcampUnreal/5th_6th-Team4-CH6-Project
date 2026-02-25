@@ -27,6 +27,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
+#include "Blueprint/UserWidget.h"
 
 #pragma region Defualt
 
@@ -325,7 +326,11 @@ void AUK_CharacterBase::ToggleMouse()
 
 void AUK_CharacterBase::Interaction()
 {
-
+	if (InteractionComp)
+	{
+		InteractionComp->TryInteract();
+	}
+	UE_LOG(LogTemp, Log, TEXT("상호 작용 시도"));
 }
 
 void AUK_CharacterBase::ZoomIn()
