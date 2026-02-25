@@ -88,18 +88,6 @@ void UUK_InvUI::OnInvCompUpdated()
 			CategoryALL->CurrentSlot = NewAllSlotCount; 
 			CategoryALL->CreateSlots();                 
 		}
-
-		UE_LOG(LogTemp, Warning, TEXT("[InvUI] Weapon CurrentSlot=%d"),
-			CategoryWeapon ? CategoryWeapon->CurrentSlot : -1); //추가
-
-		UE_LOG(LogTemp, Warning, TEXT("[InvUI] Food CurrentSlot=%d"),
-			CategoryFood ? CategoryFood->CurrentSlot : -1); //추가
-
-		UE_LOG(LogTemp, Warning, TEXT("[InvUI] Material CurrentSlot=%d"),
-			CategoryMaterial ? CategoryMaterial->CurrentSlot : -1); //추가
-
-		UE_LOG(LogTemp, Warning, TEXT("[InvUI] ALL CurrentSlot=%d"),
-			CategoryALL ? CategoryALL->CurrentSlot : -1); //추가
 	}
 
 	//CategoryBase에 모든 슬롯 배열 전달
