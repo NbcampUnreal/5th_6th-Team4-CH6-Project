@@ -73,6 +73,35 @@ void UUK_InvUI::OnInvCompUpdated()
 	//인벤토리 컴포넌트에서 모든 슬롯 배열 가져오기
 	const TArray<FInventorySlot>& AllSlots = InvComp->GetItemSlot();
 
+	if (CategoryALL)
+	{
+		int32 NewAllSlotCount = 0; //추가
+
+		if ( CategoryWeapon )   NewAllSlotCount += CategoryWeapon->CurrentSlot;  
+		if ( CategoryFood )     NewAllSlotCount += CategoryFood->CurrentSlot;   
+		if ( CategoryMaterial ) NewAllSlotCount += CategoryMaterial->CurrentSlot;
+
+		NewAllSlotCount = FMath::Clamp(NewAllSlotCount, 0, CategoryALL->MaxSlot); 
+
+		if (CategoryALL->CurrentSlot != NewAllSlotCount) 
+		{
+			CategoryALL->CurrentSlot = NewAllSlotCount; 
+			CategoryALL->CreateSlots();                 
+		}
+
+		UE_LOG(LogTemp, Warning, TEXT("[InvUI] Weapon CurrentSlot=%d"),
+			CategoryWeapon ? CategoryWeapon->CurrentSlot : -1); //추가
+
+		UE_LOG(LogTemp, Warning, TEXT("[InvUI] Food CurrentSlot=%d"),
+			CategoryFood ? CategoryFood->CurrentSlot : -1); //추가
+
+		UE_LOG(LogTemp, Warning, TEXT("[InvUI] Material CurrentSlot=%d"),
+			CategoryMaterial ? CategoryMaterial->CurrentSlot : -1); //추가
+
+		UE_LOG(LogTemp, Warning, TEXT("[InvUI] ALL CurrentSlot=%d"),
+			CategoryALL ? CategoryALL->CurrentSlot : -1); //추가
+	}
+
 	//CategoryBase에 모든 슬롯 배열 전달
 	if (CategoryALL) CategoryALL->SetInvArraySlots(AllSlots);
 	if (CategoryWeapon) CategoryWeapon->SetInvArraySlots(AllSlots);
