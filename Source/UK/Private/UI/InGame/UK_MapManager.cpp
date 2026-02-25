@@ -1,9 +1,12 @@
 ﻿#include "UI/InGame/UK_MapManager.h"
+#include "Character/UK_PlayerController.h"
 
 #include "Components/SceneCaptureComponent2D.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "TimerManager.h"
 
+#include "Kismet/GameplayStatics.h"
+#include "GameFramework/Pawn.h"
 
 AUK_MapManager::AUK_MapManager()
 {
@@ -33,6 +36,8 @@ void AUK_MapManager::CaptureMap()
 {
 	if (!MapCaptureComponent) return;
 
+	RefreshHiddenActors();
+
 	UpdateCaptureTransform();
 
 	MapCaptureComponent->OrthoWidth = MapData.MapSize;
@@ -49,6 +54,29 @@ void AUK_MapManager::UpdateCaptureTransform()
 {
 	SetActorLocation(FVector(MapData.MapCenter.X, MapData.MapCenter.Y, MapData.CaptureHeight));
 	SetActorRotation(FRotator(-90.f, 0.f, 0.f));
+}
+
+void AUK_MapManager::RefreshHiddenActors()
+{
+	if (!MapCaptureComponent) return;
+
+	MapCaptureComponent->HiddenActors.Empty();
+
+	// 월드의 모든 Pawn(플레이어 포함)을 숨김 처리
+	TArray<AActor*> Pawns;
+	UGameplayStatics::GetAllActorsOfClass (
+		GetWorld(),
+		APawn::StaticClass(),
+		Pawns
+	);
+
+	for (AActor* Pawn : Pawns)
+	{
+		if (Pawn)
+		{
+			MapCaptureComponent->HiddenActors.Add(Pawn);
+		}
+	}
 }
 
 #if WITH_EDITOR
