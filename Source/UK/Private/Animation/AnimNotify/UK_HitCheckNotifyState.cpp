@@ -18,7 +18,7 @@ void UUK_HitCheckNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAni
 		HitTimer,
 		this,
 		&ThisClass::HitCheck,
-		0.1f,
+		0.016f,
 		true
 	);
 
@@ -30,6 +30,7 @@ void UUK_HitCheckNotifyState::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimS
 	{
 		OwnerCharacter->GetWorld()->GetTimerManager().ClearTimer(HitTimer);
 	}
+	OwnerCharacter->ResetHitList();
 	OwnerCharacter = nullptr;
 	Super::NotifyEnd(MeshComp, Animation, EventReference);
 }

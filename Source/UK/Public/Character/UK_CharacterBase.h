@@ -155,6 +155,10 @@ public:
 	void AddTarget(const TObjectPtr<AAIMonsterBase> Monster);
 
 	bool Locking()const { return bIsLock; }
+
+	TArray<TObjectPtr<AAIMonsterBase>>& GetHitList() { return HitList; }
+
+	void ResetHitList() { HitList.Reset(); }
 protected:
 
 	bool bIsLock;
@@ -165,6 +169,9 @@ protected:
 
 	UPROPERTY()
 	TArray<TObjectPtr<AAIMonsterBase>> LockOnList;
+
+	UPROPERTY()
+	TArray<TObjectPtr<AAIMonsterBase>> HitList;
 
 	int32 index;
 

@@ -34,8 +34,7 @@ void AUK_TargetActorTrace::ConfirmTargetingAndContinue()
 		TArray<TWeakObjectPtr<AActor>> HitResult = GetTraceResult(SourceActor);
 		FGameplayAbilityTargetData_ActorArray* ActorArray = new FGameplayAbilityTargetData_ActorArray();
 		ActorArray->SetActors(HitResult);
-		(HitResult);
-		FGameplayAbilityTargetDataHandle DataHandle(new FGameplayAbilityTargetData_ActorArray());
+		FGameplayAbilityTargetDataHandle DataHandle(ActorArray);
 		TargetDataReadyDelegate.Broadcast(DataHandle);
 	}
 }
@@ -49,11 +48,11 @@ TArray<TWeakObjectPtr<AActor>> AUK_TargetActorTrace::GetTraceResult(AActor* InSo
 		UE_LOG(LogTemp, Display, TEXT("Chactor Cast Falied In AUK_TargetActorTrace::GetTraceResult"));
 		return TargetActors;
 	}
-	if ( !IsValid(OwnerCharactor->GetLeftHandWeapon()) )
+	if ( !IsValid(OwnerCharactor->GetRightHandWeapon()) )
 		return TargetActors;
 
-	FVector TraceStart = OwnerCharactor->GetLeftHandWeapon()->GetSocketLocation(TraceStartSocketName);
-	FVector TraceEnd = OwnerCharactor->GetLeftHandWeapon()->GetSocketLocation(TraceEndSocketName);
+	FVector TraceStart = OwnerCharactor->GetRightHandWeapon()->GetSocketLocation(TraceStartSocketName);
+	FVector TraceEnd = OwnerCharactor->GetRightHandWeapon()->GetSocketLocation(TraceEndSocketName);
 
 	const float CapsuleRadius = 50.f;
 
