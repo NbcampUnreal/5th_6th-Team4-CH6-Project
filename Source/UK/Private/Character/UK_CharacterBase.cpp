@@ -274,7 +274,7 @@ void AUK_CharacterBase::LightAttack()
 		Container.AddTag(UK_GameplayTags::Action::AirAttack);
 		GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
 	}
-	else if( GetCharacterMovement()->IsFalling() == false )
+	else if ( GetCharacterMovement()->IsFalling() == false )
 	{
 		Container.AddTag(UK_GameplayTags::Action::LightAttack);
 		GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
@@ -537,7 +537,6 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 	{
 		LeftHandWeaponComponent->SetSkeletalMesh(nullptr);
 	}
-	//AnimationComponent->SetNowWeapon(Weapon);
 }
 void AUK_CharacterBase::SlotWeaponOne()
 {
@@ -559,8 +558,6 @@ void AUK_CharacterBase::SlotWeaponThree()
 }
 void AUK_CharacterBase::SwapWeapon(int32 Index)
 {
-	//if ( AnimationComponent->GetCurrentComboCount() != 0 )
-	//	return;
 	FInventorySlot* WeaponSlot = InventoryComponent->FindWeaponSlotbyIndex(Index);
 	if ( WeaponSlot->isEmpty() )
 	{
@@ -590,8 +587,7 @@ void AUK_CharacterBase::OnRep_CurrentWeaponTag()
 	}
 	if ( IsValid(Weapon->GetLeftHandWeapon()) )
 	{
-		LeftHandWeaponComponent->SetSkeletalMesh(Weapon->GetLeftHandWeapon());             // todo : 이후에 서버에서 변경하도록 수정해야함 임시로 클라에서만 변경하고 있음
-
+		LeftHandWeaponComponent->SetSkeletalMesh(Weapon->GetLeftHandWeapon());
 		LeftHandWeaponComponent->SetRelativeLocation(Weapon->GetLeftLocationOffset());
 		LeftHandWeaponComponent->SetRelativeRotation(Weapon->GetLeftRotationOffset());
 	}
@@ -609,6 +605,7 @@ void AUK_CharacterBase::OnRep_NowWeapon()
 
 void AUK_CharacterBase::StopJumpAndFly()
 {
+	bIsfry = true;
 	UCharacterMovementComponent* PlayerMovement = GetCharacterMovement();
 
 	PlayerMovement->GravityScale = 0.f;
@@ -619,10 +616,14 @@ void AUK_CharacterBase::StopJumpAndFly()
 }
 void AUK_CharacterBase::EndComboAttack()
 {
+	;
+	if ( bIsfry == false )
+		return;
 	UCharacterMovementComponent* PlayerMovement = GetCharacterMovement();
 	GetCharacterMovement()->GravityScale = DefaultGravityValue;
 	PlayerMovement->SetMovementMode(EMovementMode::MOVE_Walking);
 	PlayerMovement->SetJumpAllowed(true);
+	bIsfry = false;
 }
 
 void AUK_CharacterBase::ReceiveDamage(float Damage)
@@ -651,30 +652,7 @@ void AUK_CharacterBase::OnRep_InInput()
 {
 
 }
+void AUK_CharacterBase::OnRep_fry()
+{
+}
 #pragma endregion
-
-void AUK_CharacterBase::Client_ShowInteractUI_Implementation()
-{
-	if (InteractWidget) return;
-
-	if (!InteractWidgetClass) return;
-
-	InteractWidget =
-		CreateWidget<UUserWidget>(
-			GetWorld(),
-			InteractWidgetClass
-		);
-
-	if (InteractWidget)
-	{
-		InteractWidget->AddToViewport();
-	}
-}
-
-void AUK_CharacterBase::Client_HideInteractUI_Implementation()
-{
-	if (!InteractWidget) return;
-
-	InteractWidget->RemoveFromParent();
-	InteractWidget = nullptr;
-}

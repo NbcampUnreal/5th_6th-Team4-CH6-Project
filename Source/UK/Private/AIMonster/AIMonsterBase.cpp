@@ -18,7 +18,7 @@ AAIMonsterBase::AAIMonsterBase()
 	bReplicates = true;
 	SetReplicateMovement(true);
 	StatComponent = CreateDefaultSubobject<UAI_MonsterStatComponent>(TEXT("StatComponent"));
-	NetDormancy = DORM_DormantAll;
+	NetDormancy = DORM_Awake;
 	
 	bUseControllerRotationYaw = false;
 	
@@ -28,23 +28,43 @@ AAIMonsterBase::AAIMonsterBase()
 		GetCharacterMovement()->bUseControllerDesiredRotation = false;
 		GetCharacterMovement()->RotationRate = FRotator(0.f, 540.f, 0.f);
 		
-		GetCharacterMovement()->NetworkSimulatedSmoothLocationTime = 0.15f;
+		GetCharacterMovement()->NetworkSimulatedSmoothLocationTime = 0.05f;
 		GetCharacterMovement()->NetworkSimulatedSmoothRotationTime = 0.15f;
 		GetCharacterMovement()->ListenServerNetworkSimulatedSmoothLocationTime = 0.15f;
 		GetCharacterMovement()->ListenServerNetworkSimulatedSmoothRotationTime = 0.15f;
-		GetCharacterMovement()->NetworkMaxSmoothUpdateDistance = 256.f;
-		GetCharacterMovement()->NetworkNoSmoothUpdateDistance = 512.f;
+		GetCharacterMovement()->NetworkMaxSmoothUpdateDistance = 92.f;
+		GetCharacterMovement()->NetworkNoSmoothUpdateDistance = 140.f;
 	}
+	
+	NetUpdateFrequency = 60.f;
+	MinNetUpdateFrequency = 30.f;
 }
 
 void AAIMonsterBase::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	if (GetCharacterMovement())
+	{
+		// NavMesh 이동 시 루트모션 무시하도록
+		GetCharacterMovement()->bAllowPhysicsRotationDuringAnimRootMotion = false;
+        
+		// 네트워크 스무딩 조정
+		GetCharacterMovement()->NetworkSmoothingMode = ENetworkSmoothingMode::Exponential;
+	}
 
 	if (HasAuthority())
 	{
 		SpawnLocation = GetActorLocation();
 
+		if (AAIController* AIC = Cast<AAIController>(GetController()))
+		{
+			if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
+			{
+				BB->SetValueAsVector(TEXT("SpawnLocation"), SpawnLocation);
+			}
+		}
+		
 		if (Personality == EMonsterPersonality::Peaceful)
 		{
 			CurrentState = EMonsterState::Passive;
@@ -90,7 +110,7 @@ void AAIMonsterBase::OnRep_MonsterState()
 	{
 	case EMonsterState::Idle:
 	case EMonsterState::Passive:
-		SetNetDormancy(DORM_DormantAll);
+		SetNetDormancy(DORM_DormantPartial);  
 		break;
 	case EMonsterState::Dead:
 		break;

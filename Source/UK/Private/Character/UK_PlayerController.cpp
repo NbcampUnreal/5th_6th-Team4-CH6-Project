@@ -21,6 +21,8 @@ void AUK_PlayerController::PostInitializeComponents()
 void AUK_PlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+	if ( !IsLocalController() ) 
+		return;
 	DisableMouseCursorMode();
 	StaminaWidget = CreateWidget<UUK_Stamina>(this, StaminaWidgetClass);
 	StaminaWidget->AddToViewport();

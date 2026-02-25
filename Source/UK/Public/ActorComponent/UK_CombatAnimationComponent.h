@@ -111,11 +111,11 @@ public:
 
 	FORCEINLINE void SetDamageEvent(FDamageEvent NewDamageEvent) {DamageEvent = NewDamageEvent	;}
 
-	void SetEnableRightHitCheck(bool bEnablaHitCheck);
+	//void SetEnableRightHitCheck(bool bEnablaHitCheck);
 
 	void RightHitCheckProcess();
 
-	void SetEnableLeftHitCheck(bool bEnablaHitCheck);
+	//void SetEnableLeftHitCheck(bool bEnablaHitCheck);
 
 	void LeftHitCheckProcess();
 

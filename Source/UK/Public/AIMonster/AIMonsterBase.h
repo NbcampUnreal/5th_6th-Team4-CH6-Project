@@ -35,10 +35,11 @@ UENUM(BlueprintType)
 enum class EMonsterType : uint8
 {
 	None = 0,
-	Golem = 1,
-	Wolf = 2,
-	Fox = 3,
-	Reindeer = 4,
+	EliteGolem = 1,
+	Golem = 2,
+	Wolf = 3,
+	Fox = 4,
+	Reindeer = 5,
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDeath, class AAIMonsterBase*, DeadMonster);
@@ -221,7 +222,7 @@ public:
 	float AttackRange = 250.f;
 
 	UPROPERTY(EditAnywhere, Category = "Combat")
-	float AttackCooldown = 1.5f;
+	float AttackCooldown = 0.5f;
 
 	float LastAttackTime = 0.f;
 #pragma endregion
