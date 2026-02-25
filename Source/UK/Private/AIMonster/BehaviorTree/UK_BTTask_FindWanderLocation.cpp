@@ -59,7 +59,6 @@ EBTNodeResult::Type UUK_BTTask_FindWanderLocation::ExecuteTask(UBehaviorTreeComp
 			if (DistToCurrent >= MinWanderDistance)
 			{
 				FVector FinalLocation = ResultLocation.Location;
-				FinalLocation.Z = PawnZ;
 
 				BlackboardComp->SetValueAsVector(WanderLocationKey.SelectedKeyName, FinalLocation);
 				return EBTNodeResult::Succeeded;
