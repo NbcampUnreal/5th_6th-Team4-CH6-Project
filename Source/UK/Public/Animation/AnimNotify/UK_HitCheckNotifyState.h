@@ -9,6 +9,8 @@
 /**
  * 
  */
+class AUK_CharacterBase;
+
 UCLASS()
 class UK_API UUK_HitCheckNotifyState : public UAnimNotifyState
 {
@@ -18,6 +20,10 @@ public:
 	virtual void NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference )override;
 
 protected:
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "DamageInfo")
-	TSubclassOf<class UDamageType> AttackDamageType;
+
+	void HitCheck();
+	FTimerHandle HitTimer;
+				
+	AUK_CharacterBase* OwnerCharacter;
+			
 };

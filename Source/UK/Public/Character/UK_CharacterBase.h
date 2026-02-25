@@ -226,8 +226,14 @@ public:
 	UFUNCTION()
 	void OnRep_InInput();
 
+	UFUNCTION()
+	void OnRep_fry();
+
 	UPROPERTY(BlueprintReadWrite, ReplicatedUsing = OnRep_InInput)
 	bool bIsInInput = false;
+
+	UPROPERTY(BlueprintReadWrite, ReplicatedUsing = OnRep_fry)
+	bool bIsfry;
 
 	float DefaultGravityValue;
 	FOnFloorDelagate OnFloor;

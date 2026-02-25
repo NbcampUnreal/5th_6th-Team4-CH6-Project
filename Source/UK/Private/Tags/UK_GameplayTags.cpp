@@ -40,7 +40,8 @@ namespace UK_GameplayTags
 	namespace Attack
 	{
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attacking, "Attack.Attacking", "Attacking Ability")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Next, "Attack.Next", "Attacking Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Next, "Attack.Next", "Next Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HitCheck, "Attack.HitCheck", "HitCheck Ability")
 	}
 	namespace Food
 	{
