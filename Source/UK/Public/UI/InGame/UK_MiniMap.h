@@ -11,6 +11,7 @@ class AUK_MapManager;
 class UUK_MiniMapNorth;
 class UCanvasPanel;
 
+
 UCLASS()
 class UK_API UUK_MiniMap : public UUserWidget
 {
@@ -68,4 +69,8 @@ protected:
 
 	UPROPERTY(meta = ( BindWidgetOptional ))
 	TObjectPtr<UWidget> CompassRingPanel;
+
+	UPROPERTY(meta = ( BindWidgetOptional ))
+	TObjectPtr<UWidget> MiniMapFrame;
+
 };

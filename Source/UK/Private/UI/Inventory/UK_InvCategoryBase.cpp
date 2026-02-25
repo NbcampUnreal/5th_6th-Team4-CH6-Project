@@ -15,7 +15,7 @@ void UUK_InvCategoryBase::NativeConstruct()
 	CreateSlots();
 }
 
-void UUK_InvCategoryBase::CreateSlots() //ㅇ 
+void UUK_InvCategoryBase::CreateSlots()
 {
 	if ( !SlotGrid || !InvSlotClass )
 	{
@@ -102,7 +102,7 @@ void UUK_InvCategoryBase::HandleSlotUnhovered()
 	OnCategorySlotUnhovered.Broadcast();
 }
 
-void UUK_InvCategoryBase::AddSlot(int32 AddCount) //ㅇ
+void UUK_InvCategoryBase::AddSlot(int32 AddCount)
 {
 	if ( AddCount <= 0 )
 		return;

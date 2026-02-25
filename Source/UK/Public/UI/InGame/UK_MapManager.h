@@ -67,6 +67,9 @@ public:
 
 	FTimerHandle CaptureTimer;
 
+	UFUNCTION(BlueprintCallable, Category = "MapCapture")
+	void RefreshHiddenActors();
+
 
 //에디터에서 MapData가 변경될 때마다 맵 캡처를 갱신하도록 설정
 #if WITH_EDITOR
