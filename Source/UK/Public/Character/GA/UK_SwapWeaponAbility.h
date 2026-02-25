@@ -16,5 +16,4 @@ class UK_API UUK_SwapWeaponAbility : public UGameplayAbility
 public:
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)override;
 	
-	void SwapWeapon();
 };
