@@ -219,13 +219,13 @@ void AUK_CharacterBase::Move(const FInputActionValue& InputActionValue)
 
 	if ( FMath::IsNearlyZero(MovementVector.X) == false )
 	{
-		const FVector ForwardDirection = MovementRotation.RotateVector(FVector::ForwardVector);
+		const FVector ForwardDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::X);
 		AddMovementInput(ForwardDirection, MovementVector.X);
 	}
 
 	if ( FMath::IsNearlyZero(MovementVector.Y) == false )
 	{
-		const FVector RightDirection = MovementRotation.RotateVector(FVector::RightVector);
+		const FVector RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
 		AddMovementInput(RightDirection, MovementVector.Y);
 	}
 }
