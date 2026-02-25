@@ -127,6 +127,8 @@ void AAIMonsterBase::OnRep_IsAggressive()
 
 bool AAIMonsterBase::PlayRandomAttackMontage()
 {
+	if (bIsHit) return false;
+	
 	if (bIsAttacking || bIsDying) return false;
 	if (!HasAuthority()) return false;
 
@@ -158,25 +160,16 @@ bool AAIMonsterBase::PlayRandomAttackMontage()
 
 void AAIMonsterBase::Multicast_PlayAttackMontage_Implementation(int32 MontageIndex)
 {
-	if (!AttackMontages.IsValidIndex(MontageIndex)) return;
+	if (bIsHit) return;
 
-	UAnimMontage* Montage = AttackMontages[MontageIndex];
-	if (!Montage) return;
+	if (!AttackMontages.IsValidIndex(MontageIndex)) return;
 
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (!AnimInstance) return;
 
-	float Length = AnimInstance->Montage_Play(Montage, 1.0f);
-	
-	if (HasAuthority() && Length > 0.f)
-	{
-		FOnMontageEnded EndDelegate;
-		EndDelegate.BindUObject(this, &AAIMonsterBase::OnAttackMontageEnded);
-		AnimInstance->Montage_SetEndDelegate(EndDelegate, Montage);
-	}
-	
-	UE_LOG(LogTemp, Log, TEXT("[Attack] %s: Playing attack montage[%d] on %s"), 
-		*GetName(), MontageIndex, HasAuthority() ? TEXT("Server") : TEXT("Client"));
+	UAnimMontage* Montage = AttackMontages[MontageIndex];
+	AnimInstance->Montage_Play(Montage);
+	AnimInstance->OnMontageEnded.AddDynamic(this, &AAIMonsterBase::OnAttackMontageEnded);
 }
 
 void AAIMonsterBase::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -593,10 +586,15 @@ void AAIMonsterBase::Multicast_PlayHitMontage_Implementation(int32 MontageIndex)
 	if (!AnimInstance) return;
 
 	// 공격 몽타주 재생 중이면 피격 몽타주로 블렌딩 
-	AnimInstance->Montage_Play(Montage, 1.0f);
+	AnimInstance->StopAllMontages(0.1f);
+	AnimInstance->Montage_Play(Montage);
 
 	UE_LOG(LogTemp, Log, TEXT("[Hit] %s: Playing hit montage[%d] on %s"),
 		*GetName(), MontageIndex, HasAuthority() ? TEXT("Server") : TEXT("Client"));
+
+	bIsHit = true;
+	AnimInstance->OnMontageEnded.RemoveDynamic(this, &AAIMonsterBase::OnHitMontageEnded);
+	AnimInstance->OnMontageEnded.AddDynamic(this, &AAIMonsterBase::OnHitMontageEnded);
 }
 
 void AAIMonsterBase::ReceiveDamage(float Damage)
@@ -729,4 +727,12 @@ void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(AAIMonsterBase, bIsAggressive);
 	DOREPLIFETIME(AAIMonsterBase, Aggressor);
 	DOREPLIFETIME(AAIMonsterBase, LastAttackerController);  
+}
+
+void AAIMonsterBase::OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (HitMontages.Contains(Montage))
+	{
+		bIsHit = false;
+	}
 }

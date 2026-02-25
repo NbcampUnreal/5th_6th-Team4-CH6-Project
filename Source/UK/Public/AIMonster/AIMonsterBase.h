@@ -266,6 +266,12 @@ public:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayHitMontage(int32 MontageIndex);
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Hit|Animation")
+	bool bIsHit = false;
+
+	UFUNCTION()
+	void OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 #pragma endregion
 	
 public:
