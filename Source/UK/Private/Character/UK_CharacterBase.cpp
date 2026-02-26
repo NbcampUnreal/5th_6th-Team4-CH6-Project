@@ -129,6 +129,9 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Crouch), ETriggerEvent::Started, this, &ThisClass::CrouchInput);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::ToggleMouse), ETriggerEvent::Started, this, &ThisClass::ToggleMouse);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Interaction), ETriggerEvent::Started, this, &ThisClass::Interaction);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::Swap1), ETriggerEvent::Started, this, &ThisClass::SlotWeaponOne);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::Swap2), ETriggerEvent::Started, this, &ThisClass::SlotWeaponTwo);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::Swap3), ETriggerEvent::Started, this, &ThisClass::SlotWeaponThree);
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -546,6 +549,11 @@ void AUK_CharacterBase::SlotWeaponThree()
 }
 void AUK_CharacterBase::SwapWeapon(int32 Index)
 {
+	if ( IsValid(ItmeDataTable) == false )
+	{
+		UE_LOG(LogTemp, Display, TEXT("ItmeDataTable is Nullptr"));
+		return;
+	}
 	FInventorySlot* WeaponSlot = InventoryComponent->FindWeaponSlotbyIndex(Index);
 	if ( WeaponSlot->isEmpty() )
 	{
