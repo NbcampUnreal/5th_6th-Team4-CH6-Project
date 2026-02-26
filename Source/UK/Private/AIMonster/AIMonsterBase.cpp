@@ -69,7 +69,7 @@ void AAIMonsterBase::BeginPlay()
 		GetWorldTimerManager().SetTimer(
 			HPBarUpdateTimer,
 			this,
-			&AAIMonsterBase::UpdateHPBarRotation,
+			&AAIMonsterBase::UpdateHPBarWidget,
 			0.05f,
 			true
 		);
@@ -724,80 +724,61 @@ void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(AAIMonsterBase, LastAttackerController);  
 }
 
-void AAIMonsterBase::UpdateHPBarScaleByDistance()
-{
-	if ( !HPWidgetComponent || !GetWorld() ) return;
+//void AAIMonsterBase::UpdateHPBarScaleByDistance()
+//{
+//	if ( !HPWidgetComponent || !GetWorld() ) return;
+//
+//	// 로컬 플레이어 카메라 가져오기
+//	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+//	if ( !PC || !PC->PlayerCameraManager ) return;
+//
+//	FVector CameraLocation = PC->PlayerCameraManager->GetCameraLocation();
+//	FVector HPWorldLocation = HPWidgetComponent->GetComponentLocation();
+//
+//	// 거리 계산
+//	float Distance = FVector::Dist(CameraLocation, HPWorldLocation);
+//
+//	float MinScale = 0.5f;   // 멀리 있을 때 최소 크기
+//	float MaxScale = 1.0f;   // 가까울 때 최대 크기
+//	float MinDistance = 200.f;
+//	float MaxDistance = 2000.f;
+//
+//	// 거리에 따라 스케일 보간
+//	float NewScale = FMath::GetMappedRangeValueClamped(
+//		FVector2D(MinDistance, MaxDistance),
+//		FVector2D(MaxScale, MinScale),
+//		Distance
+//	);
+//
+//	HPWidgetComponent->SetRelativeScale3D(FVector(NewScale));
+//}
 
-	// 로컬 플레이어 카메라 가져오기
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	if ( !PC || !PC->PlayerCameraManager ) return;
-
-	FVector CameraLocation = PC->PlayerCameraManager->GetCameraLocation();
-	FVector HPWorldLocation = HPWidgetComponent->GetComponentLocation();
-
-	// 거리 계산
-	float Distance = FVector::Dist(CameraLocation, HPWorldLocation);
-
-	// 원하는 최소/최대 거리와 스케일 설정
-	float MinScale = 0.5f;   // 멀리 있을 때 최소 크기
-	float MaxScale = 1.0f;   // 가까울 때 최대 크기
-	float MinDistance = 200.f;
-	float MaxDistance = 2000.f;
-
-	// 거리에 따라 스케일 보간
-	float NewScale = FMath::GetMappedRangeValueClamped(
-		FVector2D(MinDistance, MaxDistance),
-		FVector2D(MaxScale, MinScale),
-		Distance
-	);
-
-	HPWidgetComponent->SetRelativeScale3D(FVector(NewScale));
-}
-
-void AAIMonsterBase::UpdateHPBarScaleAndVisibility()
-{
-	if ( !HPWidgetComponent || !IsLocallyControlled() ) return;
-
-	// 위치는 그대로 두고 화면상 크기 고정
-	FVector DesiredScale(0.5f, 0.5f, 0.5f); // 원하는 화면 크기
-	HPWidgetComponent->SetWorldScale3D(DesiredScale);
-
-	// 회전은 항상 카메라를 바라보게
-	if ( APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0) )
-	{
-		FVector CameraLocation;
-		FRotator CameraRotation;
-		PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
-
-		FVector Direction = CameraLocation - HPWidgetComponent->GetComponentLocation();
-		FRotator LookAtRotation = FRotationMatrix::MakeFromX(Direction).Rotator();
-
-		HPWidgetComponent->SetWorldRotation(LookAtRotation);
-	}
-}
-
-void AAIMonsterBase::UpdateHPBarRotation()
+void AAIMonsterBase::UpdateHPBarWidget()
 {
 	if ( !HPWidgetComponent ) return;
 
 	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	if ( !PC ) return;
 
-	FVector PlayerLocation;
-	FRotator PlayerRot;
-	PC->GetPlayerViewPoint(PlayerLocation, PlayerRot);
+	// ----- 카메라 위치 얻기 -----
+	FVector CameraLocation;
+	FRotator CameraRotation;
+	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
-	// 캐릭터에서 HP 위젯 위치
-	FVector WidgetLocation = HPWidgetComponent->GetComponentLocation();
+	// ----- 위젯 위치 -----
+	const FVector WidgetLocation = HPWidgetComponent->GetComponentLocation();
 
-	// 플레이어 위치를 바라보는 방향 계산
-	FVector Direction = PlayerLocation - WidgetLocation;
-	FRotator LookAtRot = FRotationMatrix::MakeFromX(Direction).Rotator();
+	// ----- 카메라를 바라보게 회전 -----
+	FVector Direction = CameraLocation - WidgetLocation;
+	FRotator LookAtRotation = FRotationMatrix::MakeFromX(Direction).Rotator();
 
-	// Z축 고정하고 X,Y 회전만 적용하려면
-	LookAtRot.Pitch = 0.f;
-	LookAtRot.Roll = 0.f;
+	// ----- Pitch, Roll 제거 ------
+	LookAtRotation.Pitch = 0.f;
+	LookAtRotation.Roll = 0.f;
 
-	HPWidgetComponent->SetWorldRotation(LookAtRot);
-	UpdateHPBarScaleAndVisibility();
+	HPWidgetComponent->SetWorldRotation(LookAtRotation);
+
+	// --- 화면상 HP UI 크기 유지용 스케일 ---
+	const FVector DesiredScale(0.5f, 0.5f, 0.5f);
+	HPWidgetComponent->SetWorldScale3D(DesiredScale);
 }

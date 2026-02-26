@@ -4,27 +4,82 @@
 #include "Character/UK_PlayerController.h"
 #include "EnhancedInputSubsystems.h"
 
-AUK_PlayerController::AUK_PlayerController() 
+AUK_PlayerController::AUK_PlayerController()
 	: bMouseCursorEnabled(false)
 {
 }
+
 void AUK_PlayerController::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-	if (PlayerCameraManager)
+
+	if ( PlayerCameraManager )
 	{
-		PlayerCameraManager->ViewPitchMax = 45.f; // 아래
-		PlayerCameraManager->ViewPitchMin = -60.f; // 위
+		PlayerCameraManager->ViewPitchMax = 45.f;
+		PlayerCameraManager->ViewPitchMin = -60.f;
 	}
 }
 
 void AUK_PlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-	DisableMouseCursorMode();
-	StaminaWidget = CreateWidget<UUK_Stamina>(this, StaminaWidgetClass);
-	StaminaWidget->AddToViewport();
 
+	if ( !IsLocalController() ) return;
+
+	Client_CreatePlayerUI();
+
+	// 게임 입력 상태
+	ApplyInputState(EInputState::Game);
+
+	GetWorldTimerManager().SetTimer(
+		StaminaTrackingTimer,
+		this,
+		&AUK_PlayerController::UpdateStaminaTracking,
+		0.005f,
+		true
+	);
+}
+
+void AUK_PlayerController::PostSeamlessTravel()
+{
+	Super::PostSeamlessTravel();
+
+	if ( !IsLocalController() ) return;
+
+	// 맵 이동 후 게임 상태
+	ApplyInputState(EInputState::Game);
+	SetCursorVisible(false);
+}
+
+void AUK_PlayerController::OnPossess(APawn* pawn)
+{
+	Super::OnPossess(pawn);
+
+	if ( IsLocalController() )
+	{
+		ConnectStaminaWidget();
+	}
+}
+
+// -----  UI 생성 -----
+
+void AUK_PlayerController::Client_CreatePlayerUI_Implementation()
+{
+	if ( !IsLocalController() ) return;
+
+	// ----- Stamina UI -----
+	if ( StaminaWidgetClass )
+	{
+		StaminaWidget = CreateWidget<UUK_Stamina>(this, StaminaWidgetClass);
+
+		if ( StaminaWidget )
+		{
+			StaminaWidget->AddToViewport();
+			StaminaWidget->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
+	// ----- Setting UI -----
 	if ( SettingWidgetClass )
 	{
 		SettingWidget = CreateWidget<UUK_Setting>(this, SettingWidgetClass);
@@ -37,30 +92,105 @@ void AUK_PlayerController::BeginPlay()
 	}
 }
 
+// ----- 입력 상태 관리 -----
 
-void AUK_PlayerController::PostSeamlessTravel()
+void AUK_PlayerController::ApplyInputState(EInputState NewState)
 {
-	Super::PostSeamlessTravel();
+	CurrentInputState = NewState;
 
-	FInputModeGameOnly InputMode;
-	SetInputMode(InputMode);
+	switch ( CurrentInputState )
+	{
+	case EInputState::Game:
+	{
+		SetIgnoreLookInput(false);
+		SetIgnoreMoveInput(false);
 
-	bShowMouseCursor = false;
+		FInputModeGameOnly Mode;
+		SetInputMode(Mode);
+		break;
+	}
 
-	DisableMouseCursorMode();
+	case EInputState::UI:
+	{
+		SetIgnoreLookInput(true);
+		SetIgnoreMoveInput(true);
+
+		FInputModeGameAndUI Mode;
+		Mode.SetHideCursorDuringCapture(false);
+		Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		SetInputMode(Mode);
+		break;
+	}
+
+	case EInputState::Cutscene:
+	{
+		SetIgnoreLookInput(true);
+		SetIgnoreMoveInput(true);
+
+		FInputModeGameOnly Mode;
+		SetInputMode(Mode);
+		break;
+	}
+	}
 }
 
-void AUK_PlayerController::OnPossess(APawn* pawn)
+// 커서 표시만 담당 (입력 상태랑 분리)
+void AUK_PlayerController::SetCursorVisible(bool bVisible)
 {
-	Super::OnPossess(pawn);
-	ConnectStaminaWidget();
+	bShowMouseCursor = bVisible;
+
+	bEnableClickEvents = bVisible;
+	bEnableMouseOverEvents = bVisible;
 }
 
-void AUK_PlayerController::Tick(float DeltaSeconds)
+//  게임 중 커서 토글 (카메라 안 멈춤)
+void AUK_PlayerController::ToggleMouseCursor()
 {
-	Super::Tick(DeltaSeconds);
+	bMouseCursorEnabled = !bMouseCursorEnabled;
 
+	SetCursorVisible(bMouseCursorEnabled);
+
+	// 캐릭터 움직임은 가능하게 + 화면 회전은 불가
+	SetIgnoreLookInput(bMouseCursorEnabled);
+}
+
+//  Setting UI (카메라 멈춤 모드)
+
+void AUK_PlayerController::Setting_UI()
+{
+	if ( !SettingWidget ) return;
+
+	bIsSetting = !bIsSetting;
+
+	if ( bIsSetting )
+	{
+		// ----- 열기 -----
+		SettingWidget->SetVisibility(ESlateVisibility::Visible);
+
+		ApplyInputState(EInputState::UI);
+
+		// 캐릭터 움직임 + 화면 회전은 불가
+		SetCursorVisible(true);
+		SetIgnoreLookInput(true);
+		GetWorldTimerManager().PauseTimer(StaminaTrackingTimer);
+	}
+	else
+	{
+		// ----- 닫기 -----
+		SettingWidget->SetVisibility(ESlateVisibility::Collapsed);
+
+		ApplyInputState(EInputState::Game);
+		SetCursorVisible(false);
+		SetIgnoreLookInput(false);
+		GetWorldTimerManager().UnPauseTimer(StaminaTrackingTimer);
+	}
+}
+
+void AUK_PlayerController::UpdateStaminaTracking()
+{
+	if ( !IsLocalController() ) return;
 	if ( !StaminaWidget ) return;
+	if ( !PlayerCameraManager ) return;
 
 	APawn* MyPawn = GetPawn();
 	if ( !MyPawn )
@@ -69,15 +199,18 @@ void AUK_PlayerController::Tick(float DeltaSeconds)
 		return;
 	}
 
+	// 카메라 정보
 	FVector CamLoc = PlayerCameraManager->GetCameraLocation();
 	FRotator CamRot = PlayerCameraManager->GetCameraRotation();
 
 	FVector CamRight = FRotationMatrix(CamRot).GetUnitAxis(EAxis::Y);
 	FVector CamForward = FRotationMatrix(CamRot).GetUnitAxis(EAxis::X);
 
+	// 스태미나 UI가 붙을 월드 위치 계산
 	FVector BaseLocation = MyPawn->GetActorLocation() + Stemina_Location;
 	FVector TargetWorldPos = BaseLocation + ( CamRight * SideDistance );
 
+	// 월드를 스크린 좌표 변환
 	FVector2D ScreenPos;
 	bool bProjected = ProjectWorldLocationToScreen(TargetWorldPos, ScreenPos, true);
 
@@ -87,6 +220,7 @@ void AUK_PlayerController::Tick(float DeltaSeconds)
 		return;
 	}
 
+	// 카메라 뒤쪽에 있으면 숨김
 	FVector ToTarget = ( TargetWorldPos - CamLoc ).GetSafeNormal();
 	float Dot = FVector::DotProduct(CamForward, ToTarget);
 
@@ -96,6 +230,7 @@ void AUK_PlayerController::Tick(float DeltaSeconds)
 		return;
 	}
 
+	// 거리 기반 스케일 계산
 	float Dist = FVector::Dist(CamLoc, TargetWorldPos);
 
 	float Scale = FMath::GetMappedRangeValueClamped(
@@ -104,6 +239,7 @@ void AUK_PlayerController::Tick(float DeltaSeconds)
 		Dist
 	);
 
+	// 화면 안에 있는지 체크
 	int32 SizeX, SizeY;
 	GetViewportSize(SizeX, SizeY);
 
@@ -114,32 +250,7 @@ void AUK_PlayerController::Tick(float DeltaSeconds)
 	StaminaWidget->SetTrackingPosition(ScreenPos, Scale, bInside);
 }
 
-
-void AUK_PlayerController::EnableMouseCursorMode()
-{
-	bShowMouseCursor = true;
-
-	FInputModeGameAndUI InputMode;
-	InputMode.SetHideCursorDuringCapture(false);
-	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-
-	SetInputMode(InputMode);
-
-	SetIgnoreLookInput(true);
-
-	bEnableClickEvents = true;
-	bEnableMouseOverEvents = true;
-}
-
-void AUK_PlayerController::DisableMouseCursorMode()
-{
-	bShowMouseCursor = false;
-
-	FInputModeGameOnly InputMode;
-	SetInputMode(InputMode);
-
-	SetIgnoreLookInput(false);
-}
+//  ----- 스태미나 -----
 
 void AUK_PlayerController::ConnectStaminaWidget()
 {
@@ -151,53 +262,8 @@ void AUK_PlayerController::ConnectStaminaWidget()
 	UStatusComponent* StatusComp =
 		MyPawn->FindComponentByClass<UStatusComponent>();
 
-	StaminaWidget->BindStatusComponent(StatusComp);
-}
-
-void AUK_PlayerController::ToggleMouseCursor()
-{
-	bMouseCursorEnabled = !bMouseCursorEnabled;
-
-	if (bMouseCursorEnabled)
+	if ( StatusComp )
 	{
-		UE_LOG(LogTemp, Warning, TEXT("EnableMouseCursorMode()"));
-		EnableMouseCursorMode();
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("DisableMouseCursorMode()"));
-		DisableMouseCursorMode();
-	}
-}
-
-void AUK_PlayerController::Setting_UI()
-{
-	EnableMouseCursorMode();
-
-	if ( !SettingWidget ) return;
-
-	bIsSetting = !bIsSetting;
-
-	if ( bIsSetting )
-	{
-		// ===== 열기 =====
-		SettingWidget->SetVisibility(ESlateVisibility::Visible);
-
-		SetShowMouseCursor(true);
-
-		FInputModeGameAndUI Mode;
-		Mode.SetWidgetToFocus(SettingWidget->TakeWidget());
-		Mode.SetHideCursorDuringCapture(false);
-		SetInputMode(Mode);
-	}
-	else
-	{
-		// ===== 닫기 =====
-		SettingWidget->SetVisibility(ESlateVisibility::Collapsed);
-
-		SetShowMouseCursor(false);
-
-		FInputModeGameOnly Mode;
-		SetInputMode(Mode);
+		StaminaWidget->BindStatusComponent(StatusComp);
 	}
 }

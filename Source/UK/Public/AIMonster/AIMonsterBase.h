@@ -272,12 +272,7 @@ public:
 
 	UUK_MonsterHealthBar* GetHPWidget() const { return HPWidget; }
 
-	//void UpdateHPBarScale(float NewScale);
-	void UpdateHPBarScaleAndVisibility();
-
-	void UpdateHPBarScaleByDistance();
-
-	void UpdateHPBarRotation();
+	void UpdateHPBarWidget();
 
 	void ShowHPBar();
 
