@@ -39,35 +39,21 @@ EBTNodeResult::Type UUK_BTTask_ElitePatrol::ExecuteTask(UBehaviorTreeComponent& 
 	FVector TargetLocation = FVector::ZeroVector;
 	bool bFoundTarget = false;
 
-	// ── 웨이포인트 모드 ─────────────────────────────────────────────────
-	if (Elite->HasWaypoints())
-	{
-		TargetLocation = Elite->GetNextWaypointLocation();
-		bFoundTarget   = true;
-
-		UE_LOG(LogTemp, Log, TEXT("[ElitePatrol] %s: Waypoint[%d] -> (%.0f, %.0f, %.0f)"),
-			*Elite->GetName(),
-			(Elite->CurrentWaypointIndex - 1 + Elite->PatrolWaypoints.Num()) % Elite->PatrolWaypoints.Num(),
-			TargetLocation.X, TargetLocation.Y, TargetLocation.Z);
-	}
 	// ── 랜덤 순찰 모드 ─────────────────────────────────────────────────
-	else
-	{
-		FVector SpawnLocation = BB->GetValueAsVector(SpawnLocationKey.SelectedKeyName);
-		float Radius = Elite->PatrolRadius;
+	FVector SpawnLocation = BB->GetValueAsVector(SpawnLocationKey.SelectedKeyName);
+	float Radius = Elite->PatrolRadius;
 
-		UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(Elite->GetWorld());
-		if (NavSys)
+	UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(Elite->GetWorld());
+	if (NavSys)
+	{
+		for (int32 i = 0; i < MaxNavRetries; ++i)
 		{
-			for (int32 i = 0; i < MaxNavRetries; ++i)
+			FNavLocation NavResult;
+			if (NavSys->GetRandomPointInNavigableRadius(SpawnLocation, Radius, NavResult))
 			{
-				FNavLocation NavResult;
-				if (NavSys->GetRandomPointInNavigableRadius(SpawnLocation, Radius, NavResult))
-				{
-					TargetLocation = NavResult.Location;
-					bFoundTarget   = true;
-					break;
-				}
+				TargetLocation = NavResult.Location;
+				bFoundTarget   = true;
+				break;
 			}
 		}
 	}
