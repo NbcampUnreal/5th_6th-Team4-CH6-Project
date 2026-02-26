@@ -16,6 +16,7 @@ class UK_API UUK_InputComponent : public UEnhancedInputComponent
 {
 	GENERATED_BODY()
 public:
+
 	template<class UserObject, typename CallbackFunc>
 	void BindNativeInputAction(
 		const UUK_InputConfig* InputActionConfig,

@@ -376,56 +376,56 @@ void UUK_CombatAnimationComponent::BeginPlay()
 //}
 
 #pragma region Battle
-void UUK_CombatAnimationComponent::SetEnableRightHitCheck(bool bEnablaHitCheck)
-{
-	if ( bEnablaHitCheck )
-	{
-		RightHitcheckedActor.Reset();
-		GetWorld()->GetTimerManager().SetTimer
-		(
-			RightHitCheckTimer,
-			this,
-			&UUK_CombatAnimationComponent::RightHitCheckProcess,
-			0.1f,
-			true
-		);
-		if ( IsValid(AttackAnim) == false )
-			return;
-		TObjectPtr<USoundBase> AttackSound = AttackAnim->AttackSound;
-		ServerRPCPlaySoundAndEffect(AttackSound);
-	}
-	else
-	{
-		GetWorld()->GetTimerManager().ClearTimer(RightHitCheckTimer);
-		RightHitcheckedActor.Reset();
-		RightHitCheckTimer.Invalidate();
-	}
-}
-void UUK_CombatAnimationComponent::SetEnableLeftHitCheck(bool bEnablaHitCheck)
-{
-	if ( bEnablaHitCheck )
-	{
-		LeftHitcheckedActor.Reset();
-		GetWorld()->GetTimerManager().SetTimer
-		(
-			LeftHitCheckTimer,
-			this,
-			&UUK_CombatAnimationComponent::RightHitCheckProcess,
-			0.1f,
-			true
-		);
-		if ( IsValid(AttackAnim) == false )
-			return;
-		TObjectPtr<USoundBase> AttackSound = AttackAnim->AttackSound;
-		ServerRPCPlaySoundAndEffect(AttackSound);
-	}
-	else
-	{
-		GetWorld()->GetTimerManager().ClearTimer(LeftHitCheckTimer);
-		LeftHitcheckedActor.Reset();
-		LeftHitCheckTimer.Invalidate();
-	}
-}
+//void UUK_CombatAnimationComponent::SetEnableRightHitCheck(bool bEnablaHitCheck)
+//{
+//	if ( bEnablaHitCheck )
+//	{
+//		RightHitcheckedActor.Reset();
+//		GetWorld()->GetTimerManager().SetTimer
+//		(
+//			RightHitCheckTimer,
+//			this,
+//			&UUK_CombatAnimationComponent::RightHitCheckProcess,
+//			0.1f,
+//			true
+//		);
+//		if ( IsValid(AttackAnim) == false )
+//			return;
+//		TObjectPtr<USoundBase> AttackSound = AttackAnim->AttackSound;
+//		ServerRPCPlaySoundAndEffect(AttackSound);
+//	}
+//	else
+//	{
+//		GetWorld()->GetTimerManager().ClearTimer(RightHitCheckTimer);
+//		RightHitcheckedActor.Reset();
+//		RightHitCheckTimer.Invalidate();
+//	}
+//}
+//void UUK_CombatAnimationComponent::SetEnableLeftHitCheck(bool bEnablaHitCheck)
+//{
+//	if ( bEnablaHitCheck )
+//	{
+//		LeftHitcheckedActor.Reset();
+//		GetWorld()->GetTimerManager().SetTimer
+//		(
+//			LeftHitCheckTimer,
+//			this,
+//			&UUK_CombatAnimationComponent::RightHitCheckProcess,
+//			0.1f,
+//			true
+//		);
+//		if ( IsValid(AttackAnim) == false )
+//			return;
+//		TObjectPtr<USoundBase> AttackSound = AttackAnim->AttackSound;
+//		ServerRPCPlaySoundAndEffect(AttackSound);
+//	}
+//	else
+//	{
+//		GetWorld()->GetTimerManager().ClearTimer(LeftHitCheckTimer);
+//		LeftHitcheckedActor.Reset();
+//		LeftHitCheckTimer.Invalidate();
+//	}
+//}
 
 void UUK_CombatAnimationComponent::RightHitCheckProcess()
 {

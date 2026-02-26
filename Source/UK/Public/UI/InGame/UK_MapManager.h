@@ -17,21 +17,25 @@ struct FUK_MapData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MapData")
 	float MapSize;
 
-	//맵 중심 좌표
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MapData")
 	FVector2D MapCenter;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MapData")
-	UTexture* MapTexture;
+	TObjectPtr<UTextureRenderTarget2D> MapTexture;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MapData")
 	float CaptureHeight;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MapData")
+	bool AlwaysFaceNroth;
 
 	FUK_MapData()
 		: MapSize(400000.0f)
 		, MapCenter(FVector2D::ZeroVector)
 		, MapTexture(nullptr)
 		, CaptureHeight(10000.0f)
+		, AlwaysFaceNroth(true)
 	{}
 };
 
@@ -62,6 +66,9 @@ public:
 	void UpdateCaptureTransform();
 
 	FTimerHandle CaptureTimer;
+
+	UFUNCTION(BlueprintCallable, Category = "MapCapture")
+	void RefreshHiddenActors();
 
 
 //에디터에서 MapData가 변경될 때마다 맵 캡처를 갱신하도록 설정

@@ -7,17 +7,17 @@ namespace UK_GameplayTags
 {
 	namespace Input
 	{
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Move, "Input.Default.Move", "Default Movement Ability")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Look, "Input.Default.Look", "Default Movement Ability")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Jump, "Input.Default.Jump", "Default Movement Ability")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Sprint, "Input.Default.Sprint", "Default Movement Ability")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(ZoomIn, "Input.Default.Zoom.In", "Default Movement Ability")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(ZoomOut, "Input.Default.Zoom.Out", "Default Movement Ability")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(NomalSkill, "Input.Default.NomalSkill", "Default Movement Ability")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(UltimateSkill, "Input.Default.UltimateSkill", "Default Movement Ability")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Crouch, "Input.Default.Crouch", "Default Movement Ability")
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Move, "Input.Move", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Look, "Input.Look", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Jump, "Input.Jump", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Sprint, "Input.Sprint", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(ZoomIn, "Input.Zoom.In", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(ZoomOut, "Input.Zoom.Out", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(NomalSkill, "Input.NomalSkill", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(UltimateSkill, "Input.UltimateSkill", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Crouch, "Input.Crouch", "Default Movement Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(ToggleMouse, "Input.Default.ToggleMouse", "Default Movement Ability")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Interaction, "Input.Default.Interaction", "Default Movement Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Interaction, "Input.Interaction", "Default Movement Ability")
 	}
 	namespace Weapon
 	{
@@ -40,7 +40,8 @@ namespace UK_GameplayTags
 	namespace Attack
 	{
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attacking, "Attack.Attacking", "Attacking Ability")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Next, "Attack.Next", "Attacking Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Next, "Attack.Next", "Next Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HitCheck, "Attack.HitCheck", "HitCheck Ability")
 	}
 	namespace Food
 	{

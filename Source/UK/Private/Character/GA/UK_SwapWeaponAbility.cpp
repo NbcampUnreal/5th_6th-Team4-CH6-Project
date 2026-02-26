@@ -10,7 +10,4 @@ void UUK_SwapWeaponAbility::ActivateAbility(const FGameplayAbilitySpecHandle Han
 
 }
 
-void UUK_SwapWeaponAbility::SwapWeapon()
-{
-}
 

@@ -59,6 +59,9 @@ private:
 
 private:
 
+	UPROPERTY(EditAnywhere)
+	UInputMappingContext* IMC;
+
 	UPROPERTY(EditAnywhere, Category = "UI")
 	TSubclassOf<UUK_Stamina> StaminaWidgetClass;
 
