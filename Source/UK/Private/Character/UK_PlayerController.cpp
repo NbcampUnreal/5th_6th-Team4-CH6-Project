@@ -60,6 +60,7 @@ void AUK_PlayerController::OnPossess(APawn* pawn)
 	{
 		ConnectStaminaWidget();
 	}
+
 	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 
 	if ( Subsystem )
