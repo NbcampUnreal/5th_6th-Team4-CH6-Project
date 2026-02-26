@@ -224,6 +224,10 @@ void AUK_CharacterBase::Move(const FInputActionValue& InputActionValue)
 
 void AUK_CharacterBase::Look(const FInputActionValue& InputActionValue)
 {
+	if ( bIsLock == true )
+	{
+		return;
+	}
 	const FVector2D LookAxisVector = InputActionValue.Get<FVector2D>();
 
 	if ( FMath::IsNearlyZero(LookAxisVector.X) == false )
@@ -473,26 +477,29 @@ void AUK_CharacterBase::LockONToggle()
 					AddTarget(Monster);
 				}
 			}
-			bIsLock = true;
-			bUseControllerRotationYaw = true;
-			GetCharacterMovement()->bOrientRotationToMovement = false;
-			if ( GetWorld()->GetTimerManager().IsTimerActive(LockOnTimer) == false )
+			if ( LockOnList.Num() > 0 )
 			{
-				GetWorld()->GetTimerManager().SetTimer(
-					LockOnTimer,
-					this,
-					&AUK_CharacterBase::LockONTick,
-					0.01f,
-					true
-				);
-
+				bIsLock = true;
+				bUseControllerRotationYaw = true;
+				GetCharacterMovement()->bOrientRotationToMovement = false;
+				if ( GetWorld()->GetTimerManager().IsTimerActive(LockOnTimer) == false )
+				{
+					GetWorld()->GetTimerManager().SetTimer(
+						LockOnTimer,
+						this,
+						&AUK_CharacterBase::LockONTick,
+						0.01f,
+						true
+					);
+				}
 			}
-
 		}
 	}
 	else
 	{
 		bIsLock = false;
+		bUseControllerRotationYaw = false;
+		GetCharacterMovement()->bOrientRotationToMovement = true;
 		GetWorld()->GetTimerManager().ClearTimer(LockOnTimer);
 		LockOnList.Reset();
 		LockOnTimer.Invalidate();
