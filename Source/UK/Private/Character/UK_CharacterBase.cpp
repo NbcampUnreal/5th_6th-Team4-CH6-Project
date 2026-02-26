@@ -27,6 +27,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
+#include "Engine/OverlapResult.h"
 #include "Blueprint/UserWidget.h"
 
 #pragma region Defualt
@@ -106,6 +107,15 @@ void AUK_CharacterBase::BeginPlay()
 	StatusComponent->OnDeadDelegate.AddDynamic(this, &AUK_CharacterBase::Dead);
 	DefaultGravityValue = GetCharacterMovement()->GravityScale;
 
+	PC = Cast<AUK_PlayerController>(GetController());
+
+	GetWorldTimerManager().SetTimer(
+		DetectTimer,
+		this,
+		&AUK_CharacterBase::UpdateMonsterDetection,
+		0.3f,
+		true
+	);
 }
 
 void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -129,6 +139,7 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Crouch), ETriggerEvent::Started, this, &ThisClass::CrouchInput);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::ToggleMouse), ETriggerEvent::Started, this, &ThisClass::ToggleMouse);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Interaction), ETriggerEvent::Started, this, &ThisClass::Interaction);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Setting), ETriggerEvent::Started, this, &ThisClass::Setting);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::Swap1), ETriggerEvent::Started, this, &ThisClass::SlotWeaponOne);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::Swap2), ETriggerEvent::Started, this, &ThisClass::SlotWeaponTwo);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::Swap3), ETriggerEvent::Started, this, &ThisClass::SlotWeaponThree);
@@ -308,7 +319,6 @@ void AUK_CharacterBase::ToggleMouse()
 	if ( StatusComponent->IsDead() )
 		return;
 
-	AUK_PlayerController* PC = Cast<AUK_PlayerController>(GetController());
 	if ( PC == nullptr )
 		return;
 
@@ -322,6 +332,17 @@ void AUK_CharacterBase::Interaction()
 		InteractionComp->TryInteract();
 	}
 	UE_LOG(LogTemp, Log, TEXT("상호 작용 시도"));
+}
+
+void AUK_CharacterBase::Setting()
+{
+	if ( StatusComponent->IsDead() )
+		return;
+
+	if ( PC == nullptr )
+		return;
+
+	PC->Setting_UI();
 }
 
 void AUK_CharacterBase::ZoomIn()
@@ -415,13 +436,17 @@ void AUK_CharacterBase::LockON()
 		bIsLock = true;
 		bUseControllerRotationYaw = true;
 		GetCharacterMovement()->bOrientRotationToMovement = false;
-		GetWorld()->GetTimerManager().SetTimer(
-			LockOnTimer,
-			this,
-			&AUK_CharacterBase::LockONTick,
-			0.01f,
-			true
-		);
+		if ( GetWorld()->GetTimerManager().IsTimerActive(LockOnTimer) == false )
+		{
+			GetWorld()->GetTimerManager().SetTimer(
+				LockOnTimer,
+				this,
+				&AUK_CharacterBase::LockONTick,
+				0.01f,
+				true
+			);
+
+		}
 
 		//}
 	}
@@ -433,6 +458,78 @@ void AUK_CharacterBase::LockON()
 	//	LockOnTimer.Invalidate();
 	//}
 }
+//void AUK_CharacterBase::LockONToggle()
+//{
+//	if ( bIsLock == false )
+//	{
+//
+//		AUK_PlayerController* UKPC = Cast<AUK_PlayerController>(GetController());
+//		if ( IsValid(UKPC) == false )
+//			return;
+//		FVector Start;
+//		FRotator CameraRot;
+//		const float CapsuleRadius = 50.f;
+//		// 카메라부터 카메라가 보는 방향으로 트레이스 실시
+//		UKPC->GetPlayerViewPoint(Start, CameraRot);
+//		FVector ForwardVector = CameraRot.Vector();/*카메라의 방향성*/
+//
+//		float TraceDistance = 1000.f;
+//		FVector End = Start + ( ForwardVector * TraceDistance );
+//
+//		FCollisionQueryParams Params;
+//		Params.AddIgnoredActor(this);
+//		FCollisionShape CollisionShape = FCollisionShape::MakeSphere(CapsuleRadius);
+//
+//		bool bHit = GetWorld()->SweepMultiByChannel(
+//			LockOnResult,
+//			Start,
+//			End,
+//			FQuat::Identity,
+//			ECC_LockOn,/*추후에 카메라 전용 트레이스 채널로 변경 요망*/
+//			CollisionShape,
+//			Params
+//		);
+//		FColor DrawColor = bHit ? FColor::Green : FColor::Red;
+//
+//		FQuat CapsuleRot = FRotationMatrix::MakeFromZ(Start - End).ToQuat();
+//		DrawDebugCapsule(
+//			GetWorld(),
+//			( Start + End ) / 2,
+//			( End - Start ).Size(),
+//			CapsuleRadius,
+//			CapsuleRot,
+//			DrawColor,
+//			false,
+//			1.f
+//		);
+//		if ( bHit )
+//		{
+//			bIsLock = true;
+//			bUseControllerRotationYaw = true;
+//			GetCharacterMovement()->bOrientRotationToMovement = false;
+//			if ( GetWorld()->GetTimerManager().IsTimerActive(LockOnTimer) == false )
+//			{
+//				GetWorld()->GetTimerManager().SetTimer(
+//					LockOnTimer,
+//					this,
+//					&AUK_CharacterBase::LockONTick,
+//					0.01f,
+//					true
+//				);
+//
+//			}
+//
+//		}
+//	}
+//	else
+//	{
+//		bIsLock = false;
+//		GetWorld()->GetTimerManager().ClearTimer(LockOnTimer);
+//		LockOnList.Reset();
+//		LockOnTimer.Invalidate();
+//	}
+//}
+
 void AUK_CharacterBase::LockONTick()
 {
 	if ( LockOnList.IsEmpty() == false )
@@ -493,10 +590,12 @@ void AUK_CharacterBase::LockONTick()
 		return;
 	}
 }
+
 void AUK_CharacterBase::AddTarget(const TObjectPtr<AAIMonsterBase> Monster)
 {
 	LockOnList.AddUnique(Monster);
 }
+
 #pragma endregion
 
 #pragma region Weapon
@@ -612,7 +711,6 @@ void AUK_CharacterBase::StopJumpAndFly()
 }
 void AUK_CharacterBase::EndComboAttack()
 {
-	;
 	if ( bIsfry == false )
 		return;
 	UCharacterMovementComponent* PlayerMovement = GetCharacterMovement();
@@ -648,6 +746,37 @@ void AUK_CharacterBase::OnRep_InInput()
 {
 
 }
+void AUK_CharacterBase::UpdateMonsterDetection() {
+	if ( !IsLocallyControlled() ) 
+		return; 
+	TArray<FOverlapResult> Results; 
+	FCollisionShape Sphere = FCollisionShape::MakeSphere(DetectRadius); 
+	GetWorld()->OverlapMultiByObjectType(Results, GetActorLocation(), FQuat::Identity, FCollisionObjectQueryParams(ECC_Pawn), Sphere); 
+	DrawDebugSphere(GetWorld(), GetActorLocation(), DetectRadius, 32, FColor::Green, false, 0.31f); TSet<AAIMonsterBase*> NewSet; 
+	// overlap이 되는 것들의 data result 결과들
+	for ( const FOverlapResult& Result : Results ) 
+	{ 
+		AActor* OverlappedActor = Result.OverlapObjectHandle.FetchActor(); 
+		if ( AAIMonsterBase* Monster = Cast<AAIMonsterBase>(OverlappedActor) ) 
+		{ 
+			NewSet.Add(Monster); 
+			if ( !NearbyMonsters.Contains(Monster) ) 
+			{
+				Monster->ShowHPBar(); 
+			} 
+		} 
+	} 
+	// 범위가 벗어났는지 확인 
+	for ( AAIMonsterBase* OldMonster : NearbyMonsters ) 
+	{ 
+		if ( IsValid(OldMonster) && !NewSet.Contains(OldMonster) ) 
+		{ 
+			OldMonster->HideHPBar(); 
+		} 
+	} 
+	NearbyMonsters = NewSet; 
+}
+#pragma endregion
 void AUK_CharacterBase::OnRep_fry()
 {
 }

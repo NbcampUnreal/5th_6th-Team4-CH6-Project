@@ -29,4 +29,8 @@ public:
 	// 퀘스트 진행도 저장 (QuestID -> Progress)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TMap<FName, FQuestProgress> QuestProgressMap;
+
+	//// ----- Setting - Sound -----
+	//float BackGround_Sound;
+	//float SFX_Sound;
 };

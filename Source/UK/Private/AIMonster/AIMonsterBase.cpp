@@ -35,6 +35,17 @@ AAIMonsterBase::AAIMonsterBase()
 		GetCharacterMovement()->NetworkMaxSmoothUpdateDistance = 92.f;
 		GetCharacterMovement()->NetworkNoSmoothUpdateDistance = 140.f;
 	}
+
+	//HP Widget 설치
+	HPWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HPWidgetComponent"));
+	HPWidgetComponent->SetupAttachment(GetMesh());
+
+	HPWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
+	HPWidgetComponent->SetDrawAtDesiredSize(true);
+	//HPWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	HPWidgetComponent->SetDrawSize(FVector2D(180.f, 20.f));
+	HPWidgetComponent->SetRelativeLocation(FVector(0, 0, 120.f));
+	HPWidgetComponent->SetVisibility(false);
 	
 	NetUpdateFrequency = 60.f;
 	MinNetUpdateFrequency = 30.f;
@@ -70,8 +81,18 @@ void AAIMonsterBase::BeginPlay()
 			CurrentState = EMonsterState::Passive;
 		}
 		
-		UE_LOG(LogTemp, Warning, TEXT("[BeginPlay] %s: Initialized (Type=%d)"), 
-			*GetName(), (int32)MonsterType);
+	}
+
+	if ( HPWidgetComponent )
+	{
+		// 0.05초마다 HP바 갱신
+		GetWorldTimerManager().SetTimer(
+			HPBarUpdateTimer,
+			this,
+			&AAIMonsterBase::UpdateHPBarWidget,
+			0.05f,
+			true
+		);
 	}
 }
 
@@ -85,6 +106,18 @@ void AAIMonsterBase::PostInitializeComponents()
 		StatComponent->OnDeath.AddDynamic(this, &AAIMonsterBase::Die);
 		
 		UE_LOG(LogTemp, Warning, TEXT("[PostInit] %s: OnDeath delegate bound"), *GetName());
+	}
+
+	if ( HPWidgetComponent && HPWidgetClass )
+	{
+		HPWidgetComponent->SetWidgetClass(HPWidgetClass);
+
+		HPWidget = Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
+
+		if ( HPWidget && StatComponent )
+		{
+			HPWidget->BindMonsterStats(StatComponent);
+		}
 	}
 }
 
@@ -277,6 +310,40 @@ void AAIMonsterBase::NotifyMonsterKilled()
 		*GetName(), 
 		(int32)MonsterType,
 		LastAttackerController ? *LastAttackerController->GetName() : TEXT("UNKNOWN"));
+}
+
+//void AAIMonsterBase::UpdateHPBarScale(float NewScale)
+//{
+//	if ( HPWidgetComponent )
+//	{
+//		// NewScale 값에 따라 위젯의 물리적 크기를 변경
+//		HPWidgetComponent->SetRelativeScale3D(FVector(NewScale));
+//	}
+//}
+
+void AAIMonsterBase::ShowHPBar()
+{
+	if ( !HPWidgetComponent ) return;
+
+	HPWidgetComponent->SetVisibility(true);
+
+	if ( UUserWidget* Widget = HPWidgetComponent->GetUserWidgetObject() )
+	{
+		Widget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+}
+
+void AAIMonsterBase::HideHPBar()
+{
+	if ( !HPWidgetComponent ) return;
+
+	if ( UUserWidget* Widget = HPWidgetComponent->GetUserWidgetObject() )
+	{
+		// 핵심 ⭐
+		Widget->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	HPWidgetComponent->SetVisibility(false);
 }
 
 void AAIMonsterBase::Multicast_HideCorpse_Implementation()
@@ -727,6 +794,36 @@ void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(AAIMonsterBase, bIsAggressive);
 	DOREPLIFETIME(AAIMonsterBase, Aggressor);
 	DOREPLIFETIME(AAIMonsterBase, LastAttackerController);  
+}
+
+void AAIMonsterBase::UpdateHPBarWidget()
+{
+	if ( !HPWidgetComponent ) return;
+
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if ( !PC ) return;
+
+	// ----- 카메라 위치 얻기 -----
+	FVector CameraLocation;
+	FRotator CameraRotation;
+	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+
+	// ----- 위젯 위치 -----
+	const FVector WidgetLocation = HPWidgetComponent->GetComponentLocation();
+
+	// ----- 카메라를 바라보게 회전 -----
+	FVector Direction = CameraLocation - WidgetLocation;
+	FRotator LookAtRotation = FRotationMatrix::MakeFromX(Direction).Rotator();
+
+	// ----- Pitch, Roll 제거 ------
+	LookAtRotation.Pitch = 0.f;
+	LookAtRotation.Roll = 0.f;
+
+	HPWidgetComponent->SetWorldRotation(LookAtRotation);
+
+	// --- 화면상 HP UI 크기 유지용 스케일 ---
+	const FVector DesiredScale(0.5f, 0.5f, 0.5f);
+	HPWidgetComponent->SetWorldScale3D(DesiredScale);
 }
 
 void AAIMonsterBase::OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
