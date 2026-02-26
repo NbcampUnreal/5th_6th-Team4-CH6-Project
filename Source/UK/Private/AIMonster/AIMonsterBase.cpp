@@ -65,7 +65,7 @@ void AAIMonsterBase::BeginPlay()
 
 	if ( HPWidgetComponent )
 	{
-		// 0.2초마다 HP바 갱신
+		// 0.05초마다 HP바 갱신
 		GetWorldTimerManager().SetTimer(
 			HPBarUpdateTimer,
 			this,
@@ -723,35 +723,6 @@ void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(AAIMonsterBase, Aggressor);
 	DOREPLIFETIME(AAIMonsterBase, LastAttackerController);  
 }
-
-//void AAIMonsterBase::UpdateHPBarScaleByDistance()
-//{
-//	if ( !HPWidgetComponent || !GetWorld() ) return;
-//
-//	// 로컬 플레이어 카메라 가져오기
-//	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-//	if ( !PC || !PC->PlayerCameraManager ) return;
-//
-//	FVector CameraLocation = PC->PlayerCameraManager->GetCameraLocation();
-//	FVector HPWorldLocation = HPWidgetComponent->GetComponentLocation();
-//
-//	// 거리 계산
-//	float Distance = FVector::Dist(CameraLocation, HPWorldLocation);
-//
-//	float MinScale = 0.5f;   // 멀리 있을 때 최소 크기
-//	float MaxScale = 1.0f;   // 가까울 때 최대 크기
-//	float MinDistance = 200.f;
-//	float MaxDistance = 2000.f;
-//
-//	// 거리에 따라 스케일 보간
-//	float NewScale = FMath::GetMappedRangeValueClamped(
-//		FVector2D(MinDistance, MaxDistance),
-//		FVector2D(MaxScale, MinScale),
-//		Distance
-//	);
-//
-//	HPWidgetComponent->SetRelativeScale3D(FVector(NewScale));
-//}
 
 void AAIMonsterBase::UpdateHPBarWidget()
 {
