@@ -176,6 +176,7 @@ protected:
 
 	bool bIsCrouched;
 
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	bool bIsSprinted;
 
 	UPROPERTY()
