@@ -224,19 +224,19 @@ void AUK_CharacterBase::Move(const FInputActionValue& InputActionValue)
 
 void AUK_CharacterBase::Look(const FInputActionValue& InputActionValue)
 {
+	const FVector2D LookAxisVector = InputActionValue.Get<FVector2D>();
+
+	if ( FMath::IsNearlyZero(LookAxisVector.Y) == false )
+	{
+		AddControllerPitchInput(LookAxisVector.Y);
+	}
 	if ( bIsLock == true )
 	{
 		return;
 	}
-	const FVector2D LookAxisVector = InputActionValue.Get<FVector2D>();
-
 	if ( FMath::IsNearlyZero(LookAxisVector.X) == false )
 	{
 		AddControllerYawInput(LookAxisVector.X);
-	}
-	if ( FMath::IsNearlyZero(LookAxisVector.Y) == false )
-	{
-		AddControllerPitchInput(LookAxisVector.Y);
 	}
 }
 
@@ -279,7 +279,7 @@ void AUK_CharacterBase::LightAttack()
 			Hit,
 			Start,
 			End,
-			ECC_Visibility,
+			ECC_LockOn,
 			Params
 		);
 		if ( IsValid(Hit.GetActor()) == true )
@@ -539,10 +539,16 @@ void AUK_CharacterBase::LockONTick()
 			FVector Start = GetActorLocation();
 			FVector End = Monster->GetActorLocation();
 			FRotator Target = UKismetMathLibrary::FindLookAtRotation(Start, End);
+
 			FRotator NowRot = GetController()->GetControlRotation();
+
+			FRotator Desired = NowRot;
+			Desired.Yaw = Target.Yaw;
+			Desired.Roll = 0.f;
+
 			FRotator NewRot = FMath::RInterpTo(
 				NowRot,
-				Target,
+				Desired,
 				DeltaTime,
 				12.f
 			);
