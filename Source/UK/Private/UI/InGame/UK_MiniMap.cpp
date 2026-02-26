@@ -13,6 +13,9 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/World.h"
 
+#include "Components/CanvasPanel.h"        
+#include "Components/CanvasPanelSlot.h"    
+
 void UUK_MiniMap::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -61,6 +64,7 @@ void UUK_MiniMap::NativeConstruct()
 	if (Compass_E) Compass_E->SetDirection(TEXT("E"));
 	if (Compass_S) Compass_S->SetDirection(TEXT("S"));
 	if (Compass_W) Compass_W->SetDirection(TEXT("W"));
+
 }
 
 void UUK_MiniMap::NativeDestruct()
@@ -124,9 +128,19 @@ void UUK_MiniMap::UpdateMiniMap()
 	{
 		const float RingYaw = -Yaw360;
 
-		FWidgetTransform XForm = CompassRingPanel->RenderTransform;
+		FWidgetTransform XForm = CompassRingPanel->GetRenderTransform();
 		XForm.Angle = RingYaw;
 		CompassRingPanel->SetRenderTransform(XForm);
 		CompassRingPanel->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
+	}
+
+	if (MiniMapFrame)
+	{
+		const float RingYaw = -Yaw360;
+
+		FWidgetTransform XForm = MiniMapFrame->GetRenderTransform();
+		XForm.Angle = RingYaw;
+		MiniMapFrame->SetRenderTransform(XForm);
+		MiniMapFrame->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
 	}
 }
