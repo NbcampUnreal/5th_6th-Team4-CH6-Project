@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Component/AI_MonsterStatComponent.h"
+#include "UI/InGame/UK_MonsterHealthBar.h"
+#include "Components/WidgetComponent.h"
 #include "AIMonsterBase.generated.h"
 
 class UBehaviorTree;
@@ -282,4 +284,36 @@ private:
 	
 	/* 킬 알림 전송 */
 	void NotifyMonsterKilled();
+#pragma region HPBar Widget
+public:
+
+	UUK_MonsterHealthBar* GetHPWidget() const { return HPWidget; }
+
+	void UpdateHPBarWidget();
+
+	void ShowHPBar();
+
+	void HideHPBar();
+
+	FTimerHandle HPBarUpdateTimer;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|HPBar")
+	float MinHPBarScale = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|HPBar")
+	float MaxHPBarScale = 1.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UUserWidget> HPWidgetClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI", meta = ( AllowPrivateAccess = "true" ))
+	UWidgetComponent* HPWidgetComponent;
+private:
+
+	UPROPERTY()
+	UUK_MonsterHealthBar* HPWidget;
+
+	// 중복 호출 방지용
+	bool bHPVisible = false;
+#pragma endregion
 };

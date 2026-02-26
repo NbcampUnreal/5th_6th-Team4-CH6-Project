@@ -20,6 +20,7 @@ namespace UK_GameplayTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Crouch);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(ToggleMouse);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Interaction);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Setting);
 	}
 	namespace Weapon
 	{
