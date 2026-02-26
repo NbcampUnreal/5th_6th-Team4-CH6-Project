@@ -6,11 +6,7 @@
 
 /**
  * 엘리트 몬스터 순찰 태스크
- *
- * ■ 웨이포인트 모드 : AIEliteMonsterBase.PatrolWaypoints 에 액터가 설정된 경우
- *                     순서대로 이동 (루프). 도착 시 잠깐 대기 후 다음 포인트로.
- * ■ 랜덤 순찰 모드  : 웨이포인트가 없으면 스폰 위치 기준 PatrolRadius 내 랜덤 이동.
- *                     (기존 FindPatrolLocation + MoveTo 를 이 태스크 하나로 통합)
+ * ■ 랜덤 순찰 모드 : 스폰 위치 기준 PatrolRadius 내 랜덤 이동.
  */
 UCLASS()
 class UK_API UUK_BTTask_ElitePatrol : public UBTTaskNode

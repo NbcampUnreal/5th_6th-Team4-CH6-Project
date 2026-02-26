@@ -18,8 +18,9 @@ public class UK : ModuleRules
 			"AIModule",
 			"StateTreeModule",
 			"GameplayStateTreeModule",
-			"UMG",
+			"UMG", 
 			"Slate",
+			"SlateCore",
 			"GameplayAbilities",
             "GameplayTags",
             "GameplayTasks",
@@ -29,7 +30,7 @@ public class UK : ModuleRules
 			"JsonUtilities",
 			"AssetRegistry"
         });
-
+		
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 
 		PublicIncludePaths.AddRange(new string[] {

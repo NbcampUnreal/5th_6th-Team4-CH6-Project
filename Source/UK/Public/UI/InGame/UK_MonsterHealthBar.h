@@ -1,4 +1,6 @@
-﻿#include "CoreMinimal.h"
+﻿#pragma once
+
+#include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "UK_MonsterHealthBar.generated.h"
 
@@ -12,11 +14,9 @@ class UK_API UUK_MonsterHealthBar : public UUserWidget
 	GENERATED_BODY()
 
 protected:
-	// 매 프레임 체력을 감시하기 위해 Tick 추가
-	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	UFUNCTION()
-	void UpdateHPBar(float CurrentHP, float MaxHP);
+	void UpdateHPBar(float NewHP);
 
 	UPROPERTY(meta = ( BindWidget ))
 	UProgressBar* MonsterHPBar;
@@ -25,7 +25,11 @@ protected:
 	UPROPERTY()
 	UAI_MonsterStatComponent* TargetStatComp;
 
+	FTimerHandle HPUpdateTimerHandle;
+
 public:
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void BindMonsterStats(UAI_MonsterStatComponent* StatComp);
+
+	void SetHPBarActive(bool bActive);
 };
