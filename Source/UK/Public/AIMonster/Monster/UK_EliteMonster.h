@@ -6,9 +6,6 @@
 
 /**
  * 엘리트 몬스터 베이스
- *
- * ■ 웨이포인트 순찰 : 에디터에서 PatrolWaypoints 배열에 AActor* 를 배치하면 순서대로 순찰(루프).
- *                     비어있으면 기존 PatrolRadius 기반 랜덤 순찰로 폴백.
  * ■ 특수 공격      : SpecialAttackMontages 재생. 데미지는 몽타주에 붙은
  *                     AnimNotifyState_UKMonsterMeleeTrace 가 기존과 동일하게 처리.
  */
@@ -52,28 +49,6 @@ public:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlaySpecialAttackMontage(int32 MontageIndex);
-
-	//  웨이포인트 순찰
-
-	/**
-	 * 에디터에서 레벨에 배치한 액터를 순찰 웨이포인트로 지정.
-	 * 비어있으면 PatrolRadius 기반 랜덤 순찰 사용.
-	 */
-	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Elite|Patrol")
-	TArray<AActor*> PatrolWaypoints;
-
-	/** 현재 목표 웨이포인트 인덱스 */
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Elite|Patrol")
-	int32 CurrentWaypointIndex = 0;
-
-	UFUNCTION(BlueprintPure, Category = "Elite|Patrol")
-	bool HasWaypoints() const { return PatrolWaypoints.Num() > 0; }
-
-	/**
-	 * 다음 웨이포인트 위치 반환 + 인덱스 증가 (루프).
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Elite|Patrol")
-	FVector GetNextWaypointLocation();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
