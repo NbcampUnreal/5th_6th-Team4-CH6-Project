@@ -10,64 +10,59 @@
 class UBehaviorTree;
 class UAnimMontage;
 
-/* AI 상태 */
+/* ───────────────────── Enums & Delegates ───────────────────── */
+
 UENUM(BlueprintType)
 enum class EMonsterState : uint8
 {
-	Idle,
-	Patrol,
-	Chase,
-	Attack,
-	Dead,
-	Passive,
-	Alert,
-	Aggressive
+	Idle, Patrol, Chase, Attack, Dead, Passive, Alert, Aggressive
 };
 
-/* 몬스터 성격 타입 */
 UENUM(BlueprintType)
 enum class EMonsterPersonality : uint8
 {
-	Aggressive,
-	Peaceful
+	Aggressive, Peaceful
 };
 
-/* 몬스터 종류 (보상 지급용) */
 UENUM(BlueprintType)
 enum class EMonsterType : uint8
 {
-	None = 0,
+	None       = 0,
 	EliteGolem = 1,
-	Golem = 2,
-	Wolf = 3,
-	Fox = 4,
-	Reindeer = 5,
+	Golem      = 2,
+	Wolf       = 3,
+	Fox        = 4,
+	Reindeer   = 5,
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDeath, class AAIMonsterBase*, DeadMonster);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMonsterAttacked, class AAIMonsterBase*, AttackedMonster, AActor*, Attacker);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDeath,         class AAIMonsterBase*, DeadMonster);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMonsterAttacked,     class AAIMonsterBase*, AttackedMonster, AActor*, Attacker);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMonsterStateChanged, EMonsterState, OldState, EMonsterState, NewState);
-
-/* 몬스터 킬 알림 델리게이트 (서버 → GameMode) */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(
-	FOnMonsterKilled, 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnMonsterKilled,
 	class AAIMonsterBase*, KilledMonster,
-	EMonsterType, MonsterType,
-	class APlayerController*, KillerController
-);
+	EMonsterType,          MonsterType,
+	class APlayerController*, KillerController);
 
 DECLARE_DELEGATE_OneParam(FOnAttackFinished, bool /*bSucceeded*/);
+
+/* ─────────────────────────────────────────────────────────────── */
 
 UCLASS(Abstract)
 class UK_API AAIMonsterBase : public ACharacter
 {
 	GENERATED_BODY()
 
+#pragma region Initialization
 public:
 	AAIMonsterBase();
-
 	virtual void PostInitializeComponents() override;
 
+protected:
+	virtual void BeginPlay() override;
+#pragma endregion
+
+#pragma region State Management
+public:
 	UFUNCTION(Server, Reliable)
 	void RequestState(EMonsterState NewState);
 
@@ -77,24 +72,47 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "AI")
 	FOnMonsterStateChanged OnStateChanged;
 
+	void SetAIActive(bool bActive);
+
+	virtual void OnIdle();
+	virtual void OnChase(float DeltaSeconds);
+	virtual void OnPatrol();
+	virtual void OnAttack();
+	virtual void OnDead();
+	virtual void OnPassive();
+	virtual void OnAlert();
+
+protected:
+	UPROPERTY(ReplicatedUsing = OnRep_MonsterState)
+	EMonsterState CurrentState = EMonsterState::Idle;
+
+	UFUNCTION()
+	void OnRep_MonsterState();
+
+	void SetServerState(EMonsterState NewState);
+#pragma endregion
+
+#pragma region Personality
+public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Personality")
 	EMonsterPersonality Personality = EMonsterPersonality::Aggressive;
 
-	/* 몬스터 종류 (에디터에서 설정) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Type")
 	EMonsterType MonsterType = EMonsterType::None;
+#pragma endregion
 
-	/* 몬스터 킬 알림 (GameMode가 Subscribe) */
-	UPROPERTY(BlueprintAssignable, Category = "Monster|Events")
-	FOnMonsterKilled OnMonsterKilled;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful", meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
+#pragma region Peaceful AI
+public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful",
+		meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
 	float AlertDistance = 300.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful", meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful",
+		meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
 	float AllyCallRadius = 1000.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful", meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful",
+		meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
 	float ResetDistance = 2000.0f;
 
 	UPROPERTY(ReplicatedUsing = OnRep_IsAggressive, BlueprintReadOnly, Category = "AI|Peaceful")
@@ -114,8 +132,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AI|Peaceful")
 	void ResetToPassive();
+#pragma endregion
 
 #pragma region Spawner System
+public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
 	UBehaviorTree* BehaviorTree;
 
@@ -130,6 +150,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Monster")
 	FOnMonsterAttacked OnAttacked;
+
+	UPROPERTY(BlueprintAssignable, Category = "Monster|Events")
+	FOnMonsterKilled OnMonsterKilled;
 
 	UFUNCTION(BlueprintCallable, Category = "Monster")
 	void Die();
@@ -154,38 +177,17 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 	float MaxChaseDistance = 1500.0f;
-#pragma endregion
 
 protected:
-	virtual void BeginPlay() override;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UAI_MonsterStatComponent* StatComponent;
 
-	UPROPERTY(ReplicatedUsing = OnRep_MonsterState)
-	EMonsterState CurrentState = EMonsterState::Idle;
-
-	UFUNCTION()
-	void OnRep_MonsterState();
-
-	void SetServerState(EMonsterState NewState);
-
-	/* 마지막 공격자 추적 (보상 지급용) */
 	UPROPERTY(Replicated)
 	APlayerController* LastAttackerController = nullptr;
-
-public:
-	void SetAIActive(bool bActive);
-
-	virtual void OnIdle();
-	virtual void OnChase(float DeltaSeconds);
-	virtual void OnPatrol();
-	virtual void OnAttack();
-	virtual void OnDead();
-	virtual void OnPassive();
-	virtual void OnAlert();
+#pragma endregion
 
 #pragma region Combat
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Animation")
 	TArray<UAnimMontage*> AttackMontages;
 
@@ -197,6 +199,17 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	bool bIsDying = false;
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float AttackDamage = 20.f;
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float AttackRange = 250.f;
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float AttackCooldown = 0.5f;
+
+	float LastAttackTime = 0.f;
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	bool PlayRandomAttackMontage();
@@ -217,88 +230,53 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_ResetAppearance();
 
-	UPROPERTY(EditAnywhere, Category = "Combat")
-	float AttackDamage = 20.f;
-
-	UPROPERTY(EditAnywhere, Category = "Combat")
-	float AttackRange = 250.f;
-
-	UPROPERTY(EditAnywhere, Category = "Combat")
-	float AttackCooldown = 0.5f;
-
-	float LastAttackTime = 0.f;
+	void ReceiveDamage(float Damage);
+	void ReceiveDamageFrom(float Damage, AController* InstigatorController);
 #pragma endregion
 
 #pragma region Idle Animation
-	/** 배회 중 목적지 도착 시 재생할 아이들 몽타주 목록 (평화 몬스터용) */
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Idle|Animation",
 		meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
 	TArray<UAnimMontage*> IdleMontages;
 
-	/**
-	 * 랜덤 아이들 몽타주 재생 (Multicast)
-	 * @return 재생 성공 여부 (IdleMontages가 비어있으면 false)
-	 */
 	UFUNCTION(BlueprintCallable, Category = "Idle|Animation")
 	bool PlayRandomIdleMontage();
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayIdleMontage(int32 MontageIndex);
 
-	/** 아이들 몽타주 재생 완료 콜백 */
 	UFUNCTION()
 	void OnIdleMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
-	/** 아이들 몽타주 종료 시 BT 태스크에 알림 */
 	DECLARE_DELEGATE(FOnIdleMontageFinished);
 	FOnIdleMontageFinished OnIdleMontageFinished;
 #pragma endregion
-	
+
 #pragma region Hit Animation
-	/** 피격 시 재생할 몽타주 목록 */
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hit|Animation")
 	TArray<UAnimMontage*> HitMontages;
 
-	/**
-	 * 랜덤 피격 몽타주 재생 (Multicast)
-	 * @return 재생 성공 여부 (HitMontages가 비어있으면 false)
-	 */
+	UPROPERTY(BlueprintReadOnly, Category = "Hit|Animation")
+	bool bIsHit = false;
+
 	UFUNCTION(BlueprintCallable, Category = "Hit|Animation")
 	bool PlayRandomHitMontage();
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayHitMontage(int32 MontageIndex);
-	
-	UPROPERTY(BlueprintReadOnly, Category = "Hit|Animation")
-	bool bIsHit = false;
 
 	UFUNCTION()
 	void OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 #pragma endregion
-	
+
+#pragma region HP Bar Widget
 public:
-	void ReceiveDamage(float Damage);
-
-	/* 데미지를 준 공격자 추적 */
-	void ReceiveDamageFrom(float Damage, AController* InstigatorController);
-
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
-private:
-	FTimerHandle CorpseTimerHandle;
-	void HideAndBroadcastDeath();
-	
-	/* 킬 알림 전송 */
-	void NotifyMonsterKilled();
-#pragma region HPBar Widget
-public:
-
 	UUK_MonsterHealthBar* GetHPWidget() const { return HPWidget; }
 
 	void UpdateHPBarWidget();
-
 	void ShowHPBar();
-
 	void HideHPBar();
 
 	FTimerHandle HPBarUpdateTimer;
@@ -312,14 +290,25 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UUserWidget> HPWidgetClass;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI", meta = ( AllowPrivateAccess = "true" ))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = "true"))
 	UWidgetComponent* HPWidgetComponent;
+#pragma endregion
+
+#pragma region Replication
+public:
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+#pragma endregion
+
+#pragma region Private
 private:
+	FTimerHandle CorpseTimerHandle;
+
+	void HideAndBroadcastDeath();
+	void NotifyMonsterKilled();
 
 	UPROPERTY()
 	UUK_MonsterHealthBar* HPWidget;
 
-	// 중복 호출 방지용
 	bool bHPVisible = false;
 #pragma endregion
 };

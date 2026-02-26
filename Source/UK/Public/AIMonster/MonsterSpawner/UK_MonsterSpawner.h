@@ -11,84 +11,93 @@ class AAIMonsterBase;
 UCLASS()
 class UK_API AUK_MonsterSpawner : public AActor
 {
-    GENERATED_BODY()
-    
-public:    
-    AUK_MonsterSpawner();
+	GENERATED_BODY()
+
+#pragma region Initialization
+public:
+	AUK_MonsterSpawner();
 
 protected:
-    virtual void BeginPlay() override;
+	virtual void BeginPlay() override;
+#pragma endregion
 
-public:    
-    virtual void Tick(float DeltaTime) override;
-
-    // 스포너 설정
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Settings")
-    TSubclassOf<AAIMonsterBase> MonsterClass;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Settings")
-    int32 MaxMonsters = 3;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Settings")
-    float SpawnRadius = 500.0f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Settings")
-    float RespawnDelay = 10.0f;
-	
+#pragma region Spawner Settings
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Settings")
-	float MinSpawnDistance = 200.0f;  // 몬스터 간 최소 거리
+	TSubclassOf<AAIMonsterBase> MonsterClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Settings")
-	float MinCenterDistance = 150.0f;  // 스포너 중심에서 최소 거리
+	int32 MaxMonsters = 3;
 
-    // 디버그
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Debug")
-    bool bShowDebugInfo = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Settings")
+	float SpawnRadius = 500.0f;
 
-    // 스포너 제어
-    UFUNCTION(BlueprintCallable, Category = "Spawner")
-    void StartSpawning();
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Settings")
+	float RespawnDelay = 10.0f;
 
-    UFUNCTION(BlueprintCallable, Category = "Spawner")
-    void StopSpawning();
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Settings")
+	float MinSpawnDistance = 200.0f;
 
-    UFUNCTION(BlueprintCallable, Category = "Spawner")
-    void ClearAllMonsters();
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Settings")
+	float MinCenterDistance = 150.0f;
 
-    // 몬스터 사망 처리
-    UFUNCTION()
-    void OnMonsterDied(AAIMonsterBase* DeadMonster);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Debug")
+	bool bShowDebugInfo = true;
+#pragma endregion
 
+#pragma region Spawning Control
+public:
+	UFUNCTION(BlueprintCallable, Category = "Spawner")
+	void StartSpawning();
+
+	UFUNCTION(BlueprintCallable, Category = "Spawner")
+	void StopSpawning();
+
+	UFUNCTION(BlueprintCallable, Category = "Spawner")
+	void ClearAllMonsters();
+
+	UFUNCTION()
+	void OnMonsterDied(AAIMonsterBase* DeadMonster);
+#pragma endregion
+
+#pragma region Object Pool
 private:
-    // 내부 함수
-    void SpawnInitialMonsters();
-    FVector GetRandomSpawnLocation() const;
-    
-    // Object Pooling
-    void InitializeObjectPool();
-    AAIMonsterBase* GetMonsterFromPool();
-    void ReturnMonsterToPool(AAIMonsterBase* Monster);
-    void ActivateMonster(AAIMonsterBase* Monster);
-    void DeactivateMonster(AAIMonsterBase* Monster);
-    
-    // GameMode 등록
-    void RegisterMonsterToGameMode(AAIMonsterBase* Monster);
+	void InitializeObjectPool();
+	AAIMonsterBase* GetMonsterFromPool();
+	void ReturnMonsterToPool(AAIMonsterBase* Monster);
 
-    // 스포너 상태
-    UPROPERTY()
-    TArray<AAIMonsterBase*> ActiveMonsters;
+	UPROPERTY()
+	TArray<AAIMonsterBase*> ObjectPool;
 
-    UPROPERTY()
-    TArray<AAIMonsterBase*> ObjectPool;
+	UPROPERTY()
+	TArray<AAIMonsterBase*> InactivePooledMonsters;
 
-    UPROPERTY()
-    TArray<AAIMonsterBase*> InactivePooledMonsters;
+	UPROPERTY()
+	TArray<AAIController*> PooledControllers;
+#pragma endregion
 
-    TArray<FTimerHandle> RespawnTimers;
+#pragma region Monster Lifecycle
+private:
+	void SpawnInitialMonsters();
+	FVector GetRandomSpawnLocation() const;
+	void ActivateMonster(AAIMonsterBase* Monster);
+	void DeactivateMonster(AAIMonsterBase* Monster);
 
-    bool bIsSpawning = false;
+	UPROPERTY()
+	TArray<AAIMonsterBase*> ActiveMonsters;
 
-    // 통계
-    int32 TotalSpawnCount = 0;
-    int32 TotalDeathCount = 0;
+	TArray<FTimerHandle> RespawnTimers;
+	bool bIsSpawning = false;
+#pragma endregion
+
+#pragma region Game Mode Integration
+private:
+	void RegisterMonsterToGameMode(AAIMonsterBase* Monster);
+#pragma endregion
+
+#pragma region Statistics
+private:
+	int32 TotalSpawnCount = 0;
+	int32 TotalDeathCount = 0;
+#pragma endregion
 };

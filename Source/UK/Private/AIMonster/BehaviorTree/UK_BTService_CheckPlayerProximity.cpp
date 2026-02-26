@@ -5,17 +5,20 @@
 #include "AIMonster/AIMonsterBase.h"
 #include "Kismet/GameplayStatics.h"
 
+#pragma region Initialization
 UUK_BTService_CheckPlayerProximity::UUK_BTService_CheckPlayerProximity()
 {
 	NodeName = "Check Player Proximity";
 	Interval = 0.5f;
 	RandomDeviation = 0.1f;
-	
+
 	TargetPlayerKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UUK_BTService_CheckPlayerProximity, TargetPlayerKey), AActor::StaticClass());
 	IsPlayerCloseKey.AddBoolFilter(this, GET_MEMBER_NAME_CHECKED(UUK_BTService_CheckPlayerProximity, IsPlayerCloseKey));
 	SpawnLocationKey.AddVectorFilter(this, GET_MEMBER_NAME_CHECKED(UUK_BTService_CheckPlayerProximity, SpawnLocationKey));
 }
+#pragma endregion
 
+#pragma region Proximity Check
 void UUK_BTService_CheckPlayerProximity::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
@@ -32,14 +35,25 @@ void UUK_BTService_CheckPlayerProximity::TickNode(UBehaviorTreeComponent& OwnerC
 	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(ControlledPawn);
 	if (!Monster) return;
 
-	// 평화로운 몬스터가 아니면 실행 안 함
 	if (Monster->Personality != EMonsterPersonality::Peaceful) return;
-
-	// 공격적인 상태면 이 서비스 실행 안 함
 	if (Monster->bIsAggressive) return;
 
-	//  모든 플레이어 순회 (기존: GetPlayerCharacter(0)만)
-	//   서버에서 실행되므로 모든 PlayerController를 순회해서 가장 가까운 플레이어 찾기
+	const FVector MonsterLocation = ControlledPawn->GetActorLocation();
+
+	// ── 패스트패스: 기존 타겟과 거리만 재확인 ─────────────────────────────
+	if (AActor* ExistingTarget = Cast<AActor>(BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName)))
+	{
+		const float Dist = FVector::Dist(MonsterLocation, ExistingTarget->GetActorLocation());
+		if (Dist <= Monster->AlertDistance)
+		{
+			BlackboardComp->SetValueAsBool(IsPlayerCloseKey.SelectedKeyName, true);
+			return;
+		}
+		BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
+		BlackboardComp->SetValueAsBool(IsPlayerCloseKey.SelectedKeyName, false);
+	}
+
+	// ── 풀 서치: 타겟 없을 때만 전체 순회 ──────────────────────────────────
 	UWorld* World = GetWorld();
 	if (!World)
 	{
@@ -47,21 +61,19 @@ void UUK_BTService_CheckPlayerProximity::TickNode(UBehaviorTreeComponent& OwnerC
 		return;
 	}
 
-	AActor* ClosestPlayer = nullptr;
-	float ClosestDistance = MAX_FLT;
+	AActor* ClosestPlayer   = nullptr;
+	float   ClosestDistance = MAX_FLT;
 
 	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
 	{
 		APlayerController* PC = It->Get();
 		if (!PC || !PC->GetPawn()) continue;
 
-		APawn* PlayerPawn = PC->GetPawn();
-		float Distance = FVector::Dist(ControlledPawn->GetActorLocation(), PlayerPawn->GetActorLocation());
-
+		const float Distance = FVector::Dist(MonsterLocation, PC->GetPawn()->GetActorLocation());
 		if (Distance < ClosestDistance)
 		{
 			ClosestDistance = Distance;
-			ClosestPlayer = PlayerPawn;
+			ClosestPlayer   = PC->GetPawn();
 		}
 	}
 
@@ -71,7 +83,6 @@ void UUK_BTService_CheckPlayerProximity::TickNode(UBehaviorTreeComponent& OwnerC
 		return;
 	}
 
-	// 경계 거리 체크
 	if (ClosestDistance <= Monster->AlertDistance)
 	{
 		BlackboardComp->SetValueAsBool(IsPlayerCloseKey.SelectedKeyName, true);
@@ -82,3 +93,4 @@ void UUK_BTService_CheckPlayerProximity::TickNode(UBehaviorTreeComponent& OwnerC
 		BlackboardComp->SetValueAsBool(IsPlayerCloseKey.SelectedKeyName, false);
 	}
 }
+#pragma endregion

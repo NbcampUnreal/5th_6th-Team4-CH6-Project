@@ -4,9 +4,9 @@
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
+#pragma region Initialization
 AUK_EliteMonster::AUK_EliteMonster()
 {
-	// 엘리트 기본값 — 블루프린트에서 덮어쓸 수 있음
 	DetectionRadius  = 800.0f;
 	PatrolRadius     = 1500.0f;
 	MaxChaseDistance = 2500.0f;
@@ -15,16 +15,16 @@ AUK_EliteMonster::AUK_EliteMonster()
 	AttackCooldown   = 1.8f;
 	CorpseLingerTime = 8.0f;
 }
+#pragma endregion
 
-//  특수 공격
-
+#pragma region Special Attack
 bool AUK_EliteMonster::CanUseSpecialAttack() const
 {
 	if (!HasAuthority()) return false;
 	if (bIsDying || bIsAttacking) return false;
 	if (SpecialAttackMontages.Num() == 0) return false;
 
-	float Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f;
+	const float Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f;
 	return (Now - LastSpecialAttackTime) >= SpecialAttackCooldown;
 }
 
@@ -32,11 +32,11 @@ bool AUK_EliteMonster::PlaySpecialAttack()
 {
 	if (!CanUseSpecialAttack()) return false;
 
-	int32 RandomIndex = FMath::RandRange(0, SpecialAttackMontages.Num() - 1);
-	UAnimMontage* Montage = SpecialAttackMontages[RandomIndex];
+	const int32 RandomIndex = FMath::RandRange(0, SpecialAttackMontages.Num() - 1);
+	UAnimMontage* Montage   = SpecialAttackMontages[RandomIndex];
 	if (!Montage) return false;
 
-	bIsAttacking = true;
+	bIsAttacking          = true;
 	LastSpecialAttackTime = GetWorld()->GetTimeSeconds();
 
 	Multicast_PlaySpecialAttackMontage(RandomIndex);
@@ -53,38 +53,33 @@ void AUK_EliteMonster::Multicast_PlaySpecialAttackMontage_Implementation(int32 M
 	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
 	if (!AnimInstance) return;
 
-	float Length = AnimInstance->Montage_Play(Montage, 1.0f);
+	const float Length = AnimInstance->Montage_Play(Montage, 1.0f);
 
-	// 종료 콜백은 서버에서만 바인딩 (BT Task 에 알림)
 	if (HasAuthority() && Length > 0.f)
 	{
 		FOnMontageEnded EndDelegate;
 		EndDelegate.BindUObject(this, &AUK_EliteMonster::OnSpecialAttackMontageEnded);
 		AnimInstance->Montage_SetEndDelegate(EndDelegate, Montage);
 	}
-	
+
+#pragma region Debug
 	if (bShowSpecialAttackDebug && GetWorld())
 	{
-		const float CapsuleHalfHeight = GetCapsuleComponent()
+		const float  CapsuleHalfHeight = GetCapsuleComponent()
 			? GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 90.f;
 		const FVector FootLocation = GetActorLocation() - FVector(0.f, 0.f, CapsuleHalfHeight);
-		const FVector Forward = GetActorForwardVector();
+		const FVector Forward      = GetActorForwardVector();
 
-		// 바닥 원형 — 특수 공격 범위 표시 (납작한 실린더)
+		// 바닥 원형 — 특수 공격 범위
 		DrawDebugCylinder(
 			GetWorld(),
 			FootLocation,
 			FootLocation + FVector(0.f, 0.f, 10.f),
 			SpecialAttackDebugRadius,
-			32,
-			FColor::Orange,
-			false,
-			SpecialAttackDebugDuration,
-			0,
-			3.f
-		);
+			32, FColor::Orange,
+			false, SpecialAttackDebugDuration, 0, 3.f);
 
-		// 전방 트레이스 캡슐 — MeleeTrace 노티파이 범위 가시화
+		// 전방 트레이스 캡슐
 		const FVector TraceStart    = FootLocation + FVector(0.f, 0.f, SpecialAttackDebugTraceHeight);
 		const FVector TraceEnd      = TraceStart + Forward * SpecialAttackDebugTraceLength;
 		const FVector CapsuleCenter = (TraceStart + TraceEnd) * 0.5f;
@@ -93,19 +88,11 @@ void AUK_EliteMonster::Multicast_PlaySpecialAttackMontage_Implementation(int32 M
 
 		DrawDebugCapsule(
 			GetWorld(),
-			CapsuleCenter,
-			HalfHeight,
-			SpecialAttackDebugTraceRadius,
-			CapsuleRot,
-			FColor::Red,
-			false,
-			SpecialAttackDebugDuration,
-			0,
-			3.f
-		);
+			CapsuleCenter, HalfHeight, SpecialAttackDebugTraceRadius,
+			CapsuleRot, FColor::Red,
+			false, SpecialAttackDebugDuration, 0, 3.f);
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("[Elite] %s: Playing SpecialAttack montage[%d]"), *GetName(), MontageIndex);
+#pragma endregion
 }
 
 void AUK_EliteMonster::OnSpecialAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -113,9 +100,11 @@ void AUK_EliteMonster::OnSpecialAttackMontageEnded(UAnimMontage* Montage, bool b
 	bIsAttacking = false;
 	OnSpecialAttackFinished.ExecuteIfBound(!bInterrupted);
 }
+#pragma endregion
 
-//  Replication
+#pragma region Replication
 void AUK_EliteMonster::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 }
+#pragma endregion

@@ -13,13 +13,19 @@ class UK_API UUK_BTService_ElitePhaseCheck : public UBTService
 {
 	GENERATED_BODY()
 
+#pragma region Initialization
 public:
 	UUK_BTService_ElitePhaseCheck();
+#pragma endregion
 
+#pragma region Phase Check
 protected:
 	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+#pragma endregion
 
+#pragma region Blackboard Keys
 	/** 특수 공격 가능 여부를 저장할 블랙보드 키 (Bool) */
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector CanSpecialAttackKey;
+#pragma endregion
 };
