@@ -167,6 +167,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void LockON();
 
+	//UFUNCTION(BlueprintCallable)
+	//void LockONToggle();
+
 	UFUNCTION(BlueprintCallable)
 	void LockONTick();
 
