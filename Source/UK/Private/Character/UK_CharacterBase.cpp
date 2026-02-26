@@ -415,13 +415,17 @@ void AUK_CharacterBase::LockON()
 		bIsLock = true;
 		bUseControllerRotationYaw = true;
 		GetCharacterMovement()->bOrientRotationToMovement = false;
-		GetWorld()->GetTimerManager().SetTimer(
-			LockOnTimer,
-			this,
-			&AUK_CharacterBase::LockONTick,
-			0.01f,
-			true
-		);
+		if ( GetWorld()->GetTimerManager().IsTimerActive(LockOnTimer) == false )
+		{
+			GetWorld()->GetTimerManager().SetTimer(
+				LockOnTimer,
+				this,
+				&AUK_CharacterBase::LockONTick,
+				0.01f,
+				true
+			);
+
+		}
 
 		//}
 	}
@@ -433,6 +437,78 @@ void AUK_CharacterBase::LockON()
 	//	LockOnTimer.Invalidate();
 	//}
 }
+//void AUK_CharacterBase::LockONToggle()
+//{
+//	if ( bIsLock == false )
+//	{
+//
+//		AUK_PlayerController* UKPC = Cast<AUK_PlayerController>(GetController());
+//		if ( IsValid(UKPC) == false )
+//			return;
+//		FVector Start;
+//		FRotator CameraRot;
+//		const float CapsuleRadius = 50.f;
+//		// 카메라부터 카메라가 보는 방향으로 트레이스 실시
+//		UKPC->GetPlayerViewPoint(Start, CameraRot);
+//		FVector ForwardVector = CameraRot.Vector();/*카메라의 방향성*/
+//
+//		float TraceDistance = 1000.f;
+//		FVector End = Start + ( ForwardVector * TraceDistance );
+//
+//		FCollisionQueryParams Params;
+//		Params.AddIgnoredActor(this);
+//		FCollisionShape CollisionShape = FCollisionShape::MakeSphere(CapsuleRadius);
+//
+//		bool bHit = GetWorld()->SweepMultiByChannel(
+//			LockOnResult,
+//			Start,
+//			End,
+//			FQuat::Identity,
+//			ECC_LockOn,/*추후에 카메라 전용 트레이스 채널로 변경 요망*/
+//			CollisionShape,
+//			Params
+//		);
+//		FColor DrawColor = bHit ? FColor::Green : FColor::Red;
+//
+//		FQuat CapsuleRot = FRotationMatrix::MakeFromZ(Start - End).ToQuat();
+//		DrawDebugCapsule(
+//			GetWorld(),
+//			( Start + End ) / 2,
+//			( End - Start ).Size(),
+//			CapsuleRadius,
+//			CapsuleRot,
+//			DrawColor,
+//			false,
+//			1.f
+//		);
+//		if ( bHit )
+//		{
+//			bIsLock = true;
+//			bUseControllerRotationYaw = true;
+//			GetCharacterMovement()->bOrientRotationToMovement = false;
+//			if ( GetWorld()->GetTimerManager().IsTimerActive(LockOnTimer) == false )
+//			{
+//				GetWorld()->GetTimerManager().SetTimer(
+//					LockOnTimer,
+//					this,
+//					&AUK_CharacterBase::LockONTick,
+//					0.01f,
+//					true
+//				);
+//
+//			}
+//
+//		}
+//	}
+//	else
+//	{
+//		bIsLock = false;
+//		GetWorld()->GetTimerManager().ClearTimer(LockOnTimer);
+//		LockOnList.Reset();
+//		LockOnTimer.Invalidate();
+//	}
+//}
+
 void AUK_CharacterBase::LockONTick()
 {
 	if ( LockOnList.IsEmpty() == false )
@@ -493,10 +569,12 @@ void AUK_CharacterBase::LockONTick()
 		return;
 	}
 }
+
 void AUK_CharacterBase::AddTarget(const TObjectPtr<AAIMonsterBase> Monster)
 {
 	LockOnList.AddUnique(Monster);
 }
+
 #pragma endregion
 
 #pragma region Weapon
@@ -612,7 +690,6 @@ void AUK_CharacterBase::StopJumpAndFly()
 }
 void AUK_CharacterBase::EndComboAttack()
 {
-	;
 	if ( bIsfry == false )
 		return;
 	UCharacterMovementComponent* PlayerMovement = GetCharacterMovement();
