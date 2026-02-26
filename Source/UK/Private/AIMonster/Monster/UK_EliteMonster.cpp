@@ -114,32 +114,8 @@ void AUK_EliteMonster::OnSpecialAttackMontageEnded(UAnimMontage* Montage, bool b
 	OnSpecialAttackFinished.ExecuteIfBound(!bInterrupted);
 }
 
-//  웨이포인트 순찰
-
-FVector AUK_EliteMonster::GetNextWaypointLocation()
-{
-	if (PatrolWaypoints.Num() == 0) return SpawnLocation;
-
-	// null 슬롯 건너뛰며 다음 유효한 웨이포인트 반환
-	for (int32 i = 0; i < PatrolWaypoints.Num(); ++i)
-	{
-		AActor* WP = PatrolWaypoints[CurrentWaypointIndex];
-		CurrentWaypointIndex = (CurrentWaypointIndex + 1) % PatrolWaypoints.Num();
-
-		if (WP)
-		{
-			return WP->GetActorLocation();
-		}
-	}
-
-	// 모든 슬롯이 null인 경우 폴백
-	return SpawnLocation;
-}
-
 //  Replication
 void AUK_EliteMonster::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(AUK_EliteMonster, CurrentWaypointIndex);
 }

@@ -7,6 +7,8 @@
 #include "AbilitySystemInterface.h"
 #include "ActorComponent/StatusComponent.h"
 #include "GameplayTagContainer.h"
+#include "UK_PlayerController.h"
+#include "AIMonster/AIMonsterBase.h"
 #include "UK_CharacterBase.generated.h"
 
 #define ECC_LockOn ECollisionChannel::ECC_GameTraceChannel2
@@ -126,6 +128,8 @@ protected:
 	UUK_InputConfig* InputMappingConfig;
 protected:
 
+	AUK_PlayerController* PC;
+
 	UFUNCTION()
 	void Move(const FInputActionValue& InputActionValue);
 
@@ -156,12 +160,15 @@ protected:
 	UFUNCTION()
 	void Interaction();
 
+	UFUNCTION()
+	void Setting();
+
 public:
 	UFUNCTION(BlueprintCallable)
 	void LockON();
 
-	//UFUNCTION(BlueprintCallable)
-	//void LockONToggle();
+	UFUNCTION(BlueprintCallable)
+	void LockONToggle();
 
 	UFUNCTION(BlueprintCallable)
 	void LockONTick();
@@ -258,5 +265,19 @@ public:
 
 	float DefaultGravityValue;
 	FOnFloorDelagate OnFloor;
+#pragma endregion
+
+#pragma region FindMonsterHPBar
+	public:
+
+		void UpdateMonsterDetection();
+
+		UPROPERTY()
+		TSet<AAIMonsterBase*> NearbyMonsters;
+
+		UPROPERTY(BlueprintReadWrite, EditAnywhere,  Category = "UI/DetactBoundary")
+		float DetectRadius = 1000.0f;
+
+		FTimerHandle DetectTimer;
 #pragma endregion
 };
