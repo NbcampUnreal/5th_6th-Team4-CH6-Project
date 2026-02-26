@@ -70,21 +70,16 @@ AUK_CharacterBase::AUK_CharacterBase() :
 
 #pragma endregion
 
-	CharactorMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("CharactorMesh"));
-	CharactorMesh->SetupAttachment(GetMesh());
-
 	RightHandWeaponComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RightHandWeaponComponent"));
-	RightHandWeaponComponent->SetupAttachment(CharactorMesh, TEXT("Weapon_rSocket"));
-	RightHandWeaponComponent->SetLeaderPoseComponent(CharactorMesh);
+	RightHandWeaponComponent->SetupAttachment(GetMesh(), TEXT("Weapon_rSocket"));
+	RightHandWeaponComponent->SetLeaderPoseComponent(GetMesh());
 
 	LeftHandWeaponComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftHandWeaponComponent"));
-	LeftHandWeaponComponent->SetupAttachment(CharactorMesh, TEXT("Weapon_lSocket"));
-	LeftHandWeaponComponent->SetLeaderPoseComponent(CharactorMesh);
-
+	LeftHandWeaponComponent->SetupAttachment(GetMesh(), TEXT("Weapon_lSocket"));
+	LeftHandWeaponComponent->SetLeaderPoseComponent(GetMesh());
 
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
 	InventoryComponent = CreateDefaultSubobject<UUK_InventoryComponent>(TEXT("InventoryComponent"));
-	//AnimationComponent = CreateDefaultSubobject<UUK_CombatAnimationComponent>(TEXT("AnimComponent"));
 	InteractionComp = CreateDefaultSubobject<UUK_InteractionComponent>(TEXT("InteractionComponent"));
 	QuestComp = CreateDefaultSubobject<UUK_QuestComponent>(TEXT("QuestComponent"));
 }
@@ -110,37 +105,33 @@ void AUK_CharacterBase::BeginPlay()
 
 	StatusComponent->OnDeadDelegate.AddDynamic(this, &AUK_CharacterBase::Dead);
 	DefaultGravityValue = GetCharacterMovement()->GravityScale;
+
 }
 
 void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	ULocalPlayer* LocalPlayer = GetController<APlayerController>()->GetLocalPlayer();
-	check(LocalPlayer);
-	UEnhancedInputLocalPlayerSubsystem* SubSystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer);
-	check(SubSystem);
-	if ( IsValid(InputMappingConfig) == false )
-	{
-		return;
-	}
-	SubSystem->AddMappingContext(InputMappingConfig->GetIMC(), 0);
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	UUK_InputComponent* UKInputComp = Cast<UUK_InputComponent>(PlayerInputComponent);
+	UEnhancedInputComponent* UKInputComp = Cast<UEnhancedInputComponent>(PlayerInputComponent);
 	if ( IsValid(UKInputComp) == false )
 	{
 		return;
 	}
-	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Move, ETriggerEvent::Triggered, this, &ThisClass::Move);
-	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Look, ETriggerEvent::Triggered, this, &ThisClass::Look);
-	//UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Jump, ETriggerEvent::Started, this, &ThisClass::Jump);
-	//UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Jump, ETriggerEvent::Canceled, this, &ThisClass::StopJumping);
-	//UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Sprint, ETriggerEvent::Started, this, &ThisClass::Sprint);
-	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ZoomIn, ETriggerEvent::Triggered, this, &ThisClass::ZoomIn);
-	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ZoomOut, ETriggerEvent::Triggered, this, &ThisClass::ZoomOut);
-	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Action::LightAttack, ETriggerEvent::Started, this, &ThisClass::LightAttack);
-	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Action::HeavyAttack, ETriggerEvent::Started, this, &ThisClass::HeavyAttack);
-	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Crouch, ETriggerEvent::Started, this, &ThisClass::CrouchInput);
-	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::ToggleMouse, ETriggerEvent::Started, this, &ThisClass::ToggleMouse);
-	UKInputComp->BindNativeInputAction(InputMappingConfig, UK_GameplayTags::Input::Interaction, ETriggerEvent::Started, this, &ThisClass::Interaction);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Move), ETriggerEvent::Triggered, this, &ThisClass::Move);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Look), ETriggerEvent::Triggered, this, &AUK_CharacterBase::Look);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Jump), ETriggerEvent::Started, this, &ThisClass::Jump);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Jump), ETriggerEvent::Canceled, this, &ThisClass::StopJumping);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Sprint), ETriggerEvent::Started, this, &ThisClass::Sprint);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::ZoomIn), ETriggerEvent::Triggered, this, &ThisClass::ZoomIn);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::ZoomOut), ETriggerEvent::Triggered, this, &ThisClass::ZoomOut);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::LightAttack), ETriggerEvent::Started, this, &ThisClass::LightAttack);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::HeavyAttack), ETriggerEvent::Started, this, &ThisClass::HeavyAttack);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Crouch), ETriggerEvent::Started, this, &ThisClass::CrouchInput);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::ToggleMouse), ETriggerEvent::Started, this, &ThisClass::ToggleMouse);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Interaction), ETriggerEvent::Started, this, &ThisClass::Interaction);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::Swap1), ETriggerEvent::Started, this, &ThisClass::SlotWeaponOne);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::Swap2), ETriggerEvent::Started, this, &ThisClass::SlotWeaponTwo);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::Swap3), ETriggerEvent::Started, this, &ThisClass::SlotWeaponThree);
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -219,13 +210,13 @@ void AUK_CharacterBase::Move(const FInputActionValue& InputActionValue)
 
 	if ( FMath::IsNearlyZero(MovementVector.X) == false )
 	{
-		const FVector ForwardDirection = MovementRotation.RotateVector(FVector::ForwardVector);
+		const FVector ForwardDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::X);
 		AddMovementInput(ForwardDirection, MovementVector.X);
 	}
 
 	if ( FMath::IsNearlyZero(MovementVector.Y) == false )
 	{
-		const FVector RightDirection = MovementRotation.RotateVector(FVector::RightVector);
+		const FVector RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
 		AddMovementInput(RightDirection, MovementVector.Y);
 	}
 }
@@ -326,7 +317,7 @@ void AUK_CharacterBase::ToggleMouse()
 
 void AUK_CharacterBase::Interaction()
 {
-	if (InteractionComp)
+	if ( InteractionComp )
 	{
 		InteractionComp->TryInteract();
 	}
@@ -558,6 +549,11 @@ void AUK_CharacterBase::SlotWeaponThree()
 }
 void AUK_CharacterBase::SwapWeapon(int32 Index)
 {
+	if ( IsValid(ItmeDataTable) == false )
+	{
+		UE_LOG(LogTemp, Display, TEXT("ItmeDataTable is Nullptr"));
+		return;
+	}
 	FInventorySlot* WeaponSlot = InventoryComponent->FindWeaponSlotbyIndex(Index);
 	if ( WeaponSlot->isEmpty() )
 	{
@@ -659,9 +655,9 @@ void AUK_CharacterBase::OnRep_fry()
 
 void AUK_CharacterBase::Client_ShowInteractUI_Implementation()
 {
-	if (InteractWidget) return;
+	if ( InteractWidget ) return;
 
-	if (!InteractWidgetClass) return;
+	if ( !InteractWidgetClass ) return;
 
 	InteractWidget =
 		CreateWidget<UUserWidget>(
@@ -669,7 +665,7 @@ void AUK_CharacterBase::Client_ShowInteractUI_Implementation()
 			InteractWidgetClass
 		);
 
-	if (InteractWidget)
+	if ( InteractWidget )
 	{
 		InteractWidget->AddToViewport();
 	}
@@ -677,7 +673,7 @@ void AUK_CharacterBase::Client_ShowInteractUI_Implementation()
 
 void AUK_CharacterBase::Client_HideInteractUI_Implementation()
 {
-	if (!InteractWidget) return;
+	if ( !InteractWidget ) return;
 
 	InteractWidget->RemoveFromParent();
 	InteractWidget = nullptr;

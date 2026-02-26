@@ -2,6 +2,7 @@
 
 
 #include "Character/UK_PlayerController.h"
+#include "ActorComponent/UK_InputComponent.h"
 #include "EnhancedInputSubsystems.h"
 
 AUK_PlayerController::AUK_PlayerController() 
@@ -44,6 +45,12 @@ void AUK_PlayerController::PostSeamlessTravel()
 void AUK_PlayerController::OnPossess(APawn* pawn)
 {
 	Super::OnPossess(pawn);
+	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
+
+	if ( Subsystem )
+	{
+		Subsystem->AddMappingContext(IMC, 0);
+	}
 	ConnectStaminaWidget();
 }
 
