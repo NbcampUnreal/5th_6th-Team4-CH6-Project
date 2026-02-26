@@ -142,6 +142,47 @@ void UUK_BTTask_RandomIdleAction::TickTask(UBehaviorTreeComponent& OwnerComp, ui
 	}
 }
 
+EBTNodeResult::Type UUK_BTTask_RandomIdleAction::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
+	FIdleActionMemory* Memory = reinterpret_cast<FIdleActionMemory*>(NodeMemory);
+
+	AAIController* AIController = OwnerComp.GetAIOwner();
+	if (!AIController) return EBTNodeResult::Aborted;
+
+	ACharacter* Character = Cast<ACharacter>(AIController->GetPawn());
+	if (!Character) return EBTNodeResult::Aborted;
+
+	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(Character);
+
+	// 몽타주 대기 중이었으면 델리게이트 해제 + 몽타주 중단
+	if (Memory && Memory->bWaitingForMontage)
+	{
+		if (Monster)
+		{
+			Monster->OnIdleMontageFinished.Unbind();
+		}
+
+		if (UAnimInstance* Anim = Character->GetMesh()->GetAnimInstance())
+		{
+			Anim->StopAllMontages(0.15f);
+		}
+	}
+
+	// 이동 속도 복원 (PlayIdleMontage 중 0으로 설정했을 수 있음)
+	if (UCharacterMovementComponent* MoveComp = Character->GetCharacterMovement())
+	{
+		if (MoveComp->MaxWalkSpeed <= 0.f)
+		{
+			MoveComp->MaxWalkSpeed = 200.f;
+		}
+	}
+
+	// 회전 설정 복원 — 추격 시 몬스터가 이동 방향을 바라보게 함
+	RestoreRotationSettings(Character);
+
+	return EBTNodeResult::Aborted;
+}
+
 void UUK_BTTask_RandomIdleAction::RestoreRotationSettings(ACharacter* Character) const
 {
 	if (!Character) return;

@@ -7,16 +7,23 @@
 UUK_BTService_DetectPlayer::UUK_BTService_DetectPlayer()
 {
 	NodeName = "Detect Player";
-	Interval = 0.5f;
+	Interval = 0.1f;
 	RandomDeviation = 0.1f;
 
 	TargetPlayerKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UUK_BTService_DetectPlayer, TargetPlayerKey), AActor::StaticClass());
 	SpawnLocationKey.AddVectorFilter(this, GET_MEMBER_NAME_CHECKED(UUK_BTService_DetectPlayer, SpawnLocationKey));
 }
 
+uint16 UUK_BTService_DetectPlayer::GetInstanceMemorySize() const
+{
+	return sizeof(FDetectPlayerMemory);
+}
+
 void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
+
+	FDetectPlayerMemory* Memory = reinterpret_cast<FDetectPlayerMemory*>(NodeMemory);
 
 	AAIController* AIController = OwnerComp.GetAIOwner();
 	if (!AIController) return;
@@ -27,33 +34,54 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	if (!BlackboardComp) return;
 
-	// 몬스터 설정값 가져오기
 	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(ControlledPawn);
-	if (Monster)
+	if (Monster) DetectionRadius = Monster->DetectionRadius;
+
+	const FVector MonsterLocation = ControlledPawn->GetActorLocation();
+	const FVector SpawnLocation   = BlackboardComp->GetValueAsVector(SpawnLocationKey.SelectedKeyName);
+	const float   DistFromSpawn   = FVector::Dist(MonsterLocation, SpawnLocation);
+	const float   ChaseLimit      = Monster ? Monster->MaxChaseDistance : 2500.f;
+
+	bool bCurrentlyHasTarget = (BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName) != nullptr);
+
+	// 타겟을 방금 잃었으면 복귀 중 플래그 세팅
+	if (Memory->bHadTarget && !bCurrentlyHasTarget)
 	{
-		DetectionRadius = Monster->DetectionRadius;
+		Memory->bReturning = true;
+		Memory->bHadTarget = false;
+	}
 
-		// 스폰 위치 기준 최대 추적 거리 체크
-		FVector SpawnLocation = BlackboardComp->GetValueAsVector(SpawnLocationKey.SelectedKeyName);
-		float DistanceFromSpawn = FVector::Dist(ControlledPawn->GetActorLocation(), SpawnLocation);
-
-		if (DistanceFromSpawn > Monster->MaxChaseDistance)
+	// ── 복귀 중이면 스폰 근처 도달 전까지 재감지 차단 ────────────────────────
+	if (Memory->bReturning)
+	{
+		if (DistFromSpawn <= ReturnDistanceThreshold)
 		{
-			BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
+			// 스폰 근처 복귀 완료 → 차단 해제
+			Memory->bReturning = false;
+		}
+		else
+		{
+			// 아직 복귀 중 → 재감지 차단
 			return;
 		}
 	}
+	// ─────────────────────────────────────────────────────────────────────────
 
-	const FVector MonsterLocation = ControlledPawn->GetActorLocation();
-	AActor* BestTarget = nullptr;
-	float BestDist = DetectionRadius;
-
-	UWorld* World = ControlledPawn->GetWorld();
-	if (!World)
+	// 스폰에서 너무 멀면 감지 차단 + 복귀 플래그
+	if (DistFromSpawn > ChaseLimit)
 	{
 		BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
+		Memory->bHadTarget = false;
+		Memory->bReturning = true;
 		return;
 	}
+
+	// 플레이어 탐색
+	UWorld* World = ControlledPawn->GetWorld();
+	if (!World) return;
+
+	AActor* BestTarget = nullptr;
+	float   BestDist   = DetectionRadius;
 
 	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
 	{
@@ -66,7 +94,7 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 		float Dist = FVector::Dist(MonsterLocation, PlayerPawn->GetActorLocation());
 		if (Dist < BestDist)
 		{
-			BestDist = Dist;
+			BestDist   = Dist;
 			BestTarget = PlayerPawn;
 		}
 	}
@@ -74,9 +102,11 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 	if (BestTarget)
 	{
 		BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, BestTarget);
+		Memory->bHadTarget = true;
 	}
 	else
 	{
 		BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
+		Memory->bHadTarget = false;
 	}
 }

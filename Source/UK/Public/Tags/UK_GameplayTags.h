@@ -43,6 +43,7 @@ namespace UK_GameplayTags
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attacking);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Next);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(HitCheck);
 
 	}
 

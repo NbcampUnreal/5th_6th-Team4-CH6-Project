@@ -1,9 +1,12 @@
 ﻿#include "UI/InGame/UK_MapManager.h"
+#include "Character/UK_PlayerController.h"
 
 #include "Components/SceneCaptureComponent2D.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "TimerManager.h"
 
+#include "Kismet/GameplayStatics.h"
+#include "GameFramework/Pawn.h"
 
 AUK_MapManager::AUK_MapManager()
 {
@@ -26,28 +29,24 @@ void AUK_MapManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	GetWorldTimerManager().SetTimer(CaptureTimer, this, &AUK_MapManager::CaptureMap, 0.2f, false);
+	GetWorldTimerManager().SetTimer(CaptureTimer, this, &AUK_MapManager::CaptureMap, 0.2f, true);
 }
 
 void AUK_MapManager::CaptureMap()
 {
 	if (!MapCaptureComponent) return;
 
+	RefreshHiddenActors();
+
 	UpdateCaptureTransform();
 
 	MapCaptureComponent->OrthoWidth = MapData.MapSize;
-	MapCaptureComponent->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
 
-	//노출 고정
-	MapCaptureComponent->PostProcessSettings.bOverride_AutoExposureMethod = true;
-	MapCaptureComponent->PostProcessSettings.AutoExposureMethod = EAutoExposureMethod::AEM_Manual;
-	MapCaptureComponent->PostProcessSettings.bOverride_AutoExposureBias = true;
-	MapCaptureComponent->PostProcessSettings.AutoExposureBias = 0.f;
-
-	if (UTextureRenderTarget2D* RTMap = Cast<UTextureRenderTarget2D>(MapData.MapTexture))
+	if ( MapData.MapTexture )
 	{
-		MapCaptureComponent->TextureTarget = RTMap;
+		MapCaptureComponent->TextureTarget = MapData.MapTexture.Get();
 	}
+
 	MapCaptureComponent->CaptureScene();
 }
 
@@ -55,6 +54,29 @@ void AUK_MapManager::UpdateCaptureTransform()
 {
 	SetActorLocation(FVector(MapData.MapCenter.X, MapData.MapCenter.Y, MapData.CaptureHeight));
 	SetActorRotation(FRotator(-90.f, 0.f, 0.f));
+}
+
+void AUK_MapManager::RefreshHiddenActors()
+{
+	if (!MapCaptureComponent) return;
+
+	MapCaptureComponent->HiddenActors.Empty();
+
+	// 월드의 모든 Pawn(플레이어 포함)을 숨김 처리
+	TArray<AActor*> Pawns;
+	UGameplayStatics::GetAllActorsOfClass (
+		GetWorld(),
+		APawn::StaticClass(),
+		Pawns
+	);
+
+	for (AActor* Pawn : Pawns)
+	{
+		if (Pawn)
+		{
+			MapCaptureComponent->HiddenActors.Add(Pawn);
+		}
+	}
 }
 
 #if WITH_EDITOR

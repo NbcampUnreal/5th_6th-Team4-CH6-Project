@@ -6,6 +6,7 @@
 UBTDecorator_InAttackRange::UBTDecorator_InAttackRange()
 {
 	NodeName = "In Attack Range";
+	FlowAbortMode = EBTFlowAbortMode::Both;
 }
 
 bool UBTDecorator_InAttackRange::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp,uint8* NodeMemory) const
