@@ -30,9 +30,9 @@ protected:
 private:
 
 	UPROPERTY(meta = ( BindWidget ))
-	UButton* Button_0;
+	UButton* Accept_Button;
 
 	UPROPERTY(meta = ( BindWidget ))
-	UButton* Button_1;
+	UButton* Exit_Button;
 
 };

@@ -42,7 +42,7 @@ public:
 	//virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	// Called when the game starts
 	virtual void BeginPlay() override;
-	uint8 GetCurrentComboCount() const { return CurrentComboCount; }
+	//uint8 GetCurrentComboCount() const { return CurrentComboCount; }
 protected:
 	//UPROPERTY(ReplicatedUsing = OnRep_CurrentComboCount, BlueprintReadOnly, Category = "Combat")
 	uint8 CurrentComboCount;
@@ -62,20 +62,20 @@ protected:
 #pragma endregion
 
 public:
-	UFUNCTION()
+	//UFUNCTION()
 	//void OnRep_CurrentComboCount();
 
 	//void PlayLightComboAnimation();
-	void PlayHeavyComboAnimation();
-	void PlayNomalSkillComboAnimation();
-	void PlayUltimateSkillComboAnimation();
+	//void PlayHeavyComboAnimation();
+	//void PlayNomalSkillComboAnimation();
+	//void PlayUltimateSkillComboAnimation();
 
 #pragma region ServerRPCs
 	//UFUNCTION(NetMulticast, Reliable)
 	//void MulticastPlayCombo(EComboAttackType AttackType, uint8 ComboCount);
 
-	UFUNCTION(Server, Reliable)
-	void ServerRPCStartComboAttack(const EComboAttackType AttackType);
+	//UFUNCTION(Server, Reliable)
+	//void ServerRPCStartComboAttack(const EComboAttackType AttackType);
 
 	//UFUNCTION(Server, Reliable)
 	//void ServerRPCComboAttack(const EComboAttackType AttackType, FName SectionName);
@@ -90,20 +90,20 @@ public:
 
 	//void PlayComboAttackAnimation(const EComboAttackType AttackType, FName SectionName);
 
-	void StopJumpAndFly();
+	//void StopJumpAndFly();
 #pragma region EndCombo
 
-	UFUNCTION(BlueprintCallable)
-	void EndComboAttack(UAnimMontage* TargetMontage, bool bInterrupted);
-	void ResetCharacterGravityScale();
-	void ResetPlayerComboAttackValue();
-	void ResetPlayerCharacterMovement();
+	//UFUNCTION(BlueprintCallable)
+	//void EndComboAttack(UAnimMontage* TargetMontage, bool bInterrupted);
+	//void ResetCharacterGravityScale();
+	//void ResetPlayerComboAttackValue();
+	//void ResetPlayerCharacterMovement();
 #pragma endregion
 
-	void CheckComboProcessable(const EComboAttackType AttackType);
-	void CheckDropAttackProcessable();
+	//void CheckComboProcessable(const EComboAttackType AttackType);
+	//void CheckDropAttackProcessable();
 
-	EComboAttackType GetNextAttackType();
+	//EComboAttackType GetNextAttackType();
 
 #pragma region Battle
 public:
@@ -111,11 +111,11 @@ public:
 
 	FORCEINLINE void SetDamageEvent(FDamageEvent NewDamageEvent) {DamageEvent = NewDamageEvent	;}
 
-	void SetEnableRightHitCheck(bool bEnablaHitCheck);
+	//void SetEnableRightHitCheck(bool bEnablaHitCheck);
 
 	void RightHitCheckProcess();
 
-	void SetEnableLeftHitCheck(bool bEnablaHitCheck);
+	//void SetEnableLeftHitCheck(bool bEnablaHitCheck);
 
 	void LeftHitCheckProcess();
 
@@ -143,9 +143,9 @@ protected:
 
 #pragma region Weapon
 public:
-	void SetNowWeapon(UUK_StatusAnimData* NewWeapon);
-	UFUNCTION(Server, Reliable)
-	void ServerRPCSetNowWeapon(UUK_StatusAnimData* NewWeapon);
+	//void SetNowWeapon(UUK_StatusAnimData* NewWeapon);
+	//UFUNCTION(Server, Reliable)
+	//void ServerRPCSetNowWeapon(UUK_StatusAnimData* NewWeapon);
 protected:
 
 	UPROPERTY(EditAnywhere,BlueprintReadOnly)

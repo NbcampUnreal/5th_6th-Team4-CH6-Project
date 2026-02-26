@@ -47,7 +47,7 @@ void AUK_AiMonsterCtl::OnPossess(APawn* InPawn)
 		MoveComp->RotationRate = FRotator(0.f, 540.f, 0.f);
 		
 		MoveComp->bEnablePhysicsInteraction = false;  
-		MoveComp->bSweepWhileNavWalking = true;  
+		MoveComp->bSweepWhileNavWalking = false;  
 	}
 
 	if (SightConfig)
@@ -88,7 +88,7 @@ void AUK_AiMonsterCtl::OnPossess(APawn* InPawn)
 				MoveComp->SetAvoidanceGroup(AvoidanceGroup);
 				MoveComp->SetGroupsToAvoid(GroupsToAvoid);
 				MoveComp->SetGroupsToIgnore(GroupsToIgnore);
-				MoveComp->AvoidanceConsiderationRadius = 500.0f;
+				MoveComp->AvoidanceConsiderationRadius = 200.0f;
 				MoveComp->AvoidanceWeight = 0.5f;
 			}
 		}

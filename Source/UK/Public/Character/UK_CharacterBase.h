@@ -73,9 +73,6 @@ protected:
 	TObjectPtr<UCameraComponent> Camera;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<USkeletalMeshComponent> CharactorMesh;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkeletalMeshComponent> RightHandWeaponComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
@@ -84,21 +81,35 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
 	TObjectPtr<UStatusComponent> StatusComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UUK_CombatAnimationComponent> AnimationComponent;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	//TObjectPtr<UUK_CombatAnimationComponent> AnimationComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUK_InventoryComponent> InventoryComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UAIPerceptionStimuliSourceComponent> StimuliSource;
+#pragma endregion
 
+#pragma region Interaction And Quest
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUK_InteractionComponent> InteractionComp;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUK_QuestComponent> QuestComp;
 
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UUserWidget> InteractWidgetClass;
+
+	UPROPERTY()
+	UUserWidget* InteractWidget;
+
+	UFUNCTION(Client, Reliable)
+	void Client_ShowInteractUI();
+
+	UFUNCTION(Client, Reliable)
+	void Client_HideInteractUI();
 
 #pragma endregion
 #pragma region GAS
@@ -162,6 +173,10 @@ public:
 	void AddTarget(const TObjectPtr<AAIMonsterBase> Monster);
 
 	bool Locking()const { return bIsLock; }
+
+	TArray<TObjectPtr<AAIMonsterBase>>& GetHitList() { return HitList; }
+
+	void ResetHitList() { HitList.Reset(); }
 protected:
 
 	bool bIsLock;
@@ -172,6 +187,9 @@ protected:
 
 	UPROPERTY()
 	TArray<TObjectPtr<AAIMonsterBase>> LockOnList;
+
+	UPROPERTY()
+	TArray<TObjectPtr<AAIMonsterBase>> HitList;
 
 	int32 index;
 
@@ -199,6 +217,8 @@ public:
 	void OnRep_CurrentWeaponTag();
 	UFUNCTION()
 	void OnRep_NowWeapon();
+
+	UUK_StatusAnimData* GetNowWeaponStatus() const { return NowWeapon; }
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<UUK_WeaponData> WeaponList;
@@ -222,6 +242,7 @@ public:
 	void EndComboAttack();
 
 	void ReceiveDamage(float Damage);
+
 	float ApplyDamage();
 
 	UFUNCTION()
@@ -230,8 +251,14 @@ public:
 	UFUNCTION()
 	void OnRep_InInput();
 
+	UFUNCTION()
+	void OnRep_fry();
+
 	UPROPERTY(BlueprintReadWrite, ReplicatedUsing = OnRep_InInput)
 	bool bIsInInput = false;
+
+	UPROPERTY(BlueprintReadWrite, ReplicatedUsing = OnRep_fry)
+	bool bIsfry;
 
 	float DefaultGravityValue;
 	FOnFloorDelagate OnFloor;

@@ -18,7 +18,7 @@ AAIMonsterBase::AAIMonsterBase()
 	bReplicates = true;
 	SetReplicateMovement(true);
 	StatComponent = CreateDefaultSubobject<UAI_MonsterStatComponent>(TEXT("StatComponent"));
-	NetDormancy = DORM_DormantAll;
+	NetDormancy = DORM_Awake;
 	
 	bUseControllerRotationYaw = false;
 	
@@ -28,12 +28,12 @@ AAIMonsterBase::AAIMonsterBase()
 		GetCharacterMovement()->bUseControllerDesiredRotation = false;
 		GetCharacterMovement()->RotationRate = FRotator(0.f, 540.f, 0.f);
 		
-		GetCharacterMovement()->NetworkSimulatedSmoothLocationTime = 0.15f;
+		GetCharacterMovement()->NetworkSimulatedSmoothLocationTime = 0.05f;
 		GetCharacterMovement()->NetworkSimulatedSmoothRotationTime = 0.15f;
 		GetCharacterMovement()->ListenServerNetworkSimulatedSmoothLocationTime = 0.15f;
 		GetCharacterMovement()->ListenServerNetworkSimulatedSmoothRotationTime = 0.15f;
-		GetCharacterMovement()->NetworkMaxSmoothUpdateDistance = 256.f;
-		GetCharacterMovement()->NetworkNoSmoothUpdateDistance = 512.f;
+		GetCharacterMovement()->NetworkMaxSmoothUpdateDistance = 92.f;
+		GetCharacterMovement()->NetworkNoSmoothUpdateDistance = 140.f;
 	}
 
 	//HP Widget 설치
@@ -46,16 +46,36 @@ AAIMonsterBase::AAIMonsterBase()
 	HPWidgetComponent->SetDrawSize(FVector2D(180.f, 20.f));
 	HPWidgetComponent->SetRelativeLocation(FVector(0, 0, 120.f));
 	HPWidgetComponent->SetVisibility(false);
+	
+	NetUpdateFrequency = 60.f;
+	MinNetUpdateFrequency = 30.f;
 }
 
 void AAIMonsterBase::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	if (GetCharacterMovement())
+	{
+		// NavMesh 이동 시 루트모션 무시하도록
+		GetCharacterMovement()->bAllowPhysicsRotationDuringAnimRootMotion = false;
+        
+		// 네트워크 스무딩 조정
+		GetCharacterMovement()->NetworkSmoothingMode = ENetworkSmoothingMode::Exponential;
+	}
 
 	if (HasAuthority())
 	{
 		SpawnLocation = GetActorLocation();
 
+		if (AAIController* AIC = Cast<AAIController>(GetController()))
+		{
+			if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
+			{
+				BB->SetValueAsVector(TEXT("SpawnLocation"), SpawnLocation);
+			}
+		}
+		
 		if (Personality == EMonsterPersonality::Peaceful)
 		{
 			CurrentState = EMonsterState::Passive;
@@ -123,7 +143,7 @@ void AAIMonsterBase::OnRep_MonsterState()
 	{
 	case EMonsterState::Idle:
 	case EMonsterState::Passive:
-		SetNetDormancy(DORM_DormantAll);
+		SetNetDormancy(DORM_DormantPartial);  
 		break;
 	case EMonsterState::Dead:
 		break;
@@ -598,6 +618,54 @@ void AAIMonsterBase::OnIdleMontageEnded(UAnimMontage* Montage, bool bInterrupted
 	OnIdleMontageFinished.ExecuteIfBound();
 }
 
+bool AAIMonsterBase::PlayRandomHitMontage()
+{
+	if (bIsDying) return false;
+	if (!HasAuthority()) return false;
+
+	if (HitMontages.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Hit] %s: HitMontages is empty!"), *GetName());
+		return false;
+	}
+
+	TArray<int32> ValidIndices;
+	for (int32 i = 0; i < HitMontages.Num(); ++i)
+	{
+		if (HitMontages[i] != nullptr)
+		{
+			ValidIndices.Add(i);
+		}
+	}
+
+	if (ValidIndices.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Hit] %s: All HitMontages slots are null!"), *GetName());
+		return false;
+	}
+
+	const int32 PickedIndex = ValidIndices[FMath::RandRange(0, ValidIndices.Num() - 1)];
+	Multicast_PlayHitMontage(PickedIndex);
+	return true;
+}
+
+void AAIMonsterBase::Multicast_PlayHitMontage_Implementation(int32 MontageIndex)
+{
+	if (!HitMontages.IsValidIndex(MontageIndex)) return;
+
+	UAnimMontage* Montage = HitMontages[MontageIndex];
+	if (!Montage) return;
+
+	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (!AnimInstance) return;
+
+	// 공격 몽타주 재생 중이면 피격 몽타주로 블렌딩 
+	AnimInstance->Montage_Play(Montage, 1.0f);
+
+	UE_LOG(LogTemp, Log, TEXT("[Hit] %s: Playing hit montage[%d] on %s"),
+		*GetName(), MontageIndex, HasAuthority() ? TEXT("Server") : TEXT("Client"));
+}
+
 void AAIMonsterBase::ReceiveDamage(float Damage)
 {
 	if (!HasAuthority()) return;
@@ -636,6 +704,12 @@ void AAIMonsterBase::ReceiveDamage(float Damage)
 		UE_LOG(LogTemp, Warning,
 			TEXT("[Monster Hit] %s | Dmg: %.1f | HP: %.1f -> %.1f"),
 			*GetName(), Damage, BeforeHp, StatComponent->GetHP());
+	}
+
+	// 피격 몽타주 재생 (죽지 않은 경우에만)
+	if (!bIsDying)
+	{
+		PlayRandomHitMontage();
 	}
 
 	if (Personality == EMonsterPersonality::Peaceful && !bIsAggressive)
