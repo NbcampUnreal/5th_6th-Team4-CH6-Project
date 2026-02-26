@@ -7,6 +7,7 @@
 #include "UK_MonsterSpawner.generated.h"
 
 class AAIMonsterBase;
+class AAIController;
 
 UCLASS()
 class UK_API AUK_MonsterSpawner : public AActor
