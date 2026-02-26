@@ -133,6 +133,8 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::Swap2), ETriggerEvent::Started, this, &ThisClass::SlotWeaponTwo);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::Swap3), ETriggerEvent::Started, this, &ThisClass::SlotWeaponThree);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::LockOnToggle), ETriggerEvent::Started, this, &ThisClass::LockONToggle);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::NomalSkill), ETriggerEvent::Started, this, &ThisClass::NomalSkill);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::UltimateSkill), ETriggerEvent::Started, this, &ThisClass::UltimateSkill);
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -306,6 +308,7 @@ void AUK_CharacterBase::LightAttack()
 		GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
 	}
 }
+
 void AUK_CharacterBase::HeavyAttack()
 {
 	if ( StatusComponent->IsDead() )
@@ -315,6 +318,32 @@ void AUK_CharacterBase::HeavyAttack()
 	bIsInInput = true;
 	FGameplayTagContainer Container;
 	Container.AddTag(UK_GameplayTags::Action::HeavyAttack);
+	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
+
+}
+
+void AUK_CharacterBase::NomalSkill()
+{
+	if ( StatusComponent->IsDead() )
+	{
+		return;
+	}
+	bIsInInput = true;
+	FGameplayTagContainer Container;
+	Container.AddTag(UK_GameplayTags::Input::NomalSkill);
+	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
+
+}
+
+void AUK_CharacterBase::UltimateSkill()
+{
+	if ( StatusComponent->IsDead() )
+	{
+		return;
+	}
+	bIsInInput = true;
+	FGameplayTagContainer Container;
+	Container.AddTag(UK_GameplayTags::Input::UltimateSkill);
 	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
 
 }
@@ -422,6 +451,12 @@ void AUK_CharacterBase::LockON()
 		}
 	}
 }
+
+void AUK_CharacterBase::AddTarget(const TObjectPtr<AAIMonsterBase> Monster)
+{
+	LockOnList.AddUnique(Monster);
+}
+
 void AUK_CharacterBase::LockONToggle()
 {
 	if ( bIsLock == false )
@@ -573,11 +608,6 @@ void AUK_CharacterBase::LockONTick()
 	}
 }
 
-void AUK_CharacterBase::AddTarget(const TObjectPtr<AAIMonsterBase> Monster)
-{
-	LockOnList.AddUnique(Monster);
-}
-
 #pragma endregion
 
 #pragma region Weapon
@@ -691,6 +721,7 @@ void AUK_CharacterBase::StopJumpAndFly()
 
 	PlayerMovement->SetJumpAllowed(false);
 }
+
 void AUK_CharacterBase::EndComboAttack()
 {
 	if ( bIsfry == false )
@@ -720,17 +751,21 @@ float AUK_CharacterBase::ApplyDamage()
 	}
 	return 0.f;
 }
+
 void AUK_CharacterBase::Dead()
 {
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 }
+
 void AUK_CharacterBase::OnRep_InInput()
 {
 
 }
+
 void AUK_CharacterBase::OnRep_fry()
 {
 }
+
 #pragma endregion
 
 void AUK_CharacterBase::Client_ShowInteractUI_Implementation()
