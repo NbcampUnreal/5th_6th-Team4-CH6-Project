@@ -17,14 +17,25 @@ class UK_API UUK_BTTask_RandomIdleAction : public UBTTaskNode
 {
 	GENERATED_BODY()
 
+#pragma region Initialization
 public:
 	UUK_BTTask_RandomIdleAction();
-
-	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
-	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	virtual uint16 GetInstanceMemorySize() const override;
+#pragma endregion
 
+#pragma region Execution
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+#pragma endregion
+
+#pragma region Idle Tick
+	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+#pragma endregion
+
+#pragma region Abort
+	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+#pragma endregion
+
+#pragma region Idle Settings
 protected:
 	UPROPERTY(EditAnywhere, Category = "Idle")
 	float MinWaitTime = 3.0f;
@@ -38,21 +49,26 @@ protected:
 	/** 0=Wait, 1=LookAround, 2=PlayIdleMontage */
 	UPROPERTY(EditAnywhere, Category = "Idle")
 	TArray<float> ActionWeights = { 0.3f, 0.4f, 0.3f };
+#pragma endregion
 
+#pragma region Memory
 private:
 	struct FIdleActionMemory
 	{
-		float ElapsedTime        = 0.f;
-		float TargetTime         = 0.f;
-		EIdleActionType Action   = EIdleActionType::Wait;
-		float StartYaw           = 0.f;
-		float TargetYaw          = 0.f;
-		bool bWaitingForMontage  = false;
-		bool bMontageEnded       = false;
-		bool bPostMontageWait    = false;
-		float PostMontageEndTime = 0.f;
+		float           ElapsedTime        = 0.f;
+		float           TargetTime         = 0.f;
+		EIdleActionType Action             = EIdleActionType::Wait;
+		float           StartYaw           = 0.f;
+		float           TargetYaw          = 0.f;
+		bool            bWaitingForMontage = false;
+		bool            bMontageEnded      = false;
+		bool            bPostMontageWait   = false;
+		float           PostMontageEndTime = 0.f;
 	};
+#pragma endregion
 
+#pragma region Helpers
 	EIdleActionType SelectWeightedAction() const;
 	void RestoreRotationSettings(ACharacter* Character) const;
+#pragma endregion
 };

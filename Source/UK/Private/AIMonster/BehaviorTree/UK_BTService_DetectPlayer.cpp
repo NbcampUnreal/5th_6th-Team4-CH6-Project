@@ -3,7 +3,9 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "GameFramework/Character.h"
 #include "AIMonster/AIMonsterBase.h"
+#include "AIMonster/UK_AiMonsterCtl.h"
 
+#pragma region Initialization
 UUK_BTService_DetectPlayer::UUK_BTService_DetectPlayer()
 {
 	NodeName = "Detect Player";
@@ -18,7 +20,9 @@ uint16 UUK_BTService_DetectPlayer::GetInstanceMemorySize() const
 {
 	return sizeof(FDetectPlayerMemory);
 }
+#pragma endregion
 
+#pragma region Player Detection
 void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
@@ -42,32 +46,23 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 	const float   DistFromSpawn   = FVector::Dist(MonsterLocation, SpawnLocation);
 	const float   ChaseLimit      = Monster ? Monster->MaxChaseDistance : 2500.f;
 
-	bool bCurrentlyHasTarget = (BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName) != nullptr);
+	const bool bCurrentlyHasTarget = (BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName) != nullptr);
 
-	// 타겟을 방금 잃었으면 복귀 중 플래그 세팅
+	// ── 복귀 플래그 관리 ────────────────────────────────────────────────
 	if (Memory->bHadTarget && !bCurrentlyHasTarget)
 	{
 		Memory->bReturning = true;
 		Memory->bHadTarget = false;
 	}
 
-	// ── 복귀 중이면 스폰 근처 도달 전까지 재감지 차단 ────────────────────────
 	if (Memory->bReturning)
 	{
 		if (DistFromSpawn <= ReturnDistanceThreshold)
-		{
-			// 스폰 근처 복귀 완료 → 차단 해제
 			Memory->bReturning = false;
-		}
 		else
-		{
-			// 아직 복귀 중 → 재감지 차단
 			return;
-		}
 	}
-	// ─────────────────────────────────────────────────────────────────────────
 
-	// 스폰에서 너무 멀면 감지 차단 + 복귀 플래그
 	if (DistFromSpawn > ChaseLimit)
 	{
 		BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
@@ -76,7 +71,24 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 		return;
 	}
 
-	// 플레이어 탐색
+	// ── 패스트패스: AIPerceptionComponent 결과 재사용 ───────────────────
+	if (AUK_AiMonsterCtl* MonsterCtl = Cast<AUK_AiMonsterCtl>(AIController))
+	{
+		AActor* CtlTarget = MonsterCtl->GetCurrentTarget();
+		if (CtlTarget)
+		{
+			BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, CtlTarget);
+			Memory->bHadTarget = true;
+		}
+		else
+		{
+			BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
+			Memory->bHadTarget = false;
+		}
+		return;
+	}
+
+	// ── 폴백: 직접 PlayerController 순회 ────────────────────────────────
 	UWorld* World = ControlledPawn->GetWorld();
 	if (!World) return;
 
@@ -91,7 +103,7 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 		APawn* PlayerPawn = PC->GetPawn();
 		if (!PlayerPawn) continue;
 
-		float Dist = FVector::Dist(MonsterLocation, PlayerPawn->GetActorLocation());
+		const float Dist = FVector::Dist(MonsterLocation, PlayerPawn->GetActorLocation());
 		if (Dist < BestDist)
 		{
 			BestDist   = Dist;
@@ -110,3 +122,4 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 		Memory->bHadTarget = false;
 	}
 }
+#pragma endregion

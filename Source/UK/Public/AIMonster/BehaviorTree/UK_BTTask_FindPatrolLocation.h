@@ -12,20 +12,23 @@
 UCLASS()
 class UK_API UUK_BTTask_FindPatrolLocation : public UBTTaskNode
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
+#pragma region Initialization
 public:
-    UUK_BTTask_FindPatrolLocation();
+	UUK_BTTask_FindPatrolLocation();
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+#pragma endregion
 
-    virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-
+#pragma region Patrol Location Search
 protected:
-    UPROPERTY(EditAnywhere, Category = "Blackboard")
-    FBlackboardKeySelector PatrolLocationKey;
+	UPROPERTY(EditAnywhere, Category = "Blackboard")
+	FBlackboardKeySelector PatrolLocationKey;
 
-    UPROPERTY(EditAnywhere, Category = "Blackboard")
-    FBlackboardKeySelector SpawnLocationKey;
+	UPROPERTY(EditAnywhere, Category = "Blackboard")
+	FBlackboardKeySelector SpawnLocationKey;
 
-    UPROPERTY(EditAnywhere, Category = "AI")
-    float PatrolRadius = 1000.0f;
+	UPROPERTY(EditAnywhere, Category = "AI")
+	float PatrolRadius = 1000.0f;
+#pragma endregion
 };
