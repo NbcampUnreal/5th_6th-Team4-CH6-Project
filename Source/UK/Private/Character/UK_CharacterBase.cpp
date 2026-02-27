@@ -31,7 +31,7 @@
 #pragma region Defualt
 
 
-
+// 무현님 대머리 ㅋㅋ
 // Sets default values
 AUK_CharacterBase::AUK_CharacterBase() :
 	bIsLock(false),
