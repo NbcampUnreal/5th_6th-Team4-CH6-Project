@@ -3,40 +3,37 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "AIMonster/AIMonsterBase.h"
 
+#pragma region Initialization
 UBTDecorator_InAttackRange::UBTDecorator_InAttackRange()
 {
 	NodeName = "In Attack Range";
 	FlowAbortMode = EBTFlowAbortMode::Both;
 }
+#pragma endregion
 
-bool UBTDecorator_InAttackRange::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp,uint8* NodeMemory) const
+#pragma region Condition Check
+bool UBTDecorator_InAttackRange::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
 	AAIController* AI = OwnerComp.GetAIOwner();
-	if ( !AI ) return false;
+	if (!AI) return false;
 
 	APawn* Pawn = AI->GetPawn();
-	if ( !Pawn ) return false;
+	if (!Pawn) return false;
 
 	UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
-	if ( !BB ) return false;
+	if (!BB) return false;
 
-	AActor* Target =
-		Cast<AActor>(BB->GetValueAsObject("TargetPlayer"));
+	AActor* Target = Cast<AActor>(BB->GetValueAsObject("TargetPlayer"));
+	if (!Target) return false;
 
-	if ( !Target ) return false;
+	const float Dist = FVector::Dist(Pawn->GetActorLocation(), Target->GetActorLocation());
 
-	float Dist = FVector::Dist(
-		Pawn->GetActorLocation(),
-		Target->GetActorLocation()
-	);
-
-	// 몬스터에서 공격거리 가져오기
 	float AttackRange = 200.f;
-
-	if ( AAIMonsterBase* Monster = Cast<AAIMonsterBase>(Pawn) )
+	if (AAIMonsterBase* Monster = Cast<AAIMonsterBase>(Pawn))
 	{
 		AttackRange = Monster->AttackRange;
 	}
 
 	return Dist <= AttackRange;
 }
+#pragma endregion

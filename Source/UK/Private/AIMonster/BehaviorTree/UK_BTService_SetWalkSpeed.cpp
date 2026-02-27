@@ -1,18 +1,18 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-#include "AIMonster/BehaviorTree/UK_BTService_SetWalkSpeed.h"
+﻿#include "AIMonster/BehaviorTree/UK_BTService_SetWalkSpeed.h"
 #include "AIController.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
+#pragma region Initialization
 UUK_BTService_SetWalkSpeed::UUK_BTService_SetWalkSpeed()
 {
 	NodeName = "Set Walk Speed";
-	// 주기적 Tick 불필요 - 진입/이탈 시에만 처리
 	Interval = 0.f;
 	RandomDeviation = 0.f;
 }
+#pragma endregion
 
+#pragma region Speed Management
 void UUK_BTService_SetWalkSpeed::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	Super::OnBecomeRelevant(OwnerComp, NodeMemory);
@@ -26,10 +26,7 @@ void UUK_BTService_SetWalkSpeed::OnBecomeRelevant(UBehaviorTreeComponent& OwnerC
 	UCharacterMovementComponent* MoveComp = Character->GetCharacterMovement();
 	if (!MoveComp) return;
 
-	// 현재 속도 캐싱
-	CachedOriginalSpeed = MoveComp->MaxWalkSpeed;
-
-	// 배회 속도 적용
+	CachedOriginalSpeed    = MoveComp->MaxWalkSpeed;
 	MoveComp->MaxWalkSpeed = WanderSpeed;
 }
 
@@ -46,6 +43,6 @@ void UUK_BTService_SetWalkSpeed::OnCeaseRelevant(UBehaviorTreeComponent& OwnerCo
 	UCharacterMovementComponent* MoveComp = Character->GetCharacterMovement();
 	if (!MoveComp) return;
 
-	// 속도 복원 (OriginalSpeed가 설정됐으면 그걸 사용, 아니면 캐싱값)
 	MoveComp->MaxWalkSpeed = (OriginalSpeed > 0.f) ? OriginalSpeed : CachedOriginalSpeed;
 }
+#pragma endregion

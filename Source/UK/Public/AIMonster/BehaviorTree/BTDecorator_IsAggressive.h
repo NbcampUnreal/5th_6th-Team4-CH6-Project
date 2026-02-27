@@ -12,11 +12,17 @@ class UK_API UBTDecorator_IsAggressive : public UBTDecorator
 {
 	GENERATED_BODY()
 
+#pragma region Initialization
 public:
 	UBTDecorator_IsAggressive();
+#pragma endregion
 
+#pragma region Condition Check
 protected:
 	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override;
-	
+#pragma endregion
+
+#pragma region Observer
 	virtual void OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+#pragma endregion
 };

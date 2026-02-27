@@ -14,47 +14,60 @@ class UK_API AUK_AiMonsterCtl : public AAIController
 {
 	GENERATED_BODY()
 
+#pragma region Initialization
 public:
 	AUK_AiMonsterCtl();
-	AActor* GetCurrentTarget() const { return CurrentTarget; }
+#pragma endregion
 
+#pragma region Possess / UnPossess
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void OnUnPossess() override;
-	virtual void Tick(float DeltaSeconds) override;
-	virtual void OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result) override;
+#pragma endregion
+
+#pragma region Player Detection
+public:
+	AActor* GetCurrentTarget() const { return CurrentTarget; }
 
 private:
-	UPROPERTY()
-	AAIMonsterBase* ControlledMonster;
-
-	UPROPERTY()
-	AActor* CurrentTarget;
-
-	// 이벤트 기반 탐지
 	UPROPERTY(VisibleAnywhere, Category = "AI|Perception")
 	UAIPerceptionComponent* AIPerceptionComp;
 
 	UPROPERTY()
 	UAISenseConfig_Sight* SightConfig;
 
-	// 감지/소실 이벤트 콜백
 	UFUNCTION()
 	void OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
-	
-	void UpdateFocusOnTarget(AActor* NewTarget);
 
-	//  플레이어 판별
 	bool IsPlayerCharacter(AActor* Actor) const;
 
-	// BT 미사용 시
+	UPROPERTY()
+	AActor* CurrentTarget;
+#pragma endregion
+
+#pragma region State Management
+private:
+	UPROPERTY()
+	AAIMonsterBase* ControlledMonster;
+
 	void UpdateState();
+	void UpdateFocusOnTarget(AActor* NewTarget);
+#pragma endregion
+
+#pragma region Movement
+protected:
+	virtual void OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result) override;
+
+private:
 	void HandleMovement();
 	void SetNewPatrolTarget();
 
 	FVector PatrolTarget;
-	bool bHasPatrolTarget = false;
+	bool    bHasPatrolTarget = false;
+#pragma endregion
 
+#pragma region AI Settings
+private:
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	float SearchRadius = 1200.f;
 
@@ -69,6 +82,7 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	float ControllerTickInterval = 0.5f;
+#pragma endregion
 
 #pragma region RVO
 	UPROPERTY(EditAnywhere, Category = "AI|RVO")
@@ -83,9 +97,4 @@ private:
 	UPROPERTY(EditAnywhere, Category = "AI|RVO")
 	int32 GroupsToIgnore = 0;
 #pragma endregion
-
-	UPROPERTY(EditDefaultsOnly, Category = "Debug")
-	bool bDrawDebug = true;
-
-	void DrawAIDebug() const;
 };

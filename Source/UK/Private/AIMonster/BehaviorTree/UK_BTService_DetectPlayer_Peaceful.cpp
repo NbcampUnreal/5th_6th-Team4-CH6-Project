@@ -3,7 +3,9 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "GameFramework/Character.h"
 #include "AIMonster/AIMonsterBase.h"
+#include "AIMonster/UK_AiMonsterCtl.h"
 
+#pragma region Initialization
 UUK_BTService_DetectPlayer_Peaceful::UUK_BTService_DetectPlayer_Peaceful()
 {
 	NodeName = "Detect Player (Peaceful)";
@@ -13,7 +15,9 @@ UUK_BTService_DetectPlayer_Peaceful::UUK_BTService_DetectPlayer_Peaceful()
 	TargetPlayerKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UUK_BTService_DetectPlayer_Peaceful, TargetPlayerKey), AActor::StaticClass());
 	SpawnLocationKey.AddVectorFilter(this, GET_MEMBER_NAME_CHECKED(UUK_BTService_DetectPlayer_Peaceful, SpawnLocationKey));
 }
+#pragma endregion
 
+#pragma region Player Detection
 void UUK_BTService_DetectPlayer_Peaceful::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
@@ -30,17 +34,28 @@ void UUK_BTService_DetectPlayer_Peaceful::TickNode(UBehaviorTreeComponent& Owner
 	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(ControlledPawn);
 	if (!Monster) return;
 
-	// 공격자(Aggressor)가 있으면 최우선 타겟 (거리 무관)
+	// 공격자 최우선 (거리 무관)
 	if (IsValid(Monster->Aggressor))
 	{
 		BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, Monster->Aggressor);
 		return;
 	}
 
-	// 공격자가 없으면 가장 가까운 플레이어 찾기
+	// ── 패스트패스: AIPerceptionComponent 결과 재사용 ───────────────────
+	if (AUK_AiMonsterCtl* MonsterCtl = Cast<AUK_AiMonsterCtl>(AIController))
+	{
+		AActor* CtlTarget = MonsterCtl->GetCurrentTarget();
+		if (CtlTarget)
+			BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, CtlTarget);
+		else
+			BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
+		return;
+	}
+
+	// ── 폴백: 직접 PlayerController 순회 ────────────────────────────────
 	const FVector MonsterLocation = ControlledPawn->GetActorLocation();
 	AActor* BestTarget = nullptr;
-	float BestDist = DetectionRadius;
+	float   BestDist   = DetectionRadius;
 
 	UWorld* World = ControlledPawn->GetWorld();
 	if (!World)
@@ -57,20 +72,17 @@ void UUK_BTService_DetectPlayer_Peaceful::TickNode(UBehaviorTreeComponent& Owner
 		APawn* PlayerPawn = PC->GetPawn();
 		if (!PlayerPawn) continue;
 
-		float Dist = FVector::Dist(MonsterLocation, PlayerPawn->GetActorLocation());
+		const float Dist = FVector::Dist(MonsterLocation, PlayerPawn->GetActorLocation());
 		if (Dist < BestDist)
 		{
-			BestDist = Dist;
+			BestDist   = Dist;
 			BestTarget = PlayerPawn;
 		}
 	}
 
 	if (BestTarget)
-	{
 		BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, BestTarget);
-	}
 	else
-	{
 		BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
-	}
 }
+#pragma endregion
