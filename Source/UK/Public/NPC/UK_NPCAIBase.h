@@ -16,8 +16,6 @@ public:
 	void Interact(AActor* Interactor);
 	virtual void Interact_Implementation(AActor* Interactor);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC")
-	FString NPCName;
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	class UBehaviorTree* BehaviorTree;

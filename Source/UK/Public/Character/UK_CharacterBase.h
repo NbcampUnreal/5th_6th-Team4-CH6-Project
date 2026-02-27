@@ -96,18 +96,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUK_QuestComponent> QuestComp;
 
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<UUserWidget> InteractWidgetClass;
-
-	UPROPERTY()
-	UUserWidget* InteractWidget;
-
-	UFUNCTION(Client, Reliable)
-	void Client_ShowInteractUI();
-
-	UFUNCTION(Client, Reliable)
-	void Client_HideInteractUI();
-
 #pragma endregion
 
 #pragma region GAS

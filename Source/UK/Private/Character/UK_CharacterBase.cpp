@@ -31,7 +31,7 @@
 #pragma region Defualt
 
 
-
+// 무현님 대머리 ㅋㅋ
 // Sets default values
 AUK_CharacterBase::AUK_CharacterBase() :
 	bIsLock(false),
@@ -818,28 +818,3 @@ void AUK_CharacterBase::OnRep_fry()
 
 #pragma endregion
 
-void AUK_CharacterBase::Client_ShowInteractUI_Implementation()
-{
-	if ( InteractWidget ) return;
-
-	if ( !InteractWidgetClass ) return;
-
-	InteractWidget =
-		CreateWidget<UUserWidget>(
-			GetWorld(),
-			InteractWidgetClass
-		);
-
-	if ( InteractWidget )
-	{
-		InteractWidget->AddToViewport();
-	}
-}
-
-void AUK_CharacterBase::Client_HideInteractUI_Implementation()
-{
-	if ( !InteractWidget ) return;
-
-	InteractWidget->RemoveFromParent();
-	InteractWidget = nullptr;
-}

@@ -32,10 +32,10 @@ protected:
 
 public:	
 
-	void ProcessQuest(int32 QuestID, class AUK_QuestNPC* NPC);
+	void ProcessQuest(FName QuestID, class AUK_QuestNPC* NPC);
 
 	UFUNCTION(Server, Reliable)
-	void Server_ProcessQuest(int32 QuestID);
+	void Server_ProcessQuest(FName QuestID);
 
 	virtual void GetLifetimeReplicatedProps(
 		TArray<FLifetimeProperty>& OutLifetimeProps
