@@ -18,8 +18,8 @@ class UK_API UUK_SkillAttributeSet : public UAttributeSet
 public:
 	UUK_SkillAttributeSet();
 
-	ATTRIBUTE_ACCESSORS_BASIC(_EMIT_THISCALL, Cost);
-	ATTRIBUTE_ACCESSORS_BASIC(_EMIT_THISCALL, CoolDown);
+	ATTRIBUTE_ACCESSORS_BASIC(ThisClass, Cost);
+	ATTRIBUTE_ACCESSORS_BASIC(ThisClass, CoolDown);
 
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
 
