@@ -9,9 +9,7 @@
 #include "Tags/UK_GameplayTags.h"
 #include "Animation/UK_AnimInstance.h"
 #include "ActorComponent/StatusComponent.h"
-#include "ActorComponent/UK_CombatAnimationComponent.h"
 #include "ActorComponent/UK_InventoryComponent.h"
-#include "ActorComponent/UK_InputComponent.h"
 #include "NPC/Component/UK_InteractionComponent.h"
 #include "NPC/Component/UK_QuestComponent.h"
 #include "DataAsset/UK_WeaponData.h"
@@ -38,6 +36,7 @@
 AUK_CharacterBase::AUK_CharacterBase() :
 	bIsLock(false),
 	bIsCrouched(false),
+	SprintSpeed(800.f),
 	NowWeapon(nullptr)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -116,6 +115,7 @@ void AUK_CharacterBase::BeginPlay()
 		0.3f,
 		true
 	);
+
 }
 
 void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -260,12 +260,12 @@ void AUK_CharacterBase::Sprint()
 
 	if ( bIsSprinted == false )
 	{
-		GetCharacterMovement()->MaxWalkSpeed = 800.f;
+		GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
 		bIsSprinted = true;
 	}
 	else if ( bIsSprinted == true )
 	{
-		GetCharacterMovement()->MaxWalkSpeed = 500.f;
+		GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
 		bIsSprinted = false;
 	}
 }
@@ -295,10 +295,9 @@ void AUK_CharacterBase::LightAttack()
 			ECC_LockOn,
 			Params
 		);
-		if ( IsValid(Hit.GetActor()) == true )
+		if ( bHit )
 		{
-			FVector  HitActorLocation = Hit.GetActor()->GetActorLocation();
-			Distace = Start.Z - HitActorLocation.Z;
+			Distace = Start.Z - Hit.Location.Z;
 		}
 		else
 		{
