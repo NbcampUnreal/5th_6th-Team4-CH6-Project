@@ -1,6 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -66,9 +64,6 @@ public:
 	void UpdateCaptureTransform();
 
 	FTimerHandle CaptureTimer;
-
-	UFUNCTION(BlueprintCallable, Category = "MapCapture")
-	void RefreshHiddenActors();
 
 
 //에디터에서 MapData가 변경될 때마다 맵 캡처를 갱신하도록 설정
