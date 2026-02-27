@@ -36,9 +36,9 @@
 
 // Sets default values
 AUK_CharacterBase::AUK_CharacterBase() :
-	NowWeapon(nullptr),
 	bIsLock(false),
-	bIsCrouched(false)
+	bIsCrouched(false),
+	NowWeapon(nullptr)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
@@ -144,6 +144,8 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::Swap2), ETriggerEvent::Started, this, &ThisClass::SlotWeaponTwo);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::Swap3), ETriggerEvent::Started, this, &ThisClass::SlotWeaponThree);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::LockOnToggle), ETriggerEvent::Started, this, &ThisClass::LockONToggle);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::NomalSkill), ETriggerEvent::Started, this, &ThisClass::NomalSkill);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::UltimateSkill), ETriggerEvent::Started, this, &ThisClass::UltimateSkill);
 }
 
 void AUK_CharacterBase::OnRep_PlayerState()
@@ -235,19 +237,19 @@ void AUK_CharacterBase::Move(const FInputActionValue& InputActionValue)
 
 void AUK_CharacterBase::Look(const FInputActionValue& InputActionValue)
 {
+	const FVector2D LookAxisVector = InputActionValue.Get<FVector2D>();
+
+	if ( FMath::IsNearlyZero(LookAxisVector.Y) == false )
+	{
+		AddControllerPitchInput(LookAxisVector.Y);
+	}
 	if ( bIsLock == true )
 	{
 		return;
 	}
-	const FVector2D LookAxisVector = InputActionValue.Get<FVector2D>();
-
 	if ( FMath::IsNearlyZero(LookAxisVector.X) == false )
 	{
 		AddControllerYawInput(LookAxisVector.X);
-	}
-	if ( FMath::IsNearlyZero(LookAxisVector.Y) == false )
-	{
-		AddControllerPitchInput(LookAxisVector.Y);
 	}
 }
 
@@ -290,7 +292,7 @@ void AUK_CharacterBase::LightAttack()
 			Hit,
 			Start,
 			End,
-			ECC_Visibility,
+			ECC_LockOn,
 			Params
 		);
 		if ( IsValid(Hit.GetActor()) == true )
@@ -317,6 +319,7 @@ void AUK_CharacterBase::LightAttack()
 		GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
 	}
 }
+
 void AUK_CharacterBase::HeavyAttack()
 {
 	if ( StatusComponent->IsDead() )
@@ -326,6 +329,32 @@ void AUK_CharacterBase::HeavyAttack()
 	bIsInInput = true;
 	FGameplayTagContainer Container;
 	Container.AddTag(UK_GameplayTags::Action::HeavyAttack);
+	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
+
+}
+
+void AUK_CharacterBase::NomalSkill()
+{
+	if ( StatusComponent->IsDead() )
+	{
+		return;
+	}
+	bIsInInput = true;
+	FGameplayTagContainer Container;
+	Container.AddTag(UK_GameplayTags::Input::NomalSkill);
+	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
+
+}
+
+void AUK_CharacterBase::UltimateSkill()
+{
+	if ( StatusComponent->IsDead() )
+	{
+		return;
+	}
+	bIsInInput = true;
+	FGameplayTagContainer Container;
+	Container.AddTag(UK_GameplayTags::Input::UltimateSkill);
 	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
 
 }
@@ -443,6 +472,12 @@ void AUK_CharacterBase::LockON()
 		}
 	}
 }
+
+void AUK_CharacterBase::AddTarget(const TObjectPtr<AAIMonsterBase> Monster)
+{
+	LockOnList.AddUnique(Monster);
+}
+
 void AUK_CharacterBase::LockONToggle()
 {
 	if ( bIsLock == false )
@@ -560,10 +595,16 @@ void AUK_CharacterBase::LockONTick()
 			FVector Start = GetActorLocation();
 			FVector End = Monster->GetActorLocation();
 			FRotator Target = UKismetMathLibrary::FindLookAtRotation(Start, End);
+
 			FRotator NowRot = GetController()->GetControlRotation();
+
+			FRotator Desired = NowRot;
+			Desired.Yaw = Target.Yaw;
+			Desired.Roll = 0.f;
+
 			FRotator NewRot = FMath::RInterpTo(
 				NowRot,
-				Target,
+				Desired,
 				DeltaTime,
 				12.f
 			);
@@ -588,11 +629,6 @@ void AUK_CharacterBase::LockONTick()
 	}
 }
 
-void AUK_CharacterBase::AddTarget(const TObjectPtr<AAIMonsterBase> Monster)
-{
-	LockOnList.AddUnique(Monster);
-}
-
 #pragma endregion
 
 #pragma region Weapon
@@ -604,7 +640,7 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 	NowWeapon = Weapon;
 	if ( IsValid(Weapon->GetRightHandWeapon()) )
 	{
-		RightHandWeaponComponent->SetSkeletalMesh(Weapon->GetRightHandWeapon());         // todo : 이후에 서버에서 변경하도록 수정해야함 임시로 클라에서만 변경하고 있음
+		RightHandWeaponComponent->SetSkeletalMesh(Weapon->GetRightHandWeapon());
 
 		RightHandWeaponComponent->SetRelativeLocation(Weapon->GetRightLocationOffset());
 		RightHandWeaponComponent->SetRelativeRotation(Weapon->GetRightRotationOffset());
@@ -615,7 +651,7 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 	}
 	if ( IsValid(Weapon->GetLeftHandWeapon()) )
 	{
-		LeftHandWeaponComponent->SetSkeletalMesh(Weapon->GetLeftHandWeapon());             // todo : 이후에 서버에서 변경하도록 수정해야함 임시로 클라에서만 변경하고 있음
+		LeftHandWeaponComponent->SetSkeletalMesh(Weapon->GetLeftHandWeapon());
 
 		LeftHandWeaponComponent->SetRelativeLocation(Weapon->GetLeftLocationOffset());
 		LeftHandWeaponComponent->SetRelativeRotation(Weapon->GetLeftRotationOffset());
@@ -706,6 +742,7 @@ void AUK_CharacterBase::StopJumpAndFly()
 
 	PlayerMovement->SetJumpAllowed(false);
 }
+
 void AUK_CharacterBase::EndComboAttack()
 {
 	if ( bIsfry == false )
@@ -735,10 +772,12 @@ float AUK_CharacterBase::ApplyDamage()
 	}
 	return 0.f;
 }
+
 void AUK_CharacterBase::Dead()
 {
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 }
+
 void AUK_CharacterBase::OnRep_InInput()
 {
 
@@ -777,6 +816,7 @@ void AUK_CharacterBase::UpdateMonsterDetection() {
 void AUK_CharacterBase::OnRep_fry()
 {
 }
+
 #pragma endregion
 
 void AUK_CharacterBase::Client_ShowInteractUI_Implementation()
