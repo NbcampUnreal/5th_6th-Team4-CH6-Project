@@ -819,28 +819,3 @@ void AUK_CharacterBase::OnRep_fry()
 
 #pragma endregion
 
-void AUK_CharacterBase::Client_ShowInteractUI_Implementation()
-{
-	if ( InteractWidget ) return;
-
-	if ( !InteractWidgetClass ) return;
-
-	InteractWidget =
-		CreateWidget<UUserWidget>(
-			GetWorld(),
-			InteractWidgetClass
-		);
-
-	if ( InteractWidget )
-	{
-		InteractWidget->AddToViewport();
-	}
-}
-
-void AUK_CharacterBase::Client_HideInteractUI_Implementation()
-{
-	if ( !InteractWidget ) return;
-
-	InteractWidget->RemoveFromParent();
-	InteractWidget = nullptr;
-}

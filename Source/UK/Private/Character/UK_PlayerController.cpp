@@ -4,10 +4,12 @@
 #include "Character/UK_PlayerController.h"
 #include "ActorComponent/UK_InputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "UI/InGame/UK_Quest.h"
 
 AUK_PlayerController::AUK_PlayerController()
 	: bMouseCursorEnabled(false)
 {
+	QuestWidget = nullptr;
 }
 
 void AUK_PlayerController::PostInitializeComponents()
@@ -274,4 +276,44 @@ void AUK_PlayerController::ConnectStaminaWidget()
 	{
 		StaminaWidget->BindStatusComponent(StatusComp);
 	}
+}
+
+// -------- 퀘스트 UI Interaction (무현 구현중)
+ 
+void AUK_PlayerController::Client_ShowQuestUI_Implementation(const FName& QuestID,const FText& NPCName,const FText& Dialogue,const FText& QuestDesc)
+{
+	if ( !IsLocalController() ) return;
+
+	if ( QuestWidget ) return;
+	if ( !QuestWidgetClass ) return;
+
+	QuestWidget = CreateWidget<UUK_Quest>(this, QuestWidgetClass);
+	if ( !QuestWidget ) return;
+
+	QuestWidget->AddToViewport();
+
+	QuestWidget->SetQuestUI(
+		QuestID,
+		NPCName,
+		Dialogue,
+		QuestDesc,
+		FText::FromString(TEXT("수락")),
+		FText::FromString(TEXT("닫기"))
+	);
+
+	ApplyInputState(EInputState::UI);
+	SetCursorVisible(true);
+}
+
+void AUK_PlayerController::Client_HideQuestUI_Implementation()
+{
+	if (!IsLocalController()) return;
+
+	if (!QuestWidget) return;
+
+	QuestWidget->RemoveFromParent();
+	QuestWidget = nullptr;
+
+	ApplyInputState(EInputState::Game);
+	SetCursorVisible(false);
 }
