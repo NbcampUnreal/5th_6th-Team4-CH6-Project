@@ -10,6 +10,7 @@
 #include "TimerManager.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Quest/UKQuestManagerSubsystem.h"
 
 #pragma region Initialization
 AAIMonsterBase::AAIMonsterBase()
@@ -460,10 +461,32 @@ void AAIMonsterBase::HideAndBroadcastDeath()
 	OnDeath.Broadcast(this);
 }
 
+static FName GetMonsterEventId(EMonsterType Type)
+{
+	switch (Type)
+	{
+	case EMonsterType::Wolf:       return FName("QuestEvent.Killed.Mob_Common_Wolf");
+	case EMonsterType::Fox:        return FName("QuestEvent.Killed.Mob_Common_Fox");
+	case EMonsterType::Reindeer:   return FName("QuestEvent.Killed.Mob_Common_Reindeer");
+	case EMonsterType::Golem:      return FName("QuestEvent.Killed.Mob_Common_Golem");
+	case EMonsterType::EliteGolem: return FName("QuestEvent.Killed.Mob_Common_EliteGolem");
+	default: return NAME_None;
+	}
+}
+
 void AAIMonsterBase::NotifyMonsterKilled()
 {
 	if (!HasAuthority()) return;
 	OnMonsterKilled.Broadcast(this, MonsterType, LastAttackerController);
+
+	// 퀘스트 이벤트
+	const FName EventId = GetMonsterEventId(MonsterType);
+	if (EventId == NAME_None) return;
+
+	if (UUKQuestManagerSubsystem* QM = GetGameInstance()->GetSubsystem<UUKQuestManagerSubsystem>())
+	{
+		QM->EmitQuestEvent(EventId);
+	}
 }
 
 void AAIMonsterBase::Multicast_HideCorpse_Implementation()

@@ -4,7 +4,6 @@
 #include "Engine/World.h"
 #include "TimerManager.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "Kismet/GameplayStatics.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
@@ -35,7 +34,6 @@ void AUK_MonsterSpawner::BeginPlay()
 void AUK_MonsterSpawner::StartSpawning()
 {
 	if (bIsSpawning) return;
-
 	bIsSpawning = true;
 	SpawnInitialMonsters();
 }
@@ -46,10 +44,7 @@ void AUK_MonsterSpawner::StopSpawning()
 
 	for (FTimerHandle& Timer : RespawnTimers)
 	{
-		if (Timer.IsValid())
-		{
-			GetWorldTimerManager().ClearTimer(Timer);
-		}
+		if (Timer.IsValid()) GetWorldTimerManager().ClearTimer(Timer);
 	}
 	RespawnTimers.Empty();
 }
@@ -67,23 +62,22 @@ void AUK_MonsterSpawner::SpawnInitialMonsters()
 
 FVector AUK_MonsterSpawner::GetRandomSpawnLocation() const
 {
-	const FVector BaseLocation           = GetActorLocation();
-	const float   MinDistBetweenMonsters = 300.0f;
-	const float   MinDistFromCenter      = 150.0f;
+	const FVector BaseLocation = GetActorLocation();
 
 	for (int32 Attempt = 0; Attempt < 20; Attempt++)
 	{
-		FVector RandomOffset = UKismetMathLibrary::RandomUnitVector()
-			* FMath::RandRange(MinDistFromCenter, SpawnRadius);
-		RandomOffset.Z = 0.0f;
+		FVector Offset = UKismetMathLibrary::RandomUnitVector()
+			* FMath::RandRange(MinCenterDistance, SpawnRadius);
+		Offset.Z = 0.f;
 
-		const FVector Candidate = BaseLocation + RandomOffset;
-		if (FVector::Dist2D(Candidate, BaseLocation) < MinDistFromCenter) continue;
+		const FVector Candidate = BaseLocation + Offset;
+		if (FVector::Dist2D(Candidate, BaseLocation) < MinCenterDistance) continue;
 
 		bool bTooClose = false;
 		for (AAIMonsterBase* Monster : ActiveMonsters)
 		{
-			if (IsValid(Monster) && FVector::Dist2D(Candidate, Monster->GetActorLocation()) < MinDistBetweenMonsters)
+			if (IsValid(Monster) &&
+				FVector::Dist2D(Candidate, Monster->GetActorLocation()) < MinSpawnDistance)
 			{
 				bTooClose = true;
 				break;
@@ -93,8 +87,10 @@ FVector AUK_MonsterSpawner::GetRandomSpawnLocation() const
 		if (!bTooClose) return Candidate;
 	}
 
-	FVector Fallback = UKismetMathLibrary::RandomUnitVector() * FMath::RandRange(MinDistFromCenter, SpawnRadius);
-	Fallback.Z = 0.0f;
+	// 폴백
+	FVector Fallback = UKismetMathLibrary::RandomUnitVector()
+		* FMath::RandRange(MinCenterDistance, SpawnRadius);
+	Fallback.Z = 0.f;
 	return BaseLocation + Fallback;
 }
 #pragma endregion
@@ -102,18 +98,18 @@ FVector AUK_MonsterSpawner::GetRandomSpawnLocation() const
 #pragma region Object Pool
 void AUK_MonsterSpawner::InitializeObjectPool()
 {
-	for (AAIMonsterBase* Monster : ObjectPool)  { if (IsValid(Monster)) Monster->Destroy(); }
+	for (AAIMonsterBase* M : ObjectPool)    { if (IsValid(M)) M->Destroy(); }
+	for (AAIController*  C : PooledControllers) { if (IsValid(C)) C->Destroy(); }
 	ObjectPool.Empty();
 	InactivePooledMonsters.Empty();
-
-	for (AAIController* Ctrl : PooledControllers) { if (IsValid(Ctrl)) Ctrl->Destroy(); }
 	PooledControllers.Empty();
 
 	for (int32 i = 0; i < MaxMonsters; i++)
 	{
-		// ── 몬스터 생성 ─────────────────────────────────────────────────
+		// ── 몬스터 생성 ──────────────────────────────────────────────────
 		FActorSpawnParameters SpawnParams;
-		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		SpawnParams.SpawnCollisionHandlingOverride =
+			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
 		AAIMonsterBase* Monster = GetWorld()->SpawnActor<AAIMonsterBase>(
 			MonsterClass, GetRandomSpawnLocation(), FRotator::ZeroRotator, SpawnParams);
@@ -125,20 +121,19 @@ void AUK_MonsterSpawner::InitializeObjectPool()
 		Monster->SetActorEnableCollision(false);
 		Monster->SetActorTickEnabled(false);
 
-		if (AController* AutoCtrl = Monster->GetController())
-		{
-			AutoCtrl->UnPossess();
-		}
+		// 자동 생성 컨트롤러 제거 (풀 컨트롤러로 대체)
+		if (AController* AutoCtrl = Monster->GetController()) AutoCtrl->UnPossess();
 
 		ObjectPool.Add(Monster);
 		InactivePooledMonsters.Add(Monster);
 		TotalSpawnCount++;
 
-		// ── 컨트롤러 사전 생성 (Possess 하지 않음) ──────────────────────
+		// ── 컨트롤러 사전 생성 (Possess 하지 않음) ───────────────────────
 		if (Monster->AIControllerClass)
 		{
 			FActorSpawnParameters CtrlParams;
-			CtrlParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			CtrlParams.SpawnCollisionHandlingOverride =
+				ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			CtrlParams.ObjectFlags |= RF_Transient;
 
 			if (AAIController* Ctrl = GetWorld()->SpawnActor<AAIController>(
@@ -173,49 +168,49 @@ void AUK_MonsterSpawner::ActivateMonster(AAIMonsterBase* Monster)
 {
 	if (!Monster) return;
 
-	const FVector NewLocation  = GetRandomSpawnLocation();
+	const FVector NewLocation = GetRandomSpawnLocation();
 	Monster->SetActorLocation(NewLocation);
 	Monster->SpawnLocation = NewLocation;
-
 	Monster->SetActorHiddenInGame(false);
 	Monster->SetActorEnableCollision(true);
 	Monster->SetActorTickEnabled(true);
 
 	// 컨트롤러: 풀에서 꺼내거나 새로 스폰
-	AAIController* AIController = Cast<AAIController>(Monster->GetController());
-	if (!AIController)
+	AAIController* AICon = Cast<AAIController>(Monster->GetController());
+	if (!AICon)
 	{
 		if (PooledControllers.Num() > 0)
 		{
-			AIController = PooledControllers.Pop();
+			AICon = PooledControllers.Pop();
 		}
 		else if (Monster->AIControllerClass)
 		{
 			FActorSpawnParameters SpawnInfo;
-			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			SpawnInfo.SpawnCollisionHandlingOverride =
+				ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			SpawnInfo.ObjectFlags |= RF_Transient;
 
-			AIController = GetWorld()->SpawnActor<AAIController>(
+			AICon = GetWorld()->SpawnActor<AAIController>(
 				Monster->AIControllerClass,
 				NewLocation, FRotator::ZeroRotator, SpawnInfo);
 		}
 
-		if (AIController) AIController->Possess(Monster);
+		if (AICon) AICon->Possess(Monster);
 	}
 
 	// BT 재시작 및 블랙보드 초기화
-	if (AIController)
+	if (AICon)
 	{
-		if (UBrainComponent* BrainComp = AIController->GetBrainComponent())
+		if (UBrainComponent* Brain = AICon->GetBrainComponent())
 		{
-			BrainComp->RestartLogic();
+			Brain->RestartLogic();
 		}
 		else if (Monster->BehaviorTree)
 		{
-			AIController->RunBehaviorTree(Monster->BehaviorTree);
+			AICon->RunBehaviorTree(Monster->BehaviorTree);
 		}
 
-		if (UBlackboardComponent* BB = AIController->GetBlackboardComponent())
+		if (UBlackboardComponent* BB = AICon->GetBlackboardComponent())
 		{
 			BB->SetValueAsVector(TEXT("SpawnLocation"), NewLocation);
 			BB->SetValueAsVector(TEXT("PatrolLocation"), NewLocation);
@@ -236,19 +231,19 @@ void AUK_MonsterSpawner::DeactivateMonster(AAIMonsterBase* Monster)
 	Monster->SetActorEnableCollision(false);
 	Monster->SetActorTickEnabled(false);
 
-	if (AAIController* AIController = Cast<AAIController>(Monster->GetController()))
+	if (AAIController* AICon = Cast<AAIController>(Monster->GetController()))
 	{
-		AIController->StopMovement();
+		AICon->StopMovement();
 
-		if (UBrainComponent* BrainComp = AIController->GetBrainComponent())
+		if (UBrainComponent* Brain = AICon->GetBrainComponent())
 		{
-			BrainComp->StopLogic(TEXT("Pooled"));
+			Brain->StopLogic(TEXT("Pooled"));
 		}
 
-		// UnPossess 후 풀로 반환 (Destroy 대신)
+		// UnPossess 후 컨트롤러 풀로 반환 (Destroy 대신)
 		Monster->DetachFromControllerPendingDestroy();
-		AIController->UnPossess();
-		PooledControllers.Add(AIController);
+		AICon->UnPossess();
+		PooledControllers.Add(AICon);
 	}
 
 	ActiveMonsters.Remove(Monster);
@@ -275,26 +270,6 @@ void AUK_MonsterSpawner::OnMonsterDied(AAIMonsterBase* DeadMonster)
 	}, RespawnDelay, false);
 
 	RespawnTimers.Add(RespawnTimer);
-}
-#pragma endregion
-
-#pragma region Cleanup
-void AUK_MonsterSpawner::ClearAllMonsters()
-{
-	StopSpawning();
-
-	for (AAIMonsterBase* Monster : ActiveMonsters) { if (IsValid(Monster)) Monster->Destroy(); }
-	ActiveMonsters.Empty();
-
-	for (AAIMonsterBase* Monster : ObjectPool) { if (IsValid(Monster)) Monster->Destroy(); }
-	ObjectPool.Empty();
-	InactivePooledMonsters.Empty();
-
-	for (AAIController* Ctrl : PooledControllers) { if (IsValid(Ctrl)) Ctrl->Destroy(); }
-	PooledControllers.Empty();
-
-	TotalSpawnCount = 0;
-	TotalDeathCount = 0;
 }
 #pragma endregion
 
