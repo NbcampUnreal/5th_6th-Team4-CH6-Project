@@ -6,6 +6,7 @@
 #include "Components/SphereComponent.h"
 #include "NPC/Component/UK_InteractionComponent.h"
 #include "NPC/Component/UK_QuestComponent.h"
+#include "Quest/UKQuestManagerSubsystem.h"
 
 AUK_QuestNPC::AUK_QuestNPC()
 {
@@ -25,7 +26,6 @@ AUK_QuestNPC::AUK_QuestNPC()
 	QuestMarker->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
 	QuestMarker->SetVisibility(false);
 
-	QuestID = 0;
 }
 
 void AUK_QuestNPC::BeginPlay()
@@ -98,20 +98,44 @@ void AUK_QuestNPC::Interact_Implementation(AActor* Interactor)
 	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(Interactor);
 	if (!Player) return;
 
-	Server_Interact(Player);
+	if (HasAuthority())
+	{
+		Server_Interact(Player);
+	}
+	else
+	{
+		Server_Interact(Player);
+	}
 }
 
 void AUK_QuestNPC::Server_Interact_Implementation(AUK_CharacterBase* Player)
 {
-	if (!Player) return;
+	if ( !Player || !bPlayerInRange ) return;
 
-	if (!bPlayerInRange) return;
+	auto* QuestSys = GetGameInstance()->GetSubsystem<UUKQuestManagerSubsystem>();
 
-	//Player의 QuestComponent에게 전달
-	if (Player->QuestComp)
+	if (!QuestSys) return;
+
+	const UUKQuestDefinitionAsset* Def = QuestSys->GetQuestDefinition(QuestID);
+
+	if (!Def)
 	{
-		Player->QuestComp->ProcessQuest(QuestID, this);
+		UE_LOG(LogTemp, Warning,
+			TEXT("[QuestNPC] No Definition for %s"),
+			*QuestID.ToString());
+		return;
 	}
+
+	AUK_PlayerController* PlayerCtl = Cast<AUK_PlayerController>(Player->GetController());
+
+	if (!PlayerCtl) return;
+
+	PlayerCtl->Client_ShowQuestUI(
+		QuestID,
+		Def->QuestTitle,       
+		Def->NPCDialogue,      
+		Def->QuestDescription  
+	);
 }
 
 
