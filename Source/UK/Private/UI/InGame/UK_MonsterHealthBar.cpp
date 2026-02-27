@@ -2,38 +2,49 @@
 #include "Components/ProgressBar.h"
 #include "AIMonster/Component/AI_MonsterStatComponent.h"
 
-void UUK_MonsterHealthBar::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
-{
-	Super::NativeTick(MyGeometry, InDeltaTime);
 
-	// 컴포넌트가 연결되어 있다면 매 프레임 값을 가져와서 UI 갱신
-	if ( TargetStatComp )
-	{
-		UpdateHPBar(TargetStatComp->GetHP(), TargetStatComp->GetMaxHP());
-	}
-}
-
-void UUK_MonsterHealthBar::UpdateHPBar(float CurrentHP, float MaxHP)
-{
-	if ( MonsterHPBar && MaxHP > 0.f )
-	{
-		// 현재 UI의 Percent 값과 목표 값이 다를 때만 갱신 (최적화)
-		float TargetPercent = CurrentHP / MaxHP;
-		if ( MonsterHPBar->GetPercent() != TargetPercent )
+void UUK_MonsterHealthBar::UpdateHPBar(float NewHP) 
+{ 
+	if ( MonsterHPBar && TargetStatComp && NewHP > 0.f ) 
+	{ 
+		float TargetPercent = NewHP / TargetStatComp->GetMaxHP(); 
+		if ( MonsterHPBar->GetPercent() != TargetPercent ) 
 		{
-			MonsterHPBar->SetPercent(TargetPercent);
-		}
-	}
+			MonsterHPBar->SetPercent(TargetPercent); } 
+	} 
 }
 
-void UUK_MonsterHealthBar::BindMonsterStats(UAI_MonsterStatComponent* StatComp)
-{
-	// 에러가 나던 AddDynamic 라인을 삭제하고 컴포넌트 주소만 저장
-	if ( StatComp )
-	{
-		TargetStatComp = StatComp;
-
-		// 즉시 초기화
-		UpdateHPBar(TargetStatComp->GetHP(), TargetStatComp->GetMaxHP());
-	}
+void UUK_MonsterHealthBar::BindMonsterStats(UAI_MonsterStatComponent* StatComp) 
+{ 
+	// 에러가 나던 AddDynamic 라인을 삭제하고 컴포넌트 주소만 저장 
+	if ( StatComp ) 
+	{ 
+		TargetStatComp = StatComp; 
+		TargetStatComp->OnHPChanged.AddDynamic(this, &UUK_MonsterHealthBar::UpdateHPBar); 
+		UpdateHPBar(TargetStatComp->GetHP());
+	} 
 }
+
+//void UUK_MonsterHealthBar::SetHPBarActive(bool bActive) {
+//	if ( bActive ) 
+//	{ 
+//		// 1. UI를 보이게 설정 
+//		SetVisibility(ESlateVisibility::SelfHitTestInvisible); 
+//		// 2. 타이머 시작 (0.1초 간격으로 반복) 
+//		if ( GetWorld() ) 
+//		{
+//			GetWorld()->GetTimerManager().SetTimer( HPUpdateTimerHandle, this, &UUK_MonsterHealthBar::UpdateHPBar, 0.1f, true ); 
+//		} 
+//	} 
+//	else 
+//	{ 
+//		SetVisibility(ESlateVisibility::SelfHitTestInvisible); 
+//		// 1. UI를 완전히 숨김 (렌더링 안 함) 
+//		// //SetVisibility(ESlateVisibility::Collapsed); 
+//		// 2. 타이머 중지 (연산 안 함) 
+//		if ( GetWorld() ) 
+//		{ 
+//			GetWorld()->GetTimerManager().ClearTimer(HPUpdateTimerHandle); 
+//		} 
+//	} 
+//}

@@ -6,31 +6,39 @@
 
 /**
  * 엘리트 몬스터 순찰 태스크
- *
- * ■ 웨이포인트 모드 : AIEliteMonsterBase.PatrolWaypoints 에 액터가 설정된 경우
- *                     순서대로 이동 (루프). 도착 시 잠깐 대기 후 다음 포인트로.
- * ■ 랜덤 순찰 모드  : 웨이포인트가 없으면 스폰 위치 기준 PatrolRadius 내 랜덤 이동.
- *                     (기존 FindPatrolLocation + MoveTo 를 이 태스크 하나로 통합)
+ * ■ 랜덤 순찰 모드 : 스폰 위치 기준 PatrolRadius 내 랜덤 이동.
  */
 UCLASS()
 class UK_API UUK_BTTask_ElitePatrol : public UBTTaskNode
 {
 	GENERATED_BODY()
 
+#pragma region Initialization
 public:
 	UUK_BTTask_ElitePatrol();
-
 	virtual uint16 GetInstanceMemorySize() const override;
+#pragma endregion
 
+#pragma region Execution
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
-	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+#pragma endregion
 
+#pragma region Patrol Tick
+	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+#pragma endregion
+
+#pragma region Abort
+	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+#pragma endregion
+
+#pragma region Blackboard Keys
 	/** 스폰 위치 블랙보드 키 */
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector SpawnLocationKey;
+#pragma endregion
 
+#pragma region Patrol Settings
 	/** 도착 판정 거리 */
 	UPROPERTY(EditAnywhere, Category = "Patrol")
 	float AcceptanceRadius = 100.0f;
@@ -45,16 +53,21 @@ protected:
 	/** 랜덤 순찰 모드 — 이동 실패 시 최대 재시도 횟수 */
 	UPROPERTY(EditAnywhere, Category = "Patrol")
 	int32 MaxNavRetries = 3;
+#pragma endregion
 
+#pragma region Memory
 private:
 	struct FElitePatrolMemory
 	{
-		bool  bMoving        = false;
-		bool  bWaiting       = false;
-		float WaitTimeLeft   = 0.f;
+		bool    bMoving        = false;
+		bool    bWaiting       = false;
+		float   WaitTimeLeft   = 0.f;
 		FVector TargetLocation = FVector::ZeroVector;
-		int32 NavRetryCount  = 0;
+		int32   NavRetryCount  = 0;
 	};
+#pragma endregion
 
+#pragma region Navigation
 	bool RequestMoveTo(AAIController* AICon, const FVector& Dest);
+#pragma endregion
 };

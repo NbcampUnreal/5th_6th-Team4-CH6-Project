@@ -5,15 +5,17 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
+#pragma region Initialization
 UUK_BTTask_EliteSpecialAttack::UUK_BTTask_EliteSpecialAttack()
 {
 	NodeName            = "Elite Special Attack";
 	bNotifyTick         = false;
 	bCreateNodeInstance = true;
 }
+#pragma endregion
 
-EBTNodeResult::Type UUK_BTTask_EliteSpecialAttack::ExecuteTask(
-	UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+#pragma region Execution
+EBTNodeResult::Type UUK_BTTask_EliteSpecialAttack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	AAIController* AICon = OwnerComp.GetAIOwner();
 	if (!AICon) return EBTNodeResult::Failed;
@@ -21,27 +23,21 @@ EBTNodeResult::Type UUK_BTTask_EliteSpecialAttack::ExecuteTask(
 	AUK_EliteMonster* Elite = Cast<AUK_EliteMonster>(AICon->GetPawn());
 	if (!Elite || Elite->IsDead()) return EBTNodeResult::Failed;
 
-	// 쿨다운 체크 — 아직 안 됐으면 Failed → BT 가 일반 공격으로 폴백
-	if (!Elite->CanUseSpecialAttack())
-	{
-		return EBTNodeResult::Failed;
-	}
+	if (!Elite->CanUseSpecialAttack()) return EBTNodeResult::Failed;
 
-	// 이동 정지
+	// ── 이동 정지 ────────────────────────────────────────────────────────
 	AICon->StopMovement();
 	if (UCharacterMovementComponent* MC = Elite->GetCharacterMovement())
 	{
 		MC->StopMovementImmediately();
 	}
 
-	// 타겟 방향 회전
-	UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
-	if (BB)
+	// ── 타겟 방향 회전 ────────────────────────────────────────────────────
+	if (UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent())
 	{
-		AActor* Target = Cast<AActor>(BB->GetValueAsObject(TEXT("TargetPlayer")));
-		if (Target)
+		if (AActor* Target = Cast<AActor>(BB->GetValueAsObject(TEXT("TargetPlayer"))))
 		{
-			FVector Dir = (Target->GetActorLocation() - Elite->GetActorLocation());
+			FVector Dir = Target->GetActorLocation() - Elite->GetActorLocation();
 			Dir.Z = 0.f;
 			if (!Dir.IsNearlyZero())
 			{
@@ -50,18 +46,17 @@ EBTNodeResult::Type UUK_BTTask_EliteSpecialAttack::ExecuteTask(
 		}
 	}
 
-	// 특수 공격 실행
-	if (!Elite->PlaySpecialAttack())
-	{
-		return EBTNodeResult::Failed;
-	}
+	// ── 특수 공격 실행 ────────────────────────────────────────────────────
+	if (!Elite->PlaySpecialAttack()) return EBTNodeResult::Failed;
 
 	CachedOwnerComp = &OwnerComp;
 	Elite->OnSpecialAttackFinished.BindUObject(this, &UUK_BTTask_EliteSpecialAttack::OnSpecialAttackFinished);
 
 	return EBTNodeResult::InProgress;
 }
+#pragma endregion
 
+#pragma region Special Attack Callback
 void UUK_BTTask_EliteSpecialAttack::OnSpecialAttackFinished(bool bSucceeded)
 {
 	if (!CachedOwnerComp.IsValid()) return;
@@ -79,9 +74,10 @@ void UUK_BTTask_EliteSpecialAttack::OnSpecialAttackFinished(bool bSucceeded)
 	FinishLatentTask(OwnerComp, bSucceeded ? EBTNodeResult::Succeeded : EBTNodeResult::Failed);
 	CachedOwnerComp.Reset();
 }
+#pragma endregion
 
-EBTNodeResult::Type UUK_BTTask_EliteSpecialAttack::AbortTask(
-	UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+#pragma region Abort
+EBTNodeResult::Type UUK_BTTask_EliteSpecialAttack::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	if (AAIController* AICon = OwnerComp.GetAIOwner())
 	{
@@ -89,7 +85,6 @@ EBTNodeResult::Type UUK_BTTask_EliteSpecialAttack::AbortTask(
 		{
 			Elite->OnSpecialAttackFinished.Unbind();
 			Elite->bIsAttacking = false;
-
 			if (UAnimInstance* Anim = Elite->GetMesh()->GetAnimInstance())
 			{
 				Anim->StopAllMontages(0.25f);
@@ -100,3 +95,4 @@ EBTNodeResult::Type UUK_BTTask_EliteSpecialAttack::AbortTask(
 	CachedOwnerComp.Reset();
 	return EBTNodeResult::Aborted;
 }
+#pragma endregion

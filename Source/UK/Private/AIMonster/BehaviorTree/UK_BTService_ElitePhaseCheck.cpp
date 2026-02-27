@@ -3,6 +3,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "AIMonster/Monster/UK_EliteMonster.h"
 
+#pragma region Initialization
 UUK_BTService_ElitePhaseCheck::UUK_BTService_ElitePhaseCheck()
 {
 	NodeName        = "Elite Special Attack Check";
@@ -11,7 +12,9 @@ UUK_BTService_ElitePhaseCheck::UUK_BTService_ElitePhaseCheck()
 
 	CanSpecialAttackKey.AddBoolFilter(this, GET_MEMBER_NAME_CHECKED(UUK_BTService_ElitePhaseCheck, CanSpecialAttackKey));
 }
+#pragma endregion
 
+#pragma region Phase Check
 void UUK_BTService_ElitePhaseCheck::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
@@ -27,3 +30,4 @@ void UUK_BTService_ElitePhaseCheck::TickNode(UBehaviorTreeComponent& OwnerComp, 
 
 	BB->SetValueAsBool(CanSpecialAttackKey.SelectedKeyName, Elite->CanUseSpecialAttack());
 }
+#pragma endregion

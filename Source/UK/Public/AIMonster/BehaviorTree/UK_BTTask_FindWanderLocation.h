@@ -16,11 +16,13 @@ class UK_API UUK_BTTask_FindWanderLocation : public UBTTaskNode
 {
 	GENERATED_BODY()
 
+#pragma region Initialization
 public:
 	UUK_BTTask_FindWanderLocation();
-
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+#pragma endregion
 
+#pragma region Wander Location Search
 protected:
 	/** 배회 목적지를 저장할 블랙보드 키 (Vector) */
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
@@ -31,9 +33,10 @@ protected:
 	float WanderRadius = 500.0f;
 
 	/**
-	 * 스폰 위치에서 이 거리 이내에 있으면 현재 위치 기준으로 탐색
+	 * true 이면 몬스터 에셋의 PatrolRadius 기반 반경 사용
 	 * 멀리 나가면 스폰 위치로 되돌아오도록 유도
 	 */
 	UPROPERTY(EditAnywhere, Category = "Wander")
 	bool bUseMonsterRadiusFromAsset = true;
+#pragma endregion
 };

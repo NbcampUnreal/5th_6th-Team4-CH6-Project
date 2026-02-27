@@ -40,5 +40,6 @@ void UHitCheckAbility::Attack(FGameplayAbilityTargetDataHandle TargetDataHandle)
 				}
 			}
 		}
+		UKPC->LockON();
 	}
 }

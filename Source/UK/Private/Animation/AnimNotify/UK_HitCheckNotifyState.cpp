@@ -18,7 +18,7 @@ void UUK_HitCheckNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAni
 		HitTimer,
 		this,
 		&ThisClass::HitCheck,
-		0.016f,
+		0.05f,
 		true
 	);
 

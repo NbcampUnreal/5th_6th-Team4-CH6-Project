@@ -13,19 +13,27 @@ class UK_API UUK_BTService_CheckChaseDistance : public UBTService
 {
 	GENERATED_BODY()
 
+#pragma region Initialization
 public:
 	UUK_BTService_CheckChaseDistance();
+#pragma endregion
 
+#pragma region Chase Distance Check
 protected:
 	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+#pragma endregion
 
+#pragma region Blackboard Keys
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector TargetPlayerKey;
-	
+
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector SpawnLocationKey;
+#pragma endregion
 
-	// 추격 포기 거리 (이 거리를 벗어나면 추격 중단)
+#pragma region Settings
+	/** 추격 포기 거리 (이 거리를 벗어나면 추격 중단) */
 	UPROPERTY(EditAnywhere, Category = "AI")
 	float MaxChaseDistance = 1500.0f;
+#pragma endregion
 };

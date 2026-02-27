@@ -6,10 +6,11 @@
 #include "AIMonster/Monster/UK_EliteMonster.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
+#pragma region Initialization
 UUK_BTTask_ElitePatrol::UUK_BTTask_ElitePatrol()
 {
-	NodeName        = "Elite Patrol";
-	bNotifyTick     = true;
+	NodeName            = "Elite Patrol";
+	bNotifyTick         = true;
 	bCreateNodeInstance = true;
 
 	SpawnLocationKey.AddVectorFilter(this, GET_MEMBER_NAME_CHECKED(UUK_BTTask_ElitePatrol, SpawnLocationKey));
@@ -19,11 +20,11 @@ uint16 UUK_BTTask_ElitePatrol::GetInstanceMemorySize() const
 {
 	return sizeof(FElitePatrolMemory);
 }
+#pragma endregion
 
+#pragma region Execution
 EBTNodeResult::Type UUK_BTTask_ElitePatrol::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	UE_LOG(LogTemp, Warning, TEXT("[ElitePatrol] ExecuteTask called"));
-	
 	FElitePatrolMemory* Mem = reinterpret_cast<FElitePatrolMemory*>(NodeMemory);
 	*Mem = FElitePatrolMemory{};
 
@@ -36,67 +37,38 @@ EBTNodeResult::Type UUK_BTTask_ElitePatrol::ExecuteTask(UBehaviorTreeComponent& 
 	UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
 	if (!BB) return EBTNodeResult::Failed;
 
-	FVector TargetLocation = FVector::ZeroVector;
-	bool bFoundTarget = false;
+	// ── 랜덤 순찰 위치 탐색 ─────────────────────────────────────────────
+	const FVector SpawnLocation = BB->GetValueAsVector(SpawnLocationKey.SelectedKeyName);
+	FVector TargetLocation      = FVector::ZeroVector;
+	bool    bFoundTarget        = false;
 
-	// ── 웨이포인트 모드 ─────────────────────────────────────────────────
-	if (Elite->HasWaypoints())
+	UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(Elite->GetWorld());
+	if (NavSys)
 	{
-		TargetLocation = Elite->GetNextWaypointLocation();
-		bFoundTarget   = true;
-
-		UE_LOG(LogTemp, Log, TEXT("[ElitePatrol] %s: Waypoint[%d] -> (%.0f, %.0f, %.0f)"),
-			*Elite->GetName(),
-			(Elite->CurrentWaypointIndex - 1 + Elite->PatrolWaypoints.Num()) % Elite->PatrolWaypoints.Num(),
-			TargetLocation.X, TargetLocation.Y, TargetLocation.Z);
-	}
-	// ── 랜덤 순찰 모드 ─────────────────────────────────────────────────
-	else
-	{
-		FVector SpawnLocation = BB->GetValueAsVector(SpawnLocationKey.SelectedKeyName);
-		float Radius = Elite->PatrolRadius;
-
-		UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(Elite->GetWorld());
-		if (NavSys)
+		for (int32 i = 0; i < MaxNavRetries; ++i)
 		{
-			for (int32 i = 0; i < MaxNavRetries; ++i)
+			FNavLocation NavResult;
+			if (NavSys->GetRandomPointInNavigableRadius(SpawnLocation, Elite->PatrolRadius, NavResult))
 			{
-				FNavLocation NavResult;
-				if (NavSys->GetRandomPointInNavigableRadius(SpawnLocation, Radius, NavResult))
-				{
-					TargetLocation = NavResult.Location;
-					bFoundTarget   = true;
-					break;
-				}
+				TargetLocation = NavResult.Location;
+				bFoundTarget   = true;
+				break;
 			}
 		}
 	}
 
-	if (!bFoundTarget)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ElitePatrol] %s: Could not find patrol target"), *Elite->GetName());
-		return EBTNodeResult::Failed;
-	}
+	if (!bFoundTarget) return EBTNodeResult::Failed;
 
 	Mem->TargetLocation = TargetLocation;
 
-	if (!RequestMoveTo(AICon, TargetLocation))
-	{
-		return EBTNodeResult::Failed;
-	}
+	if (!RequestMoveTo(AICon, TargetLocation)) return EBTNodeResult::Failed;
 
 	Mem->bMoving = true;
-	
-	if (!bFoundTarget)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[ElitePatrol] Nav target not found - SpawnLoc: %s"),
-			*BB->GetValueAsVector(SpawnLocationKey.SelectedKeyName).ToString());
-		return EBTNodeResult::Failed;
-	}
-	
 	return EBTNodeResult::InProgress;
 }
+#pragma endregion
 
+#pragma region Patrol Tick
 void UUK_BTTask_ElitePatrol::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	FElitePatrolMemory* Mem = reinterpret_cast<FElitePatrolMemory*>(NodeMemory);
@@ -107,55 +79,46 @@ void UUK_BTTask_ElitePatrol::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* 
 	AUK_EliteMonster* Elite = Cast<AUK_EliteMonster>(AICon->GetPawn());
 	if (!Elite) { FinishLatentTask(OwnerComp, EBTNodeResult::Failed); return; }
 
-	// ── 도착 후 대기 중 ───────────────────────────────────────────────
+	// ── 대기 중 ──────────────────────────────────────────────────────────
 	if (Mem->bWaiting)
 	{
 		Mem->WaitTimeLeft -= DeltaSeconds;
 		if (Mem->WaitTimeLeft <= 0.f)
 		{
-			// 대기 완료 → 다음 순찰 위치로 (태스크 재실행은 BT 가 처리)
 			FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 		}
 		return;
 	}
 
-	// ── 이동 중: 도착 체크 ─────────────────────────────────────────────
+	// ── 이동 중: 도착 체크 + 스턱 감지 ─────────────────────────────────
 	if (Mem->bMoving)
 	{
-		float Dist = FVector::Dist(Elite->GetActorLocation(), Mem->TargetLocation);
+		const float Dist = FVector::Dist(Elite->GetActorLocation(), Mem->TargetLocation);
 		if (Dist <= AcceptanceRadius)
 		{
 			AICon->StopMovement();
-			Mem->bMoving  = false;
-			Mem->bWaiting = true;
+			Mem->bMoving      = false;
+			Mem->bWaiting     = true;
 			Mem->WaitTimeLeft = FMath::RandRange(MinWaitAtWaypoint, MaxWaitAtWaypoint);
-
-			UE_LOG(LogTemp, Log, TEXT("[ElitePatrol] %s: Arrived! Waiting %.1fs"),
-				*Elite->GetName(), Mem->WaitTimeLeft);
 			return;
 		}
 
-		// 스턱 감지 — 속도가 거의 없고 목적지와 멀면 재이동
 		if (UCharacterMovementComponent* MC = Elite->GetCharacterMovement())
 		{
 			if (MC->Velocity.SizeSquared() < 100.f && Dist > AcceptanceRadius * 2.f)
 			{
 				++Mem->NavRetryCount;
 				if (Mem->NavRetryCount <= MaxNavRetries)
-				{
 					RequestMoveTo(AICon, Mem->TargetLocation);
-				}
 				else
-				{
-					// 목적지 포기 → Succeeded 로 다음 포인트 진행
-					UE_LOG(LogTemp, Warning, TEXT("[ElitePatrol] %s: Stuck — skipping waypoint"), *Elite->GetName());
 					FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
-				}
 			}
 		}
 	}
 }
+#pragma endregion
 
+#pragma region Abort
 EBTNodeResult::Type UUK_BTTask_ElitePatrol::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	if (AAIController* AICon = OwnerComp.GetAIOwner())
@@ -164,7 +127,9 @@ EBTNodeResult::Type UUK_BTTask_ElitePatrol::AbortTask(UBehaviorTreeComponent& Ow
 	}
 	return EBTNodeResult::Aborted;
 }
+#pragma endregion
 
+#pragma region Navigation
 bool UUK_BTTask_ElitePatrol::RequestMoveTo(AAIController* AICon, const FVector& Dest)
 {
 	if (!AICon) return false;
@@ -175,7 +140,6 @@ bool UUK_BTTask_ElitePatrol::RequestMoveTo(AAIController* AICon, const FVector& 
 	MoveReq.SetAllowPartialPath(true);
 
 	FNavPathSharedPtr NavPath;
-	EPathFollowingRequestResult::Type Result = AICon->MoveTo(MoveReq, &NavPath);
-
-	return Result != EPathFollowingRequestResult::Failed;
+	return AICon->MoveTo(MoveReq, &NavPath) != EPathFollowingRequestResult::Failed;
 }
+#pragma endregion

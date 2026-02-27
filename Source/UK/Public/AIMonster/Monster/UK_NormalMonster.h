@@ -15,9 +15,11 @@ class UK_API AUK_NormalMonster : public AAIMonsterBase
 {
 	GENERATED_BODY()
 
+#pragma region Initialization
 public:
 	AUK_NormalMonster();
 
 protected:
 	virtual void BeginPlay() override;
+#pragma endregion
 };
