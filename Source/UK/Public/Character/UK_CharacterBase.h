@@ -112,6 +112,7 @@ public:
 	void Client_HideInteractUI();
 
 #pragma endregion
+
 #pragma region GAS
 protected:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
@@ -163,6 +164,12 @@ protected:
 	UFUNCTION()
 	void Setting();
 
+	UFUNCTION()
+	void NomalSkill();
+
+	UFUNCTION()
+	void UltimateSkill();
+
 public:
 	UFUNCTION(BlueprintCallable)
 	void LockON();
@@ -186,6 +193,7 @@ protected:
 
 	bool bIsCrouched;
 
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	bool bIsSprinted;
 
 	UPROPERTY()
