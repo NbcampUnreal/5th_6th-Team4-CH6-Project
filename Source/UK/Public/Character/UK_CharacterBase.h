@@ -81,9 +81,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
 	TObjectPtr<UStatusComponent> StatusComponent;
 
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
-	//TObjectPtr<UUK_CombatAnimationComponent> AnimationComponent;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUK_InventoryComponent> InventoryComponent;
 
@@ -195,6 +192,9 @@ protected:
 
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	bool bIsSprinted;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	float SprintSpeed;
 
 	UPROPERTY()
 	TArray<TObjectPtr<AAIMonsterBase>> LockOnList;
