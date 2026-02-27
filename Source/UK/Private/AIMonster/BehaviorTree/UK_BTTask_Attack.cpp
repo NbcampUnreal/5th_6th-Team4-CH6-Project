@@ -6,15 +6,17 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
+#pragma region Initialization
 UUK_BTTask_Attack::UUK_BTTask_Attack()
 {
-	NodeName = "Attack (Montage)";
-	bNotifyTick = false;         
+	NodeName           = "Attack (Montage)";
+	bNotifyTick        = false;
 	bCreateNodeInstance = true;
 }
+#pragma endregion
 
-EBTNodeResult::Type UUK_BTTask_Attack::ExecuteTask(
-	UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+#pragma region Execution
+EBTNodeResult::Type UUK_BTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	AAIController* AICon = OwnerComp.GetAIOwner();
 	if (!AICon) return EBTNodeResult::Failed;
@@ -22,32 +24,28 @@ EBTNodeResult::Type UUK_BTTask_Attack::ExecuteTask(
 	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(AICon->GetPawn());
 	if (!Monster || Monster->IsDead()) return EBTNodeResult::Failed;
 
-	// 이동 완전 정지 (텔레포트 방지)
+	// ── 이동 정지 ────────────────────────────────────────────────────────
 	AICon->StopMovement();
 	if (UCharacterMovementComponent* MoveComp = Monster->GetCharacterMovement())
 	{
 		MoveComp->StopMovementImmediately();
 	}
 
-	// 타겟 방향 회전
-	UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
-	if (BB)
+	// ── 타겟 방향 회전 ────────────────────────────────────────────────────
+	if (UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent())
 	{
-		AActor* TargetPlayer = Cast<AActor>(BB->GetValueAsObject(TEXT("TargetPlayer")));
-		if (TargetPlayer)
+		if (AActor* TargetPlayer = Cast<AActor>(BB->GetValueAsObject(TEXT("TargetPlayer"))))
 		{
-			FVector DirectionToTarget = TargetPlayer->GetActorLocation() - Monster->GetActorLocation();
-			DirectionToTarget.Z = 0.f;
-			
-			if (!DirectionToTarget.IsNearlyZero())
+			FVector Dir = TargetPlayer->GetActorLocation() - Monster->GetActorLocation();
+			Dir.Z = 0.f;
+			if (!Dir.IsNearlyZero())
 			{
-				FRotator TargetRotation = DirectionToTarget.Rotation();
-				Monster->SetActorRotation(TargetRotation);
+				Monster->SetActorRotation(Dir.Rotation());
 			}
 		}
 	}
 
-	// 공격 몽타주 재생
+	// ── 공격 몽타주 재생 ─────────────────────────────────────────────────
 	if (!Monster->PlayRandomAttackMontage())
 	{
 		return EBTNodeResult::Failed;
@@ -58,7 +56,9 @@ EBTNodeResult::Type UUK_BTTask_Attack::ExecuteTask(
 
 	return EBTNodeResult::InProgress;
 }
+#pragma endregion
 
+#pragma region Attack Callback
 void UUK_BTTask_Attack::OnAttackFinished(bool bSucceeded)
 {
 	if (!CachedOwnerComp.IsValid()) return;
@@ -76,15 +76,14 @@ void UUK_BTTask_Attack::OnAttackFinished(bool bSucceeded)
 	FinishLatentTask(OwnerComp, bSucceeded ? EBTNodeResult::Succeeded : EBTNodeResult::Failed);
 	CachedOwnerComp.Reset();
 }
+#pragma endregion
 
-EBTNodeResult::Type UUK_BTTask_Attack::AbortTask(
-	UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+#pragma region Abort
+EBTNodeResult::Type UUK_BTTask_Attack::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	AAIController* AICon = OwnerComp.GetAIOwner();
-	if (AICon)
+	if (AAIController* AICon = OwnerComp.GetAIOwner())
 	{
-		AAIMonsterBase* Monster = Cast<AAIMonsterBase>(AICon->GetPawn());
-		if (Monster)
+		if (AAIMonsterBase* Monster = Cast<AAIMonsterBase>(AICon->GetPawn()))
 		{
 			Monster->OnAttackFinished.Unbind();
 			Monster->bIsAttacking = false;
@@ -98,3 +97,4 @@ EBTNodeResult::Type UUK_BTTask_Attack::AbortTask(
 	CachedOwnerComp.Reset();
 	return EBTNodeResult::Aborted;
 }
+#pragma endregion

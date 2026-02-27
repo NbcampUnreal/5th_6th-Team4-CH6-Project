@@ -16,8 +16,14 @@ class UK_API UUK_Setting : public UUserWidget
 	GENERATED_BODY()
 
 public:
+
+	virtual void NativeConstruct() override;
+
 	UPROPERTY(meta = ( BindWidget ))
 	UButton* Sound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UUserWidget> SoundWidgetClass;
 
 	UPROPERTY(meta = ( BindWidget ))
 	UButton* Control;
@@ -30,4 +36,8 @@ public:
 
 	UPROPERTY(meta = ( BindWidget ))
 	UButton* Exit;
+
+	UFUNCTION()
+	void OnSoundButtonClicked();
+
 };

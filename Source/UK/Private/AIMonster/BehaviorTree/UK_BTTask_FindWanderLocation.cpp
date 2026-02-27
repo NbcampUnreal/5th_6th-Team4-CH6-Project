@@ -1,17 +1,18 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-#include "AIMonster/BehaviorTree/UK_BTTask_FindWanderLocation.h"
+﻿#include "AIMonster/BehaviorTree/UK_BTTask_FindWanderLocation.h"
 #include "AIController.h"
 #include "NavigationSystem.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "AIMonster/AIMonsterBase.h"
 
+#pragma region Initialization
 UUK_BTTask_FindWanderLocation::UUK_BTTask_FindWanderLocation()
 {
 	NodeName = "Find Wander Location";
 	WanderLocationKey.AddVectorFilter(this, GET_MEMBER_NAME_CHECKED(UUK_BTTask_FindWanderLocation, WanderLocationKey));
 }
+#pragma endregion
 
+#pragma region Wander Location Search
 EBTNodeResult::Type UUK_BTTask_FindWanderLocation::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	AAIController* AIController = OwnerComp.GetAIOwner();
@@ -35,8 +36,8 @@ EBTNodeResult::Type UUK_BTTask_FindWanderLocation::ExecuteTask(UBehaviorTreeComp
 		? Monster->SpawnLocation
 		: ControlledPawn->GetActorLocation();
 
-	const float DistFromSpawn = FVector::Dist2D(ControlledPawn->GetActorLocation(), SearchOrigin);
-	if (DistFromSpawn < UsedRadius * 0.7f)
+	// 스폰 가까이 있으면 현재 위치를 중심으로 배회
+	if (FVector::Dist2D(ControlledPawn->GetActorLocation(), SearchOrigin) < UsedRadius * 0.7f)
 	{
 		SearchOrigin = ControlledPawn->GetActorLocation();
 	}
@@ -44,29 +45,25 @@ EBTNodeResult::Type UUK_BTTask_FindWanderLocation::ExecuteTask(UBehaviorTreeComp
 	UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(OwnerComp.GetWorld());
 	if (!NavSystem) return EBTNodeResult::Failed;
 
-	// 폰의 실제 Z값 — NavMesh Z 대신 이걸로 고정해서 공중 뜨는 현상 방지
-	const float PawnZ = ControlledPawn->GetActorLocation().Z;
+	const float PawnZ            = ControlledPawn->GetActorLocation().Z;
+	const int32 MaxAttempts      = 5;
+	const float MinWanderDist    = 150.0f;
 
-	const int32 MaxAttempts = 5;
-	const float MinWanderDistance = 150.0f;
-
+	// ── 최소 거리 조건을 만족하는 위치 탐색 ─────────────────────────────
 	for (int32 i = 0; i < MaxAttempts; ++i)
 	{
 		FNavLocation ResultLocation;
 		if (NavSystem->GetRandomPointInNavigableRadius(SearchOrigin, UsedRadius, ResultLocation))
 		{
-			const float DistToCurrent = FVector::Dist2D(ControlledPawn->GetActorLocation(), ResultLocation.Location);
-			if (DistToCurrent >= MinWanderDistance)
+			if (FVector::Dist2D(ControlledPawn->GetActorLocation(), ResultLocation.Location) >= MinWanderDist)
 			{
-				FVector FinalLocation = ResultLocation.Location;
-
-				BlackboardComp->SetValueAsVector(WanderLocationKey.SelectedKeyName, FinalLocation);
+				BlackboardComp->SetValueAsVector(WanderLocationKey.SelectedKeyName, ResultLocation.Location);
 				return EBTNodeResult::Succeeded;
 			}
 		}
 	}
 
-	// 최소 거리 포기하고 폴백
+	// ── 폴백: 최소 거리 포기 ─────────────────────────────────────────────
 	FNavLocation FallbackLocation;
 	if (NavSystem->GetRandomPointInNavigableRadius(SearchOrigin, UsedRadius, FallbackLocation))
 	{
@@ -78,3 +75,4 @@ EBTNodeResult::Type UUK_BTTask_FindWanderLocation::ExecuteTask(UBehaviorTreeComp
 
 	return EBTNodeResult::Failed;
 }
+#pragma endregion

@@ -13,18 +13,24 @@ class UK_API UUK_BTService_CheckPlayerProximity : public UBTService
 {
 	GENERATED_BODY()
 
+#pragma region Initialization
 public:
 	UUK_BTService_CheckPlayerProximity();
+#pragma endregion
 
+#pragma region Proximity Check
 protected:
 	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+#pragma endregion
 
+#pragma region Blackboard Keys
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector TargetPlayerKey;
-	
+
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector IsPlayerCloseKey;  // bool 키
-	
+
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector SpawnLocationKey;
+#pragma endregion
 };

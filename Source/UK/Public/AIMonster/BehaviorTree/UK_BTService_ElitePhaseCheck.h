@@ -6,23 +6,26 @@
 
 /**
  * 엘리트 몬스터 특수 공격 쿨다운 상태를 블랙보드에 동기화하는 서비스
- *
  * ■ bCanSpecialAttack — 특수 공격 가능 여부 (쿨다운 체크)
- *
- * Chase 브랜치 상단에 배치하면 됩니다.
  */
 UCLASS()
 class UK_API UUK_BTService_ElitePhaseCheck : public UBTService
 {
 	GENERATED_BODY()
 
+#pragma region Initialization
 public:
 	UUK_BTService_ElitePhaseCheck();
+#pragma endregion
 
+#pragma region Phase Check
 protected:
 	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+#pragma endregion
 
+#pragma region Blackboard Keys
 	/** 특수 공격 가능 여부를 저장할 블랙보드 키 (Bool) */
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector CanSpecialAttackKey;
+#pragma endregion
 };

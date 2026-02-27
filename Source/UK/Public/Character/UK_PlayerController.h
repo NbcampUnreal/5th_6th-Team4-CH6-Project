@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "UI/InGame/UK_Stamina.h"
+#include "UI/InGame/UK_Setting.h"
 #include "UK_PlayerController.generated.h"
 
 
@@ -12,6 +13,14 @@
 class UInputMappingContext;
 class UInputAction;
 #pragma endregion
+
+UENUM(BlueprintType)
+enum class EInputState : uint8
+{
+	Game,
+	UI,
+	Cutscene
+};
 
 UCLASS()
 class UK_API AUK_PlayerController : public APlayerController
@@ -26,13 +35,44 @@ public:
 	virtual void BeginPlay() override;
 	virtual void PostSeamlessTravel() override;
 	virtual void OnPossess(APawn* pawn) override;
-	virtual void Tick(float DeltaSeconds) override;
-	void ToggleMouseCursor();
 
+private:
+	UFUNCTION(Client, Reliable)
+	void Client_CreatePlayerUI();
+
+public:
+	// ----- Input -----
+
+	void ApplyInputState(EInputState NewState);
+
+private:
+	EInputState CurrentInputState = EInputState::Game;
+
+	// ----- Cursor ----- 
+
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	bool bMouseCursorEnabled = false;
 
-	// UI 위치 조정
+	void ToggleMouseCursor();
+	void SetCursorVisible(bool bVisible);
+
+	// ----- Setting -----
+
+	UPROPERTY()
+	UUK_Setting* SettingWidget;
+
+	UPROPERTY(EditAnywhere, Category = "UI")
+	TSubclassOf<UUK_Setting> SettingWidgetClass;
+
+	bool bIsSetting = false;
+	void Setting_UI();
+
+	// ----- Stamina ----- 
+
+public:
+	FTimerHandle StaminaTrackingTimer;
+	void UpdateStaminaTracking();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TrackingUI")
 	FVector Stemina_Location = FVector(0.f, 0.f, 110.f);

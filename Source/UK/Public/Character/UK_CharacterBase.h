@@ -7,6 +7,8 @@
 #include "AbilitySystemInterface.h"
 #include "ActorComponent/StatusComponent.h"
 #include "GameplayTagContainer.h"
+#include "UK_PlayerController.h"
+#include "AIMonster/AIMonsterBase.h"
 #include "UK_CharacterBase.generated.h"
 
 #define ECC_LockOn ECollisionChannel::ECC_GameTraceChannel2
@@ -110,6 +112,7 @@ public:
 	void Client_HideInteractUI();
 
 #pragma endregion
+
 #pragma region GAS
 protected:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
@@ -125,6 +128,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UUK_InputConfig* InputMappingConfig;
 protected:
+
+	AUK_PlayerController* PC;
 
 	UFUNCTION()
 	void Move(const FInputActionValue& InputActionValue);
@@ -156,9 +161,21 @@ protected:
 	UFUNCTION()
 	void Interaction();
 
+	UFUNCTION()
+	void Setting();
+
+	UFUNCTION()
+	void NomalSkill();
+
+	UFUNCTION()
+	void UltimateSkill();
+
 public:
 	UFUNCTION(BlueprintCallable)
 	void LockON();
+
+	UFUNCTION(BlueprintCallable)
+	void LockONToggle();
 
 	UFUNCTION(BlueprintCallable)
 	void LockONTick();
@@ -176,6 +193,7 @@ protected:
 
 	bool bIsCrouched;
 
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	bool bIsSprinted;
 
 	UPROPERTY()
@@ -255,5 +273,19 @@ public:
 
 	float DefaultGravityValue;
 	FOnFloorDelagate OnFloor;
+#pragma endregion
+
+#pragma region FindMonsterHPBar
+	public:
+
+		void UpdateMonsterDetection();
+
+		UPROPERTY()
+		TSet<AAIMonsterBase*> NearbyMonsters;
+
+		UPROPERTY(BlueprintReadWrite, EditAnywhere,  Category = "UI/DetactBoundary")
+		float DetectRadius = 1000.0f;
+
+		FTimerHandle DetectTimer;
 #pragma endregion
 };

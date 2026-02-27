@@ -12,10 +12,13 @@ class UK_API UUKAIMonsterAnimInstance : public UAnimInstance
 {
 	GENERATED_BODY()
 
+#pragma region Initialization
 public:
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
+#pragma endregion
 
+#pragma region Animation Properties
 	/** 이동 속도 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
 	float Speed = 0.f;
@@ -31,14 +34,20 @@ public:
 	/** 적대 상태 여부 (평화 몬스터용) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
 	bool bIsAggressive = false;
-	
-	// BS2D Forward, Right Movespeed
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement")
-	float ForwardSpeed;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement")
-	float RightSpeed;
+#pragma endregion
 
+#pragma region Movement Properties
+	// BS2D Forward, Right Movespeed
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
+	float ForwardSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
+	float RightSpeed;
+#pragma endregion
+
+#pragma region Private
 private:
 	UPROPERTY()
 	class AAIMonsterBase* OwnerMonster = nullptr;
+#pragma endregion
 };
