@@ -36,9 +36,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Settings")
 	float RespawnDelay = 10.0f;
 
+	/** 몬스터 간 최소 거리 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Settings")
 	float MinSpawnDistance = 200.0f;
 
+	/** 스포너 중심에서 최소 거리 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Settings")
 	float MinCenterDistance = 150.0f;
 
@@ -53,9 +55,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Spawner")
 	void StopSpawning();
-
-	UFUNCTION(BlueprintCallable, Category = "Spawner")
-	void ClearAllMonsters();
 
 	UFUNCTION()
 	void OnMonsterDied(AAIMonsterBase* DeadMonster);
