@@ -52,4 +52,15 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|Dialogue")
 	FName DialogueId;     // 예: D_Q_Start_S_DLV_001_Offer
+
+
+	// UI <- Definition <- Data 구조 설계중 (무현)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+	FText QuestTitle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+	FText QuestDescription;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+	FText NPCDialogue;
 };
