@@ -51,6 +51,7 @@ namespace UK_GameplayTags
 	namespace CoolDown
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(NomalSkill);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UltimateSkill);
 	}
 
 	namespace Food

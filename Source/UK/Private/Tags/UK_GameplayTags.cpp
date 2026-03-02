@@ -49,6 +49,7 @@ namespace UK_GameplayTags
 	namespace CoolDown
 	{
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(NomalSkill, "CoolDown.NomalSkill", "Nomalskill CoolDown")
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(UltimateSkill, "CoolDown.UltimateSkill", "UltimateSkill CoolDown")
 	}
 	namespace Food
 	{
