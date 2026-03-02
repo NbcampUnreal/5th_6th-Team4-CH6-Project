@@ -48,7 +48,10 @@ namespace UK_GameplayTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(HitCheck);
 
 	}
-
+	namespace CoolDown
+	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(NomalSkill);
+	}
 
 	namespace Food
 	{
