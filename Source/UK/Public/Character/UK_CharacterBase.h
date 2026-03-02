@@ -73,6 +73,9 @@ protected:
 	TObjectPtr<UCameraComponent> Camera;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USkeletalMeshComponent> SkeletalMeshComp;
+	 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkeletalMeshComponent> RightHandWeaponComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
