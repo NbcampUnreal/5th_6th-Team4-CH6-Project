@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "AIMonster/AIMonsterBase.h"
-#include "AIMonster/BossMonster/UK_BossTypes.h"
 #include "UK_BossMonsterBase.generated.h"
 
 UENUM(BlueprintType)
