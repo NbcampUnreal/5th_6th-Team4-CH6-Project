@@ -25,8 +25,11 @@ AUK_MapManager::AUK_MapManager()
 
 	MapCaptureComponent->bCaptureEveryFrame = false;
 	MapCaptureComponent->bCaptureOnMovement = false;
-
+	
+	#if WITH_EDITORONLY_DATA
 	SetIsSpatiallyLoaded(false);
+	#endif
+	
 }
 
 void AUK_MapManager::BeginPlay()
