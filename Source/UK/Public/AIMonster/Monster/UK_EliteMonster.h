@@ -43,6 +43,19 @@ public:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlaySpecialAttackMontage(int32 MontageIndex);
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Special Attack")
+	float SpecialAttackAoERadius = 500.f;  
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Special Attack")
+	float SpecialAttackDamage = 50.f;     
+	
+	FTimerHandle SpecialAttackAoETimerHandle;
+
+	UPROPERTY(EditAnywhere, Category = "Special Attack")
+	float SpecialAttackHitTiming = 0.4f;
+
+	void ApplySpecialAttackAoE();
 #pragma endregion
 
 #pragma region Debug
