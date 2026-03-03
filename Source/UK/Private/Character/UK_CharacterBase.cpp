@@ -354,6 +354,7 @@ void AUK_CharacterBase::UltimateSkill()
 	{
 		return;
 	}
+
 	bIsInInput = true;
 	FGameplayTagContainer Container;
 	Container.AddTag(UK_GameplayTags::Input::UltimateSkill);
@@ -747,11 +748,11 @@ void AUK_CharacterBase::StopJumpAndFly()
 
 void AUK_CharacterBase::EndComboAttack()
 {
+	UCharacterMovementComponent* PlayerMovement = GetCharacterMovement();
+	PlayerMovement->SetMovementMode(EMovementMode::MOVE_Walking);
 	if ( bIsfry == false )
 		return;
-	UCharacterMovementComponent* PlayerMovement = GetCharacterMovement();
 	GetCharacterMovement()->GravityScale = DefaultGravityValue;
-	PlayerMovement->SetMovementMode(EMovementMode::MOVE_Walking);
 	PlayerMovement->SetJumpAllowed(true);
 	bIsfry = false;
 }
