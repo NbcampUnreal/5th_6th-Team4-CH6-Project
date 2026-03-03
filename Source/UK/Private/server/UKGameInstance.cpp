@@ -1,254 +1,29 @@
-#include "Server/UKGameInstance.h"
+ï»¿#include "Server/UKGameInstance.h"
 #include "Engine/Engine.h"
 
-#include "OnlineSubsystem.h"
-#include "OnlineSubsystemUtils.h"
 #include "GameFramework/PlayerController.h"
 #include "Server/UKSaveGame.h"
 #include "Kismet/GameplayStatics.h"
 
-static const FName SESSION_NAME = NAME_GameSession;
 
-/* ¸ñ·Ï
-1. Lan ±â¹İ ¼¼¼Ç ±¸Çö ¹× °¡´ÉÇÑ ¿À·ù¹æÁö ½Ã½ºÅÛ 
-2. savegame °ü·ÃÃß°¡ ³»¿ë (¼­ºê½Ã½ºÅÛ ºĞ¸®½Ã Á¶Á¤ÇÒ°Í, ¼öÁ¤¾ö±İ*/
-
-
-
-// [1] Lan ±â¹İ ¼¼¼Ç
-
-/*ÃÖÁ¾ »ç¿ë ±ÔÄ¢(Áß¿ä)
-Àç»ı¼ºÇÏ°í ½ÍÀ» ¶§ : CreateSessionLAN() (ÀÌ¹Ì ÀÖÀ¸¸é ÀÚµ¿À¸·Î Destroy¡æCreate)
-±×³É ¹æÀ» ´İ°í ³¡³¾ ¶§ : CloseSessionLAN() (Àç»ı¼º ¾øÀÌ Destroy¸¸)*/
-
-
-void UUKGameInstance::Init()
-{
-	Super::Init();
-	UE_LOG(LogTemp, Log, TEXT("[GI] Init"));
-    if (IOnlineSubsystem* OSS = IOnlineSubsystem::Get())
-    {
-        SessionInterface = OSS->GetSessionInterface();
-    }
-
-    // Delegate ¹ÙÀÎµù ÁØºñ(ÇÚµéÀº ÇÔ¼ö È£Ãâ ½Ã AddOn...·Î Àâ´Â ÆíÀÌ ¾ÈÀü)
-    OnCreateSessionCompleteDelegate = FOnCreateSessionCompleteDelegate::CreateUObject(this, &UUKGameInstance::HandleCreateSessionComplete);
-    OnFindSessionsCompleteDelegate = FOnFindSessionsCompleteDelegate::CreateUObject(this, &UUKGameInstance::HandleFindSessionsComplete);
-    OnJoinSessionCompleteDelegate = FOnJoinSessionCompleteDelegate::CreateUObject(this, &UUKGameInstance::HandleJoinSessionComplete);
-    OnDestroySessionCompleteDelegate = FOnDestroySessionCompleteDelegate::CreateUObject(this, &UUKGameInstance::HandleDestroySessionComplete);
-}
-
-void UUKGameInstance::Shutdown()
-{
-	UE_LOG(LogTemp, Log, TEXT("[GI] Shutdown"));
-	Super::Shutdown();
-}
-
-void UUKGameInstance::CreateSessionLAN(int32 PublicConnections)
-{
-    if (!SessionInterface.IsValid()) return;
-
-    // Destroy ÁøÇà Áß¿¡´Â »õ Create ¿äÃ»À» ¡°¿¹¾à°ª¸¸ °»½Å¡±ÇÏ°í Á¾·á
-    if (bDestroyInProgress)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[Session] Destroy in progress. Update pending create settings only."));
-        bCreateAfterDestroy = true;
-        PendingPublicConnections = PublicConnections;
-        return;
-    }
-
-    // ÀÌ¹Ì ¼¼¼Ç ÀÖÀ¸¸é Á¤¸®ÇÏ°í ´Ù½Ã ¸¸µé±â
-    if (SessionInterface->GetNamedSession(SESSION_NAME))
-    {
-        bCreateAfterDestroy = true;
-        PendingPublicConnections = PublicConnections;
-        DestroySessionLAN();
-        return;
-    }
-
-    FOnlineSessionSettings Settings;
-    Settings.bIsLANMatch = true;
-    Settings.NumPublicConnections = PublicConnections;
-    Settings.bAllowJoinInProgress = true;
-    Settings.bAllowJoinViaPresence = false;   // Null¿¡¼± ÀÇ¹Ì ÀûÀ½
-    Settings.bShouldAdvertise = true;
-    Settings.bUsesPresence = false;
-    Settings.bUseLobbiesIfAvailable = false;
-
-    // °Ë»ö Å°¿öµå¿ë(¼±ÅÃ)
-    Settings.Set(FName("SERVER_NAME"), FString("LAN_TEST"), EOnlineDataAdvertisementType::ViaOnlineService);
-
-    OnCreateSessionCompleteHandle = SessionInterface->AddOnCreateSessionCompleteDelegate_Handle(OnCreateSessionCompleteDelegate);
-
-    const ULocalPlayer* LP = GetFirstGamePlayer();
-    const int32 UserNum = LP ? LP->GetControllerId() : 0;
-
-    SessionInterface->CreateSession(UserNum, SESSION_NAME, Settings);
-}
-
-void UUKGameInstance::HandleCreateSessionComplete(FName SessionName, bool bWasSuccessful)
-{
-    if (SessionInterface.IsValid())
-    {
-        SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(OnCreateSessionCompleteHandle);
-    }
-
-    UE_LOG(LogTemp, Log, TEXT("[Session] Create complete: %s, Success=%d"), *SessionName.ToString(), bWasSuccessful);
-
-}
-
-void UUKGameInstance::FindSessionsLAN(int32 MaxResults)
-{
-    if (!SessionInterface.IsValid()) return;
-
-    SessionSearch = MakeShared<FOnlineSessionSearch>();
-    SessionSearch->MaxSearchResults = MaxResults;
-    SessionSearch->bIsLanQuery = true;
-
-    OnFindSessionsCompleteHandle = SessionInterface->AddOnFindSessionsCompleteDelegate_Handle(OnFindSessionsCompleteDelegate);
-
-    const ULocalPlayer* LP = GetFirstGamePlayer();
-    const int32 UserNum = LP ? LP->GetControllerId() : 0;
-
-    SessionInterface->FindSessions(UserNum, SessionSearch.ToSharedRef());
-}
-
-void UUKGameInstance::HandleFindSessionsComplete(bool bWasSuccessful)
-{
-    if (SessionInterface.IsValid())
-    {
-        SessionInterface->ClearOnFindSessionsCompleteDelegate_Handle(OnFindSessionsCompleteHandle);
-    }
-
-    UE_LOG(LogTemp, Log, TEXT("[Session] Find complete: Success=%d"), bWasSuccessful);
-
-    if (!bWasSuccessful || !SessionSearch.IsValid()) return;
-
-    UE_LOG(LogTemp, Log, TEXT("[Session] Results: %d"), SessionSearch->SearchResults.Num());
-    for (int32 i = 0; i < SessionSearch->SearchResults.Num(); ++i)
-    {
-        const auto& R = SessionSearch->SearchResults[i];
-        FString ServerName;
-        R.Session.SessionSettings.Get(FName("SERVER_NAME"), ServerName);
-
-        UE_LOG(LogTemp, Log, TEXT("  [%d] Ping=%d, Name=%s"), i, R.PingInMs, *ServerName);
-    }
-}
-
-void UUKGameInstance::JoinFoundSession(int32 Index)
-{
-    if (!SessionInterface.IsValid() || !SessionSearch.IsValid()) return;
-    if (!SessionSearch->SearchResults.IsValidIndex(Index)) return;
-
-    OnJoinSessionCompleteHandle = SessionInterface->AddOnJoinSessionCompleteDelegate_Handle(OnJoinSessionCompleteDelegate);
-
-    const ULocalPlayer* LP = GetFirstGamePlayer();
-    const int32 UserNum = LP ? LP->GetControllerId() : 0;
-
-    SessionInterface->JoinSession(UserNum, SESSION_NAME, SessionSearch->SearchResults[Index]);
-}
-
-void UUKGameInstance::HandleJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
-{
-    if (SessionInterface.IsValid())
-    {
-        SessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(OnJoinSessionCompleteHandle);
-    }
-
-    UE_LOG(LogTemp, Log, TEXT("[Session] Join complete: %s, Result=%d"), *SessionName.ToString(), (int32)Result);
-
-    // 1. ¼º°øÀÌ ¾Æ´Ï¸é ÀÌÀ¯ ·Î±× Âï°í Á¾·á
-    if (Result != EOnJoinSessionCompleteResult::Success)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[Session] Join failed. Result=%d"), (int32)Result);
-        return;
-    }
-
-    // 2. ConnectString ¸ø ¾òÀ¸¸é ·Î±×
-    FString ConnectString;
-    if (!SessionInterface.IsValid() || !SessionInterface->GetResolvedConnectString(SessionName, ConnectString))
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[Session] Failed to resolve connect string for session %s"), *SessionName.ToString());
-        return;
-    }
-
-    // 3. PC ¾øÀ¸¸é ·Î±×
-    APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
-    if (!PC)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[Session] PlayerController is null (cannot ClientTravel)."));
-        return;
-    }
-
-    // 4. Join ÈÄ ½ÇÁ¦ Á¢¼Ó ÀÌµ¿(ÇÊ¼ö)
-    UE_LOG(LogTemp, Log, TEXT("[Session] ClientTravel to: %s"), *ConnectString);
-    PC->ClientTravel(ConnectString, ETravelType::TRAVEL_Absolute);
-}
-
-void UUKGameInstance::DestroySessionLAN()
-{
-    if (!SessionInterface.IsValid()) return;
-
-    // Destroy°¡ ÀÌ¹Ì ÁøÇà ÁßÀÌ¸é Áßº¹ È£Ãâ ¹æÁö
-    if (bDestroyInProgress)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[Session] Destroy already in progress. Ignored."));
-        return;
-    }
-
-    // ½ÇÁ¦·Î ¼¼¼ÇÀÌ ÀÖÀ» ¶§¸¸ Destroy ½Ãµµ(ºÒÇÊ¿ä È£Ãâ ¹æÁö)
-    if (!SessionInterface->GetNamedSession(SESSION_NAME))
-    {
-        UE_LOG(LogTemp, Log, TEXT("[Session] No session to destroy."));
-        return;
-    }
-
-    bDestroyInProgress = true;
-
-    OnDestroySessionCompleteHandle = SessionInterface->AddOnDestroySessionCompleteDelegate_Handle(OnDestroySessionCompleteDelegate);
-    SessionInterface->DestroySession(SESSION_NAME);
-}
-
-void UUKGameInstance::HandleDestroySessionComplete(FName SessionName, bool bWasSuccessful)
-{
-    if (SessionInterface.IsValid())
-    {
-        SessionInterface->ClearOnDestroySessionCompleteDelegate_Handle(OnDestroySessionCompleteHandle);
-    }
-
-    bDestroyInProgress = false; // Destroy Á¾·á(¼º°ø/½ÇÆĞ »ó°ü¾øÀÌ)
-
-    UE_LOG(LogTemp, Log, TEXT("[Session] Destroy complete: %s, Success=%d"), *SessionName.ToString(), bWasSuccessful);
-
-    // Destroy°¡ ¼º°øÇß°í, ¡°Àç»ı¼º ¿¹¾à¡± »óÅÂ¶ó¸é ¿©±â¼­ Create ½ÇÇà
-    if (bCreateAfterDestroy && bWasSuccessful)
-    {
-        bCreateAfterDestroy = false;
-        CreateSessionLAN(PendingPublicConnections);
-    }
-    else
-    {
-        // ½ÇÆĞÇß´Âµ¥ Àç»ı¼º ¿¹¾àÀÌ °É·ÁÀÖ¾ú´Ù¸é ¾ÈÀüÇÏ°Ô ²¨ÁÜ
-        if (bCreateAfterDestroy && !bWasSuccessful)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("[Session] Destroy failed, cancel recreate."));
-            bCreateAfterDestroy = false;
-        }
-    }
-}
-
-void UUKGameInstance::CloseSessionLAN()
-{
-    // À¯Àú°¡ ¸í½ÃÀûÀ¸·Î ¡°´İ±â¡± ´©¸¥ °æ¿ì ¡æ Àç»ı¼º ¿¹¾àÀº ²ö´Ù
-    bCreateAfterDestroy = false;
-    DestroySessionLAN();
-
-    // ¹æ ´İ±â ¹öÆ°Àº DestroySessionLAN() ¸»°í CloseSessionLAN()À» È£ÃâÇØ¾ßÇÔ
-}
+/* ëª©ë¡
+1. í˜„ì¬ ue 5.7_steamê¸°ë°˜ ë¦¬ìŠ¨ì„œë²„ëŠ” c++ ë„¤ì´ì²˜ë¡œ ì‚¬ìš©ë¶ˆê°€í•˜ë¯€ë¡œ, í”ŒëŸ¬ê·¸ì¸ ëŒ€ì²´í•¨.
+	ê´€ë ¨ 5.7 fixê°€ ë“¤ì–´ì˜¤ë©´ c++ ê¸°ë°˜ ì„¸ì…˜êµ¬í˜„ìœ¼ë¡œ ì¬ì‘ì„±í• ê²ƒì„
+2. savegame ê´€ë ¨ì¶”ê°€ ë‚´ìš© (ì„œë¸Œì‹œìŠ¤í…œ ë¶„ë¦¬ì‹œ ì¡°ì •í• ê²ƒ, ìˆ˜ì •ì—„ê¸ˆ
+*/
 
 
 
-// [2] savegame °ü·Ã
+// [1] ì„¸ì…˜ êµ¬ì—­ _ í˜„ì¬ëŠ” í”ŒëŸ¬ê·¸ì¸+bpë¡œ ëŒ€ì²´ì¤‘ì„
+
+/*ìµœì¢… ì‚¬ìš© ê·œì¹™(ì¤‘ìš”)
+ì¬ìƒì„±í•˜ê³  ì‹¶ì„ ë•Œ : CreateSessionLAN() (ì´ë¯¸ ìˆìœ¼ë©´ ìë™ìœ¼ë¡œ Destroyâ†’Create)
+ê·¸ëƒ¥ ë°©ì„ ë‹«ê³  ëë‚¼ ë•Œ : CloseSessionLAN() (ì¬ìƒì„± ì—†ì´ Destroyë§Œ)*/
+
+
+
+
+// [2] savegame ê´€ë ¨
 
 bool UUKGameInstance::SaveToSlotSimple(const FString& SlotName, int32 UserIndex)
 {
@@ -299,4 +74,16 @@ bool UUKGameInstance::ApplyLoadedTransformToHost()
         }
     }
     return false;
+}
+
+void UUKGameInstance::Init()
+{
+	Super::Init();
+	UE_LOG(LogTemp, Log, TEXT("[GI] Init - Steam BP mode active"));
+}
+
+void UUKGameInstance::Shutdown()
+{
+	UE_LOG(LogTemp, Log, TEXT("[GI] Shutdown"));
+	Super::Shutdown();
 }

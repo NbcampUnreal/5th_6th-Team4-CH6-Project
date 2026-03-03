@@ -4,6 +4,7 @@
 #include "NPC/UK_NPCAIBase.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "UI/InGame/UK_Quest.h"
 #include "UK_QuestNPC.generated.h"
 
 class AUK_CharacterBase;
@@ -44,8 +45,11 @@ public:
 
 	void UpdateMarkerRotation();
 
-	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Quest")
-	int32 QuestID;
+	UPROPERTY(EditAnywhere, Category = "Quest")
+	FName QuestID;
+
+	UPROPERTY(EditAnywhere, Category = "Quest")
+	TSubclassOf<UUK_Quest> QuestUIClass;
 
 	UFUNCTION(Server, Reliable)
 	void Server_Interact(AUK_CharacterBase* Player);

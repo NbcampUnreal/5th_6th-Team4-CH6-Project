@@ -24,8 +24,11 @@ public class UK : ModuleRules
 			"GameplayAbilities",
             "GameplayTags",
             "GameplayTasks",
+            "AdvancedSessions",
+            "AdvancedSteamSessions",
             "OnlineSubsystem",
             "OnlineSubsystemUtils",
+            "OnlineSubsystemSteam",
 			"Json",
 			"JsonUtilities",
 			"AssetRegistry"

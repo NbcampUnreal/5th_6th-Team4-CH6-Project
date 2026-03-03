@@ -12,7 +12,7 @@ void UUK_QuestComponent::BeginPlay()
 	Super::BeginPlay();
 }
 
-void UUK_QuestComponent::ProcessQuest(int32 QuestID, class AUK_QuestNPC* NPC)
+void UUK_QuestComponent::ProcessQuest(FName QuestID, class AUK_QuestNPC* NPC)
 {
 	if (GetOwnerRole() < ROLE_Authority)
 	{
@@ -22,9 +22,9 @@ void UUK_QuestComponent::ProcessQuest(int32 QuestID, class AUK_QuestNPC* NPC)
 	Server_ProcessQuest(QuestID);
 }
 
-void UUK_QuestComponent::Server_ProcessQuest_Implementation(int32 QuestID)
+void UUK_QuestComponent::Server_ProcessQuest_Implementation(FName QuestID)
 {
-	for (auto& Quest : QuestList)
+	/*for (auto& Quest : QuestList)
 	{
 		if (Quest.QuestID == QuestID)
 		{
@@ -37,7 +37,7 @@ void UUK_QuestComponent::Server_ProcessQuest_Implementation(int32 QuestID)
 	NewQuest.QuestID = QuestID;
 	NewQuest.bCompleted = false;
 
-	QuestList.Add(NewQuest);
+	QuestList.Add(NewQuest);*/
 }
 
 void UUK_QuestComponent::GetLifetimeReplicatedProps(

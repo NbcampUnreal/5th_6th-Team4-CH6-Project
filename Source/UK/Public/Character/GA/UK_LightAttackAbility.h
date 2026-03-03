@@ -11,7 +11,8 @@
  * 
  */
 
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNomalSkill);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUltimateSkill);
 UCLASS()
 class UK_API UUK_LightAttackAbility : public UGameplayAbility
 {
@@ -40,7 +41,13 @@ public:
 	void EndCombo();
 
 
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "CoolDown", meta = ( DisplayNmae = "OnNomalSkillCoolDown" ))
+	FOnNomalSkill OnNomalSkillCoolDownDelegate;
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "CoolDown", meta = ( DisplayNmae = "OnNomalSkillCoolDown" ))
+	FOnUltimateSkill OnUltimateSkillCoolDownDelegate;
 protected:
+
 	UPROPERTY(BlueprintReadWrite)
 	int32 index;
 

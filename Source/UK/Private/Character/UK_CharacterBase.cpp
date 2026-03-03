@@ -31,7 +31,7 @@
 #pragma region Defualt
 
 
-
+// 무현님 대머리 ㅋㅋ
 // Sets default values
 AUK_CharacterBase::AUK_CharacterBase() :
 	bIsLock(false),
@@ -70,13 +70,16 @@ AUK_CharacterBase::AUK_CharacterBase() :
 
 #pragma endregion
 
+	SkeletalMeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMeshComp"));
+	SkeletalMeshComp->SetupAttachment(GetMesh());
+
 	RightHandWeaponComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RightHandWeaponComponent"));
-	RightHandWeaponComponent->SetupAttachment(GetMesh(), TEXT("Weapon_rSocket"));
-	RightHandWeaponComponent->SetLeaderPoseComponent(GetMesh());
+	RightHandWeaponComponent->SetupAttachment(SkeletalMeshComp, TEXT("Weapon_rSocket"));
+	RightHandWeaponComponent->SetLeaderPoseComponent(SkeletalMeshComp);
 
 	LeftHandWeaponComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftHandWeaponComponent"));
-	LeftHandWeaponComponent->SetupAttachment(GetMesh(), TEXT("Weapon_lSocket"));
-	LeftHandWeaponComponent->SetLeaderPoseComponent(GetMesh());
+	LeftHandWeaponComponent->SetupAttachment(SkeletalMeshComp, TEXT("Weapon_lSocket"));
+	LeftHandWeaponComponent->SetLeaderPoseComponent(SkeletalMeshComp);
 
 	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
 	InventoryComponent = CreateDefaultSubobject<UUK_InventoryComponent>(TEXT("InventoryComponent"));
@@ -782,34 +785,34 @@ void AUK_CharacterBase::OnRep_InInput()
 
 }
 void AUK_CharacterBase::UpdateMonsterDetection() {
-	if ( !IsLocallyControlled() ) 
-		return; 
-	TArray<FOverlapResult> Results; 
-	FCollisionShape Sphere = FCollisionShape::MakeSphere(DetectRadius); 
-	GetWorld()->OverlapMultiByObjectType(Results, GetActorLocation(), FQuat::Identity, FCollisionObjectQueryParams(ECC_Pawn), Sphere); 
-	DrawDebugSphere(GetWorld(), GetActorLocation(), DetectRadius, 32, FColor::Green, false, 0.31f); TSet<AAIMonsterBase*> NewSet; 
+	if ( !IsLocallyControlled() )
+		return;
+	TArray<FOverlapResult> Results;
+	FCollisionShape Sphere = FCollisionShape::MakeSphere(DetectRadius);
+	GetWorld()->OverlapMultiByObjectType(Results, GetActorLocation(), FQuat::Identity, FCollisionObjectQueryParams(ECC_Pawn), Sphere);
+	DrawDebugSphere(GetWorld(), GetActorLocation(), DetectRadius, 32, FColor::Green, false, 0.31f); TSet<AAIMonsterBase*> NewSet;
 	// overlap이 되는 것들의 data result 결과들
-	for ( const FOverlapResult& Result : Results ) 
-	{ 
-		AActor* OverlappedActor = Result.OverlapObjectHandle.FetchActor(); 
-		if ( AAIMonsterBase* Monster = Cast<AAIMonsterBase>(OverlappedActor) ) 
-		{ 
-			NewSet.Add(Monster); 
-			if ( !NearbyMonsters.Contains(Monster) ) 
+	for ( const FOverlapResult& Result : Results )
+	{
+		AActor* OverlappedActor = Result.OverlapObjectHandle.FetchActor();
+		if ( AAIMonsterBase* Monster = Cast<AAIMonsterBase>(OverlappedActor) )
+		{
+			NewSet.Add(Monster);
+			if ( !NearbyMonsters.Contains(Monster) )
 			{
-				Monster->ShowHPBar(); 
-			} 
-		} 
-	} 
+				Monster->ShowHPBar();
+			}
+		}
+	}
 	// 범위가 벗어났는지 확인 
-	for ( AAIMonsterBase* OldMonster : NearbyMonsters ) 
-	{ 
-		if ( IsValid(OldMonster) && !NewSet.Contains(OldMonster) ) 
-		{ 
-			OldMonster->HideHPBar(); 
-		} 
-	} 
-	NearbyMonsters = NewSet; 
+	for ( AAIMonsterBase* OldMonster : NearbyMonsters )
+	{
+		if ( IsValid(OldMonster) && !NewSet.Contains(OldMonster) )
+		{
+			OldMonster->HideHPBar();
+		}
+	}
+	NearbyMonsters = NewSet;
 }
 #pragma endregion
 void AUK_CharacterBase::OnRep_fry()
@@ -818,28 +821,3 @@ void AUK_CharacterBase::OnRep_fry()
 
 #pragma endregion
 
-void AUK_CharacterBase::Client_ShowInteractUI_Implementation()
-{
-	if ( InteractWidget ) return;
-
-	if ( !InteractWidgetClass ) return;
-
-	InteractWidget =
-		CreateWidget<UUserWidget>(
-			GetWorld(),
-			InteractWidgetClass
-		);
-
-	if ( InteractWidget )
-	{
-		InteractWidget->AddToViewport();
-	}
-}
-
-void AUK_CharacterBase::Client_HideInteractUI_Implementation()
-{
-	if ( !InteractWidget ) return;
-
-	InteractWidget->RemoveFromParent();
-	InteractWidget = nullptr;
-}
