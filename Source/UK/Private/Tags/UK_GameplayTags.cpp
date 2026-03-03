@@ -30,7 +30,7 @@ namespace UK_GameplayTags
 	}
 	namespace Action
 	{
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Swap1, "Action.Swap1", "Swap Weapon Ability")
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Swap1, "Action.Swap1", "Swap Weapon Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Swap2, "Action.Swap2", "Swap Weapon Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Swap3, "Action.Swap3", "Swap Weapon Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(LightAttack, "Action.LightAttack", "LightAttack Ability")
@@ -42,9 +42,14 @@ namespace UK_GameplayTags
 	}
 	namespace Attack
 	{
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attacking, "Attack.Attacking", "Attacking Ability")
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attacking, "Attack.Attacking", "Attacking Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Next, "Attack.Next", "Next Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HitCheck, "Attack.HitCheck", "HitCheck Ability")
+	}
+	namespace CoolDown
+	{
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(NomalSkill, "CoolDown.NomalSkill", "Nomalskill CoolDown")
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(UltimateSkill, "CoolDown.UltimateSkill", "UltimateSkill CoolDown")
 	}
 	namespace Food
 	{
