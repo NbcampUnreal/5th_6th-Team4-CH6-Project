@@ -15,5 +15,5 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	virtual void OnPhaseChanged(EBossPhase NewPhase);
+	
 };

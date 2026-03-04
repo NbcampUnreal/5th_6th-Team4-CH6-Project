@@ -21,7 +21,7 @@ EBTNodeResult::Type UUK_BTTask_BossAttackPattern::ExecuteTask(
 
 	if (!Boss) return EBTNodeResult::Failed;
 
-	const bool bSuccess = Boss->PlayPhasePattern();
+	const bool bSuccess = Boss->PlayRandomAttackMontage();
 
 	return bSuccess ? EBTNodeResult::Succeeded: EBTNodeResult::Failed;
 }

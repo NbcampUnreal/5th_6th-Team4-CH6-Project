@@ -1,6 +1,7 @@
 ﻿#include "AIMonster/BossMonster/BehaviorTree/UK_BTDecorator_CheckBossPhase.h"
 #include "AIController.h"
 #include "AIMonster/BossMonster/UK_BossMonsterBase.h"
+#include "BehaviorTree/BlackboardComponent.h"
 
 UUK_BTDecorator_CheckBossPhase::UUK_BTDecorator_CheckBossPhase()
 {
@@ -9,13 +10,13 @@ UUK_BTDecorator_CheckBossPhase::UUK_BTDecorator_CheckBossPhase()
 
 bool UUK_BTDecorator_CheckBossPhase::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp,uint8* NodeMemory) const
 {
-	AAIController* AIC = OwnerComp.GetAIOwner();
-	if ( !AIC ) return false;
+	AAIController* AICtl = OwnerComp.GetAIOwner();
+	if (!AICtl) return false;
 
-	AUK_BossMonsterBase* Boss =
-		Cast<AUK_BossMonsterBase>(AIC->GetPawn());
+	UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
+	if (!BB) return false;
 
-	if ( !Boss ) return false;
+	const FName CurrentPhaseName = BB->GetValueAsName(TEXT("BossPhase"));
 
-	return Boss->GetCurrentPhase() == RequiredPhase;
+	return CurrentPhaseName == RequiredPhaseTag.GetTagName();
 }

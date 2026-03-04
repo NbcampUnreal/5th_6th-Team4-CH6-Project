@@ -1,23 +1,29 @@
 ﻿#include "AIMonster/BossMonster/UK_BossMonsterBase.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 AUK_BossMonsterBase::AUK_BossMonsterBase()
 {
-	NetUpdateFrequency = 90.f;
-	MinNetUpdateFrequency = 60.f;
-
-	MonsterType = EMonsterType::EliteGolem;
+	bReplicates = true;
 }
 
 void AUK_BossMonsterBase::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	GetCharacterMovement()->MaxWalkSpeed = 200.f; 
+	
+	Phase1Tag  = FGameplayTag::RequestGameplayTag(TEXT("Boss.Phase.Phase1"));
+	Phase2Tag  = FGameplayTag::RequestGameplayTag(TEXT("Boss.Phase.Phase2"));
+	Phase3Tag  = FGameplayTag::RequestGameplayTag(TEXT("Boss.Phase.Phase3"));
+	EnrageTag  = FGameplayTag::RequestGameplayTag(TEXT("Boss.Phase.Enrage"));
 
 	if (HasAuthority())
 	{
-		SetPhase(EBossPhase::Phase1);
+		SetPhase(Phase1Tag);
 	}
 }
 
@@ -41,102 +47,65 @@ void AUK_BossMonsterBase::UpdatePhase()
 
 	if (HPRatio <= EnrageHPRatio)
 	{
-		SetPhase(EBossPhase::Enrage);
+		SetPhase(EnrageTag);
 	}
 	else if (HPRatio <= Phase3HPRatio)
 	{
-		SetPhase(EBossPhase::Phase3);
+		SetPhase(Phase3Tag);
 	}
 	else if (HPRatio <= Phase2HPRatio)
 	{
-		SetPhase(EBossPhase::Phase2);
+		SetPhase(Phase2Tag);
 	}
 }
 
-void AUK_BossMonsterBase::SetPhase(EBossPhase NewPhase)
+void AUK_BossMonsterBase::SetPhase(const FGameplayTag& NewPhase)
 {
 	if (!HasAuthority()) return;
-	if (CurrentPhase == NewPhase) return;
 
-	CurrentPhase = NewPhase;
+	if (CurrentPhaseTag == NewPhase) return;
 
-	OnRep_BossPhase();
+	CurrentPhaseTag = NewPhase;
+
+	OnBossPhaseChanged.Broadcast(CurrentPhaseTag);
 }
 
-void AUK_BossMonsterBase::OnRep_BossPhase()
+void AUK_BossMonsterBase::OnRep_Phase()
 {
-	UE_LOG(LogTemp, Warning,
-		TEXT("[Boss] Phase Changed : %d"),
-		(int32)CurrentPhase);
-
-	if (AAIController* AIC = Cast<AAIController>(GetController()))
-	{
-		if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
-		{
-			BB->SetValueAsEnum(TEXT("BossPhase"), ( uint8 )CurrentPhase);
-		}
-	}
-
-	PlayRandomHitMontage();
+	UE_LOG(LogTemp, Log,TEXT("[Boss] Phase Changed : %s"),*CurrentPhaseTag.ToString());
+	
+	OnBossPhaseChanged.Broadcast(CurrentPhaseTag);
 }
 
 bool AUK_BossMonsterBase::PlayRandomAttackMontage()
 {
-	return PlayPhasePattern();
-}
+	UE_LOG(LogTemp, Warning, TEXT("Boss Try Attack"));
+	TArray<UAnimMontage*>* Pattern = nullptr;
 
-bool AUK_BossMonsterBase::PlayPhasePattern()
-{
-	if (!HasAuthority()) return false;
-	if (bIsHit || bIsAttacking || bIsDying) return false;
-
-
-	TArray<UAnimMontage*>* PatternSet = nullptr;
-
-
-	switch (CurrentPhase)
+	if (CurrentPhaseTag == Phase1Tag)
 	{
-	case EBossPhase::Phase1:
-		PatternSet = &Phase1Patterns;
-		break;
-
-	case EBossPhase::Phase2:
-		PatternSet = &Phase2Patterns;
-		break;
-
-	case EBossPhase::Phase3:
-		PatternSet = &Phase3Patterns;
-		break;
-
-	case EBossPhase::Enrage:
-		PatternSet = &EnragePatterns;
-		break;
+		Pattern = &Phase1Patterns;
+	}
+	else if (CurrentPhaseTag == Phase2Tag)
+	{
+		Pattern = &Phase2Patterns;
+	}
+	else if (CurrentPhaseTag == Phase3Tag)
+	{
+		Pattern = &Phase3Patterns;
+	}
+	else if (CurrentPhaseTag == EnrageTag)
+	{
+		Pattern = &EnragePatterns;
 	}
 
-	if (!PatternSet || PatternSet->Num() == 0)
+	if (!Pattern || Pattern->Num() == 0)
 		return false;
-
-
-	const float Now = GetWorld()->GetTimeSeconds();
-	if (Now - LastAttackTime < AttackCooldown)
-		return false;
-
 
 	const int32 Index =
-		FMath::RandRange(0, PatternSet->Num() - 1);
+		FMath::RandRange(0, Pattern->Num() - 1);
 
-
-	UAnimMontage* Montage = (*PatternSet)[Index];
-
-	if (!Montage) return false;
-
-
-	bIsAttacking = true;
-	LastAttackTime = Now;
-
-	Multicast_PlayAttackMontage(Index);
-
-	return true;
+	return PlayAnimMontage((*Pattern)[Index]) > 0.f;
 }
 
 void AUK_BossMonsterBase::ShowHPBar()
@@ -149,10 +118,9 @@ void AUK_BossMonsterBase::ShowHPBar()
 	}
 }
 
-void AUK_BossMonsterBase::GetLifetimeReplicatedProps(
-	TArray<FLifetimeProperty>& OutLifetimeProps) const
+void AUK_BossMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(AUK_BossMonsterBase, CurrentPhase);
+	DOREPLIFETIME(AUK_BossMonsterBase, CurrentPhaseTag);
 }

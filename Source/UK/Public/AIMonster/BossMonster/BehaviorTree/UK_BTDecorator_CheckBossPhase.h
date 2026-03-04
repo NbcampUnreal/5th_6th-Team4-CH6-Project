@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTDecorator.h"
 #include "AIMonster/BossMonster/UK_BossMonsterBase.h"
+#include "GameplayTagContainer.h"
 #include "UK_BTDecorator_CheckBossPhase.generated.h"
 
 UCLASS()
@@ -15,8 +16,8 @@ public:
 
 protected:
 
-	UPROPERTY(EditAnywhere, Category = "Boss")
-	EBossPhase RequiredPhase;
+	UPROPERTY(EditAnywhere, Category="Boss")
+	FGameplayTag RequiredPhaseTag;
 
 	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp,uint8* NodeMemory) const override;
 };

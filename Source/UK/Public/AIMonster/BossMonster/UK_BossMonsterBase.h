@@ -2,16 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "AIMonster/AIMonsterBase.h"
+#include "GameplayTagContainer.h"
 #include "UK_BossMonsterBase.generated.h"
 
-UENUM(BlueprintType)
-enum class EBossPhase : uint8
-{
-	Phase1,
-	Phase2,
-	Phase3, 
-	Enrage
-};
+DECLARE_MULTICAST_DELEGATE_OneParam(FBossPhaseChanged,const FGameplayTag&);
 
 UCLASS()
 class UK_API AUK_BossMonsterBase : public AAIMonsterBase
@@ -20,22 +14,20 @@ class UK_API AUK_BossMonsterBase : public AAIMonsterBase
 
 public:
 	AUK_BossMonsterBase();
-
-	bool PlayPhasePattern();
-
-	UFUNCTION(BlueprintCallable)
-	EBossPhase GetCurrentPhase() const
-	{
-		return CurrentPhase;
-	}
+	
+	FBossPhaseChanged OnBossPhaseChanged;
+	
+	UFUNCTION(BlueprintCallable, Category="Boss|Phase")
+	FGameplayTag GetCurrentPhase() const { return CurrentPhaseTag; }
+	
+	virtual bool PlayRandomAttackMontage() override;
 protected:
 	virtual void BeginPlay() override;
 
 	/* ================= Phase ================= */
-
-	UPROPERTY(ReplicatedUsing = OnRep_BossPhase, BlueprintReadOnly, Category = "Boss|Phase")
-	EBossPhase CurrentPhase = EBossPhase::Phase1;
-
+	UPROPERTY(ReplicatedUsing=OnRep_Phase, BlueprintReadOnly, Category="Boss|Phase")
+	FGameplayTag CurrentPhaseTag;
+	
 	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase")
 	float Phase2HPRatio = 0.7f;
 
@@ -46,19 +38,16 @@ protected:
 	float EnrageHPRatio = 0.15f;
 
 	UFUNCTION()
-	void OnRep_BossPhase();
+	void OnRep_Phase();
 
 	void UpdatePhase();
 
-	void SetPhase(EBossPhase NewPhase);
-
-
+	void SetPhase(const FGameplayTag& NewPhase);
+	
 	virtual void ShowHPBar() override;
 
 protected:
 	virtual void ReceiveDamage(float Damage) override;
-
-	virtual bool PlayRandomAttackMontage() override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Pattern")
 	TArray<UAnimMontage*> Phase1Patterns;
@@ -73,4 +62,10 @@ protected:
 	TArray<UAnimMontage*> EnragePatterns;;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
+private:
+	FGameplayTag Phase1Tag;
+	FGameplayTag Phase2Tag;
+	FGameplayTag Phase3Tag;
+	FGameplayTag EnrageTag;
 };

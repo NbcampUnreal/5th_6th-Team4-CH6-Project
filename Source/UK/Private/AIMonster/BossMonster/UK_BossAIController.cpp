@@ -1,16 +1,32 @@
 ﻿#include "AIMonster/BossMonster/UK_BossAIController.h"
 #include "AIMonster/BossMonster/UK_BossMonsterBase.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "GameplayTagContainer.h"
 #include "TimerManager.h"
+#include "Kismet/GameplayStatics.h"
+
 AUK_BossAIController::AUK_BossAIController()
 {
 	PrimaryActorTick.bCanEverTick = false;
 }
+void AUK_BossAIController::BeginPlay()
+{
+	Super::BeginPlay();
 
+	if (!HasAuthority()) return;
+
+	APawn* Player = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+
+	if (Player)
+	{
+		GetBlackboardComponent()->SetValueAsObject(TEXT("TargetActor"),Player);
+		UE_LOG(LogTemp, Warning, TEXT("Target Set"));
+	}
+}
 void AUK_BossAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
-
+	UE_LOG(LogTemp, Warning, TEXT("Boss Possessed"));
 	if (!HasAuthority()) return;
 
 	Boss = Cast<AUK_BossMonsterBase>(InPawn);
@@ -20,8 +36,10 @@ void AUK_BossAIController::OnPossess(APawn* InPawn)
 	{
 		RunBehaviorTree(Boss->BehaviorTree);
 	}
-
-	// Phase 동기화 타이머 시작
+	if (auto* BB = GetBlackboardComponent())
+	{
+		BB->SetValueAsVector(TEXT("HomeLocation"),InPawn->GetActorLocation());
+	}
 	GetWorld()->GetTimerManager().SetTimer(
 		PhaseSyncTimer,
 		this,
@@ -53,10 +71,11 @@ void AUK_BossAIController::SyncBossPhaseToBB()
 	UBlackboardComponent* BB = GetBlackboardComponent();
 	if (!BB) return;
 
-	const uint8 PhaseValue = (uint8)Boss->GetCurrentPhase();
+	const FGameplayTag PhaseTag = Boss->GetCurrentPhase();
+	const FName PhaseName = PhaseTag.GetTagName();
 
-	if (BB->GetValueAsEnum(TEXT("BossPhase")) != PhaseValue)
+	if (BB->GetValueAsName(TEXT("BossPhase")) != PhaseName)
 	{
-		BB->SetValueAsEnum(TEXT("BossPhase"), PhaseValue);
+		BB->SetValueAsName(TEXT("BossPhase"), PhaseName);
 	}
 }

@@ -16,17 +16,3 @@ void AUK_BossMonster_Grux::BeginPlay()
 
 	UE_LOG(LogTemp, Log, TEXT("Golem King Spawned"));
 }
-
-void AUK_BossMonster_Grux::OnPhaseChanged(EBossPhase NewPhase)
-{
-	switch (NewPhase)
-	{
-	case EBossPhase::Phase2:
-		UE_LOG(LogTemp, Warning, TEXT("Phase2 Activated"));
-		break;
-
-	case EBossPhase::Enrage:
-		UE_LOG(LogTemp, Warning, TEXT("ENRAGE MODE"));
-		break;
-	}
-}
