@@ -217,7 +217,7 @@ public:
 	float LastAttackTime = 0.f;
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	bool PlayRandomAttackMontage();
+	virtual bool PlayRandomAttackMontage();
 
 	FOnAttackFinished OnAttackFinished;
 
@@ -244,7 +244,7 @@ public:
 	TArray<UAnimMontage*> IdleMontages;
 
 	UFUNCTION(BlueprintCallable, Category = "Idle|Animation")
-	bool PlayRandomIdleMontage();
+	virtual bool PlayRandomIdleMontage();
 
 	void PlayIdleMontage(int32 MontageIndex);
 
@@ -276,9 +276,9 @@ public:
 public:
 	UUK_MonsterHealthBar* GetHPWidget() const { return HPWidget; }
 
-	void UpdateHPBarWidget();
-	void ShowHPBar();
-	void HideHPBar();
+	virtual void UpdateHPBarWidget();
+	virtual void ShowHPBar();
+	virtual void HideHPBar();
 
 	FTimerHandle HPBarUpdateTimer;
 
