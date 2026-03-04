@@ -22,8 +22,6 @@ UAnimMontage* UUK_LightAttackAbility::StartCombo(EComboAttackType InStatus)
 {
 	index = 1;
 	AUK_CharacterBase* UKPC = Cast<AUK_CharacterBase>(GetAvatarActorFromActorInfo());
-	UCharacterMovementComponent* PlayerMovement = UKPC->GetCharacterMovement();
-	PlayerMovement->SetMovementMode(EMovementMode::MOVE_None);
 	if ( IsValid(UKPC) == false )
 	{
 		EndCombo();

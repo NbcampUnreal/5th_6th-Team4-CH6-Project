@@ -46,11 +46,19 @@ namespace UK_GameplayTags
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Next, "Attack.Next", "Next Ability")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HitCheck, "Attack.HitCheck", "HitCheck Ability")
 	}
+	namespace Data
+	{
+		namespace Damage
+		{
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(NomalSkill, "Data.Damage.NomalSkill", "Damage Data")
+		}
+	}
 	namespace CoolDown
 	{
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(NomalSkill, "CoolDown.NomalSkill", "Nomalskill CoolDown")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(UltimateSkill, "CoolDown.UltimateSkill", "UltimateSkill CoolDown")
 	}
+	
 	namespace Food
 	{
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(FoodRoot, "Food", "Root Food Tag")
