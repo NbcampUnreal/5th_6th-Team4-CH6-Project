@@ -1,9 +1,12 @@
 ﻿#include "AIMonster/Animation/AnimNotifyState_UKMonsterMeleeTrace.h"
 #include "AIMonster/AIMonsterBase.h"
 #include "Character/UK_CharacterBase.h"
+#include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
 #include "GameFramework/Character.h"
 #include "Components/CapsuleComponent.h"
+#include "Sound/SoundCue.h"
+#include "Sound/SoundBase.h"
 
 UAnimNotifyState_UKMonsterMeleeTrace::UAnimNotifyState_UKMonsterMeleeTrace() {}
 
@@ -14,6 +17,9 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyBegin(
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
 	HitActors.Empty();
+	
+
+	UGameplayStatics::PlaySound2D(MeshComp->GetWorld(), AttackSound);
 }
 
 void UAnimNotifyState_UKMonsterMeleeTrace::NotifyEnd(
