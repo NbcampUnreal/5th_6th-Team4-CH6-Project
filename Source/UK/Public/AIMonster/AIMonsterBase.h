@@ -212,7 +212,7 @@ public:
 	float LastAttackTime = 0.f;
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	bool PlayRandomAttackMontage();
+	virtual bool PlayRandomAttackMontage();
 
 	FOnAttackFinished OnAttackFinished;
 
@@ -230,8 +230,8 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_ResetAppearance();
 
-	void ReceiveDamage(float Damage);
-	void ReceiveDamageFrom(float Damage, AController* InstigatorController);
+	virtual void ReceiveDamage(float Damage);
+	virtual void ReceiveDamageFrom(float Damage, AController* InstigatorController);
 #pragma endregion
 
 #pragma region Idle Animation
@@ -241,7 +241,7 @@ public:
 	TArray<UAnimMontage*> IdleMontages;
 
 	UFUNCTION(BlueprintCallable, Category = "Idle|Animation")
-	bool PlayRandomIdleMontage();
+	virtual bool PlayRandomIdleMontage();
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayIdleMontage(int32 MontageIndex);
@@ -275,9 +275,9 @@ public:
 public:
 	UUK_MonsterHealthBar* GetHPWidget() const { return HPWidget; }
 
-	void UpdateHPBarWidget();
-	void ShowHPBar();
-	void HideHPBar();
+	virtual void UpdateHPBarWidget();
+	virtual void ShowHPBar();
+	virtual void HideHPBar();
 
 	FTimerHandle HPBarUpdateTimer;
 
