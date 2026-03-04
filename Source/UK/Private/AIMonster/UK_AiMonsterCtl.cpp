@@ -64,9 +64,14 @@ void AUK_AiMonsterCtl::OnPossess(APawn* InPawn)
 	// BT 시작 및 블랙보드 초기화
 	if (ControlledMonster->BehaviorTree)
 	{
+		UBlackboardComponent* BB = nullptr;
+
+		UseBlackboard(ControlledMonster->BehaviorTree->BlackboardAsset,BB);
+
 		RunBehaviorTree(ControlledMonster->BehaviorTree);
 
-		if (UBlackboardComponent* BB = GetBlackboardComponent())
+
+		if (BB)
 		{
 			BB->SetValueAsVector(TEXT("SpawnLocation"), ControlledMonster->SpawnLocation);
 			BB->SetValueAsVector(TEXT("PatrolLocation"), ControlledMonster->SpawnLocation);
