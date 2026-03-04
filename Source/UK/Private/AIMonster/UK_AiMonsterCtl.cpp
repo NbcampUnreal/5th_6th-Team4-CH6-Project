@@ -131,7 +131,7 @@ bool AUK_AiMonsterCtl::IsPlayerCharacter(AActor* Actor) const
 
 void AUK_AiMonsterCtl::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
-	if (!ControlledMonster || !HasAuthority() || !Actor) return;
+	if (!ControlledMonster || !Actor) return;
 	if (!IsPlayerCharacter(Actor)) return;
 
 	UBlackboardComponent* BB = GetBlackboardComponent();
@@ -139,7 +139,14 @@ void AUK_AiMonsterCtl::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 	if (Stimulus.WasSuccessfullySensed())
 	{
 		CurrentTarget = Actor;
-		if (BB) BB->SetValueAsObject(TEXT("TargetPlayer"), Actor);
+
+		if (BB)
+		{
+			if (!BB->GetValueAsObject(TEXT("TargetPlayer")))
+			{
+				BB->SetValueAsObject(TEXT("PendingTarget"), Actor);
+			}
+		}
 
 		if (!ControlledMonster->BehaviorTree)
 		{
@@ -152,7 +159,12 @@ void AUK_AiMonsterCtl::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 		if (CurrentTarget == Actor)
 		{
 			CurrentTarget = nullptr;
-			if (BB) BB->ClearValue(TEXT("TargetPlayer"));
+
+			if (BB)
+			{
+				BB->ClearValue(TEXT("TargetPlayer"));
+				BB->ClearValue(TEXT("PendingTarget"));
+			}
 
 			if (!ControlledMonster->BehaviorTree)
 			{

@@ -16,7 +16,7 @@ public:
 
 #pragma region Player Detection
 protected:
-	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+	virtual void   TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 	virtual uint16 GetInstanceMemorySize() const override;
 #pragma endregion
 
@@ -26,6 +26,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector SpawnLocationKey;
+
+	UPROPERTY(EditAnywhere, Category = "Blackboard")
+	FBlackboardKeySelector PendingTargetKey;
 #pragma endregion
 
 #pragma region Settings
@@ -40,8 +43,8 @@ protected:
 private:
 	struct FDetectPlayerMemory
 	{
-		bool bHadTarget = false;  // 직전 틱에 타겟이 있었는지
-		bool bReturning = false;  // 복귀 중 플래그 (재감지 차단)
+		bool bHadTarget = false; 
+		bool bReturning = false;  
 	};
 #pragma endregion
 };

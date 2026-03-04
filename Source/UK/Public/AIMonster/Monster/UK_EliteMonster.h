@@ -41,8 +41,7 @@ public:
 	UFUNCTION()
 	void OnSpecialAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlaySpecialAttackMontage(int32 MontageIndex);
+	void PlaySpecialAttackMontage(int32 MontageIndex);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Special Attack")
 	float SpecialAttackAoERadius = 500.f;  
@@ -81,10 +80,5 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Elite|Debug",
 		meta = (EditCondition = "bShowSpecialAttackDebug"))
 	float SpecialAttackDebugDuration = 1.5f;
-#pragma endregion
-
-#pragma region Replication
-public:
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 #pragma endregion
 };
