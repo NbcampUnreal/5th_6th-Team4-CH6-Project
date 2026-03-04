@@ -126,7 +126,7 @@ bool AUK_AiMonsterCtl::IsPlayerCharacter(AActor* Actor) const
 
 void AUK_AiMonsterCtl::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
-	if (!ControlledMonster || !HasAuthority() || !Actor) return;
+	if (!ControlledMonster || !Actor) return;
 	if (!IsPlayerCharacter(Actor)) return;
 
 	UBlackboardComponent* BB = GetBlackboardComponent();

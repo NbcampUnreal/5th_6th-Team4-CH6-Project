@@ -39,8 +39,6 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 
 	if (!World)	return;
 	
-	if (!OwnerActor->HasAuthority()) return;
-	
 	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(OwnerActor);
 	if (!Monster)
 	{

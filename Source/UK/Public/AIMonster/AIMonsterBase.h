@@ -63,7 +63,7 @@ protected:
 
 #pragma region State Management
 public:
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(BlueprintCallable, Category = "AI")
 	void RequestState(EMonsterState NewState);
 
 	UFUNCTION(BlueprintPure)
@@ -83,13 +83,9 @@ public:
 	virtual void OnAlert();
 
 protected:
-	UPROPERTY(ReplicatedUsing = OnRep_MonsterState)
 	EMonsterState CurrentState = EMonsterState::Idle;
 
-	UFUNCTION()
-	void OnRep_MonsterState();
-
-	void SetServerState(EMonsterState NewState);
+	void SetState(EMonsterState NewState);
 #pragma endregion
 
 #pragma region Personality
@@ -115,16 +111,13 @@ public:
 		meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
 	float ResetDistance = 2000.0f;
 
-	UPROPERTY(ReplicatedUsing = OnRep_IsAggressive, BlueprintReadOnly, Category = "AI|Peaceful")
+	UPROPERTY(BlueprintReadOnly, Category = "AI|Peaceful")
 	bool bIsAggressive = false;
-
-	UFUNCTION()
-	void OnRep_IsAggressive();
 
 	UFUNCTION(BlueprintPure, Category = "AI|Peaceful")
 	bool GetIsAggressive() const { return bIsAggressive; }
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "AI|Peaceful")
+	UPROPERTY(BlueprintReadOnly, Category = "AI|Peaceful")
 	AActor* Aggressor = nullptr;
 
 	UFUNCTION(BlueprintCallable, Category = "AI|Peaceful")
@@ -182,7 +175,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UAI_MonsterStatComponent* StatComponent;
 
-	UPROPERTY(Replicated)
+	UPROPERTY()
 	APlayerController* LastAttackerController = nullptr;
 #pragma endregion
 
@@ -221,14 +214,9 @@ public:
 
 	void FinalizeDeath();
 
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayAttackMontage(int32 MontageIndex);
-
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_HideCorpse();
-
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_ResetAppearance();
+	void PlayAttackMontage(int32 MontageIndex);
+	void HideCorpse();
+	void ResetAppearance();
 
 	void ReceiveDamage(float Damage);
 	void ReceiveDamageFrom(float Damage, AController* InstigatorController);
@@ -243,8 +231,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Idle|Animation")
 	bool PlayRandomIdleMontage();
 
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayIdleMontage(int32 MontageIndex);
+	void PlayIdleMontage(int32 MontageIndex);
 
 	UFUNCTION()
 	void OnIdleMontageEnded(UAnimMontage* Montage, bool bInterrupted);
@@ -264,8 +251,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Hit|Animation")
 	bool PlayRandomHitMontage();
 
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayHitMontage(int32 MontageIndex);
+	void PlayHitMontage(int32 MontageIndex);
 
 	UFUNCTION()
 	void OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
@@ -306,18 +292,6 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "UI|Alert")
 	UWidgetComponent* AlertWidgetComponent;
-
-private:
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_ShowAlertIcon();
-
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_HideAlertIcon();
-#pragma endregion
-
-#pragma region Replication
-public:
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 #pragma endregion
 
 #pragma region Private
