@@ -81,21 +81,18 @@ void UUK_MiniMap::UpdateMiniMap()
 {
 	if (!MiniMapMID)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[MiniMap] MiniMapMID is NULL"));
 		return;
 	}
 
 	AUK_PlayerController* PC = Cast<AUK_PlayerController>(GetOwningPlayer());
 	if (!PC || !PC->IsLocalController())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[MiniMap] PlayerController invalid or not local"));
 		return;
 	}
 
 	AUK_CharacterBase* Character = Cast<AUK_CharacterBase>(PC->GetPawn());
 	if (!Character)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[MiniMap] Character is NULL"));
 		return;
 	}
 
