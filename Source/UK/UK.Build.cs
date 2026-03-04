@@ -31,7 +31,8 @@ public class UK : ModuleRules
             "OnlineSubsystemSteam",
 			"Json",
 			"JsonUtilities",
-			"AssetRegistry"
+			"AssetRegistry",
+			"GameplayTags"
         });
 		
 		PrivateDependencyModuleNames.AddRange(new string[] { });
