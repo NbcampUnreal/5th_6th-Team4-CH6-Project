@@ -1,6 +1,9 @@
 ﻿#include "AIMonster/AIMonsterBase.h"
 #include "AIController.h"
 #include "AIMonster/UK_AiMonsterCtl.h"
+#include "AIMonster/AttibuteSet/UK_MonsterAttributeSet.h"
+#include "AbilitySystemComponent.h"
+#include "GameplayEffect.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "Character/UK_CharacterBase.h"
 #include "Kismet/GameplayStatics.h"
@@ -16,7 +19,12 @@ AAIMonsterBase::AAIMonsterBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	StatComponent = CreateDefaultSubobject<UAI_MonsterStatComponent>(TEXT("StatComponent"));
+	// Ability System Component
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	AbilitySystemComponent->SetIsReplicated(false); 
+
+	// Attribute Set
+	AttributeSet = CreateDefaultSubobject<UUK_MonsterAttributeSet>(TEXT("AttributeSet"));
 
 	bUseControllerRotationYaw = false;
 
@@ -57,6 +65,12 @@ void AAIMonsterBase::BeginPlay()
 
 	SpawnLocation = GetActorLocation();
 
+	// AbilitySystemComponent 초기화
+	if (AbilitySystemComponent && AttributeSet)
+	{
+		AbilitySystemComponent->InitStats(UUK_MonsterAttributeSet::StaticClass(), nullptr);
+	}
+
 	if (AAIController* AIC = Cast<AAIController>(GetController()))
 	{
 		if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
@@ -83,20 +97,14 @@ void AAIMonsterBase::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	if (StatComponent)
-	{
-		StatComponent->OnDeath.RemoveAll(this);
-		StatComponent->OnDeath.AddDynamic(this, &AAIMonsterBase::Die);
-	}
-
 	if (HPWidgetComponent && HPWidgetClass)
 	{
 		HPWidgetComponent->SetWidgetClass(HPWidgetClass);
 		HPWidget = Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
 
-		if (HPWidget && StatComponent)
+		if (HPWidget && AbilitySystemComponent && AttributeSet)
 		{
-			HPWidget->BindMonsterStats(StatComponent);
+			HPWidget->BindMonsterAttributes(AbilitySystemComponent, AttributeSet);
 		}
 	}
 	
@@ -104,6 +112,11 @@ void AAIMonsterBase::PostInitializeComponents()
 	{
 		AlertWidgetComponent->SetWidgetClass(AlertWidgetClass);
 	}
+}
+
+UAbilitySystemComponent* AAIMonsterBase::GetAbilitySystemComponent() const
+{
+	return AbilitySystemComponent;
 }
 #pragma endregion
 
@@ -121,7 +134,6 @@ void AAIMonsterBase::SetState(EMonsterState NewState)
 
 	OnStateChanged.Broadcast(OldState, NewState);
 }
-
 #pragma endregion
 
 #pragma region State Callbacks
@@ -140,12 +152,33 @@ void AAIMonsterBase::OnAttack()
 #pragma endregion
 
 #pragma region Combat
-void AAIMonsterBase::ReceiveDamage(float Damage)
+void AAIMonsterBase::ApplyDamage(float DamageAmount, AController* InstigatorController)
 {
-	if (bIsDying) return;
+	UE_LOG(LogTemp, Warning, TEXT("[%s] ApplyDamage Called: %.1f"), *GetName(), DamageAmount);
+	
+	if (bIsDying)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[%s] ✗ Already Dying - Ignoring Damage"), *GetName());
+		return;
+	}
+	
+	if (!AbilitySystemComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[%s] ✗✗✗ CRITICAL: No AbilitySystemComponent!"), *GetName());
+		return;
+	}
+	
+	if (!DamageEffectClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[%s] ✗✗✗ CRITICAL: DamageEffectClass NOT SET!"), *GetName());
+		UE_LOG(LogTemp, Error, TEXT("   → 블루프린트에서 DamageEffectClass를 설정해야 합니다!"));
+		return;
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("[%s] ✓ ASC Valid, DamageEffectClass Valid"), *GetName());
 
 	// 공격자 정보 없으면 가장 가까운 플레이어 자동 탐지
-	if (!LastAttackerController)
+	if (!InstigatorController)
 	{
 		float ClosestDistance = 1000.0f;
 		for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
@@ -156,17 +189,67 @@ void AAIMonsterBase::ReceiveDamage(float Damage)
 			const float Distance = FVector::Dist(GetActorLocation(), PC->GetPawn()->GetActorLocation());
 			if (Distance < ClosestDistance)
 			{
-				LastAttackerController = PC;
-				ClosestDistance        = Distance;
+				InstigatorController = PC;
+				ClosestDistance = Distance;
 			}
 		}
 	}
 
-	if (StatComponent)
+	// 공격자 저장
+	if (InstigatorController && InstigatorController->IsA(APlayerController::StaticClass()))
 	{
-		StatComponent->TakeDamage(Damage);
+		LastAttackerController = Cast<APlayerController>(InstigatorController);
+		UE_LOG(LogTemp, Log, TEXT("[%s] Attacker: %s"), *GetName(), 
+			*LastAttackerController->GetName());
 	}
 
+	// GameplayEffect로 데미지 적용
+	FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+	EffectContext.AddInstigator(InstigatorController ? InstigatorController->GetPawn() : nullptr, this);
+
+	FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(
+		DamageEffectClass, 1.0f, EffectContext);
+
+	if (SpecHandle.IsValid())
+	{
+		// Damage 값 설정
+		FGameplayTag DamageTag = FGameplayTag::RequestGameplayTag(FName("Data.Damage"));
+		
+		if (!DamageTag.IsValid())
+		{
+			UE_LOG(LogTemp, Error, TEXT("[%s] ✗✗✗ CRITICAL: GameplayTag 'Data.Damage' NOT REGISTERED!"), 
+				*GetName());
+			UE_LOG(LogTemp, Error, TEXT("   → Project Settings → GameplayTags에서 Data.Damage 추가 필요"));
+			return;
+		}
+		
+		SpecHandle.Data->SetSetByCallerMagnitude(DamageTag, DamageAmount);
+		
+		UE_LOG(LogTemp, Warning, TEXT("[%s] ✓ Applying GameplayEffect: %.1f damage"), 
+			*GetName(), DamageAmount);
+		UE_LOG(LogTemp, Log, TEXT("   Current Health: %.1f / %.1f"), 
+			AttributeSet ? AttributeSet->GetHealth() : -1.0f,
+			AttributeSet ? AttributeSet->GetMaxHealth() : -1.0f);
+		
+		FActiveGameplayEffectHandle ActiveHandle = 
+			AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		
+		if (ActiveHandle.IsValid())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[%s] ✓ GameplayEffect Applied Successfully"), *GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[%s] ✗ GameplayEffect Application Failed!"), *GetName());
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("[%s] ✗✗✗ CRITICAL: Invalid SpecHandle!"), *GetName());
+		UE_LOG(LogTemp, Error, TEXT("   → DamageEffectClass가 올바르게 설정되었는지 확인"));
+	}
+	
+	// 히트 애니메이션
 	if (!bIsDying)
 	{
 		PlayRandomHitMontage();
@@ -217,16 +300,14 @@ void AAIMonsterBase::ReceiveDamage(float Damage)
 	}
 }
 
+void AAIMonsterBase::ReceiveDamage(float Damage)
+{
+	ApplyDamage(Damage, nullptr);
+}
+
 void AAIMonsterBase::ReceiveDamageFrom(float Damage, AController* InstigatorController)
 {
-	if (bIsDying) return;
-
-	if (InstigatorController && InstigatorController->IsA(APlayerController::StaticClass()))
-	{
-		LastAttackerController = Cast<APlayerController>(InstigatorController);
-	}
-
-	ReceiveDamage(Damage);
+	ApplyDamage(Damage, InstigatorController);
 }
 #pragma endregion
 
@@ -432,15 +513,13 @@ void AAIMonsterBase::NotifyMonsterKilled()
 	OnMonsterKilled.Broadcast(this, MonsterType, LastAttackerController);
 
 	// 퀘스트 이벤트
-	/*
-	 const FName EventId = GetMonsterEventId(MonsterType);
-	if (EventId == NAME_None) return;
+	//const FName EventId = GetMonsterEventId(MonsterType);
+	//if (EventId == NAME_None) return;
 
-	if (UUKQuestManagerSubsystem* QM = GetGameInstance()->GetSubsystem<UUKQuestManagerSubsystem>())
-	{
-		QM->EmitQuestEvent(EventId);
-	}
-	*/
+	//if (UUKQuestManagerSubsystem* QM = GetGameInstance()->GetSubsystem<UUKQuestManagerSubsystem>())
+	//{
+	//	QM->EmitQuestEvent(EventId);
+	//}
 }
 
 void AAIMonsterBase::HideCorpse()
@@ -459,10 +538,13 @@ void AAIMonsterBase::ResetHealth()
 	bIsDying               = false;
 	LastAttackerController = nullptr;
 
-	// Stat 복원
-	if (StatComponent)
+	// GAS를 통한 체력 복원
+	if (AbilitySystemComponent && AttributeSet)
 	{
-		StatComponent->SetHP(StatComponent->GetMaxHP());
+		const float MaxHP = AttributeSet->GetMaxHealth();
+		AbilitySystemComponent->SetNumericAttributeBase(
+			AttributeSet->GetHealthAttribute(), MaxHP
+		);
 	}
 
 	// 상태 복원
@@ -611,9 +693,13 @@ void AAIMonsterBase::ResetToPassive()
 	bIsAttacking  = false;
 	Aggressor     = nullptr;
 
-	if (StatComponent)
+	// GAS를 통한 체력 복원
+	if (AbilitySystemComponent && AttributeSet)
 	{
-		StatComponent->SetHP(StatComponent->GetMaxHP());
+		const float MaxHP = AttributeSet->GetMaxHealth();
+		AbilitySystemComponent->SetNumericAttributeBase(
+			AttributeSet->GetHealthAttribute(), MaxHP
+		);
 	}
 
 	RequestState(EMonsterState::Passive);
