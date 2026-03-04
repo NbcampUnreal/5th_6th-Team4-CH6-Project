@@ -41,22 +41,28 @@ void UUK_DamageExecutionCalculation::Execute_Implementation(
 	EvalParams.SourceTags = Spec.CapturedSourceTags.GetAggregatedTags();
 	EvalParams.TargetTags = Spec.CapturedTargetTags.GetAggregatedTags();
 
+	//캐릭터의 기본 공격력
 	float AttackPower = 0.f;
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(
 		FDamageCapture().AttackPowerDef, EvalParams, AttackPower);
 
-	float BaseDamage = Spec.GetSetByCallerMagnitude(
-		FGameplayTag::RequestGameplayTag("Data.Damage.NomalSkill"),
+	// 스킬의 데미지 퍼센트
+	float SkillDamagePercent = Spec.GetSetByCallerMagnitude(
+		FGameplayTag::RequestGameplayTag("Data.Damage"),
 		/*bWarnIfNotFound=*/false,
 		0.f
 	);
-
-	float FinalDamage = FMath::Max(BaseDamage + AttackPower, 0.0f);
+	
+	// 퍼센트로 변환  
+	SkillDamagePercent /= 100;
+	
+	//방어력 계산 전 최종데미지
+	float FinalDamage = FMath::Max(AttackPower * SkillDamagePercent, 0.0f);
 
 	if (FinalDamage > 0.f)
 	{
 		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
-			UUK_PlayerStatusAttributeSet::GetDamageAttribute(),
+			UUK_PlayerStatusAttributeSet::GetDamageAttribute()/*데미지를 AttributeSet에 전달*/,
 			EGameplayModOp::Additive,
 			FinalDamage
 		));

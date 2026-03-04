@@ -9,6 +9,7 @@
 
 #pragma region Forward Declaration
 class UAbilitySystemComponent;
+class UUK_PlayerStatusAttributeSet;
 #pragma endregion
 
 UCLASS()
@@ -23,4 +24,7 @@ public:
 
 	UPROPERTY(VisibleAnywhere, Category = "GB|Abilities")
 	TObjectPtr<UAbilitySystemComponent> ASC;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GB|Abilities")
+	UUK_PlayerStatusAttributeSet* StatusAttributeSet;
 };
