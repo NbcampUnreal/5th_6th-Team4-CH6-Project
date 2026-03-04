@@ -293,6 +293,27 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = "true"))
 	UWidgetComponent* HPWidgetComponent;
 #pragma endregion
+	
+#pragma region Alert Icon Widget
+public:
+	/** 에디터에서 느낌표 위젯 블루프린트 할당 */
+	UPROPERTY(EditDefaultsOnly, Category = "UI|Alert")
+	TSubclassOf<UUserWidget> AlertWidgetClass;
+
+	void ShowAlertIcon();
+	void HideAlertIcon();
+
+protected:
+	UPROPERTY(VisibleAnywhere, Category = "UI|Alert")
+	UWidgetComponent* AlertWidgetComponent;
+
+private:
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_ShowAlertIcon();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_HideAlertIcon();
+#pragma endregion
 
 #pragma region Replication
 public:

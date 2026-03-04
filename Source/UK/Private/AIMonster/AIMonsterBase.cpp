@@ -46,6 +46,15 @@ AAIMonsterBase::AAIMonsterBase()
 	HPWidgetComponent->SetDrawSize(FVector2D(180.f, 20.f));
 	HPWidgetComponent->SetRelativeLocation(FVector(0, 0, 120.f));
 	HPWidgetComponent->SetVisibility(false);
+	
+	// Alert Icon Widget 설치
+	AlertWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("AlertWidgetComponent"));
+	AlertWidgetComponent->SetupAttachment(GetMesh());
+	AlertWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);   
+	AlertWidgetComponent->SetDrawAtDesiredSize(true);
+	AlertWidgetComponent->SetDrawSize(FVector2D(64.f, 64.f));
+	AlertWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, 160.f)); 
+	AlertWidgetComponent->SetVisibility(false);
 
 	NetUpdateFrequency    = 60.f;
 	MinNetUpdateFrequency = 30.f;
@@ -107,6 +116,11 @@ void AAIMonsterBase::PostInitializeComponents()
 		{
 			HPWidget->BindMonsterStats(StatComponent);
 		}
+	}
+	
+	if (AlertWidgetComponent && AlertWidgetClass)
+	{
+		AlertWidgetComponent->SetWidgetClass(AlertWidgetClass);
 	}
 }
 #pragma endregion
@@ -235,7 +249,8 @@ void AAIMonsterBase::ReceiveDamage(float Damage)
 			{
 				if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
 				{
-					BB->SetValueAsObject(TEXT("TargetPlayer"), ClosestPlayer);
+					if (!BB->GetValueAsObject(TEXT("TargetPlayer")))
+						BB->SetValueAsObject(TEXT("PendingTarget"), ClosestPlayer);
 				}
 			}
 
@@ -646,7 +661,8 @@ void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
 		{
 			if (UBlackboardComponent* BB = AllyAIC->GetBlackboardComponent())
 			{
-				BB->SetValueAsObject(TEXT("TargetPlayer"), Enemy);
+				if (!BB->GetValueAsObject(TEXT("TargetPlayer")))
+					BB->SetValueAsObject(TEXT("PendingTarget"), Enemy);
 			}
 			if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AllyAIC->GetBrainComponent()))
 			{
@@ -716,5 +732,45 @@ void AAIMonsterBase::UpdateHPBarWidget()
 	HPWidgetComponent->SetWorldRotation(LookAtRotation);
 
 	HPWidgetComponent->SetWorldScale3D(FVector(0.5f, 0.5f, 0.5f));
+}
+#pragma endregion
+
+#pragma region Alert Icon
+void AAIMonsterBase::ShowAlertIcon()
+{
+	if (!HasAuthority()) return;
+	Multicast_ShowAlertIcon();
+}
+
+void AAIMonsterBase::HideAlertIcon()
+{
+	if (!HasAuthority()) return;
+	Multicast_HideAlertIcon();
+}
+
+void AAIMonsterBase::Multicast_ShowAlertIcon_Implementation()
+{
+	if (!AlertWidgetComponent) return;
+
+	if (!AlertWidgetComponent->GetUserWidgetObject() && AlertWidgetClass)
+	{
+		AlertWidgetComponent->SetWidgetClass(AlertWidgetClass);
+		AlertWidgetComponent->InitWidget();
+	}
+
+	AlertWidgetComponent->SetVisibility(true);
+
+	if (UUserWidget* W = AlertWidgetComponent->GetUserWidgetObject())
+		W->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+}
+
+void AAIMonsterBase::Multicast_HideAlertIcon_Implementation()
+{
+	if (!AlertWidgetComponent) return;
+
+	if (UUserWidget* W = AlertWidgetComponent->GetUserWidgetObject())
+		W->SetVisibility(ESlateVisibility::Collapsed);
+
+	AlertWidgetComponent->SetVisibility(false);
 }
 #pragma endregion
