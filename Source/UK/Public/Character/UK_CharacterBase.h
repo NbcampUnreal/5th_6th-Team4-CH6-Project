@@ -116,7 +116,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UUK_InputConfig* InputMappingConfig;
 protected:
-
+	UPROPERTY()
 	AUK_PlayerController* PC;
 
 	UFUNCTION()
@@ -262,7 +262,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, ReplicatedUsing = OnRep_fry)
 	bool bIsfry;
 
-	float DefaultGravityValue;
 	FOnFloorDelagate OnFloor;
 #pragma endregion
 
