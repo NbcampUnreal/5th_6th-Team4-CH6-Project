@@ -3,15 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UK_CostGameplayAbility.h"
-#include "UK_NomalSkillAbility.generated.h"
+#include "GameplayEffect.h"
+#include "UK_DamageEffect.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class UK_API UUK_NomalSkillAbility : public UUK_CostGameplayAbility
+class UK_API UUK_DamageEffect : public UGameplayEffect
 {
 	GENERATED_BODY()
-	
+public:
 };
