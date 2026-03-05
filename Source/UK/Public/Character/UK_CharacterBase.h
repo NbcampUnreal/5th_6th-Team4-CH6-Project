@@ -113,7 +113,7 @@ private:
 #pragma endregion
 
 #pragma region Input
-protected:
+public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UUK_InputConfig* InputMappingConfig;
 protected:

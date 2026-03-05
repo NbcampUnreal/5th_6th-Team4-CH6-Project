@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/Button.h"
 #include "UK_Sound.generated.h"
 
 /**
@@ -13,5 +14,19 @@ UCLASS()
 class UK_API UUK_Sound : public UUserWidget
 {
 	GENERATED_BODY()
-	
+
+public:
+	virtual void NativeConstruct() override;
+
+protected:
+	UPROPERTY()
+	class UUserWidget* ParentSettingWidget;
+public:
+	void SetParentWidget(UUserWidget* InParent) { ParentSettingWidget = InParent; }
+
+	UPROPERTY(meta = ( BindWidget ))
+	class UButton* SoundBackButton;
+
+	UFUNCTION()
+	void OnBackButtonClicked();
 };
