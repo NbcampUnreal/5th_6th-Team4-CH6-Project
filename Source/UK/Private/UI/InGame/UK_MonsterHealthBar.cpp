@@ -1,17 +1,16 @@
 ﻿#include "UI/InGame/UK_MonsterHealthBar.h"
 #include "Components/ProgressBar.h"
-#include "AIMonster/Component/AI_MonsterStatComponent.h"
 
-
-void UUK_MonsterHealthBar::UpdateHPBar(float NewHP) 
+/*
+ *void UUK_MonsterHealthBar::UpdateHPBar(float NewHP) 
 { 
-	if ( MonsterHPBar && TargetStatComp && NewHP > 0.f ) 
+	 if ( MonsterHPBar && TargetStatComp && NewHP > 0.f ) 
 	{ 
 		float TargetPercent = NewHP / TargetStatComp->GetMaxHP(); 
 		if ( MonsterHPBar->GetPercent() != TargetPercent ) 
 		{
 			MonsterHPBar->SetPercent(TargetPercent); } 
-	} 
+	}
 }
 
 void UUK_MonsterHealthBar::BindMonsterStats(UAI_MonsterStatComponent* StatComp) 
@@ -24,7 +23,7 @@ void UUK_MonsterHealthBar::BindMonsterStats(UAI_MonsterStatComponent* StatComp)
 		UpdateHPBar(TargetStatComp->GetHP());
 	} 
 }
-
+*/
 //void UUK_MonsterHealthBar::SetHPBarActive(bool bActive) {
 //	if ( bActive ) 
 //	{ 
@@ -48,3 +47,50 @@ void UUK_MonsterHealthBar::BindMonsterStats(UAI_MonsterStatComponent* StatComp)
 //		} 
 //	} 
 //}
+
+void UUK_MonsterHealthBar::BindMonsterAttributes(UAbilitySystemComponent* ASC, UUK_MonsterAttributeSet* Attributes)
+{
+	if (!ASC || !Attributes) return;
+
+	AbilitySystemComponent = ASC;
+	AttributeSet = Attributes;
+
+	// Health 변경 콜백 등록
+	ASC->GetGameplayAttributeValueChangeDelegate(
+		Attributes->GetHealthAttribute()
+	).AddUObject(this, &UUK_MonsterHealthBar::OnHealthChanged);
+
+	// 초기 값으로 UI 업데이트
+	UpdateHealthDisplay();
+}
+
+void UUK_MonsterHealthBar::OnHealthChanged(const FOnAttributeChangeData& Data)
+{
+	UpdateHealthDisplay();
+}
+
+void UUK_MonsterHealthBar::UpdateHealthDisplay()
+{
+	if (!AttributeSet || !MonsterHPBar) return;
+
+	const float CurrentHealth = AttributeSet->GetHealth();
+	const float MaxHealth = AttributeSet->GetMaxHealth();
+	const float HealthPercent = MaxHealth > 0.0f ? CurrentHealth / MaxHealth : 0.0f;
+
+	if (MonsterHPBar->GetPercent() != HealthPercent)
+	{
+		MonsterHPBar->SetPercent(HealthPercent);
+	}
+}
+
+void UUK_MonsterHealthBar::SetHPBarActive(bool bActive)
+{
+	if (bActive)
+	{
+		SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+	else
+	{
+		SetVisibility(ESlateVisibility::Collapsed);
+	}
+}

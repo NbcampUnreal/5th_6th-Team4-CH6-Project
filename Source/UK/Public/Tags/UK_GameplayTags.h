@@ -52,10 +52,8 @@ namespace UK_GameplayTags
 
 	namespace Data
 	{
-		namespace Damage
-		{
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(NomalSkill);
-		}
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Damage);
+
 	}
 
 	namespace CoolDown
