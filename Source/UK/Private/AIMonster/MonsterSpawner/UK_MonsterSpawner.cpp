@@ -276,7 +276,7 @@ void AUK_MonsterSpawner::OnMonsterDied(AAIMonsterBase* DeadMonster)
 #pragma region Game Mode Integration
 void AUK_MonsterSpawner::RegisterMonsterToGameMode(AAIMonsterBase* Monster)
 {
-	if (!Monster || !HasAuthority()) return;
+	if (!Monster) return;
 
 	UWorld* World = GetWorld();
 	if (!World) return;

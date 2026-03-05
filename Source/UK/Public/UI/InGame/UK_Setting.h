@@ -7,6 +7,8 @@
 #include "Components/Button.h"
 #include "UK_Setting.generated.h"
 
+
+class AUK_PlayerController;
 /**
  * 
  */
@@ -28,8 +30,14 @@ public:
 	UPROPERTY(meta = ( BindWidget ))
 	UButton* Control;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UUserWidget> ControlWidgetClass;
+
 	UPROPERTY(meta = ( BindWidget ))
 	UButton* Video;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UUserWidget> VideoWidgetClass;
 
 	UPROPERTY(meta = ( BindWidget ))
 	UButton* Infomation;
@@ -39,5 +47,18 @@ public:
 
 	UFUNCTION()
 	void OnSoundButtonClicked();
+
+	UFUNCTION()
+	void OnVideoButtonClicked();
+
+	UFUNCTION()
+	void OnControlButtonClicked();
+
+	UFUNCTION()
+	void OnExitButtonClicked();
+
+protected:
+	UPROPERTY()
+	class AUK_PlayerController* UK_PC;
 
 };

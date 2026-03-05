@@ -1,8 +1,10 @@
 ﻿#include "AIMonster/Monster/UK_EliteMonster.h"
 #include "AIController.h"
 #include "Components/CapsuleComponent.h"
-#include "Net/UnrealNetwork.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Character/UK_CharacterBase.h"
+#include "DrawDebugHelpers.h"
+#include "Engine/OverlapResult.h"
 
 #pragma region Initialization
 AUK_EliteMonster::AUK_EliteMonster()
@@ -20,7 +22,6 @@ AUK_EliteMonster::AUK_EliteMonster()
 #pragma region Special Attack
 bool AUK_EliteMonster::CanUseSpecialAttack() const
 {
-	if (!HasAuthority()) return false;
 	if (bIsDying || bIsAttacking) return false;
 	if (SpecialAttackMontages.Num() == 0) return false;
 
@@ -39,11 +40,22 @@ bool AUK_EliteMonster::PlaySpecialAttack()
 	bIsAttacking          = true;
 	LastSpecialAttackTime = GetWorld()->GetTimeSeconds();
 
-	Multicast_PlaySpecialAttackMontage(RandomIndex);
+	// 몽타주 길이 미리 계산
+	UAnimInstance* AnimInst = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	const float MontageLength = AnimInst ? Montage->GetPlayLength() : 1.0f;
+
+	// 임팩트 타이밍: 몽타주 길이의 40% 시점에 광역 데미지 (BP에서 SpecialAttackHitTiming으로 조절)
+	const float HitDelay = MontageLength * SpecialAttackHitTiming;
+	GetWorldTimerManager().SetTimer(
+		SpecialAttackAoETimerHandle, this,
+		&AUK_EliteMonster::ApplySpecialAttackAoE,
+		HitDelay, false);
+
+	PlaySpecialAttackMontage(RandomIndex);
 	return true;
 }
 
-void AUK_EliteMonster::Multicast_PlaySpecialAttackMontage_Implementation(int32 MontageIndex)
+void AUK_EliteMonster::PlaySpecialAttackMontage(int32 MontageIndex)
 {
 	if (!SpecialAttackMontages.IsValidIndex(MontageIndex)) return;
 
@@ -55,7 +67,7 @@ void AUK_EliteMonster::Multicast_PlaySpecialAttackMontage_Implementation(int32 M
 
 	const float Length = AnimInstance->Montage_Play(Montage, 1.0f);
 
-	if (HasAuthority() && Length > 0.f)
+	if (Length > 0.f)
 	{
 		FOnMontageEnded EndDelegate;
 		EndDelegate.BindUObject(this, &AUK_EliteMonster::OnSpecialAttackMontageEnded);
@@ -95,16 +107,57 @@ void AUK_EliteMonster::Multicast_PlaySpecialAttackMontage_Implementation(int32 M
 #pragma endregion
 }
 
+void AUK_EliteMonster::ApplySpecialAttackAoE()
+{
+	if (!GetWorld()) return;
+
+	const FVector Center = GetActorLocation();
+
+	FCollisionObjectQueryParams ObjParams(FCollisionObjectQueryParams::AllObjects);
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+	QueryParams.bTraceComplex = false;
+
+	TArray<FOverlapResult> Overlaps;
+	GetWorld()->OverlapMultiByObjectType(
+		Overlaps, Center, FQuat::Identity, ObjParams,
+		FCollisionShape::MakeSphere(SpecialAttackAoERadius), QueryParams);
+
+	TSet<AActor*> DamagedActors;
+	for (const FOverlapResult& Overlap : Overlaps)
+	{
+		AActor* HitActor = Overlap.GetActor();
+		if (!HitActor || DamagedActors.Contains(HitActor)) continue;
+
+		AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(HitActor);
+		if (!Player) continue;
+
+		DamagedActors.Add(HitActor);
+		Player->ReceiveDamage(SpecialAttackDamage);
+
+		UE_LOG(LogTemp, Warning,
+			TEXT("[EliteSpecial AoE] %s → %s | Damage: %.1f | Dist: %.1f"),
+			*GetName(), *Player->GetName(),
+			SpecialAttackDamage,
+			FVector::Dist(Center, Player->GetActorLocation()));
+	}
+
+	if (bShowSpecialAttackDebug)
+	{
+		DrawDebugSphere(GetWorld(), Center, SpecialAttackAoERadius,
+			24, FColor::Orange, false, 2.f, 0, 3.f);
+	}
+}
+
 void AUK_EliteMonster::OnSpecialAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
+	// 어보트 시 타이머 취소
+	if (bInterrupted)
+	{
+		GetWorldTimerManager().ClearTimer(SpecialAttackAoETimerHandle);
+	}
+
 	bIsAttacking = false;
 	OnSpecialAttackFinished.ExecuteIfBound(!bInterrupted);
-}
-#pragma endregion
-
-#pragma region Replication
-void AUK_EliteMonster::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 }
 #pragma endregion

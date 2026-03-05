@@ -1,7 +1,12 @@
 ﻿#include "AIMonster/Animation/AnimNotifyState_UKMonsterMeleeTrace.h"
 #include "AIMonster/AIMonsterBase.h"
 #include "Character/UK_CharacterBase.h"
+#include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
+#include "GameFramework/Character.h"
+#include "Components/CapsuleComponent.h"
+#include "Sound/SoundCue.h"
+#include "Sound/SoundBase.h"
 
 UAnimNotifyState_UKMonsterMeleeTrace::UAnimNotifyState_UKMonsterMeleeTrace() {}
 
@@ -12,6 +17,9 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyBegin(
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
 	HitActors.Empty();
+	
+
+	UGameplayStatics::PlaySound2D(MeshComp->GetWorld(), AttackSound);
 }
 
 void UAnimNotifyState_UKMonsterMeleeTrace::NotifyEnd(
@@ -30,27 +38,41 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 {
 	Super::NotifyTick(MeshComp, Animation, FrameDeltaTime, EventReference);
 
-	if (!MeshComp || !MeshComp->GetOwner()) return;
+	if (!MeshComp || !MeshComp->GetOwner())	return;
 
 	AActor* OwnerActor = MeshComp->GetOwner();
 	UWorld* World = OwnerActor->GetWorld();
-	if (!World || !OwnerActor->HasAuthority()) return;
 
+	if (!World)	return;
+	
 	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(OwnerActor);
-	if (!Monster) return;
+	if (!Monster)
+	{
+		return;
+	}
 
-	// ── 전방 구체 스윕 트레이스 ──────────────────────────────────────────
-	const FVector TraceStart = OwnerActor->GetActorLocation() + FVector(0, 0, TraceStartHeight);
+	// ── 전방 구체 스윕  ─────────────────
+	float CapsuleHalf = 90.f;
+	if (ACharacter* Char = Cast<ACharacter>(OwnerActor))
+	{
+		if (UCapsuleComponent* Cap = Char->GetCapsuleComponent())
+		{
+			CapsuleHalf = Cap->GetScaledCapsuleHalfHeight();
+		}
+	}
+	const FVector TraceStart = OwnerActor->GetActorLocation() + FVector(0, 0, CapsuleHalf * 0.1f);
 	const FVector TraceEnd   = TraceStart + OwnerActor->GetActorForwardVector() * TraceForwardLength;
 
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(OwnerActor);
 	QueryParams.bTraceComplex = false;
 
+	FCollisionObjectQueryParams ObjectQueryParams(FCollisionObjectQueryParams::AllObjects);
+
 	TArray<FHitResult> HitResults;
-	const bool bHit = World->SweepMultiByChannel(
+	const bool bHit = World->SweepMultiByObjectType(
 		HitResults, TraceStart, TraceEnd,
-		FQuat::Identity, ECC_Pawn,
+		FQuat::Identity, ObjectQueryParams,
 		FCollisionShape::MakeSphere(TraceRadius), QueryParams);
 
 #pragma region Debug
@@ -60,7 +82,6 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 		const FVector Center   = (TraceStart + TraceEnd) * 0.5f;
 		const float HalfHeight = FVector::Dist(TraceStart, TraceEnd) * 0.5f + TraceRadius;
 		const FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceEnd - TraceStart).ToQuat();
-
 		DrawDebugCapsule(World, Center, HalfHeight, TraceRadius,
 			CapsuleRot, DrawColor, false, DebugDrawDuration, 0, 3.f);
 	}
@@ -87,6 +108,13 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 				FColor::Yellow, false, DebugDrawDuration, 0, 3.f);
 		}
 #pragma endregion
+
+		UE_LOG(LogTemp, Warning,
+			TEXT("[MeleeTrace] %s → %s | Damage: %.1f | ImpactPoint: %s"),
+			*Monster->GetName(),
+			*Player->GetName(),
+			Monster->AttackDamage,
+			*Hit.ImpactPoint.ToString());
 
 		Player->ReceiveDamage(Monster->AttackDamage);
 	}

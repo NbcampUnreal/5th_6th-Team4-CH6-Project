@@ -26,7 +26,9 @@ public class UK : ModuleRules
             "GameplayTasks",
 			"Json",
 			"JsonUtilities",
-			"AssetRegistry"
+			"AssetRegistry",
+			"GameplayTags",
+			"Niagara"
         });
 		
 		PrivateDependencyModuleNames.AddRange(new string[] { });

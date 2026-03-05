@@ -4,6 +4,8 @@
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "AnimNotifyState_UKMonsterMeleeTrace.generated.h"
 
+class USoundCue;
+
 /**
  * 몬스터 근접 공격 트레이스
  */
@@ -38,6 +40,7 @@ public:
 	/** 스윕 반지름 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trace")
 	float TraceRadius = 50.f;
+	
 #pragma endregion
 
 #pragma region Debug Settings
@@ -55,4 +58,8 @@ private:
 	UPROPERTY()
 	TArray<AActor*> HitActors;
 #pragma endregion
+	
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds | attack")
+	USoundCue* AttackSound;
 };

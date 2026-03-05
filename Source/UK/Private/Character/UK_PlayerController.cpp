@@ -2,8 +2,15 @@
 
 
 #include "Character/UK_PlayerController.h"
+//#include "ActorComponent/UK_InputComponent.h"
+#include "Character/UK_CharacterBase.h"
+#include "EnhancedInputComponent.h"
+#include "Engine/LocalPlayer.h"
 #include "EnhancedInputSubsystems.h"
+#include "UserSettings/EnhancedInputUserSettings.h"
+#include "DataAsset/UK_InputConfig.h"
 #include "UI/InGame/UK_Quest.h"
+
 
 AUK_PlayerController::AUK_PlayerController()
 	: bMouseCursorEnabled(false)
@@ -57,17 +64,50 @@ void AUK_PlayerController::OnPossess(APawn* pawn)
 {
 	Super::OnPossess(pawn);
 
+	if ( !IsLocalController() )
+		return;
+
 	if ( IsLocalController() )
 	{
 		ConnectStaminaWidget();
 	}
 
-	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 
-	if ( Subsystem )
+	AUK_CharacterBase* MyCharacter = Cast<AUK_CharacterBase>(pawn);
+	if ( !MyCharacter ) return;
+
+	UUK_InputConfig* InputConfig_Player = MyCharacter->InputMappingConfig;
+	if ( !InputConfig_Player ) return;
+
+	IMC = InputConfig_Player->GetIMC();
+	if ( !IMC ) return;
+
+	ULocalPlayer* LocalPlayer = GetLocalPlayer();
+	if ( !LocalPlayer ) return;
+
+	UEnhancedInputLocalPlayerSubsystem* Subsystem =
+		LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
+
+	if ( !Subsystem ) return;
+
+	Subsystem->ClearAllMappings();
+	Subsystem->AddMappingContext(IMC, 0);
+
+	UEnhancedInputUserSettings* Settings = Subsystem->GetUserSettings();
+	if ( Settings )
 	{
-		Subsystem->AddMappingContext(IMC, 0);
+		if ( !Settings->IsMappingContextRegistered(this->IMC) )
+		{
+			Settings->RegisterInputMappingContext(this->IMC);
+		}
 	}
+
+	//UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
+
+	//if ( Subsystem )
+	//{
+	//	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
 }
 
 // -----  UI 생성 -----

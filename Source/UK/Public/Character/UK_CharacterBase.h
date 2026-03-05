@@ -35,6 +35,7 @@ struct FInputActionValue;
 #pragma endregion
 
 DECLARE_DYNAMIC_DELEGATE(FOnFloorDelagate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadDelagate);
 UCLASS()
 class UK_API AUK_CharacterBase : public ACharacter, public IAbilitySystemInterface
 {
@@ -112,11 +113,11 @@ private:
 #pragma endregion
 
 #pragma region Input
-protected:
+public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UUK_InputConfig* InputMappingConfig;
 protected:
-
+	UPROPERTY()
 	AUK_PlayerController* PC;
 
 	UFUNCTION()
@@ -262,8 +263,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, ReplicatedUsing = OnRep_fry)
 	bool bIsfry;
 
-	float DefaultGravityValue;
 	FOnFloorDelagate OnFloor;
+	FOnDeadDelagate OnDead;
 #pragma endregion
 
 #pragma region FindMonsterHPBar
