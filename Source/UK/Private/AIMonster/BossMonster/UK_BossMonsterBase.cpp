@@ -39,11 +39,12 @@ void AUK_BossMonsterBase::ReceiveDamage(float Damage)
 
 void AUK_BossMonsterBase::UpdatePhase()
 {
-	if (!StatComponent) return;
-
-
-	const float HPRatio = StatComponent->GetHP() / StatComponent->GetMaxHP();
-
+	if (!AttributeSet) return;
+	const float CurrentHP = AttributeSet->GetHealth();
+	const float MaxHP = AttributeSet->GetMaxHealth();
+	
+	if (MaxHP <= 0.f) return;
+	const float HPRatio = CurrentHP / MaxHP;
 
 	if (HPRatio <= EnrageHPRatio)
 	{

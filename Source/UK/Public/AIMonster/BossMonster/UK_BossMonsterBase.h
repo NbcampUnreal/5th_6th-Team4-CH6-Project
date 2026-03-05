@@ -47,7 +47,7 @@ protected:
 	virtual void ShowHPBar() override;
 
 protected:
-	virtual void ReceiveDamage(float Damage) override;
+	void ReceiveDamage(float Damage);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Pattern")
 	TArray<UAnimMontage*> Phase1Patterns;
