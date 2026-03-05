@@ -234,7 +234,7 @@ public:
 	void ApplyDamage(float DamageAmount, AController* InstigatorController = nullptr);
 
 	/** 레거시 호환용 */
-	void ReceiveDamage(float Damage);
+	virtual void ReceiveDamage(float Damage);
 	void ReceiveDamageFrom(float Damage, AController* InstigatorController);
 #pragma endregion
 
@@ -274,10 +274,6 @@ public:
 
 #pragma region HP Bar Widget
 public:
-	void ReceiveDamage(float Damage);
-
-	/* 데미지를 준 공격자 추적 */
-	void ReceiveDamageFrom(float Damage, AController* InstigatorController);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -329,10 +325,6 @@ protected:
 
 #pragma region Private
 private:
-	FTimerHandle CorpseTimerHandle;
-
-	void HideAndBroadcastDeath();
-	void NotifyMonsterKilled();
 
 	UPROPERTY()
 	UUK_MonsterHealthBar* HPWidget;

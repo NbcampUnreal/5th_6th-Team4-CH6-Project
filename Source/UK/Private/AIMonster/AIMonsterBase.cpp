@@ -421,33 +421,33 @@ UUK_MonsterHealthBar* AAIMonsterBase::GetHPWidget() const
 	);
 }
 
-void AAIMonsterBase::UpdateHPBarWidget()
-{
-	if ( !HPWidgetComponent || !HPWidgetComponent->IsVisible() ) return;
-
-	// ----- 카메라 위치 얻기 -----
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	if ( !PC || !PC->PlayerCameraManager ) return;
-
-	FVector CameraLocation = PC->PlayerCameraManager->GetCameraLocation();
-	FRotator CameraRotation = PC->PlayerCameraManager->GetCameraRotation();
-
-	// ----- 카메라를 바라보게 회전 -----
-	const FVector WidgetLocation = HPWidgetComponent->GetComponentLocation();
-	float Distance = FVector::Dist(CameraLocation, WidgetLocation);
-
-	// ----- Pitch, Roll 제거 ------
-	FRotator NewRotation = CameraRotation;
-	NewRotation.Yaw += 180.f;
-	NewRotation.Roll = 0.f;
-
-	HPWidgetComponent->SetWorldRotation(NewRotation);
-
-	// --- 화면상 HP UI 크기 유지용 스케일 ---
-	float ScaleFactor = FMath::Max(0.1f, Distance / 2000.f);
-	HPWidgetComponent->SetWorldScale3D(FVector(DesiredScale));
-
-}
+//void AAIMonsterBase::UpdateHPBarWidget()
+//{
+//	if ( !HPWidgetComponent || !HPWidgetComponent->IsVisible() ) return;
+//
+//	// ----- 카메라 위치 얻기 -----
+//	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+//	if ( !PC || !PC->PlayerCameraManager ) return;
+//
+//	FVector CameraLocation = PC->PlayerCameraManager->GetCameraLocation();
+//	FRotator CameraRotation = PC->PlayerCameraManager->GetCameraRotation();
+//
+//	// ----- 카메라를 바라보게 회전 -----
+//	const FVector WidgetLocation = HPWidgetComponent->GetComponentLocation();
+//	float Distance = FVector::Dist(CameraLocation, WidgetLocation);
+//
+//	// ----- Pitch, Roll 제거 ------
+//	FRotator NewRotation = CameraRotation;
+//	NewRotation.Yaw += 180.f;
+//	NewRotation.Roll = 0.f;
+//
+//	HPWidgetComponent->SetWorldRotation(NewRotation);
+//
+//	// --- 화면상 HP UI 크기 유지용 스케일 ---
+//	float ScaleFactor = FMath::Max(0.1f, Distance / 2000.f);
+//	HPWidgetComponent->SetWorldScale3D(FVector(DesiredScale));
+//
+//}
 
 void AAIMonsterBase::PlayHitMontage(int32 MontageIndex)
 {
