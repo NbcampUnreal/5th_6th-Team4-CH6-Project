@@ -4,6 +4,8 @@
 #include "Components/WidgetComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Animation/AnimInstance.h"
+#include "AIMonster/BossMonster/UK_BossAnimInstance.h"
 
 AUK_BossMonsterBase::AUK_BossMonsterBase()
 {
@@ -14,8 +16,9 @@ void AUK_BossMonsterBase::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	GetCharacterMovement()->MaxWalkSpeed = 200.f; 
+	GetCharacterMovement()->MaxWalkSpeed = 400.f; 
 	
+	BossAnim = Cast<UUK_BossAnimInstance>(GetMesh()->GetAnimInstance());
 	Phase1Tag  = FGameplayTag::RequestGameplayTag(TEXT("Boss.Phase.Phase1"));
 	Phase2Tag  = FGameplayTag::RequestGameplayTag(TEXT("Boss.Phase.Phase2"));
 	Phase3Tag  = FGameplayTag::RequestGameplayTag(TEXT("Boss.Phase.Phase3"));
@@ -25,6 +28,26 @@ void AUK_BossMonsterBase::BeginPlay()
 	{
 		SetPhase(Phase1Tag);
 	}
+}
+
+void AUK_BossMonsterBase::StartAttack()
+{
+	if (!BossAnim)
+	{
+		BossAnim = Cast<UUK_BossAnimInstance>(GetMesh()->GetAnimInstance());
+	}
+	if (!BossAnim) return;
+	BossAnim->bIsAttacking = true;
+}
+
+void AUK_BossMonsterBase::EndAttack() 
+{
+	if (!BossAnim)
+	{
+		BossAnim = Cast<UUK_BossAnimInstance>(GetMesh()->GetAnimInstance());
+	}
+	if (!BossAnim) return;
+	BossAnim->bIsAttacking = false;
 }
 
 void AUK_BossMonsterBase::ReceiveDamage(float Damage)
@@ -80,6 +103,7 @@ void AUK_BossMonsterBase::OnRep_Phase()
 
 bool AUK_BossMonsterBase::PlayRandomAttackMontage()
 {
+	StartAttack();
 	UE_LOG(LogTemp, Warning, TEXT("Boss Try Attack"));
 	TArray<UAnimMontage*>* Pattern = nullptr;
 

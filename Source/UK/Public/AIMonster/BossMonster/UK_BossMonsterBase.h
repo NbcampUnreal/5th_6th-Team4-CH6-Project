@@ -6,6 +6,7 @@
 #include "UK_BossMonsterBase.generated.h"
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FBossPhaseChanged,const FGameplayTag&);
+class UUK_BossAnimInstance;
 
 UCLASS()
 class UK_API AUK_BossMonsterBase : public AAIMonsterBase
@@ -21,10 +22,13 @@ public:
 	FGameplayTag GetCurrentPhase() const { return CurrentPhaseTag; }
 	
 	virtual bool PlayRandomAttackMontage() override;
+	bool bIsAttacking = false; 
+	void StartAttack(); 
+	void EndAttack();
+	
 protected:
 	virtual void BeginPlay() override;
 
-	/* ================= Phase ================= */
 	UPROPERTY(ReplicatedUsing=OnRep_Phase, BlueprintReadOnly, Category="Boss|Phase")
 	FGameplayTag CurrentPhaseTag;
 	
@@ -64,6 +68,9 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 private:
+	UPROPERTY()
+	UUK_BossAnimInstance* BossAnim;
+	
 	FGameplayTag Phase1Tag;
 	FGameplayTag Phase2Tag;
 	FGameplayTag Phase3Tag;
