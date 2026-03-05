@@ -13,10 +13,7 @@ UUK_BTService_FindUKPlayer::UUK_BTService_FindUKPlayer()
 	Interval = 0.3f;
 }
 
-void UUK_BTService_FindUKPlayer::TickNode(
-	UBehaviorTreeComponent& OwnerComp,
-	uint8* NodeMemory,
-	float DeltaSeconds)
+void UUK_BTService_FindUKPlayer::TickNode(UBehaviorTreeComponent& OwnerComp,uint8* NodeMemory,float DeltaSeconds)
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 
@@ -31,10 +28,21 @@ void UUK_BTService_FindUKPlayer::TickNode(
 
 	UWorld* World = GetWorld();
 	if (!World) return;
+	FVector HomeLocation = BB->GetValueAsVector(TEXT("HomeLocation"));
+
+	float MaxDistance = 3500.f;
+
+	float DistFromHome = FVector::Dist(SelfPawn->GetActorLocation(),HomeLocation);
+
+	if (DistFromHome > MaxDistance)
+	{
+		BB->ClearValue(TEXT("TargetActor"));
+		return;
+	}
 
 	AUK_CharacterBase* ClosestPlayer = nullptr;
 	float MinDist = DetectRadius;
-	
+
 	for (TActorIterator<AUK_CharacterBase> It(World); It; ++It)
 	{
 		AUK_CharacterBase* Player = *It;
@@ -61,4 +69,5 @@ void UUK_BTService_FindUKPlayer::TickNode(
 	{
 		BB->ClearValue(TEXT("TargetActor"));
 	}
+	
 }
