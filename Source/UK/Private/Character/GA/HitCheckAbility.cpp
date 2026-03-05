@@ -8,30 +8,28 @@
 
 void UHitCheckAbility::Attack(FGameplayAbilityTargetDataHandle TargetDataHandle)
 {
-	if ( TargetDataHandle.Num() == 0 )
+	/*if (TargetDataHandle.Num() == 0)
 		return;
 	const FGameplayAbilityTargetData* BaseData = TargetDataHandle.Get(0);
 
 	const FGameplayAbilityTargetData_ActorArray* ActorData =
-		static_cast< const FGameplayAbilityTargetData_ActorArray* >( BaseData );
+		static_cast<const FGameplayAbilityTargetData_ActorArray*>(BaseData);
 
-	if ( !ActorData )
+	if (!ActorData)
 		return;
 
 	TArray<TWeakObjectPtr<AActor>> Actors = ActorData->GetActors();
 
-	AUK_CharacterBase* UKPC = Cast<AUK_CharacterBase>(GetAvatarActorFromActorInfo());
-	if ( Actors.Num() > 0 )
+	if (Actors.Num() > 0)
 	{
-		for ( const TWeakObjectPtr<AActor> Hit : Actors )
+		for (const TWeakObjectPtr<AActor> Hit : Actors)
 		{
-			if ( UKPC->HasAuthority() )
+			if (UKPC->HasAuthority())
 			{
-				if ( TObjectPtr<AAIMonsterBase> Monster = Cast<AAIMonsterBase>(Hit) )
+				if (TObjectPtr<AAIMonsterBase> Monster = Cast<AAIMonsterBase>(Hit))
 				{
-					
 					bool bAlreadyHit = UKPC->GetHitList().Contains(Monster);
-					if ( bAlreadyHit == true )
+					if (bAlreadyHit == true)
 						continue;
 					UKPC->GetHitList().AddUnique(Monster);
 					UKPC->AddTarget(Monster);
@@ -40,6 +38,7 @@ void UHitCheckAbility::Attack(FGameplayAbilityTargetDataHandle TargetDataHandle)
 				}
 			}
 		}
-		UKPC->LockON();
-	}
+	}*/
+	AUK_CharacterBase* UKPC = Cast<AUK_CharacterBase>(GetAvatarActorFromActorInfo());
+	UKPC->LockON();
 }

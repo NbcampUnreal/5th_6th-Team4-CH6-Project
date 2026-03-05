@@ -41,6 +41,8 @@ namespace UK_GameplayTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(AirAttack);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DropAttack);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(OnGroundAttack);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Parry);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Parrying);
 	}
 
 	namespace Attack
