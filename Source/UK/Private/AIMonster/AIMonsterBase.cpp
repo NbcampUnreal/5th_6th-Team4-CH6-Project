@@ -14,6 +14,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Quest/UKQuestManagerSubsystem.h"
 #include "DrawDebugHelpers.h"
+#include "Sound/SoundCue.h"
 
 #pragma region Initialization
 AAIMonsterBase::AAIMonsterBase()
@@ -792,6 +793,11 @@ void AAIMonsterBase::ShowAlertIcon()
 	AlertWidgetComponent->SetVisibility(true);
 	AlertWidgetComponent->SetHiddenInGame(false);
 	AlertWidget->SetVisibility(ESlateVisibility::Visible);
+	
+	if (HowlSound)
+	{
+		UGameplayStatics::PlaySound2D(this, HowlSound);
+	}
 }
 
 void AAIMonsterBase::HideAlertIcon()
