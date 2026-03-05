@@ -1,7 +1,9 @@
 ﻿#include "AIMonster/AIMonsterBase.h"
 #include "AIController.h"
-#include "Net/UnrealNetwork.h"
 #include "AIMonster/UK_AiMonsterCtl.h"
+#include "AIMonster/AttibuteSet/UK_MonsterAttributeSet.h"
+#include "AbilitySystemComponent.h"
+#include "GameplayEffect.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "Character/UK_CharacterBase.h"
 #include "Kismet/GameplayStatics.h"
@@ -11,31 +13,28 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Quest/UKQuestManagerSubsystem.h"
+#include "DrawDebugHelpers.h"
+#include "Sound/SoundCue.h"
 
 #pragma region Initialization
 AAIMonsterBase::AAIMonsterBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	bReplicates = true;
-	SetReplicateMovement(true);
-	StatComponent = CreateDefaultSubobject<UAI_MonsterStatComponent>(TEXT("StatComponent"));
-	NetDormancy = DORM_Awake;
+	// Ability System Component
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	AbilitySystemComponent->SetIsReplicated(false); 
+
+	// Attribute Set
+	AttributeSet = CreateDefaultSubobject<UUK_MonsterAttributeSet>(TEXT("AttributeSet"));
 
 	bUseControllerRotationYaw = false;
 
 	if (GetCharacterMovement())
 	{
-		GetCharacterMovement()->bOrientRotationToMovement        = true;
-		GetCharacterMovement()->bUseControllerDesiredRotation    = false;
-		GetCharacterMovement()->RotationRate                     = FRotator(0.f, 540.f, 0.f);
-
-		GetCharacterMovement()->NetworkSimulatedSmoothLocationTime             = 0.05f;
-		GetCharacterMovement()->NetworkSimulatedSmoothRotationTime             = 0.15f;
-		GetCharacterMovement()->ListenServerNetworkSimulatedSmoothLocationTime = 0.15f;
-		GetCharacterMovement()->ListenServerNetworkSimulatedSmoothRotationTime = 0.15f;
-		GetCharacterMovement()->NetworkMaxSmoothUpdateDistance                 = 92.f;
-		GetCharacterMovement()->NetworkNoSmoothUpdateDistance                  = 140.f;
+		GetCharacterMovement()->bOrientRotationToMovement     = true;
+		GetCharacterMovement()->bUseControllerDesiredRotation = false;
+		GetCharacterMovement()->RotationRate                  = FRotator(0.f, 540.f, 0.f);
 	}
 
 	// HP Widget 설치
@@ -46,9 +45,16 @@ AAIMonsterBase::AAIMonsterBase()
 	HPWidgetComponent->SetDrawSize(FVector2D(180.f, 20.f));
 	HPWidgetComponent->SetRelativeLocation(FVector(0, 0, 120.f));
 	HPWidgetComponent->SetVisibility(false);
-
-	NetUpdateFrequency    = 60.f;
-	MinNetUpdateFrequency = 30.f;
+	
+	// Alert Icon Widget 설치 (HPBar 바로 위)
+	AlertWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("AlertWidgetComponent"));
+	AlertWidgetComponent->SetupAttachment(RootComponent);
+	AlertWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
+	AlertWidgetComponent->SetDrawAtDesiredSize(true);  
+	AlertWidgetComponent->SetPivot(FVector2D(0.5f, 0.5f));
+	AlertWidgetComponent->SetVisibility(false);
+	AlertWidgetComponent->SetCullDistance(AlertWidgetCullDistance);
+	AlertWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, 225.f));
 }
 
 void AAIMonsterBase::BeginPlay()
@@ -58,25 +64,27 @@ void AAIMonsterBase::BeginPlay()
 	if (GetCharacterMovement())
 	{
 		GetCharacterMovement()->bAllowPhysicsRotationDuringAnimRootMotion = false;
-		GetCharacterMovement()->NetworkSmoothingMode = ENetworkSmoothingMode::Exponential;
 	}
 
-	if (HasAuthority())
+	SpawnLocation = GetActorLocation();
+
+	// AbilitySystemComponent 초기화
+	if (AbilitySystemComponent && AttributeSet)
 	{
-		SpawnLocation = GetActorLocation();
+		AbilitySystemComponent->InitStats(UUK_MonsterAttributeSet::StaticClass(), nullptr);
+	}
 
-		if (AAIController* AIC = Cast<AAIController>(GetController()))
+	if (AAIController* AIC = Cast<AAIController>(GetController()))
+	{
+		if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
 		{
-			if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
-			{
-				BB->SetValueAsVector(TEXT("SpawnLocation"), SpawnLocation);
-			}
+			BB->SetValueAsVector(TEXT("SpawnLocation"), SpawnLocation);
 		}
+	}
 
-		if (Personality == EMonsterPersonality::Peaceful)
-		{
-			CurrentState = EMonsterState::Passive;
-		}
+	if (Personality == EMonsterPersonality::Peaceful)
+	{
+		CurrentState = EMonsterState::Passive;
 	}
 
 	if (HPWidgetComponent)
@@ -86,77 +94,75 @@ void AAIMonsterBase::BeginPlay()
 			&AAIMonsterBase::UpdateHPBarWidget,
 			0.05f, true);
 	}
+	
+	if (AlertWidgetComponent && AlertWidget)
+	{
+		AlertWidget->SetVisibility(ESlateVisibility::Collapsed);
+		AlertWidgetComponent->SetVisibility(false);
+		AlertWidgetComponent->SetHiddenInGame(true);
+		
+		UE_LOG(LogTemp, Log, TEXT("[Alert] %s: Widget hidden in BeginPlay ✓"), *GetName());
+	}
 }
 
 void AAIMonsterBase::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	if (HasAuthority() && StatComponent)
-	{
-		StatComponent->OnDeath.RemoveAll(this);
-		StatComponent->OnDeath.AddDynamic(this, &AAIMonsterBase::Die);
-	}
-
 	if (HPWidgetComponent && HPWidgetClass)
 	{
 		HPWidgetComponent->SetWidgetClass(HPWidgetClass);
 		HPWidget = Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
 
-		if (HPWidget && StatComponent)
+		if (HPWidget && AbilitySystemComponent && AttributeSet)
 		{
-			HPWidget->BindMonsterStats(StatComponent);
+			HPWidget->BindMonsterAttributes(AbilitySystemComponent, AttributeSet);
 		}
 	}
+	
+	if (AlertWidgetComponent && AlertWidgetClass)
+	{
+		AlertWidgetComponent->SetWidgetClass(AlertWidgetClass);
+		AlertWidgetComponent->InitWidget();
+		
+		AlertWidget = AlertWidgetComponent->GetUserWidgetObject();
+		
+		if (AlertWidget)
+		{
+			AlertWidget->SetVisibility(ESlateVisibility::Collapsed);
+			UE_LOG(LogTemp, Log, TEXT("[Alert] %s: Widget initialized ✓"), *GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[Alert] %s: Widget initialization failed ✗"), *GetName());
+		}
+	}
+	else
+	{
+		if (!AlertWidgetClass)
+			UE_LOG(LogTemp, Warning, TEXT("[Alert] %s: AlertWidgetClass not set in BP"), *GetName());
+	}
+}
+
+UAbilitySystemComponent* AAIMonsterBase::GetAbilitySystemComponent() const
+{
+	return AbilitySystemComponent;
 }
 #pragma endregion
 
 #pragma region State Management
-void AAIMonsterBase::RequestState_Implementation(EMonsterState NewState)
+void AAIMonsterBase::RequestState(EMonsterState NewState)
 {
-	if (!HasAuthority()) return;
 	if (CurrentState == NewState) return;
-	SetServerState(NewState);
+	SetState(NewState);
 }
 
-void AAIMonsterBase::SetServerState(EMonsterState NewState)
+void AAIMonsterBase::SetState(EMonsterState NewState)
 {
 	EMonsterState OldState = CurrentState;
 	CurrentState = NewState;
 
 	OnStateChanged.Broadcast(OldState, NewState);
-	OnRep_MonsterState();
-}
-
-void AAIMonsterBase::OnRep_MonsterState()
-{
-	switch (CurrentState)
-	{
-	case EMonsterState::Idle:
-	case EMonsterState::Passive:
-		SetNetDormancy(DORM_DormantPartial);
-		break;
-	case EMonsterState::Dead:
-		break;
-	default:
-		SetNetDormancy(DORM_Awake);
-		break;
-	}
-}
-
-void AAIMonsterBase::OnRep_IsAggressive()
-{
-	UE_LOG(LogTemp, Log, TEXT("[OnRep] %s bIsAggressive = %d"), *GetName(), bIsAggressive);
-}
-
-void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(AAIMonsterBase, CurrentState);
-	DOREPLIFETIME(AAIMonsterBase, bIsAggressive);
-	DOREPLIFETIME(AAIMonsterBase, Aggressor);
-	DOREPLIFETIME(AAIMonsterBase, LastAttackerController);
 }
 #pragma endregion
 
@@ -171,19 +177,38 @@ void AAIMonsterBase::OnAlert()                 {}
 
 void AAIMonsterBase::OnAttack()
 {
-	if (!HasAuthority()) return;
 	PlayRandomAttackMontage();
 }
 #pragma endregion
 
 #pragma region Combat
-void AAIMonsterBase::ReceiveDamage(float Damage)
+void AAIMonsterBase::ApplyDamage(float DamageAmount, AController* InstigatorController)
 {
-	if (!HasAuthority()) return;
-	if (bIsDying) return;
+	UE_LOG(LogTemp, Warning, TEXT("[%s] ApplyDamage Called: %.1f"), *GetName(), DamageAmount);
+	
+	if (bIsDying)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[%s] ✗ Already Dying - Ignoring Damage"), *GetName());
+		return;
+	}
+	
+	if (!AbilitySystemComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[%s] ✗✗✗ CRITICAL: No AbilitySystemComponent!"), *GetName());
+		return;
+	}
+	
+	if (!DamageEffectClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[%s] ✗✗✗ CRITICAL: DamageEffectClass NOT SET!"), *GetName());
+		UE_LOG(LogTemp, Error, TEXT("   → 블루프린트에서 DamageEffectClass를 설정해야 합니다!"));
+		return;
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("[%s] ✓ ASC Valid, DamageEffectClass Valid"), *GetName());
 
 	// 공격자 정보 없으면 가장 가까운 플레이어 자동 탐지
-	if (!LastAttackerController)
+	if (!InstigatorController)
 	{
 		float ClosestDistance = 1000.0f;
 		for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
@@ -194,17 +219,67 @@ void AAIMonsterBase::ReceiveDamage(float Damage)
 			const float Distance = FVector::Dist(GetActorLocation(), PC->GetPawn()->GetActorLocation());
 			if (Distance < ClosestDistance)
 			{
-				LastAttackerController = PC;
-				ClosestDistance        = Distance;
+				InstigatorController = PC;
+				ClosestDistance = Distance;
 			}
 		}
 	}
 
-	if (StatComponent)
+	// 공격자 저장
+	if (InstigatorController && InstigatorController->IsA(APlayerController::StaticClass()))
 	{
-		StatComponent->TakeDamage(Damage);
+		LastAttackerController = Cast<APlayerController>(InstigatorController);
+		UE_LOG(LogTemp, Log, TEXT("[%s] Attacker: %s"), *GetName(), 
+			*LastAttackerController->GetName());
 	}
 
+	// GameplayEffect로 데미지 적용
+	FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+	EffectContext.AddInstigator(InstigatorController ? InstigatorController->GetPawn() : nullptr, this);
+
+	FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(
+		DamageEffectClass, 1.0f, EffectContext);
+
+	if (SpecHandle.IsValid())
+	{
+		// Damage 값 설정
+		FGameplayTag DamageTag = FGameplayTag::RequestGameplayTag(FName("Data.Damage"));
+		
+		if (!DamageTag.IsValid())
+		{
+			UE_LOG(LogTemp, Error, TEXT("[%s] ✗✗✗ CRITICAL: GameplayTag 'Data.Damage' NOT REGISTERED!"), 
+				*GetName());
+			UE_LOG(LogTemp, Error, TEXT("   → Project Settings → GameplayTags에서 Data.Damage 추가 필요"));
+			return;
+		}
+		
+		SpecHandle.Data->SetSetByCallerMagnitude(DamageTag, DamageAmount);
+		
+		UE_LOG(LogTemp, Warning, TEXT("[%s] ✓ Applying GameplayEffect: %.1f damage"), 
+			*GetName(), DamageAmount);
+		UE_LOG(LogTemp, Log, TEXT("   Current Health: %.1f / %.1f"), 
+			AttributeSet ? AttributeSet->GetHealth() : -1.0f,
+			AttributeSet ? AttributeSet->GetMaxHealth() : -1.0f);
+		
+		FActiveGameplayEffectHandle ActiveHandle = 
+			AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		
+		if (ActiveHandle.IsValid())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[%s] ✓ GameplayEffect Applied Successfully"), *GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[%s] ✗ GameplayEffect Application Failed!"), *GetName());
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("[%s] ✗✗✗ CRITICAL: Invalid SpecHandle!"), *GetName());
+		UE_LOG(LogTemp, Error, TEXT("   → DamageEffectClass가 올바르게 설정되었는지 확인"));
+	}
+	
+	// 히트 애니메이션
 	if (!bIsDying)
 	{
 		PlayRandomHitMontage();
@@ -235,7 +310,8 @@ void AAIMonsterBase::ReceiveDamage(float Damage)
 			{
 				if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
 				{
-					BB->SetValueAsObject(TEXT("TargetPlayer"), ClosestPlayer);
+					if (!BB->GetValueAsObject(TEXT("TargetPlayer")))
+						BB->SetValueAsObject(TEXT("PendingTarget"), ClosestPlayer);
 				}
 			}
 
@@ -254,17 +330,14 @@ void AAIMonsterBase::ReceiveDamage(float Damage)
 	}
 }
 
+void AAIMonsterBase::ReceiveDamage(float Damage)
+{
+	ApplyDamage(Damage, nullptr);
+}
+
 void AAIMonsterBase::ReceiveDamageFrom(float Damage, AController* InstigatorController)
 {
-	if (!HasAuthority()) return;
-	if (bIsDying) return;
-
-	if (InstigatorController && InstigatorController->IsA(APlayerController::StaticClass()))
-	{
-		LastAttackerController = Cast<APlayerController>(InstigatorController);
-	}
-
-	ReceiveDamage(Damage);
+	ApplyDamage(Damage, InstigatorController);
 }
 #pragma endregion
 
@@ -272,7 +345,6 @@ void AAIMonsterBase::ReceiveDamageFrom(float Damage, AController* InstigatorCont
 bool AAIMonsterBase::PlayRandomAttackMontage()
 {
 	if (bIsHit || bIsAttacking || bIsDying) return false;
-	if (!HasAuthority()) return false;
 
 	const float Now = GetWorld()->GetTimeSeconds();
 	if (Now - LastAttackTime < AttackCooldown) return false;
@@ -285,11 +357,11 @@ bool AAIMonsterBase::PlayRandomAttackMontage()
 	bIsAttacking   = true;
 	LastAttackTime = Now;
 
-	Multicast_PlayAttackMontage(RandomIndex);
+	PlayAttackMontage(RandomIndex);
 	return true;
 }
 
-void AAIMonsterBase::Multicast_PlayAttackMontage_Implementation(int32 MontageIndex)
+void AAIMonsterBase::PlayAttackMontage(int32 MontageIndex)
 {
 	if (bIsHit) return;
 	if (!AttackMontages.IsValidIndex(MontageIndex)) return;
@@ -321,11 +393,11 @@ bool AAIMonsterBase::PlayRandomIdleMontage()
 	if (ValidIndices.Num() == 0) return false;
 
 	const int32 PickedIndex = ValidIndices[FMath::RandRange(0, ValidIndices.Num() - 1)];
-	Multicast_PlayIdleMontage(PickedIndex);
+	PlayIdleMontage(PickedIndex);
 	return true;
 }
 
-void AAIMonsterBase::Multicast_PlayIdleMontage_Implementation(int32 MontageIndex)
+void AAIMonsterBase::PlayIdleMontage(int32 MontageIndex)
 {
 	if (!IdleMontages.IsValidIndex(MontageIndex)) return;
 
@@ -337,12 +409,9 @@ void AAIMonsterBase::Multicast_PlayIdleMontage_Implementation(int32 MontageIndex
 
 	AnimInstance->Montage_Play(Montage);
 
-	if (HasAuthority())
-	{
-		FOnMontageEnded EndDelegate;
-		EndDelegate.BindUObject(this, &AAIMonsterBase::OnIdleMontageEnded);
-		AnimInstance->Montage_SetEndDelegate(EndDelegate, Montage);
-	}
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindUObject(this, &AAIMonsterBase::OnIdleMontageEnded);
+	AnimInstance->Montage_SetEndDelegate(EndDelegate, Montage);
 }
 
 void AAIMonsterBase::OnIdleMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -354,7 +423,7 @@ void AAIMonsterBase::OnIdleMontageEnded(UAnimMontage* Montage, bool bInterrupted
 #pragma region Hit Animation
 bool AAIMonsterBase::PlayRandomHitMontage()
 {
-	if (bIsDying || !HasAuthority()) return false;
+	if (bIsDying) return false;
 	if (HitMontages.Num() == 0) return false;
 
 	TArray<int32> ValidIndices;
@@ -365,11 +434,11 @@ bool AAIMonsterBase::PlayRandomHitMontage()
 	if (ValidIndices.Num() == 0) return false;
 
 	const int32 PickedIndex = ValidIndices[FMath::RandRange(0, ValidIndices.Num() - 1)];
-	Multicast_PlayHitMontage(PickedIndex);
+	PlayHitMontage(PickedIndex);
 	return true;
 }
 
-void AAIMonsterBase::Multicast_PlayHitMontage_Implementation(int32 MontageIndex)
+void AAIMonsterBase::PlayHitMontage(int32 MontageIndex)
 {
 	if (!HitMontages.IsValidIndex(MontageIndex)) return;
 
@@ -399,7 +468,7 @@ void AAIMonsterBase::OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 #pragma region Death System
 void AAIMonsterBase::Die()
 {
-	if (!HasAuthority() || bIsDying) return;
+	if (bIsDying) return;
 
 	bIsDying     = true;
 	bIsAttacking = false;
@@ -414,7 +483,7 @@ void AAIMonsterBase::Die()
 		}
 	}
 
-	SetServerState(EMonsterState::Dead);
+	SetState(EMonsterState::Dead);
 
 	FTimerHandle DeathTimer;
 	GetWorldTimerManager().SetTimer(
@@ -426,8 +495,6 @@ void AAIMonsterBase::Die()
 
 void AAIMonsterBase::FinalizeDeath()
 {
-	if (!HasAuthority()) return;
-
 	if (GetCapsuleComponent())
 	{
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -452,10 +519,7 @@ void AAIMonsterBase::FinalizeDeath()
 
 void AAIMonsterBase::HideAndBroadcastDeath()
 {
-	if (!HasAuthority()) return;
-
-	Multicast_HideCorpse();
-	SetNetDormancy(DORM_DormantAll);
+	HideCorpse();
 
 	NotifyMonsterKilled();
 	OnDeath.Broadcast(this);
@@ -476,20 +540,19 @@ static FName GetMonsterEventId(EMonsterType Type)
 
 void AAIMonsterBase::NotifyMonsterKilled()
 {
-	if (!HasAuthority()) return;
 	OnMonsterKilled.Broadcast(this, MonsterType, LastAttackerController);
 
 	// 퀘스트 이벤트
-	const FName EventId = GetMonsterEventId(MonsterType);
-	if (EventId == NAME_None) return;
+	//const FName EventId = GetMonsterEventId(MonsterType);
+	//if (EventId == NAME_None) return;
 
-	if (UUKQuestManagerSubsystem* QM = GetGameInstance()->GetSubsystem<UUKQuestManagerSubsystem>())
-	{
-		QM->EmitQuestEvent(EventId);
-	}
+	//if (UUKQuestManagerSubsystem* QM = GetGameInstance()->GetSubsystem<UUKQuestManagerSubsystem>())
+	//{
+	//	QM->EmitQuestEvent(EventId);
+	//}
 }
 
-void AAIMonsterBase::Multicast_HideCorpse_Implementation()
+void AAIMonsterBase::HideCorpse()
 {
 	SetActorHiddenInGame(true);
 }
@@ -498,8 +561,6 @@ void AAIMonsterBase::Multicast_HideCorpse_Implementation()
 #pragma region Respawn
 void AAIMonsterBase::ResetHealth()
 {
-	if (!HasAuthority()) return;
-
 	GetWorldTimerManager().ClearTimer(CorpseTimerHandle);
 
 	// 플래그 리셋
@@ -507,10 +568,13 @@ void AAIMonsterBase::ResetHealth()
 	bIsDying               = false;
 	LastAttackerController = nullptr;
 
-	// Stat 복원
-	if (StatComponent)
+	// GAS를 통한 체력 복원
+	if (AbilitySystemComponent && AttributeSet)
 	{
-		StatComponent->SetHP(StatComponent->GetMaxHP());
+		const float MaxHP = AttributeSet->GetMaxHealth();
+		AbilitySystemComponent->SetNumericAttributeBase(
+			AttributeSet->GetHealthAttribute(), MaxHP
+		);
 	}
 
 	// 상태 복원
@@ -518,11 +582,11 @@ void AAIMonsterBase::ResetHealth()
 	{
 		bIsAggressive = false;
 		Aggressor     = nullptr;
-		SetServerState(EMonsterState::Passive);
+		SetState(EMonsterState::Passive);
 	}
 	else
 	{
-		SetServerState(EMonsterState::Idle);
+		SetState(EMonsterState::Idle);
 	}
 
 	// 충돌 / 이동 복원
@@ -540,12 +604,8 @@ void AAIMonsterBase::ResetHealth()
 	SetActorLocation(SpawnLocation, false, nullptr, ETeleportType::ResetPhysics);
 	SetActorRotation(FRotator::ZeroRotator);
 
-	// Dormancy 해제
-	FlushNetDormancy();
-	SetNetDormancy(DORM_Awake);
-
 	// 외형 + 애니메이션 리셋
-	Multicast_ResetAppearance();
+	ResetAppearance();
 
 	// AI 재시작
 	if (AAIController* AIC = Cast<AAIController>(GetController()))
@@ -579,7 +639,7 @@ void AAIMonsterBase::ResetHealth()
 	}
 }
 
-void AAIMonsterBase::Multicast_ResetAppearance_Implementation()
+void AAIMonsterBase::ResetAppearance()
 {
 	SetActorHiddenInGame(false);
 
@@ -623,7 +683,7 @@ void AAIMonsterBase::Multicast_ResetAppearance_Implementation()
 #pragma region Peaceful AI
 void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
 {
-	if (!HasAuthority() || !Enemy) return;
+	if (!Enemy) return;
 
 	TArray<AActor*> FoundActors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), GetClass(), FoundActors);
@@ -646,7 +706,8 @@ void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
 		{
 			if (UBlackboardComponent* BB = AllyAIC->GetBlackboardComponent())
 			{
-				BB->SetValueAsObject(TEXT("TargetPlayer"), Enemy);
+				if (!BB->GetValueAsObject(TEXT("TargetPlayer")))
+					BB->SetValueAsObject(TEXT("PendingTarget"), Enemy);
 			}
 			if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AllyAIC->GetBrainComponent()))
 			{
@@ -658,15 +719,17 @@ void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
 
 void AAIMonsterBase::ResetToPassive()
 {
-	if (!HasAuthority()) return;
-
 	bIsAggressive = false;
 	bIsAttacking  = false;
 	Aggressor     = nullptr;
 
-	if (StatComponent)
+	// GAS를 통한 체력 복원
+	if (AbilitySystemComponent && AttributeSet)
 	{
-		StatComponent->SetHP(StatComponent->GetMaxHP());
+		const float MaxHP = AttributeSet->GetMaxHealth();
+		AbilitySystemComponent->SetNumericAttributeBase(
+			AttributeSet->GetHealthAttribute(), MaxHP
+		);
 	}
 
 	RequestState(EMonsterState::Passive);
@@ -716,5 +779,36 @@ void AAIMonsterBase::UpdateHPBarWidget()
 	HPWidgetComponent->SetWorldRotation(LookAtRotation);
 
 	HPWidgetComponent->SetWorldScale3D(FVector(0.5f, 0.5f, 0.5f));
+}
+#pragma endregion
+
+#pragma region Alert Icon
+void AAIMonsterBase::ShowAlertIcon()
+{
+	if (bIsAlerting) return;
+	if (!AlertWidgetComponent || !AlertWidget) return;
+
+	bIsAlerting = true;
+
+	AlertWidgetComponent->SetVisibility(true);
+	AlertWidgetComponent->SetHiddenInGame(false);
+	AlertWidget->SetVisibility(ESlateVisibility::Visible);
+	
+	if (HowlSound)
+	{
+		UGameplayStatics::PlaySound2D(this, HowlSound);
+	}
+}
+
+void AAIMonsterBase::HideAlertIcon()
+{
+	if (!bIsAlerting) return;
+	if (!AlertWidgetComponent || !AlertWidget) return;
+
+	bIsAlerting = false;
+
+	AlertWidget->SetVisibility(ESlateVisibility::Collapsed);
+	AlertWidgetComponent->SetVisibility(false);
+	AlertWidgetComponent->SetHiddenInGame(true);
 }
 #pragma endregion

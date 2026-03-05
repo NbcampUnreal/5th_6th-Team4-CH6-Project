@@ -1,7 +1,6 @@
 ﻿#include "AIMonster/Monster/UK_EliteMonster.h"
 #include "AIController.h"
 #include "Components/CapsuleComponent.h"
-#include "Net/UnrealNetwork.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Character/UK_CharacterBase.h"
 #include "DrawDebugHelpers.h"
@@ -23,7 +22,6 @@ AUK_EliteMonster::AUK_EliteMonster()
 #pragma region Special Attack
 bool AUK_EliteMonster::CanUseSpecialAttack() const
 {
-	if (!HasAuthority()) return false;
 	if (bIsDying || bIsAttacking) return false;
 	if (SpecialAttackMontages.Num() == 0) return false;
 
@@ -42,7 +40,7 @@ bool AUK_EliteMonster::PlaySpecialAttack()
 	bIsAttacking          = true;
 	LastSpecialAttackTime = GetWorld()->GetTimeSeconds();
 
-	// 몽타주 길이 미리 계산 (서버에서만)
+	// 몽타주 길이 미리 계산
 	UAnimInstance* AnimInst = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
 	const float MontageLength = AnimInst ? Montage->GetPlayLength() : 1.0f;
 
@@ -53,11 +51,11 @@ bool AUK_EliteMonster::PlaySpecialAttack()
 		&AUK_EliteMonster::ApplySpecialAttackAoE,
 		HitDelay, false);
 
-	Multicast_PlaySpecialAttackMontage(RandomIndex);
+	PlaySpecialAttackMontage(RandomIndex);
 	return true;
 }
 
-void AUK_EliteMonster::Multicast_PlaySpecialAttackMontage_Implementation(int32 MontageIndex)
+void AUK_EliteMonster::PlaySpecialAttackMontage(int32 MontageIndex)
 {
 	if (!SpecialAttackMontages.IsValidIndex(MontageIndex)) return;
 
@@ -69,7 +67,7 @@ void AUK_EliteMonster::Multicast_PlaySpecialAttackMontage_Implementation(int32 M
 
 	const float Length = AnimInstance->Montage_Play(Montage, 1.0f);
 
-	if (HasAuthority() && Length > 0.f)
+	if (Length > 0.f)
 	{
 		FOnMontageEnded EndDelegate;
 		EndDelegate.BindUObject(this, &AUK_EliteMonster::OnSpecialAttackMontageEnded);
@@ -111,7 +109,7 @@ void AUK_EliteMonster::Multicast_PlaySpecialAttackMontage_Implementation(int32 M
 
 void AUK_EliteMonster::ApplySpecialAttackAoE()
 {
-	if (!HasAuthority() || !GetWorld()) return;
+	if (!GetWorld()) return;
 
 	const FVector Center = GetActorLocation();
 
@@ -161,12 +159,5 @@ void AUK_EliteMonster::OnSpecialAttackMontageEnded(UAnimMontage* Montage, bool b
 
 	bIsAttacking = false;
 	OnSpecialAttackFinished.ExecuteIfBound(!bInterrupted);
-}
-#pragma endregion
-
-#pragma region Replication
-void AUK_EliteMonster::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 }
 #pragma endregion

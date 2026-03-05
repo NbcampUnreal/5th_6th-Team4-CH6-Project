@@ -2,13 +2,17 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "Component/AI_MonsterStatComponent.h"
+#include "AbilitySystemInterface.h"
 #include "UI/InGame/UK_MonsterHealthBar.h"
 #include "Components/WidgetComponent.h"
 #include "AIMonsterBase.generated.h"
 
 class UBehaviorTree;
 class UAnimMontage;
+class UAbilitySystemComponent;
+class UUK_MonsterAttributeSet;
+class UGameplayEffect;
+class USoundCue;
 
 /* ───────────────────── Enums & Delegates ───────────────────── */
 
@@ -35,12 +39,12 @@ enum class EMonsterType : uint8
 	Reindeer   = 5,
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDeath,         class AAIMonsterBase*, DeadMonster);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMonsterAttacked,     class AAIMonsterBase*, AttackedMonster, AActor*, Attacker);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDeath, class AAIMonsterBase*, DeadMonster);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMonsterAttacked, class AAIMonsterBase*, AttackedMonster, AActor*, Attacker);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMonsterStateChanged, EMonsterState, OldState, EMonsterState, NewState);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnMonsterKilled,
 	class AAIMonsterBase*, KilledMonster,
-	EMonsterType,          MonsterType,
+	EMonsterType, MonsterType,
 	class APlayerController*, KillerController);
 
 DECLARE_DELEGATE_OneParam(FOnAttackFinished, bool /*bSucceeded*/);
@@ -48,7 +52,7 @@ DECLARE_DELEGATE_OneParam(FOnAttackFinished, bool /*bSucceeded*/);
 /* ─────────────────────────────────────────────────────────────── */
 
 UCLASS(Abstract)
-class UK_API AAIMonsterBase : public ACharacter
+class UK_API AAIMonsterBase : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -61,9 +65,28 @@ protected:
 	virtual void BeginPlay() override;
 #pragma endregion
 
+#pragma region Ability System
+public:
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+	UFUNCTION(BlueprintPure, Category = "Abilities")
+	UUK_MonsterAttributeSet* GetMonsterAttributeSet() const { return AttributeSet; }
+
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities")
+	UAbilitySystemComponent* AbilitySystemComponent;
+
+	UPROPERTY()
+	UUK_MonsterAttributeSet* AttributeSet;
+
+	/** 데미지 적용용 GameplayEffect 클래스 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities|Effects")
+	TSubclassOf<UGameplayEffect> DamageEffectClass;
+#pragma endregion
+
 #pragma region State Management
 public:
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(BlueprintCallable, Category = "AI")
 	void RequestState(EMonsterState NewState);
 
 	UFUNCTION(BlueprintPure)
@@ -83,13 +106,8 @@ public:
 	virtual void OnAlert();
 
 protected:
-	UPROPERTY(ReplicatedUsing = OnRep_MonsterState)
 	EMonsterState CurrentState = EMonsterState::Idle;
-
-	UFUNCTION()
-	void OnRep_MonsterState();
-
-	void SetServerState(EMonsterState NewState);
+	void SetState(EMonsterState NewState);
 #pragma endregion
 
 #pragma region Personality
@@ -103,28 +121,22 @@ public:
 
 #pragma region Peaceful AI
 public:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful",
-		meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful")
 	float AlertDistance = 300.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful",
-		meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful")
 	float AllyCallRadius = 1000.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful",
-		meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI|Peaceful")
 	float ResetDistance = 2000.0f;
 
-	UPROPERTY(ReplicatedUsing = OnRep_IsAggressive, BlueprintReadOnly, Category = "AI|Peaceful")
+	UPROPERTY(BlueprintReadOnly, Category = "AI|Peaceful")
 	bool bIsAggressive = false;
-
-	UFUNCTION()
-	void OnRep_IsAggressive();
 
 	UFUNCTION(BlueprintPure, Category = "AI|Peaceful")
 	bool GetIsAggressive() const { return bIsAggressive; }
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "AI|Peaceful")
+	UPROPERTY(BlueprintReadOnly, Category = "AI|Peaceful")
 	AActor* Aggressor = nullptr;
 
 	UFUNCTION(BlueprintCallable, Category = "AI|Peaceful")
@@ -163,9 +175,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Monster")
 	void ResetHealth();
 
-	UFUNCTION(BlueprintPure, Category = "Monster")
-	UAI_MonsterStatComponent* GetStatComponent() const { return StatComponent; }
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 	float DetectionRadius = 800.0f;
 
@@ -179,10 +188,7 @@ public:
 	float MaxChaseDistance = 1500.0f;
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	UAI_MonsterStatComponent* StatComponent;
-
-	UPROPERTY(Replicated)
+	UPROPERTY()
 	APlayerController* LastAttackerController = nullptr;
 #pragma endregion
 
@@ -220,31 +226,28 @@ public:
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 	void FinalizeDeath();
+	void PlayAttackMontage(int32 MontageIndex);
+	void HideCorpse();
+	void ResetAppearance();
 
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayAttackMontage(int32 MontageIndex);
+	/** GAS를 통한 데미지 적용 */
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void ApplyDamage(float DamageAmount, AController* InstigatorController = nullptr);
 
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_HideCorpse();
-
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_ResetAppearance();
-
-	virtual void ReceiveDamage(float Damage);
-	virtual void ReceiveDamageFrom(float Damage, AController* InstigatorController);
+	/** 레거시 호환용 */
+	void ReceiveDamage(float Damage);
+	void ReceiveDamageFrom(float Damage, AController* InstigatorController);
 #pragma endregion
 
 #pragma region Idle Animation
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Idle|Animation",
-		meta = (EditCondition = "Personality == EMonsterPersonality::Peaceful"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Idle|Animation")
 	TArray<UAnimMontage*> IdleMontages;
 
 	UFUNCTION(BlueprintCallable, Category = "Idle|Animation")
 	virtual bool PlayRandomIdleMontage();
 
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayIdleMontage(int32 MontageIndex);
+	void PlayIdleMontage(int32 MontageIndex);
 
 	UFUNCTION()
 	void OnIdleMontageEnded(UAnimMontage* Montage, bool bInterrupted);
@@ -264,8 +267,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Hit|Animation")
 	bool PlayRandomHitMontage();
 
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayHitMontage(int32 MontageIndex);
+	void PlayHitMontage(int32 MontageIndex);
 
 	UFUNCTION()
 	void OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
@@ -290,15 +292,43 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UUserWidget> HPWidgetClass;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 	UWidgetComponent* HPWidgetComponent;
 #pragma endregion
-
-#pragma region Replication
+	
+#pragma region Alert Icon Widget
 public:
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-#pragma endregion
+	UFUNCTION(BlueprintCallable, Category = "Monster|Alert")
+	virtual void ShowAlertIcon();
 
+	UFUNCTION(BlueprintCallable, Category = "Monster|Alert")
+	virtual void HideAlertIcon();
+
+	UFUNCTION(BlueprintPure, Category = "Monster|Alert")
+	bool IsAlerting() const { return bIsAlerting; }
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster | Sounds")
+	USoundCue* HowlSound;
+
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI|Alert")
+	UWidgetComponent* AlertWidgetComponent;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI|Alert")
+	TSubclassOf<UUserWidget> AlertWidgetClass;
+
+	UPROPERTY()
+	UUserWidget* AlertWidget;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Monster|Alert")
+	bool bIsAlerting = false;
+
+	// 위젯 표시 거리 제한
+	UPROPERTY(EditDefaultsOnly, Category = "UI|Alert", meta = (ClampMin = "0"))
+	float AlertWidgetCullDistance = 10000.0f;
+
+#pragma endregion
+	
 #pragma region Private
 private:
 	FTimerHandle CorpseTimerHandle;
