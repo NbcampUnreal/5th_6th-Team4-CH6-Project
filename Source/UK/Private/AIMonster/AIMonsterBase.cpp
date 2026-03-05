@@ -13,6 +13,8 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Quest/UKQuestManagerSubsystem.h"
+#include "DrawDebugHelpers.h"
+#include "Sound/SoundCue.h"
 
 #pragma region Initialization
 AAIMonsterBase::AAIMonsterBase()
@@ -44,14 +46,15 @@ AAIMonsterBase::AAIMonsterBase()
 	HPWidgetComponent->SetRelativeLocation(FVector(0, 0, 120.f));
 	HPWidgetComponent->SetVisibility(false);
 	
-	// Alert Icon Widget 설치
+	// Alert Icon Widget 설치 (HPBar 바로 위)
 	AlertWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("AlertWidgetComponent"));
-	AlertWidgetComponent->SetupAttachment(GetMesh());
-	AlertWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);   
-	AlertWidgetComponent->SetDrawAtDesiredSize(true);
-	AlertWidgetComponent->SetDrawSize(FVector2D(64.f, 64.f));
-	AlertWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, 160.f)); 
+	AlertWidgetComponent->SetupAttachment(RootComponent);
+	AlertWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
+	AlertWidgetComponent->SetDrawAtDesiredSize(true);  
+	AlertWidgetComponent->SetPivot(FVector2D(0.5f, 0.5f));
 	AlertWidgetComponent->SetVisibility(false);
+	AlertWidgetComponent->SetCullDistance(AlertWidgetCullDistance);
+	AlertWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, 225.f));
 }
 
 void AAIMonsterBase::BeginPlay()
@@ -91,6 +94,15 @@ void AAIMonsterBase::BeginPlay()
 			&AAIMonsterBase::UpdateHPBarWidget,
 			0.05f, true);
 	}
+	
+	if (AlertWidgetComponent && AlertWidget)
+	{
+		AlertWidget->SetVisibility(ESlateVisibility::Collapsed);
+		AlertWidgetComponent->SetVisibility(false);
+		AlertWidgetComponent->SetHiddenInGame(true);
+		
+		UE_LOG(LogTemp, Log, TEXT("[Alert] %s: Widget hidden in BeginPlay ✓"), *GetName());
+	}
 }
 
 void AAIMonsterBase::PostInitializeComponents()
@@ -100,21 +112,35 @@ void AAIMonsterBase::PostInitializeComponents()
 	if (HPWidgetComponent && HPWidgetClass)
 	{
 		HPWidgetComponent->SetWidgetClass(HPWidgetClass);
-
-		if ( UUK_MonsterHealthBar* Widget =
-			Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject()) )
-		{
+		HPWidget = Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
 
 		if (HPWidget && AbilitySystemComponent && AttributeSet)
 		{
 			HPWidget->BindMonsterAttributes(AbilitySystemComponent, AttributeSet);
 		}
-		}
+	}
 	
-		if (AlertWidgetComponent && AlertWidgetClass)
+	if (AlertWidgetComponent && AlertWidgetClass)
+	{
+		AlertWidgetComponent->SetWidgetClass(AlertWidgetClass);
+		AlertWidgetComponent->InitWidget();
+		
+		AlertWidget = AlertWidgetComponent->GetUserWidgetObject();
+		
+		if (AlertWidget)
 		{
-			AlertWidgetComponent->SetWidgetClass(AlertWidgetClass);
+			AlertWidget->SetVisibility(ESlateVisibility::Collapsed);
+			UE_LOG(LogTemp, Log, TEXT("[Alert] %s: Widget initialized ✓"), *GetName());
 		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[Alert] %s: Widget initialization failed ✗"), *GetName());
+		}
+	}
+	else
+	{
+		if (!AlertWidgetClass)
+			UE_LOG(LogTemp, Warning, TEXT("[Alert] %s: AlertWidgetClass not set in BP"), *GetName());
 	}
 }
 
@@ -412,43 +438,6 @@ bool AAIMonsterBase::PlayRandomHitMontage()
 	return true;
 }
 
-UUK_MonsterHealthBar* AAIMonsterBase::GetHPWidget() const
-{
-	if ( !HPWidgetComponent ) return nullptr;
-
-	return Cast<UUK_MonsterHealthBar>(
-		HPWidgetComponent->GetUserWidgetObject()
-	);
-}
-
-//void AAIMonsterBase::UpdateHPBarWidget()
-//{
-//	if ( !HPWidgetComponent || !HPWidgetComponent->IsVisible() ) return;
-//
-//	// ----- 카메라 위치 얻기 -----
-//	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-//	if ( !PC || !PC->PlayerCameraManager ) return;
-//
-//	FVector CameraLocation = PC->PlayerCameraManager->GetCameraLocation();
-//	FRotator CameraRotation = PC->PlayerCameraManager->GetCameraRotation();
-//
-//	// ----- 카메라를 바라보게 회전 -----
-//	const FVector WidgetLocation = HPWidgetComponent->GetComponentLocation();
-//	float Distance = FVector::Dist(CameraLocation, WidgetLocation);
-//
-//	// ----- Pitch, Roll 제거 ------
-//	FRotator NewRotation = CameraRotation;
-//	NewRotation.Yaw += 180.f;
-//	NewRotation.Roll = 0.f;
-//
-//	HPWidgetComponent->SetWorldRotation(NewRotation);
-//
-//	// --- 화면상 HP UI 크기 유지용 스케일 ---
-//	float ScaleFactor = FMath::Max(0.1f, Distance / 2000.f);
-//	HPWidgetComponent->SetWorldScale3D(FVector(DesiredScale));
-//
-//}
-
 void AAIMonsterBase::PlayHitMontage(int32 MontageIndex)
 {
 	if (!HitMontages.IsValidIndex(MontageIndex)) return;
@@ -466,36 +455,6 @@ void AAIMonsterBase::PlayHitMontage(int32 MontageIndex)
 	AnimInstance->OnMontageEnded.RemoveDynamic(this, &AAIMonsterBase::OnHitMontageEnded);
 	AnimInstance->OnMontageEnded.AddDynamic(this, &AAIMonsterBase::OnHitMontageEnded);
 }
-
-//void AAIMonsterBase::UpdateHPBarWidget()
-//{
-//	if ( !HPWidgetComponent ) return;
-//
-//	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-//	if ( !PC ) return;
-//
-//	// ----- 카메라 위치 얻기 -----
-//	FVector CameraLocation;
-//	FRotator CameraRotation;
-//	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
-//
-//	// ----- 위젯 위치 -----
-//	const FVector WidgetLocation = HPWidgetComponent->GetComponentLocation();
-//
-//	// ----- 카메라를 바라보게 회전 -----
-//	FVector Direction = CameraLocation - WidgetLocation;
-//	FRotator LookAtRotation = FRotationMatrix::MakeFromX(Direction).Rotator();
-//
-//	// ----- Pitch, Roll 제거 ------
-//	LookAtRotation.Pitch = 0.f;
-//	LookAtRotation.Roll = 0.f;
-//
-//	HPWidgetComponent->SetWorldRotation(LookAtRotation);
-//
-//	// --- 화면상 HP UI 크기 유지용 스케일 ---
-//	const FVector DesiredScale(0.5f, 0.5f, 0.5f);
-//	HPWidgetComponent->SetWorldScale3D(DesiredScale);
-//}
 
 void AAIMonsterBase::OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
@@ -556,11 +515,6 @@ void AAIMonsterBase::FinalizeDeath()
 	{
 		HideAndBroadcastDeath();
 	}
-}
-
-void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 }
 
 void AAIMonsterBase::HideAndBroadcastDeath()
@@ -831,27 +785,30 @@ void AAIMonsterBase::UpdateHPBarWidget()
 #pragma region Alert Icon
 void AAIMonsterBase::ShowAlertIcon()
 {
-	if (!AlertWidgetComponent) return;
+	if (bIsAlerting) return;
+	if (!AlertWidgetComponent || !AlertWidget) return;
 
-	if (!AlertWidgetComponent->GetUserWidgetObject() && AlertWidgetClass)
-	{
-		AlertWidgetComponent->SetWidgetClass(AlertWidgetClass);
-		AlertWidgetComponent->InitWidget();
-	}
+	bIsAlerting = true;
 
 	AlertWidgetComponent->SetVisibility(true);
-
-	if (UUserWidget* W = AlertWidgetComponent->GetUserWidgetObject())
-		W->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	AlertWidgetComponent->SetHiddenInGame(false);
+	AlertWidget->SetVisibility(ESlateVisibility::Visible);
+	
+	if (HowlSound)
+	{
+		UGameplayStatics::PlaySound2D(this, HowlSound);
+	}
 }
 
 void AAIMonsterBase::HideAlertIcon()
 {
-	if (!AlertWidgetComponent) return;
+	if (!bIsAlerting) return;
+	if (!AlertWidgetComponent || !AlertWidget) return;
 
-	if (UUserWidget* W = AlertWidgetComponent->GetUserWidgetObject())
-		W->SetVisibility(ESlateVisibility::Collapsed);
+	bIsAlerting = false;
 
+	AlertWidget->SetVisibility(ESlateVisibility::Collapsed);
 	AlertWidgetComponent->SetVisibility(false);
+	AlertWidgetComponent->SetHiddenInGame(true);
 }
 #pragma endregion
