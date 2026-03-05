@@ -112,11 +112,13 @@ void AAIMonsterBase::PostInitializeComponents()
 	{
 		HPWidgetComponent->SetWidgetClass(HPWidgetClass);
 
-		HPWidget = Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
-
-		if ( HPWidget && StatComponent )
+		if ( UUK_MonsterHealthBar* Widget =
+			Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject()) )
 		{
-			HPWidget->BindMonsterStats(StatComponent);
+			if ( StatComponent )
+			{
+				Widget->BindMonsterStats(StatComponent);
+			}
 		}
 	}
 }
@@ -796,35 +798,71 @@ void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(AAIMonsterBase, LastAttackerController);  
 }
 
+UUK_MonsterHealthBar* AAIMonsterBase::GetHPWidget() const
+{
+	if ( !HPWidgetComponent ) return nullptr;
+
+	return Cast<UUK_MonsterHealthBar>(
+		HPWidgetComponent->GetUserWidgetObject()
+	);
+}
+
 void AAIMonsterBase::UpdateHPBarWidget()
 {
-	if ( !HPWidgetComponent ) return;
-
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	if ( !PC ) return;
+	if ( !HPWidgetComponent || !HPWidgetComponent->IsVisible() ) return;
 
 	// ----- 카메라 위치 얻기 -----
-	FVector CameraLocation;
-	FRotator CameraRotation;
-	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if ( !PC || !PC->PlayerCameraManager ) return;
 
-	// ----- 위젯 위치 -----
-	const FVector WidgetLocation = HPWidgetComponent->GetComponentLocation();
+	FVector CameraLocation = PC->PlayerCameraManager->GetCameraLocation();
+	FRotator CameraRotation = PC->PlayerCameraManager->GetCameraRotation();
 
 	// ----- 카메라를 바라보게 회전 -----
-	FVector Direction = CameraLocation - WidgetLocation;
-	FRotator LookAtRotation = FRotationMatrix::MakeFromX(Direction).Rotator();
+	const FVector WidgetLocation = HPWidgetComponent->GetComponentLocation();
+	float Distance = FVector::Dist(CameraLocation, WidgetLocation);
 
 	// ----- Pitch, Roll 제거 ------
-	LookAtRotation.Pitch = 0.f;
-	LookAtRotation.Roll = 0.f;
+	FRotator NewRotation = CameraRotation;
+	NewRotation.Yaw += 180.f;
+	NewRotation.Roll = 0.f;
 
-	HPWidgetComponent->SetWorldRotation(LookAtRotation);
+	HPWidgetComponent->SetWorldRotation(NewRotation);
 
 	// --- 화면상 HP UI 크기 유지용 스케일 ---
-	const FVector DesiredScale(0.5f, 0.5f, 0.5f);
-	HPWidgetComponent->SetWorldScale3D(DesiredScale);
+	float ScaleFactor = FMath::Max(0.1f, Distance / 2000.f);
+	HPWidgetComponent->SetWorldScale3D(FVector(DesiredScale));
 }
+
+//void AAIMonsterBase::UpdateHPBarWidget()
+//{
+//	if ( !HPWidgetComponent ) return;
+//
+//	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+//	if ( !PC ) return;
+//
+//	// ----- 카메라 위치 얻기 -----
+//	FVector CameraLocation;
+//	FRotator CameraRotation;
+//	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+//
+//	// ----- 위젯 위치 -----
+//	const FVector WidgetLocation = HPWidgetComponent->GetComponentLocation();
+//
+//	// ----- 카메라를 바라보게 회전 -----
+//	FVector Direction = CameraLocation - WidgetLocation;
+//	FRotator LookAtRotation = FRotationMatrix::MakeFromX(Direction).Rotator();
+//
+//	// ----- Pitch, Roll 제거 ------
+//	LookAtRotation.Pitch = 0.f;
+//	LookAtRotation.Roll = 0.f;
+//
+//	HPWidgetComponent->SetWorldRotation(LookAtRotation);
+//
+//	// --- 화면상 HP UI 크기 유지용 스케일 ---
+//	const FVector DesiredScale(0.5f, 0.5f, 0.5f);
+//	HPWidgetComponent->SetWorldScale3D(DesiredScale);
+//}
 
 void AAIMonsterBase::OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {

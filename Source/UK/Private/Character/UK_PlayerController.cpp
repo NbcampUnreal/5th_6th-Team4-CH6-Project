@@ -3,7 +3,11 @@
 
 #include "Character/UK_PlayerController.h"
 #include "ActorComponent/UK_InputComponent.h"
+#include "Character/UK_CharacterBase.h"
+#include "EnhancedInputComponent.h"
+#include "Engine/LocalPlayer.h"
 #include "EnhancedInputSubsystems.h"
+#include "UserSettings/EnhancedInputUserSettings.h"
 
 AUK_PlayerController::AUK_PlayerController()
 	: bMouseCursorEnabled(false)
@@ -56,17 +60,54 @@ void AUK_PlayerController::OnPossess(APawn* pawn)
 {
 	Super::OnPossess(pawn);
 
+	if ( !IsLocalController() )
+		return;
+
 	if ( IsLocalController() )
 	{
 		ConnectStaminaWidget();
 	}
 
-	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 
-	if ( Subsystem )
+	AUK_CharacterBase* MyCharacter = Cast<AUK_CharacterBase>(pawn);
+	if ( !MyCharacter ) return;
+
+	UUK_InputConfig* InputConfig = MyCharacter->InputMappingConfig;
+	if ( !InputConfig ) return;
+
+	UInputMappingContext* IMC = InputConfig->GetIMC();
+	if ( !IMC ) return;
+
+	ULocalPlayer* LocalPlayer = GetLocalPlayer();
+	if ( !LocalPlayer ) return;
+
+	UEnhancedInputLocalPlayerSubsystem* Subsystem =
+		LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
+
+	if ( !Subsystem ) return;
+
+	Subsystem->ClearAllMappings();
+	Subsystem->AddMappingContext(IMC, 0);
+
+	UEnhancedInputUserSettings* Settings =
+		Subsystem->GetUserSettings();
+
+	if ( Settings->IsMappingContextRegistered(IMC) )
 	{
-		Subsystem->AddMappingContext(IMC, 0);
+
 	}
+	else
+	{
+		Settings->RegisterInputMappingContext(IMC);
+	}
+
+
+	//UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
+
+	//if ( Subsystem )
+	//{
+	//	Subsystem->AddMappingContext(IMC, 0);
+
 }
 
 // -----  UI 생성 -----

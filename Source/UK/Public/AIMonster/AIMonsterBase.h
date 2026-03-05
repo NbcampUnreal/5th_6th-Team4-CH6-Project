@@ -293,7 +293,7 @@ private:
 #pragma region HPBar Widget
 public:
 
-	UUK_MonsterHealthBar* GetHPWidget() const { return HPWidget; }
+	UUK_MonsterHealthBar* GetHPWidget() const;
 
 	void UpdateHPBarWidget();
 
@@ -309,15 +309,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|HPBar")
 	float MaxHPBarScale = 1.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|HPBar")
+	FVector DesiredScale;
+
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UUserWidget> HPWidgetClass;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI", meta = ( AllowPrivateAccess = "true" ))
 	UWidgetComponent* HPWidgetComponent;
 private:
-
-	UPROPERTY()
-	UUK_MonsterHealthBar* HPWidget;
 
 	// 중복 호출 방지용
 	bool bHPVisible = false;
