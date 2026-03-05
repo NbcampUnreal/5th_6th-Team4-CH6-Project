@@ -12,6 +12,7 @@ class UAnimMontage;
 class UAbilitySystemComponent;
 class UUK_MonsterAttributeSet;
 class UGameplayEffect;
+class USoundCue;
 
 /* ───────────────────── Enums & Delegates ───────────────────── */
 
@@ -297,17 +298,37 @@ public:
 	
 #pragma region Alert Icon Widget
 public:
+	UFUNCTION(BlueprintCallable, Category = "Monster|Alert")
+	virtual void ShowAlertIcon();
+
+	UFUNCTION(BlueprintCallable, Category = "Monster|Alert")
+	virtual void HideAlertIcon();
+
+	UFUNCTION(BlueprintPure, Category = "Monster|Alert")
+	bool IsAlerting() const { return bIsAlerting; }
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster | Sounds")
+	USoundCue* HowlSound;
+
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI|Alert")
+	UWidgetComponent* AlertWidgetComponent;
+
 	UPROPERTY(EditDefaultsOnly, Category = "UI|Alert")
 	TSubclassOf<UUserWidget> AlertWidgetClass;
 
-	void ShowAlertIcon();
-	void HideAlertIcon();
+	UPROPERTY()
+	UUserWidget* AlertWidget;
 
-protected:
-	UPROPERTY(VisibleAnywhere, Category = "UI|Alert")
-	UWidgetComponent* AlertWidgetComponent;
+	UPROPERTY(BlueprintReadOnly, Category = "Monster|Alert")
+	bool bIsAlerting = false;
+
+	// 위젯 표시 거리 제한
+	UPROPERTY(EditDefaultsOnly, Category = "UI|Alert", meta = (ClampMin = "0"))
+	float AlertWidgetCullDistance = 10000.0f;
+
 #pragma endregion
-
+	
 #pragma region Private
 private:
 	FTimerHandle CorpseTimerHandle;
