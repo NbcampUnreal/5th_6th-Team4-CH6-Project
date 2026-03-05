@@ -13,6 +13,7 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Quest/UKQuestManagerSubsystem.h"
+#include "DrawDebugHelpers.h"
 
 #pragma region Initialization
 AAIMonsterBase::AAIMonsterBase()
@@ -44,14 +45,15 @@ AAIMonsterBase::AAIMonsterBase()
 	HPWidgetComponent->SetRelativeLocation(FVector(0, 0, 120.f));
 	HPWidgetComponent->SetVisibility(false);
 	
-	// Alert Icon Widget 설치
+	// Alert Icon Widget 설치 (HPBar 바로 위)
 	AlertWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("AlertWidgetComponent"));
-	AlertWidgetComponent->SetupAttachment(GetMesh());
-	AlertWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);   
-	AlertWidgetComponent->SetDrawAtDesiredSize(true);
-	AlertWidgetComponent->SetDrawSize(FVector2D(64.f, 64.f));
-	AlertWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, 160.f)); 
+	AlertWidgetComponent->SetupAttachment(RootComponent);
+	AlertWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
+	AlertWidgetComponent->SetDrawAtDesiredSize(true);  
+	AlertWidgetComponent->SetPivot(FVector2D(0.5f, 0.5f));
 	AlertWidgetComponent->SetVisibility(false);
+	AlertWidgetComponent->SetCullDistance(AlertWidgetCullDistance);
+	AlertWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, 225.f));
 }
 
 void AAIMonsterBase::BeginPlay()
@@ -91,6 +93,15 @@ void AAIMonsterBase::BeginPlay()
 			&AAIMonsterBase::UpdateHPBarWidget,
 			0.05f, true);
 	}
+	
+	if (AlertWidgetComponent && AlertWidget)
+	{
+		AlertWidget->SetVisibility(ESlateVisibility::Collapsed);
+		AlertWidgetComponent->SetVisibility(false);
+		AlertWidgetComponent->SetHiddenInGame(true);
+		
+		UE_LOG(LogTemp, Log, TEXT("[Alert] %s: Widget hidden in BeginPlay ✓"), *GetName());
+	}
 }
 
 void AAIMonsterBase::PostInitializeComponents()
@@ -111,6 +122,24 @@ void AAIMonsterBase::PostInitializeComponents()
 	if (AlertWidgetComponent && AlertWidgetClass)
 	{
 		AlertWidgetComponent->SetWidgetClass(AlertWidgetClass);
+		AlertWidgetComponent->InitWidget();
+		
+		AlertWidget = AlertWidgetComponent->GetUserWidgetObject();
+		
+		if (AlertWidget)
+		{
+			AlertWidget->SetVisibility(ESlateVisibility::Collapsed);
+			UE_LOG(LogTemp, Log, TEXT("[Alert] %s: Widget initialized ✓"), *GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[Alert] %s: Widget initialization failed ✗"), *GetName());
+		}
+	}
+	else
+	{
+		if (!AlertWidgetClass)
+			UE_LOG(LogTemp, Warning, TEXT("[Alert] %s: AlertWidgetClass not set in BP"), *GetName());
 	}
 }
 
@@ -755,27 +784,25 @@ void AAIMonsterBase::UpdateHPBarWidget()
 #pragma region Alert Icon
 void AAIMonsterBase::ShowAlertIcon()
 {
-	if (!AlertWidgetComponent) return;
+	if (bIsAlerting) return;
+	if (!AlertWidgetComponent || !AlertWidget) return;
 
-	if (!AlertWidgetComponent->GetUserWidgetObject() && AlertWidgetClass)
-	{
-		AlertWidgetComponent->SetWidgetClass(AlertWidgetClass);
-		AlertWidgetComponent->InitWidget();
-	}
+	bIsAlerting = true;
 
 	AlertWidgetComponent->SetVisibility(true);
-
-	if (UUserWidget* W = AlertWidgetComponent->GetUserWidgetObject())
-		W->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	AlertWidgetComponent->SetHiddenInGame(false);
+	AlertWidget->SetVisibility(ESlateVisibility::Visible);
 }
 
 void AAIMonsterBase::HideAlertIcon()
 {
-	if (!AlertWidgetComponent) return;
+	if (!bIsAlerting) return;
+	if (!AlertWidgetComponent || !AlertWidget) return;
 
-	if (UUserWidget* W = AlertWidgetComponent->GetUserWidgetObject())
-		W->SetVisibility(ESlateVisibility::Collapsed);
+	bIsAlerting = false;
 
+	AlertWidget->SetVisibility(ESlateVisibility::Collapsed);
 	AlertWidgetComponent->SetVisibility(false);
+	AlertWidgetComponent->SetHiddenInGame(true);
 }
 #pragma endregion
