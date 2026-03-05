@@ -3,22 +3,27 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "GameFramework/Character.h"
 #include "AIMonster/AIMonsterBase.h"
+#include "AIMonster/UK_AiMonsterCtl.h"
 
+#pragma region Initialization
 UUK_BTService_DetectPlayer::UUK_BTService_DetectPlayer()
 {
-	NodeName = "Detect Player";
-	Interval = 0.1f;
+	NodeName        = "Detect Player";
+	Interval        = 0.1f;
 	RandomDeviation = 0.1f;
 
 	TargetPlayerKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UUK_BTService_DetectPlayer, TargetPlayerKey), AActor::StaticClass());
 	SpawnLocationKey.AddVectorFilter(this, GET_MEMBER_NAME_CHECKED(UUK_BTService_DetectPlayer, SpawnLocationKey));
+	PendingTargetKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UUK_BTService_DetectPlayer, PendingTargetKey), AActor::StaticClass());
 }
 
 uint16 UUK_BTService_DetectPlayer::GetInstanceMemorySize() const
 {
 	return sizeof(FDetectPlayerMemory);
 }
+#pragma endregion
 
+#pragma region Player Detection
 void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
@@ -42,41 +47,56 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 	const float   DistFromSpawn   = FVector::Dist(MonsterLocation, SpawnLocation);
 	const float   ChaseLimit      = Monster ? Monster->MaxChaseDistance : 2500.f;
 
-	bool bCurrentlyHasTarget = (BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName) != nullptr);
+	const bool bHasTarget  = (BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName)  != nullptr);
+	const bool bHasPending = (BlackboardComp->GetValueAsObject(PendingTargetKey.SelectedKeyName) != nullptr);
 
-	// 타겟을 방금 잃었으면 복귀 중 플래그 세팅
-	if (Memory->bHadTarget && !bCurrentlyHasTarget)
+	// 복귀 플래그 관리 
+	// TargetPlayer/Pending 둘 다 사라진 직후 → 복귀 상태 진입
+	if (Memory->bHadTarget && !bHasTarget && !bHasPending)
 	{
 		Memory->bReturning = true;
 		Memory->bHadTarget = false;
 	}
 
-	// ── 복귀 중이면 스폰 근처 도달 전까지 재감지 차단 ────────────────────────
+	// 복귀 중: 스폰 지점 근처 도착 전까지 감지 억제
 	if (Memory->bReturning)
 	{
 		if (DistFromSpawn <= ReturnDistanceThreshold)
-		{
-			// 스폰 근처 복귀 완료 → 차단 해제
 			Memory->bReturning = false;
-		}
 		else
-		{
-			// 아직 복귀 중 → 재감지 차단
 			return;
-		}
 	}
-	// ─────────────────────────────────────────────────────────────────────────
 
-	// 스폰에서 너무 멀면 감지 차단 + 복귀 플래그
+	// 추격 한계 초과 → 강제 이탈 처리 (AlertStandby도 Abort됨)
 	if (DistFromSpawn > ChaseLimit)
 	{
 		BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
+		BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
 		Memory->bHadTarget = false;
 		Memory->bReturning = true;
 		return;
 	}
 
-	// 플레이어 탐색
+	// 패스트패스: AIPerceptionComponent 결과 재사용
+	if (AUK_AiMonsterCtl* MonsterCtl = Cast<AUK_AiMonsterCtl>(AIController))
+	{
+		AActor* CtlTarget = MonsterCtl->GetCurrentTarget();
+		if (CtlTarget)
+		{
+			if (BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName)) 
+			{
+				return; 
+			}
+
+			if (!BlackboardComp->GetValueAsObject(PendingTargetKey.SelectedKeyName))
+			{
+				BlackboardComp->SetValueAsObject(PendingTargetKey.SelectedKeyName, CtlTarget);
+			}
+		}
+		return;
+	}
+
+	// 폴백: 직접 PlayerController 순회 
 	UWorld* World = ControlledPawn->GetWorld();
 	if (!World) return;
 
@@ -91,7 +111,7 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 		APawn* PlayerPawn = PC->GetPawn();
 		if (!PlayerPawn) continue;
 
-		float Dist = FVector::Dist(MonsterLocation, PlayerPawn->GetActorLocation());
+		const float Dist = FVector::Dist(MonsterLocation, PlayerPawn->GetActorLocation());
 		if (Dist < BestDist)
 		{
 			BestDist   = Dist;
@@ -101,12 +121,16 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 
 	if (BestTarget)
 	{
-		BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, BestTarget);
+		if (!Memory->bHadTarget)
+			BlackboardComp->SetValueAsObject(PendingTargetKey.SelectedKeyName, BestTarget);
+
 		Memory->bHadTarget = true;
 	}
 	else
 	{
+		BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
 		BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
 		Memory->bHadTarget = false;
 	}
 }
+#pragma endregion

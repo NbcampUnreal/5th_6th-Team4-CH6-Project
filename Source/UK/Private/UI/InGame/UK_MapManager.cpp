@@ -8,6 +8,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Pawn.h"
 
+#include "Components/WorldPartitionStreamingSourceComponent.h"
+
 AUK_MapManager::AUK_MapManager()
 {
 	RootSceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
@@ -23,11 +25,18 @@ AUK_MapManager::AUK_MapManager()
 
 	MapCaptureComponent->bCaptureEveryFrame = false;
 	MapCaptureComponent->bCaptureOnMovement = false;
+	
+	#if WITH_EDITORONLY_DATA
+	SetIsSpatiallyLoaded(false);
+	#endif
+	
 }
 
 void AUK_MapManager::BeginPlay()
 {
 	Super::BeginPlay();
+
+	UpdateCaptureTransform();
 
 	GetWorldTimerManager().SetTimer(CaptureTimer, this, &AUK_MapManager::CaptureMap, 0.2f, true);
 }
@@ -36,13 +45,11 @@ void AUK_MapManager::CaptureMap()
 {
 	if (!MapCaptureComponent) return;
 
-	RefreshHiddenActors();
-
 	UpdateCaptureTransform();
 
 	MapCaptureComponent->OrthoWidth = MapData.MapSize;
 
-	if ( MapData.MapTexture )
+	if (MapData.MapTexture)
 	{
 		MapCaptureComponent->TextureTarget = MapData.MapTexture.Get();
 	}
@@ -54,29 +61,6 @@ void AUK_MapManager::UpdateCaptureTransform()
 {
 	SetActorLocation(FVector(MapData.MapCenter.X, MapData.MapCenter.Y, MapData.CaptureHeight));
 	SetActorRotation(FRotator(-90.f, 0.f, 0.f));
-}
-
-void AUK_MapManager::RefreshHiddenActors()
-{
-	if (!MapCaptureComponent) return;
-
-	MapCaptureComponent->HiddenActors.Empty();
-
-	// 월드의 모든 Pawn(플레이어 포함)을 숨김 처리
-	TArray<AActor*> Pawns;
-	UGameplayStatics::GetAllActorsOfClass (
-		GetWorld(),
-		APawn::StaticClass(),
-		Pawns
-	);
-
-	for (AActor* Pawn : Pawns)
-	{
-		if (Pawn)
-		{
-			MapCaptureComponent->HiddenActors.Add(Pawn);
-		}
-	}
 }
 
 #if WITH_EDITOR

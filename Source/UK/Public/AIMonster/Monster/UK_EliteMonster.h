@@ -6,81 +6,79 @@
 
 /**
  * 엘리트 몬스터 베이스
- * ■ 특수 공격      : SpecialAttackMontages 재생. 데미지는 몽타주에 붙은
- *                     AnimNotifyState_UKMonsterMeleeTrace 가 기존과 동일하게 처리.
+ * ■ 특수 공격 : SpecialAttackMontages 재생.
+ *              데미지는 AnimNotifyState_UKMonsterMeleeTrace 가 처리.
  */
 UCLASS(Abstract)
 class UK_API AUK_EliteMonster : public AAIMonsterBase
 {
 	GENERATED_BODY()
 
+#pragma region Initialization
 public:
 	AUK_EliteMonster();
+#pragma endregion
 
-	//  특수 공격
-
-	/** 특수 공격 몽타주 목록 */
+#pragma region Special Attack
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Elite|SpecialAttack")
 	TArray<UAnimMontage*> SpecialAttackMontages;
 
-	/** 특수 공격 쿨다운 (초) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Elite|SpecialAttack")
 	float SpecialAttackCooldown = 8.0f;
 
-	/** 특수 공격 가능 여부 */
+	float LastSpecialAttackTime = 0.f;
+
 	UFUNCTION(BlueprintPure, Category = "Elite|SpecialAttack")
 	bool CanUseSpecialAttack() const;
 
-	/**
-	 * 특수 공격 실행 (서버 전용).
-	 * 몽타주 재생(Multicast)만 담당. 데미지는 MeleeTrace 노티파이가 처리.
-	 * @return 실행 성공 여부
-	 */
 	UFUNCTION(BlueprintCallable, Category = "Elite|SpecialAttack")
 	bool PlaySpecialAttack();
 
 	DECLARE_DELEGATE_OneParam(FOnSpecialAttackFinished, bool /*bSucceeded*/);
 	FOnSpecialAttackFinished OnSpecialAttackFinished;
 
-	float LastSpecialAttackTime = 0.f;
-
 	UFUNCTION()
 	void OnSpecialAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlaySpecialAttackMontage(int32 MontageIndex);
-
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	void PlaySpecialAttackMontage(int32 MontageIndex);
 	
-#pragma region debug
-	/** true 시 특수 공격 발동 때 범위 캡슐/원 표시 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Special Attack")
+	float SpecialAttackAoERadius = 500.f;  
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Special Attack")
+	float SpecialAttackDamage = 50.f;     
+	
+	FTimerHandle SpecialAttackAoETimerHandle;
+
+	UPROPERTY(EditAnywhere, Category = "Special Attack")
+	float SpecialAttackHitTiming = 0.4f;
+
+	void ApplySpecialAttackAoE();
+#pragma endregion
+
+#pragma region Debug
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Elite|Debug")
 	bool bShowSpecialAttackDebug = true;
 
-	/** 바닥 원형 반지름 — 몽타주 MeleeTrace의 TraceForwardLength 와 맞춰 설정 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Elite|Debug",
 		meta = (EditCondition = "bShowSpecialAttackDebug"))
 	float SpecialAttackDebugRadius = 350.0f;
 
-	/** 전방 캡슐 시작 높이 (몽타주 MeleeTrace의 TraceStartHeight 와 맞춰 설정) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Elite|Debug",
 		meta = (EditCondition = "bShowSpecialAttackDebug"))
 	float SpecialAttackDebugTraceHeight = 60.0f;
 
-	/** 전방 캡슐 길이 (몽타주 MeleeTrace의 TraceForwardLength 와 맞춰 설정) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Elite|Debug",
 		meta = (EditCondition = "bShowSpecialAttackDebug"))
 	float SpecialAttackDebugTraceLength = 300.0f;
 
-	/** 전방 캡슐 반지름 (몽타주 MeleeTrace의 TraceRadius 와 맞춰 설정) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Elite|Debug",
 		meta = (EditCondition = "bShowSpecialAttackDebug"))
 	float SpecialAttackDebugTraceRadius = 80.0f;
 
-	/** 디버그 도형 표시 지속 시간 (초) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Elite|Debug",
 		meta = (EditCondition = "bShowSpecialAttackDebug"))
 	float SpecialAttackDebugDuration = 1.5f;
-
-#pragma endregion 
+#pragma endregion
 };

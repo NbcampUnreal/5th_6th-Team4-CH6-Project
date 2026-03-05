@@ -29,9 +29,9 @@ void UUK_HitCheckNotifyState::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimS
 	if ( IsValid(OwnerCharacter) )
 	{
 		OwnerCharacter->GetWorld()->GetTimerManager().ClearTimer(HitTimer);
+		OwnerCharacter->ResetHitList();
+		OwnerCharacter = nullptr;
 	}
-	OwnerCharacter->ResetHitList();
-	OwnerCharacter = nullptr;
 	Super::NotifyEnd(MeshComp, Animation, EventReference);
 }
 

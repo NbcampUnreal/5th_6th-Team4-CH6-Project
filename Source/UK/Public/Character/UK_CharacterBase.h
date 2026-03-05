@@ -73,6 +73,9 @@ protected:
 	TObjectPtr<UCameraComponent> Camera;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USkeletalMeshComponent> SkeletalMeshComp;
+	 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkeletalMeshComponent> RightHandWeaponComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
@@ -80,9 +83,6 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
 	TObjectPtr<UStatusComponent> StatusComponent;
-
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
-	//TObjectPtr<UUK_CombatAnimationComponent> AnimationComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUK_InventoryComponent> InventoryComponent;
@@ -99,19 +99,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUK_QuestComponent> QuestComp;
 
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<UUserWidget> InteractWidgetClass;
-
-	UPROPERTY()
-	UUserWidget* InteractWidget;
-
-	UFUNCTION(Client, Reliable)
-	void Client_ShowInteractUI();
-
-	UFUNCTION(Client, Reliable)
-	void Client_HideInteractUI();
-
 #pragma endregion
+
 #pragma region GAS
 protected:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
@@ -127,7 +116,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UUK_InputConfig* InputMappingConfig;
 protected:
-
+	UPROPERTY()
 	AUK_PlayerController* PC;
 
 	UFUNCTION()
@@ -163,6 +152,12 @@ protected:
 	UFUNCTION()
 	void Setting();
 
+	UFUNCTION()
+	void NomalSkill();
+
+	UFUNCTION()
+	void UltimateSkill();
+
 public:
 	UFUNCTION(BlueprintCallable)
 	void LockON();
@@ -186,7 +181,11 @@ protected:
 
 	bool bIsCrouched;
 
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	bool bIsSprinted;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	float SprintSpeed;
 
 	UPROPERTY()
 	TArray<TObjectPtr<AAIMonsterBase>> LockOnList;
@@ -263,7 +262,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, ReplicatedUsing = OnRep_fry)
 	bool bIsfry;
 
-	float DefaultGravityValue;
 	FOnFloorDelagate OnFloor;
 #pragma endregion
 

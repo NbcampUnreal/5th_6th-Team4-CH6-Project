@@ -23,12 +23,14 @@ namespace UK_GameplayTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Setting);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(LockOnToggle);
 	}
+
 	namespace Weapon
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(WeaponRoot);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DefaultWeapon);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dagger);
 	}
+
 	namespace Action
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Swap1);
@@ -39,21 +41,32 @@ namespace UK_GameplayTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(AirAttack);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DropAttack);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(OnGroundAttack);
-
 	}
+
 	namespace Attack
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attacking);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Next);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(HitCheck);
+	}
+
+	namespace Data
+	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Damage);
 
 	}
 
+	namespace CoolDown
+	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(NomalSkill);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UltimateSkill);
+	}
 
 	namespace Food
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(FoodRoot);
 	}
+
 	namespace Material
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(MaterialRoot);

@@ -18,18 +18,23 @@ public class UK : ModuleRules
 			"AIModule",
 			"StateTreeModule",
 			"GameplayStateTreeModule",
-			"UMG",
+			"UMG", 
 			"Slate",
+			"SlateCore",
 			"GameplayAbilities",
             "GameplayTags",
             "GameplayTasks",
+            "AdvancedSessions",
+            "AdvancedSteamSessions",
             "OnlineSubsystem",
             "OnlineSubsystemUtils",
+            "OnlineSubsystemSteam",
 			"Json",
 			"JsonUtilities",
-			"AssetRegistry"
+			"AssetRegistry",
+			"GameplayTags"
         });
-
+		
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 
 		PublicIncludePaths.AddRange(new string[] {

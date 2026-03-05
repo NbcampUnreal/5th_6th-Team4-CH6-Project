@@ -16,15 +16,24 @@ class UK_API UUK_BTTask_EliteSpecialAttack : public UBTTaskNode
 {
 	GENERATED_BODY()
 
+#pragma region Initialization
 public:
 	UUK_BTTask_EliteSpecialAttack();
+#pragma endregion
 
+#pragma region Execution
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+#pragma endregion
 
+#pragma region Special Attack Callback
+	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+#pragma endregion
+
+#pragma region Private
 private:
 	TWeakObjectPtr<UBehaviorTreeComponent> CachedOwnerComp;
 
 	void OnSpecialAttackFinished(bool bSucceeded);
+#pragma endregion
 };

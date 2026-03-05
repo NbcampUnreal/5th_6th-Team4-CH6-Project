@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "UI/InGame/UK_Stamina.h"
 #include "UI/InGame/UK_Setting.h"
+#include "UI/InGame/UK_Quest.h"
 #include "UK_PlayerController.generated.h"
 
 
@@ -109,4 +110,22 @@ private:
 	UUK_Stamina* StaminaWidget;
 
 	void ConnectStaminaWidget();
+
+	//  ------ Interaction ------ (무현 수정중)
+
+protected:
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI|Interaction")
+	TSubclassOf<UUK_Quest> QuestWidgetClass;
+
+	UPROPERTY()
+	UUK_Quest* QuestWidget;
+
+public:
+
+	UFUNCTION(Client, Reliable)
+	void Client_ShowQuestUI(const FName& QuestID,const FText& NPCName,const FText& Dialogue,const FText& QuestDesc);
+
+	UFUNCTION(Client, Reliable)
+	void Client_HideQuestUI();
 };

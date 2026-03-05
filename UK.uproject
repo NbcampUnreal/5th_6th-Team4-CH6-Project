@@ -12,7 +12,6 @@
 				"Engine",
 				"AIModule",
 				"UMG",
-				"UMGEditor",
 				"EnhancedInput",
 				"GameplayAbilities"
 			]
@@ -28,11 +27,19 @@
 		},
 		{
 			"Name": "StateTree",
-			"Enabled": true
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor",
+				"Game"
+			]
 		},
 		{
 			"Name": "GameplayStateTree",
-			"Enabled": true
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor",
+				"Game"
+			]
 		},
 		{
 			"Name": "HDRIBackdrop",
@@ -40,7 +47,7 @@
 		},
 		{
 			"Name": "Landmass",
-			"Enabled": true
+			"Enabled": false
 		},
 		{
 			"Name": "GameplayAbilities",
@@ -92,6 +99,27 @@
 		},
 		{
 			"Name": "PCGWaterInterop",
+			"Enabled": true
+		},
+		{
+			"Name": "KawaiiPhysics",
+			"Enabled": true,
+			"MarketplaceURL": "com.epicgames.launcher://ue/Fab/product/f870c07e-0a02-4a78-a888-e52a22794572"
+		},
+		{
+			"Name": "AnimationLocomotionLibrary",
+			"Enabled": true
+		},
+		{
+			"Name": "Mover",
+			"Enabled": true
+		},
+		{
+			"Name": "LiveLinkControlRig",
+			"Enabled": true
+		},
+		{
+			"Name": "SteamSockets",
 			"Enabled": true
 		}
 	],

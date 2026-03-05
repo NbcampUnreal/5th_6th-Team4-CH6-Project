@@ -13,20 +13,32 @@ class UK_API UUK_BTTask_ElitePatrol : public UBTTaskNode
 {
 	GENERATED_BODY()
 
+#pragma region Initialization
 public:
 	UUK_BTTask_ElitePatrol();
-
 	virtual uint16 GetInstanceMemorySize() const override;
+#pragma endregion
 
+#pragma region Execution
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
-	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+#pragma endregion
 
+#pragma region Patrol Tick
+	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+#pragma endregion
+
+#pragma region Abort
+	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+#pragma endregion
+
+#pragma region Blackboard Keys
 	/** 스폰 위치 블랙보드 키 */
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector SpawnLocationKey;
+#pragma endregion
 
+#pragma region Patrol Settings
 	/** 도착 판정 거리 */
 	UPROPERTY(EditAnywhere, Category = "Patrol")
 	float AcceptanceRadius = 100.0f;
@@ -41,16 +53,21 @@ protected:
 	/** 랜덤 순찰 모드 — 이동 실패 시 최대 재시도 횟수 */
 	UPROPERTY(EditAnywhere, Category = "Patrol")
 	int32 MaxNavRetries = 3;
+#pragma endregion
 
+#pragma region Memory
 private:
 	struct FElitePatrolMemory
 	{
-		bool  bMoving        = false;
-		bool  bWaiting       = false;
-		float WaitTimeLeft   = 0.f;
+		bool    bMoving        = false;
+		bool    bWaiting       = false;
+		float   WaitTimeLeft   = 0.f;
 		FVector TargetLocation = FVector::ZeroVector;
-		int32 NavRetryCount  = 0;
+		int32   NavRetryCount  = 0;
 	};
+#pragma endregion
 
+#pragma region Navigation
 	bool RequestMoveTo(AAIController* AICon, const FVector& Dest);
+#pragma endregion
 };

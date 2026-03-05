@@ -9,33 +9,42 @@ class UK_API UUK_BTService_DetectPlayer : public UBTService
 {
 	GENERATED_BODY()
 
+#pragma region Initialization
 public:
 	UUK_BTService_DetectPlayer();
+#pragma endregion
 
+#pragma region Player Detection
 protected:
-	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+	virtual void   TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 	virtual uint16 GetInstanceMemorySize() const override;
+#pragma endregion
 
+#pragma region Blackboard Keys
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector TargetPlayerKey;
 
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector SpawnLocationKey;
 
+	UPROPERTY(EditAnywhere, Category = "Blackboard")
+	FBlackboardKeySelector PendingTargetKey;
+#pragma endregion
+
+#pragma region Settings
 	UPROPERTY(EditAnywhere, Category = "AI")
 	float DetectionRadius = 800.0f;
 
-	/**
-	 * 복귀 완료 판정 거리 — 스폰에서 이 거리 이내에 들어오면 재감지 허용
-	 * ReturnToSpawn의 AcceptanceRadius 와 비슷하게 설정 권장 (기본 200)
-	 */
 	UPROPERTY(EditAnywhere, Category = "AI")
 	float ReturnDistanceThreshold = 200.0f;
+#pragma endregion
 
+#pragma region Memory
 private:
 	struct FDetectPlayerMemory
 	{
-		bool bHadTarget  = false;  // 직전 틱에 타겟이 있었는지
-		bool bReturning  = false;  // 복귀 중 플래그 (재감지 차단)
+		bool bHadTarget = false; 
+		bool bReturning = false;  
 	};
+#pragma endregion
 };
