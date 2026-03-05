@@ -12,6 +12,7 @@ class UAnimMontage;
 class UAbilitySystemComponent;
 class UUK_MonsterAttributeSet;
 class UGameplayEffect;
+class USoundCue;
 
 /* ───────────────────── Enums & Delegates ───────────────────── */
 
@@ -305,6 +306,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Monster|Alert")
 	bool IsAlerting() const { return bIsAlerting; }
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster | Sounds")
+	USoundCue* HowlSound;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI|Alert")
