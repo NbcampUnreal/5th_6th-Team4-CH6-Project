@@ -184,6 +184,11 @@ void AUK_CharacterBase::PossessedBy(AController* NewController)
 
 	GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
 	GiveStartupAbilities();
+	AUK_PlayerState* PS = Cast<AUK_PlayerState>(GetPlayerState());
+	if (IsValid(PS))
+	{
+		PS->InitializeAttributes();
+	}
 }
 
 void AUK_CharacterBase::Landed(const FHitResult& Hit)
@@ -591,7 +596,8 @@ void AUK_CharacterBase::LockONTick()
 
 		if (Monster->IsDead() == false)
 		{
-			if (const float Distance = FVector::Dist(GetActorLocation(), Monster->GetActorLocation()); Distance > MaxLockDistance)
+			if (const float Distance = FVector::Dist(GetActorLocation(), Monster->GetActorLocation()); Distance >
+				MaxLockDistance)
 			{
 				bIsLock = false;
 				GetWorld()->GetTimerManager().ClearTimer(LockOnTimer);
@@ -833,4 +839,3 @@ void AUK_CharacterBase::UpdateMonsterDetection()
 void AUK_CharacterBase::OnRep_fry()
 {
 }
-

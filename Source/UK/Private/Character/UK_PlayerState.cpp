@@ -25,14 +25,15 @@ UAbilitySystemComponent* AUK_PlayerState::GetAbilitySystemComponent() const
 void AUK_PlayerState::BeginPlay()
 {
 	Super::BeginPlay();
-	if (ASC)
-	{
-		InitializeAttributes();
-	}
 }
 
 void AUK_PlayerState::InitializeAttributes() const
 {
 	ASC->SetNumericAttributeBase(StatusAttributeSet->GetMaxHealthAttribute(), 200.f);
-	ASC->SetNumericAttributeBase(StatusAttributeSet->GetHealthAttribute(), StatusAttributeSet->GetMaxHealth());
+	ASC->SetNumericAttributeBase(StatusAttributeSet->GetAttackPowerAttribute(), 20.f);
+	ASC->SetNumericAttributeBase(StatusAttributeSet->GetMaxMpAttribute(), 100.f);
+	ASC->SetNumericAttributeBase(StatusAttributeSet->GetMaxStaminaAttribute(), 100.f);
+	ASC->SetNumericAttributeBase(StatusAttributeSet->GetMaxLevelAttribute(), 20.f);
+	ASC->SetNumericAttributeBase(StatusAttributeSet->GetLevelAttribute(), 1.f);
+	ASC->SetNumericAttributeBase(StatusAttributeSet->GetMaxEXPAttribute(), 10.f);
 }

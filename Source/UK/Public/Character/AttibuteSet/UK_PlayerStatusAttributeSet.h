@@ -10,7 +10,7 @@
 /**
  * 
  */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAttributeDataChanged, float, OldValue, float, NewValue)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAttributeDataChanged, float, OldValue, float, NewValue);
 UCLASS()
 class UK_API UUK_PlayerStatusAttributeSet : public UAttributeSet
 {
@@ -23,6 +23,7 @@ public:
 	virtual void PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue, float NewValue)override;
 
 	void HandleOutOfHealth();
+	
 	ATTRIBUTE_ACCESSORS_BASIC(UUK_PlayerStatusAttributeSet, Health);
 	ATTRIBUTE_ACCESSORS_BASIC(UUK_PlayerStatusAttributeSet, MaxHealth);
 	ATTRIBUTE_ACCESSORS_BASIC(UUK_PlayerStatusAttributeSet, AttackPower);
@@ -32,9 +33,13 @@ public:
 	ATTRIBUTE_ACCESSORS_BASIC(UUK_PlayerStatusAttributeSet, CurrentMp);
 	ATTRIBUTE_ACCESSORS_BASIC(UUK_PlayerStatusAttributeSet, MaxStamina);
 	ATTRIBUTE_ACCESSORS_BASIC(UUK_PlayerStatusAttributeSet, CurrentStamina);
+	ATTRIBUTE_ACCESSORS_BASIC(UUK_PlayerStatusAttributeSet, MaxEXP);
 	ATTRIBUTE_ACCESSORS_BASIC(UUK_PlayerStatusAttributeSet, EXP);
 	ATTRIBUTE_ACCESSORS_BASIC(UUK_PlayerStatusAttributeSet, MaxLevel);
 	ATTRIBUTE_ACCESSORS_BASIC(UUK_PlayerStatusAttributeSet, Level);
+	ATTRIBUTE_ACCESSORS_BASIC(UUK_PlayerStatusAttributeSet, CriticalChance);
+	ATTRIBUTE_ACCESSORS_BASIC(UUK_PlayerStatusAttributeSet, CriticalDamage);
+	ATTRIBUTE_ACCESSORS_BASIC(UUK_PlayerStatusAttributeSet, Defence);
 
 	UPROPERTY(BlueprintAssignable,BlueprintReadOnly, Category = "Attribute")
 	FAttributeDataChanged MaxHealthChanged;
@@ -64,6 +69,9 @@ public:
 	FAttributeDataChanged CurrentStaminaChanged;
 	
 	UPROPERTY(BlueprintAssignable,BlueprintReadOnly, Category = "Attribute")
+	FAttributeDataChanged MaxEXPChanged;	
+	
+	UPROPERTY(BlueprintAssignable,BlueprintReadOnly, Category = "Attribute")
 	FAttributeDataChanged EXPChanged;
 	
 	UPROPERTY(BlueprintAssignable,BlueprintReadOnly, Category = "Attribute")
@@ -71,6 +79,15 @@ public:
 	
 	UPROPERTY(BlueprintAssignable,BlueprintReadOnly, Category = "Attribute")
 	FAttributeDataChanged LevelChanged;
+		
+	UPROPERTY(BlueprintAssignable,BlueprintReadOnly, Category = "Attribute")
+	FAttributeDataChanged CriticalChanceChanged;
+		
+	UPROPERTY(BlueprintAssignable,BlueprintReadOnly, Category = "Attribute")
+	FAttributeDataChanged CriticalDamageChanged;
+	
+	UPROPERTY(BlueprintAssignable,BlueprintReadOnly, Category = "Attribute")
+	FAttributeDataChanged DefenceChanged;
 	
 protected:
 	
@@ -102,11 +119,22 @@ protected:
 	FGameplayAttributeData CurrentStamina;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Attribute")
+	FGameplayAttributeData MaxEXP;	
+	UPROPERTY(BlueprintReadOnly, Category = "Attribute")
 	FGameplayAttributeData EXP;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Attribute")
 	FGameplayAttributeData MaxLevel;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Attribute")
-	FGameplayAttributeData Level;
+	FGameplayAttributeData Level;	
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Attribute")
+	FGameplayAttributeData CriticalChance;	
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Attribute")
+	FGameplayAttributeData CriticalDamage;	
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Attribute")
+	FGameplayAttributeData Defence;
 };

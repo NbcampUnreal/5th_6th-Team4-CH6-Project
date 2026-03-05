@@ -13,23 +13,16 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 {
 	Super::PreAttributeChange(Attribute, NewValue);
 	
+	// 데미지 전처리
 	if (Attribute == GetDamageAttribute())
 	{
-		const float LocalDamage = GetDamage();
-		
-		SetDamage(0.0f);
-
-		if (LocalDamage > 0.0f)
-		{
-			const float OldHealth = GetHealth();
-			const float NewHealth = FMath::Max(0.0f, GetHealth() - LocalDamage);
-			SetHealth(NewHealth);
-			
-			UE_LOG(LogTemp, Warning, TEXT(" Health Updated: %.1f → %.1f (Damage: %.1f)"), 
-				OldHealth, NewHealth, LocalDamage);
-		}
+		/*받는 피해량 = (몬스터 공격력 X 스킬 계수) X ( 고정상수 C/ 고정상수C + 방어력)*/
+		float LocalDamage = NewValue;
+		float LocalDefense = 1.f / (1.f * GetDefence());
+		LocalDamage *= LocalDefense;
+		NewValue = LocalDamage;
 	}
-	
+	// 체력 전처리
 	else if (Attribute == GetHealthAttribute())
 	{
 		const float OldValue = NewValue;
@@ -40,38 +33,120 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 			UE_LOG(LogTemp, Log, TEXT("[AttributeSet] PreAttributeChange - Health clamped: %.1f → %.1f"), OldValue, NewValue);
 		}
 		
-		SetHealth(FMath::Clamp(GetHealth(), 0.0f, GetMaxHealth()));
-		
 		UE_LOG(LogTemp, Log, TEXT("   Health: %.1f → %.1f (Max: %.1f)"), 
 			OldValue, GetHealth(), GetMaxHealth());
 		
-		if (GetHealth() <= 0.0f)
-		{
-			HandleOutOfHealth();
-		}
 	}
+	// 최대채력 전처리
 	else if (Attribute == GetMaxHealthAttribute())
 	{
 		const float OldMaxHealth = GetMaxHealth();
 		
-		SetHealth(GetMaxHealth());
-		
-		if (OldMaxHealth != GetHealth())
+		if (OldMaxHealth != NewValue)
 		{
 			UE_LOG(LogTemp, Log, TEXT("   Health adjusted: %.1f → %.1f"), OldMaxHealth, GetMaxHealth());
 		}
 		
+	}	
+	// 최대 MP 전 처리
+	else if (Attribute == GetMaxMpAttribute())
+	{
+		const float OldMaxHealth = GetMaxMp();
+		
+		
+		if (OldMaxHealth != NewValue)
+		{
+			UE_LOG(LogTemp, Log, TEXT("   Max Mp: %.1f → %.1f"), OldMaxHealth, NewValue);
+		}
+		
+	}
+	// MP 전처리
+	else if (Attribute == GetCurrentMpAttribute())
+	{
+		const float OldValue =  GetCurrentMp();
+		
+		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxMp());
+		
+		
+		UE_LOG(LogTemp, Log, TEXT("   Mp: %.1f → %.1f (Max: %.1f)"), 
+			OldValue, NewValue, GetMaxMp());
+	}
+	// 최대 스테미너 전처리
+	else if (Attribute == GetMaxStaminaAttribute())
+	{
+		const float OldMaxStamina = GetMaxStamina();
+		
+		if (OldMaxStamina != NewValue)
+		{
+			UE_LOG(LogTemp, Log, TEXT("   Max Stamina: %.1f → %.1f"), OldMaxStamina, NewValue);
+		}
+	}
+	// 스테미너 전처리
+	else if (Attribute == GetCurrentStaminaAttribute())
+	{
+		const float OldValue = GetCurrentStamina();
+		
+		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxStamina());
+		
+		
+		UE_LOG(LogTemp, Log, TEXT("   Mp: %.1f → %.1f (Max: %.1f)"), 
+			OldValue, NewValue, GetMaxMp());
+	}
+	// 최대 경험치 전처리
+	else if (Attribute == GetMaxEXPAttribute())
+	{		
+		const float OldMaxExp = GetMaxEXP();
+		
+		if (OldMaxExp != NewValue)
+		{
+			UE_LOG(LogTemp, Log, TEXT("   Max EXP: %.1f → %.1f"), OldMaxExp, NewValue);
+		}
+		
+	}
+	// 경험치 전처리
+	else if (Attribute == GetEXPAttribute())
+	{
+		const float OldValue = GetEXP();
+		
+		UE_LOG(LogTemp, Log, TEXT("   Mp: %.1f → %.1f (Max: %.1f)"), 
+			OldValue, NewValue, GetMaxMp());
+	}
+	// 최대 레벨 전처리
+	else if (Attribute == GetMaxLevelAttribute())
+	{
+		const float OldValue = GetMaxLevel();
+		
+		if (OldValue != NewValue)
+		{
+			UE_LOG(LogTemp, Log, TEXT("   Max EXP: %.1f → %.1f"), OldValue, NewValue);
+		}
+	}
+	// 레벨 전 처리 
+	else if (Attribute == GetLevelAttribute())
+	{
+		const float OldValue = GetLevel();
+		
+		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxLevel());
+		
+		UE_LOG(LogTemp, Log, TEXT("   Mp: %.1f → %.1f (Max: %.1f)"), 
+			OldValue, NewValue, GetMaxLevel());
+	}	
+	// 방어력 전 처리 
+	else if (Attribute == GetLevelAttribute())
+	{
 	}
 }
 
 void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue,
 	float NewValue)
 {
+	// 데미지 후처리
 	if (Attribute == GetDamageAttribute())
 	{
 		DamageChanged.Broadcast(OldValue, NewValue);
 		SetDamage(0.f);
 	}
+	// 체력 후처리
 	else if (Attribute == GetHealthAttribute())
 	{
 		if (GetHealth() <= 0.0f)
@@ -80,9 +155,62 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 		}
 		HealthChanged.Broadcast(OldValue, NewValue);
 	}
+	// 최대채력 후처리
 	else if (Attribute == GetMaxHealthAttribute())
 	{
+		SetHealth(GetMaxHealth());
 		MaxHealthChanged.Broadcast(OldValue, NewValue);
+	}	
+	// 최대 MP 후처리
+	else if (Attribute == GetMaxMpAttribute())
+	{
+		SetCurrentMp(GetMaxMp());
+		MaxMpChanged.Broadcast(OldValue, NewValue);
+	}
+	// MP 후처리
+	else if (Attribute == GetCurrentMpAttribute())
+	{
+		CurrentMpChanged.Broadcast(OldValue, NewValue);
+	}
+	// 최대 스테미너 후처리
+	else if (Attribute == GetMaxStaminaAttribute())
+	{
+		SetCurrentMp(GetMaxStamina());
+		MaxMpChanged.Broadcast(OldValue, NewValue);
+	}
+	// 스테미너 후처리
+	else if (Attribute == GetCurrentStaminaAttribute())
+	{
+		CurrentStaminaChanged.Broadcast(OldValue, NewValue);
+	}
+	// 최대 경험치 후처리
+	else if (Attribute == GetMaxEXPAttribute())
+	{
+		MaxEXPChanged.Broadcast(OldValue, NewValue);
+	}	
+	// 경험치 후처리
+	else if (Attribute == GetEXPAttribute())
+	{
+		if (GetMaxEXP() != 0 && GetMaxEXP() <= GetEXP() )
+		{
+			SetEXP(GetEXP() - GetMaxEXP());
+		}
+		EXPChanged.Broadcast(OldValue, NewValue);
+	}
+	// 최대 레벨 후처리
+	else if (Attribute == GetMaxLevelAttribute())
+	{
+		MaxLevelChanged.Broadcast(OldValue, NewValue);
+	}
+	// 레벨 후 처리 
+	else if (Attribute == GetLevelAttribute())
+	{
+		LevelChanged.Broadcast(OldValue, NewValue);
+	}	
+	// 방어력 후처리
+	else if (Attribute == GetLevelAttribute())
+	{
+		DefenceChanged.Broadcast(OldValue, NewValue);
 	}
 	Super::PostAttributeChange(Attribute, OldValue, NewValue);
 }
