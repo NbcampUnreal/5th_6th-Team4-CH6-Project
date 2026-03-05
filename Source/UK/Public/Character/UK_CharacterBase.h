@@ -35,6 +35,7 @@ struct FInputActionValue;
 #pragma endregion
 
 DECLARE_DYNAMIC_DELEGATE(FOnFloorDelagate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadDelagate);
 UCLASS()
 class UK_API AUK_CharacterBase : public ACharacter, public IAbilitySystemInterface
 {
@@ -263,6 +264,7 @@ public:
 	bool bIsfry;
 
 	FOnFloorDelagate OnFloor;
+	FOnDeadDelagate OnDead;
 #pragma endregion
 
 #pragma region FindMonsterHPBar

@@ -3,10 +3,13 @@
 
 #include "Character/Calculation/UK_DamageExecutionCalculation.h"
 #include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
+#include "AIMonster/AttibuteSet/UK_MonsterAttributeSet.h"
+
 
 struct FDamageCapture
 {
 	DECLARE_ATTRIBUTE_CAPTUREDEF(AttackPower)
+	DECLARE_ATTRIBUTE_CAPTUREDEF(Damage)
 
 	FDamageCapture()
 	{
@@ -14,9 +17,8 @@ struct FDamageCapture
 			UUK_PlayerStatusAttributeSet::GetAttackPowerAttribute(),
 			EGameplayEffectAttributeCaptureSource::Source,
 			true
-		);
+		);		
 
-		//DEFINE_ATTRIBUTE_CAPTUREDEF(UUK_PlayerStatusAttributeSet, AttackPower, Source, false);
 	}
 };
 
@@ -48,7 +50,7 @@ void UUK_DamageExecutionCalculation::Execute_Implementation(
 
 	// 스킬의 데미지 퍼센트
 	float SkillDamagePercent = Spec.GetSetByCallerMagnitude(
-		FGameplayTag::RequestGameplayTag("Data.Damage"),
+		DamageTag,
 		/*bWarnIfNotFound=*/false,
 		0.f
 	);
@@ -57,12 +59,12 @@ void UUK_DamageExecutionCalculation::Execute_Implementation(
 	SkillDamagePercent /= 100;
 	
 	//방어력 계산 전 최종데미지
-	float FinalDamage = FMath::Max(AttackPower * SkillDamagePercent, 0.0f);
+	const float FinalDamage = FMath::Max(AttackPower * SkillDamagePercent, 0.0f);
 
 	if (FinalDamage > 0.f)
 	{
 		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
-			UUK_PlayerStatusAttributeSet::GetDamageAttribute()/*데미지를 AttributeSet에 전달*/,
+			UUK_MonsterAttributeSet::GetDamageAttribute()/*데미지를 AttributeSet에 전달*/,
 			EGameplayModOp::Additive,
 			FinalDamage
 		));

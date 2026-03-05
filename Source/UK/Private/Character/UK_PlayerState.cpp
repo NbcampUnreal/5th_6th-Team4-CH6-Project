@@ -12,10 +12,27 @@ AUK_PlayerState::AUK_PlayerState()
 	ASC = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("ASC"));
 	ASC->SetIsReplicated(true);
 	ASC->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
+	
 	StatusAttributeSet = CreateDefaultSubobject<UUK_PlayerStatusAttributeSet>(TEXT("PlayerStatusAttributeSet"));
+	ASC->AddAttributeSetSubobject(StatusAttributeSet);
 }
 
 UAbilitySystemComponent* AUK_PlayerState::GetAbilitySystemComponent() const
 {
 	return ASC;
+}
+
+void AUK_PlayerState::BeginPlay()
+{
+	Super::BeginPlay();
+	if (ASC)
+	{
+		InitializeAttributes();
+	}
+}
+
+void AUK_PlayerState::InitializeAttributes() const
+{
+	ASC->SetNumericAttributeBase(StatusAttributeSet->GetMaxHealthAttribute(), 200.f);
+	ASC->SetNumericAttributeBase(StatusAttributeSet->GetHealthAttribute(), StatusAttributeSet->GetMaxHealth());
 }

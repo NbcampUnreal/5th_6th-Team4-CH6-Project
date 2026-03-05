@@ -788,6 +788,7 @@ float AUK_CharacterBase::ApplyDamage()
 
 void AUK_CharacterBase::Dead()
 {
+	OnDead.Broadcast();
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 }
 
