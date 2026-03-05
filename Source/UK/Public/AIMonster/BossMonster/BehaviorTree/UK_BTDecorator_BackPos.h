@@ -14,7 +14,7 @@ public:
 	
 protected:
 	UPROPERTY(EditAnywhere, Category="Range")
-	float MaxDistance = 1500.f;
+	float MaxDistance = 3500.0f;
 
 	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp,uint8* NodeMemory) const override;
 };
