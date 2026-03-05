@@ -14,6 +14,20 @@ UCLASS()
 class UK_API UUK_Screen : public UUserWidget
 {
 	GENERATED_BODY()
+
 public:
-	
+	virtual void NativeConstruct() override;
+
+protected:
+	UPROPERTY()
+	class UUserWidget* ParentSettingWidget;
+public:
+	void SetParentWidget(UUserWidget* InParent) { ParentSettingWidget = InParent; }
+
+	UPROPERTY(meta = ( BindWidget ))
+	class UButton* ScreenBackButton;
+
+	UFUNCTION()
+	void OnBackButtonClicked();
+
 };

@@ -7,6 +7,8 @@
 #include "Components/Button.h"
 #include "UK_Setting.generated.h"
 
+
+class AUK_PlayerController;
 /**
  * 
  */
@@ -51,5 +53,12 @@ public:
 
 	UFUNCTION()
 	void OnControlButtonClicked();
+
+	UFUNCTION()
+	void OnExitButtonClicked();
+
+protected:
+	UPROPERTY()
+	class AUK_PlayerController* UK_PC;
 
 };

@@ -558,6 +558,11 @@ void AAIMonsterBase::FinalizeDeath()
 	}
 }
 
+void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+}
+
 void AAIMonsterBase::HideAndBroadcastDeath()
 {
 	HideCorpse();

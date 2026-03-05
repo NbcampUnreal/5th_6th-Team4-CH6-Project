@@ -1,18 +1,34 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+ï»¿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "UI/InGame/Setting/UK_Control.h"
 #include "EnhancedInputSubsystems.h"
 #include "UserSettings/EnhancedInputUserSettings.h"
 #include "InputActionValue.h"
-#include "EnhancedPlayerMappableKeyProfile.h"
+//#include "EnhancedPlayerMappableKeyProfile.h"
+
+void UUK_Control::NativeConstruct()
+{
+	Super::NativeConstruct();
+	if ( ControlBackButton )
+		ControlBackButton->OnClicked.AddDynamic(this, &UUK_Control::OnBackButtonClicked);
+}
+
+void UUK_Control::OnBackButtonClicked()
+{
+	if ( ParentSettingWidget )
+	{
+		ParentSettingWidget->SetVisibility(ESlateVisibility::Visible);
+		RemoveFromParent();
+	}
+}
 
 void UUK_Control::StartRebind(FName MappingName)
 {
 	PendingMapping = MappingName;
 	bListeningForKey = true;
 
-	// ¿©±â¼­ UI¸¦ ±â´Ù¸®´Â ÁßÀÌ¶ó´Â Ç¥½Ã¸¦ ¶ç¿öÁÙ ¼ö ÀÖÀ½
+	// ì—¬ê¸°ì„œ UIë¥¼ ê¸°ë‹¤ë¦¬ëŠ” ì¤‘ì´ë¼ëŠ” í‘œì‹œë¥¼ ë„ì›Œì¤„ ìˆ˜ ìžˆìŒ
 }
 
 FReply UUK_Control::NativeOnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
@@ -45,7 +61,6 @@ void UUK_Control::ApplyRebind(FName MappingName, FKey NewKey)
 	UEnhancedInputUserSettings* Settings = Subsystem->GetUserSettings();
 	if ( !Settings ) return;
 
-	// ÇöÀç Å° ÇÁ·ÎÇÊ °¡Á®¿À±â
 	UEnhancedPlayerMappableKeyProfile* Profile =
 		Settings->GetCurrentKeyProfile();
 	if ( !Profile ) return;

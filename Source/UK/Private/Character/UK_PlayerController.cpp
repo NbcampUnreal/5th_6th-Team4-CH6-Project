@@ -8,6 +8,7 @@
 #include "Engine/LocalPlayer.h"
 #include "EnhancedInputSubsystems.h"
 #include "UserSettings/EnhancedInputUserSettings.h"
+#include "DataAsset/UK_InputConfig.h"
 #include "UI/InGame/UK_Quest.h"
 
 
@@ -75,10 +76,10 @@ void AUK_PlayerController::OnPossess(APawn* pawn)
 	AUK_CharacterBase* MyCharacter = Cast<AUK_CharacterBase>(pawn);
 	if ( !MyCharacter ) return;
 
-	UUK_InputConfig* InputConfig = MyCharacter->InputMappingConfig;
-	if ( !InputConfig ) return;
+	UUK_InputConfig* InputConfig_Player = MyCharacter->InputMappingConfig;
+	if ( !InputConfig_Player ) return;
 
-	UInputMappingContext* IMC = InputConfig->GetIMC();
+	IMC = InputConfig_Player->GetIMC();
 	if ( !IMC ) return;
 
 	ULocalPlayer* LocalPlayer = GetLocalPlayer();
@@ -92,24 +93,20 @@ void AUK_PlayerController::OnPossess(APawn* pawn)
 	Subsystem->ClearAllMappings();
 	Subsystem->AddMappingContext(IMC, 0);
 
-	UEnhancedInputUserSettings* Settings =
-		Subsystem->GetUserSettings();
-
-	if ( Settings->IsMappingContextRegistered(IMC) )
+	UEnhancedInputUserSettings* Settings = Subsystem->GetUserSettings();
+	if ( Settings )
 	{
-
+		if ( !Settings->IsMappingContextRegistered(this->IMC) )
+		{
+			Settings->RegisterInputMappingContext(this->IMC);
+		}
 	}
-	else
-	{
-		Settings->RegisterInputMappingContext(IMC);
-	}
-
 
 	//UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 
 	//if ( Subsystem )
 	//{
-	//	Subsystem->AddMappingContext(IMC, 0);
+	//	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 }
 

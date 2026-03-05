@@ -4,10 +4,15 @@
 #include "UI/InGame/UK_Setting.h"
 #include "UI/InGame/Setting/UK_Sound.h"
 #include "UI/InGame/Setting/UK_Screen.h"
+#include "UI/InGame/Setting/UK_Control.h"
+#include "Character/UK_PlayerController.h"
 
 void UUK_Setting::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+
+	UK_PC = Cast<AUK_PlayerController>(GetOwningPlayer());
 
 	if ( Sound )
 	{
@@ -23,49 +28,73 @@ void UUK_Setting::NativeConstruct()
 	{
 		Control->OnClicked.AddDynamic(this, &UUK_Setting::OnControlButtonClicked);
 	}
+
+	if ( Exit )
+	{
+		Exit->OnClicked.AddDynamic(this, &UUK_Setting::OnExitButtonClicked);
+	}
 }
 
 void UUK_Setting::OnSoundButtonClicked()
 {
 	if ( !SoundWidgetClass ) return;
 
-	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if ( !PC ) return;
+	if ( !UK_PC ) return;
 
-	UUK_Sound* SoundWidget = CreateWidget<UUK_Sound>(PC, SoundWidgetClass);
+	UUK_Sound* SoundWidget = CreateWidget<UUK_Sound>(UK_PC, SoundWidgetClass);
 	if ( !SoundWidget ) return;
 
-	RemoveFromParent();
+	SoundWidget->SetParentWidget(this);
 
 	SoundWidget->AddToViewport();
+
+	this->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UUK_Setting::OnVideoButtonClicked()
 {
 	if ( !VideoWidgetClass ) return;
 
-	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if ( !PC ) return;
+	if ( !UK_PC ) return;
 
-	UUK_Screen* VideoWidget = CreateWidget<UUK_Screen>(PC, VideoWidgetClass);
+	UUK_Screen* VideoWidget = CreateWidget<UUK_Screen>(UK_PC, VideoWidgetClass);
 	if ( !VideoWidget ) return;
 
-	RemoveFromParent();
+	VideoWidget->SetParentWidget(this);
 
 	VideoWidget->AddToViewport();
+
+	this->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UUK_Setting::OnControlButtonClicked()
 {
 	if ( !ControlWidgetClass ) return;
 
-	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if ( !PC ) return;
+	if ( !UK_PC ) return;
 
-	UUK_Screen* ControlWidget = CreateWidget<UUK_Screen>(PC, ControlWidgetClass);
-	if ( !ControlWidget ) return;
+	UUK_Control* ControlWidget = CreateWidget<UUK_Control>(UK_PC, ControlWidgetClass);
+	if ( !ControlWidget )
+	{
+		UE_LOG(LogTemp, Error, TEXT("SoundWidgetClass is NOT assigned in Blueprint!"));
+	}
 
-	RemoveFromParent();
+	ControlWidget->SetParentWidget(this);
 
 	ControlWidget->AddToViewport();
+
+	this->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void UUK_Setting::OnExitButtonClicked()
+{
+	if ( UK_PC )
+	{
+		UK_PC->Setting_UI();
+	}
+	else
+	{
+		RemoveFromParent();
+	}
+
 }
