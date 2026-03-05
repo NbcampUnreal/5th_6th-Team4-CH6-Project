@@ -5,6 +5,7 @@
 #include "AbilitySystemInterface.h"
 #include "UI/InGame/UK_MonsterHealthBar.h"
 #include "Components/WidgetComponent.h"
+#include "Net/UnrealNetwork.h"
 #include "AIMonsterBase.generated.h"
 
 class UBehaviorTree;
