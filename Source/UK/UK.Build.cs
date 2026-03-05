@@ -32,7 +32,8 @@ public class UK : ModuleRules
 			"Json",
 			"JsonUtilities",
 			"AssetRegistry",
-			"GameplayTags"
+			"GameplayTags",
+			"Niagara"
         });
 		
 		PrivateDependencyModuleNames.AddRange(new string[] { });
