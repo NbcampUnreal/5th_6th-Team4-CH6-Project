@@ -12,16 +12,6 @@ AUK_BossAIController::AUK_BossAIController()
 void AUK_BossAIController::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (!HasAuthority()) return;
-
-	APawn* Player = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
-
-	if (Player)
-	{
-		GetBlackboardComponent()->SetValueAsObject(TEXT("TargetActor"),Player);
-		UE_LOG(LogTemp, Warning, TEXT("Target Set"));
-	}
 }
 void AUK_BossAIController::OnPossess(APawn* InPawn)
 {
@@ -36,10 +26,17 @@ void AUK_BossAIController::OnPossess(APawn* InPawn)
 	{
 		RunBehaviorTree(Boss->BehaviorTree);
 	}
-	if (auto* BB = GetBlackboardComponent())
+	UBlackboardComponent* BB = GetBlackboardComponent();
+	if (!BB) return;
+	
+	BB->SetValueAsVector(TEXT("HomeLocation"),InPawn->GetActorLocation());
+	APawn* Player = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+	
+	if (Player)
 	{
-		BB->SetValueAsVector(TEXT("HomeLocation"),InPawn->GetActorLocation());
+		BB->SetValueAsObject(TEXT("TargetActor"), Player);
 	}
+	
 	GetWorld()->GetTimerManager().SetTimer(
 		PhaseSyncTimer,
 		this,

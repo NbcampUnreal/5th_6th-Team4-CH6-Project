@@ -3,9 +3,11 @@
 #include "AIMonster/UK_AiMonsterCtl.h"
 #include "AIMonster/AttibuteSet/UK_MonsterAttributeSet.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemInterface.h"
 #include "GameplayEffect.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "Character/UK_CharacterBase.h"
+#include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
 #include "Kismet/GameplayStatics.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BrainComponent.h"
@@ -13,8 +15,8 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Quest/UKQuestManagerSubsystem.h"
+#include "Tags/UK_GameplayTags.h"
 #include "DrawDebugHelpers.h"
-#include "Sound/SoundCue.h"
 
 #pragma region Initialization
 AAIMonsterBase::AAIMonsterBase()
@@ -32,8 +34,8 @@ AAIMonsterBase::AAIMonsterBase()
 
 	if (GetCharacterMovement())
 	{
-		GetCharacterMovement()->bOrientRotationToMovement     = true;
-		GetCharacterMovement()->bUseControllerDesiredRotation = false;
+		GetCharacterMovement()->bOrientRotationToMovement     = false;  
+		GetCharacterMovement()->bUseControllerDesiredRotation = true;
 		GetCharacterMovement()->RotationRate                  = FRotator(0.f, 540.f, 0.f);
 	}
 
@@ -103,6 +105,9 @@ void AAIMonsterBase::BeginPlay()
 		
 		UE_LOG(LogTemp, Log, TEXT("[Alert] %s: Widget hidden in BeginPlay ✓"), *GetName());
 	}
+
+	// ── 플레이어 레벨 기반 스탯 자동 초기화 ─────────────────────────────
+	AutoInitStatsFromNearestPlayer();
 }
 
 void AAIMonsterBase::PostInitializeComponents()
@@ -148,6 +153,13 @@ UAbilitySystemComponent* AAIMonsterBase::GetAbilitySystemComponent() const
 {
 	return AbilitySystemComponent;
 }
+
+void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	// 현재 복제가 필요한 UPROPERTY(Replicated) 변수가 없으므로 부모 호출만 유지
+	// 추후 복제 변수 추가 시 여기에 DOREPLIFETIME 매크로 추가
+}
 #pragma endregion
 
 #pragma region State Management
@@ -162,6 +174,24 @@ void AAIMonsterBase::SetState(EMonsterState NewState)
 	EMonsterState OldState = CurrentState;
 	CurrentState = NewState;
 
+	// 상태별 회전 업데이트 자동 제어
+	switch (NewState)
+	{
+	case EMonsterState::Chase:
+	case EMonsterState::Attack:
+	case EMonsterState::Alert:
+	case EMonsterState::Aggressive:
+		StartRotationUpdate();
+		break;
+            
+	case EMonsterState::Idle:
+	case EMonsterState::Patrol:
+	case EMonsterState::Dead:
+	case EMonsterState::Passive:
+		StopRotationUpdate();
+		break;
+	}
+
 	OnStateChanged.Broadcast(OldState, NewState);
 }
 #pragma endregion
@@ -170,10 +200,32 @@ void AAIMonsterBase::SetState(EMonsterState NewState)
 void AAIMonsterBase::SetAIActive(bool bActive) {}
 void AAIMonsterBase::OnIdle()                  {}
 void AAIMonsterBase::OnPatrol()                {}
-void AAIMonsterBase::OnChase(float DeltaSeconds) {}
-void AAIMonsterBase::OnDead()                  {}
-void AAIMonsterBase::OnPassive()               {}
-void AAIMonsterBase::OnAlert()                 {}
+
+void AAIMonsterBase::OnChase(float DeltaSeconds) 
+{
+	if (bUseSmoothRotation)
+	{
+		StartRotationUpdate();
+	}
+}
+
+void AAIMonsterBase::OnDead()
+{
+	StopRotationUpdate();
+}
+
+void AAIMonsterBase::OnPassive()
+{
+	StopRotationUpdate();
+}
+
+void AAIMonsterBase::OnAlert()
+{
+	if (bUseSmoothRotation)
+	{
+		StartRotationUpdate();
+	}
+}
 
 void AAIMonsterBase::OnAttack()
 {
@@ -242,18 +294,8 @@ void AAIMonsterBase::ApplyDamage(float DamageAmount, AController* InstigatorCont
 
 	if (SpecHandle.IsValid())
 	{
-		// Damage 값 설정
-		FGameplayTag DamageTag = FGameplayTag::RequestGameplayTag(FName("Data.Damage"));
-		
-		if (!DamageTag.IsValid())
-		{
-			UE_LOG(LogTemp, Error, TEXT("[%s] ✗✗✗ CRITICAL: GameplayTag 'Data.Damage' NOT REGISTERED!"), 
-				*GetName());
-			UE_LOG(LogTemp, Error, TEXT("   → Project Settings → GameplayTags에서 Data.Damage 추가 필요"));
-			return;
-		}
-		
-		SpecHandle.Data->SetSetByCallerMagnitude(DamageTag, DamageAmount);
+		// 네이티브 태그 사용 (UK_GameplayTags::Data::Damage)
+		SpecHandle.Data->SetSetByCallerMagnitude(UK_GameplayTags::Data::Damage, DamageAmount);
 		
 		UE_LOG(LogTemp, Warning, TEXT("[%s] ✓ Applying GameplayEffect: %.1f damage"), 
 			*GetName(), DamageAmount);
@@ -517,11 +559,6 @@ void AAIMonsterBase::FinalizeDeath()
 	}
 }
 
-void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-}
-
 void AAIMonsterBase::HideAndBroadcastDeath()
 {
 	HideCorpse();
@@ -539,6 +576,8 @@ static FName GetMonsterEventId(EMonsterType Type)
 	case EMonsterType::Reindeer:   return FName("QuestEvent.Killed.Mob_Common_Reindeer");
 	case EMonsterType::Golem:      return FName("QuestEvent.Killed.Mob_Common_Golem");
 	case EMonsterType::EliteGolem: return FName("QuestEvent.Killed.Mob_Common_EliteGolem");
+	case EMonsterType::EliteWolf : return FName("QuestEvent.Killed.Mob_Common_EliteWolf");
+	case EMonsterType::Grux :	   return FName("QuestEvent.Killed.Mob_Common_Grux");
 	default: return NAME_None;
 	}
 }
@@ -741,6 +780,149 @@ void AAIMonsterBase::ResetToPassive()
 }
 #pragma endregion
 
+#pragma region Stat Scaling (Player Level Based)
+// ─────────────────────────────────────────────────────────────────────────────
+// 몬스터 종류별 HP 테이블
+//   MaxHealth = BaseHP + (PlayerLevel x HPPerLevel)
+//   EliteGolem : 2000 + Lv x 200   Golem : 1000 + Lv x 100
+//   Wolf       :  400 + Lv x  40   Fox   :  300 + Lv x  25
+//   Reindeer   :  250 + Lv x  20   None  :  200 + Lv x  15
+// ─────────────────────────────────────────────────────────────────────────────
+float AAIMonsterBase::GetMonsterTypeBaseHP(EMonsterType Type)
+{
+	switch (Type)
+	{
+	case EMonsterType::Grux:	   return 3000.f;
+	case EMonsterType::EliteGolem: return 2000.f;
+	case EMonsterType::EliteWolf:  return 1000.f;
+	case EMonsterType::Golem:      return 1000.f;
+	case EMonsterType::Wolf:       return  400.f;
+	case EMonsterType::Fox:        return  300.f;
+	case EMonsterType::Reindeer:   return  250.f;
+	default:                       return  200.f;
+	}
+}
+
+float AAIMonsterBase::GetMonsterTypeHPPerLevel(EMonsterType Type)
+{
+	switch (Type)
+	{
+	case EMonsterType::Grux:	   return 300.f;
+	case EMonsterType::EliteGolem: return 200.f;
+	case EMonsterType::EliteWolf:  return 100.f;
+	case EMonsterType::Golem:      return 100.f;
+	case EMonsterType::Wolf:       return  40.f;
+	case EMonsterType::Fox:        return  25.f;
+	case EMonsterType::Reindeer:   return  20.f;
+	default:                       return  15.f;
+	}
+}
+
+float AAIMonsterBase::CalculateMaxHealth(int32 PlayerLevel, EMonsterType Type)
+{
+	return GetMonsterTypeBaseHP(Type) + (static_cast<float>(PlayerLevel) * GetMonsterTypeHPPerLevel(Type));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 몬스터 종류별 방어력 테이블
+//   Defense = (PlayerLevel / 2) + BaseDefense
+//   EliteGolem : +50   Golem : +30   Wolf : +15   Fox : +10   Reindeer : +5
+// ─────────────────────────────────────────────────────────────────────────────
+float AAIMonsterBase::GetMonsterTypeBaseDefense(EMonsterType Type)
+{
+	switch (Type)
+	{
+	case EMonsterType::Grux:	   return 5.f;
+	case EMonsterType::EliteGolem: return 3.f;
+	case EMonsterType::EliteWolf:  return 3.f;
+	case EMonsterType::Golem:      return 2.f;
+	case EMonsterType::Wolf:       return 1.f;
+	case EMonsterType::Fox:        return 1.f;
+	case EMonsterType::Reindeer:   return 1.f;
+	default:                       return 0.f;
+	}
+}
+
+float AAIMonsterBase::CalculateAttackDamage(int32 PlayerLevel)
+{
+	return 15.0f + static_cast<float>(PlayerLevel) * 10.0f;
+}
+
+float AAIMonsterBase::CalculateAoEDamage(int32 PlayerLevel)
+{
+	return CalculateAttackDamage(PlayerLevel) * 1.5f;
+}
+
+float AAIMonsterBase::CalculateDefense(int32 PlayerLevel, EMonsterType Type)
+{
+	return (static_cast<float>(PlayerLevel) * 0.5f) + GetMonsterTypeBaseDefense(Type);
+}
+
+void AAIMonsterBase::InitializeStatsFromPlayerLevel(int32 PlayerLevel)
+{
+	if (PlayerLevel <= 0) return;
+	if (!AbilitySystemComponent || !AttributeSet) return;
+
+	// 1. MaxHealth + Health (체력 만충)
+	const float NewMaxHP = CalculateMaxHealth(PlayerLevel, MonsterType);
+	AbilitySystemComponent->SetNumericAttributeBase(
+		AttributeSet->GetMaxHealthAttribute(), NewMaxHP);
+	AbilitySystemComponent->SetNumericAttributeBase(
+		AttributeSet->GetHealthAttribute(), NewMaxHP);
+
+	// 2. 공격력
+	AttackDamage = CalculateAttackDamage(PlayerLevel);
+
+	// 3. 방어력
+	const float NewDefense = CalculateDefense(PlayerLevel, MonsterType);
+	AbilitySystemComponent->SetNumericAttributeBase(
+		AttributeSet->GetDefenseAttribute(), NewDefense);
+
+	UE_LOG(LogTemp, Log,
+		TEXT("[%s] InitStats | Lv=%d | HP=%.0f (%.0f+Lv*%.0f) | ATK=%.1f | DEF=%.1f"),
+		*GetName(), PlayerLevel,
+		NewMaxHP, GetMonsterTypeBaseHP(MonsterType), GetMonsterTypeHPPerLevel(MonsterType),
+		AttackDamage, NewDefense);
+}
+
+void AAIMonsterBase::AutoInitStatsFromNearestPlayer()
+{
+	if (!GetWorld()) return;
+
+	int32 BestLevel   = 1;
+	float BestDistSq  = FLT_MAX;
+
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		APlayerController* PC = It->Get();
+		if (!PC) continue;
+
+		AUK_CharacterBase* PlayerChar = Cast<AUK_CharacterBase>(PC->GetPawn());
+		if (!PlayerChar) continue;
+
+		const float DistSq = FVector::DistSquared(GetActorLocation(), PlayerChar->GetActorLocation());
+		if (DistSq >= BestDistSq) continue;
+
+		BestDistSq = DistSq;
+
+		// 플레이어 ASC 에서 Level 어트리뷰트 직접 읽기
+		if (IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(PlayerChar))
+		{
+			if (UAbilitySystemComponent* PlayerASC = ASCInterface->GetAbilitySystemComponent())
+			{
+				if (const UUK_PlayerStatusAttributeSet* PlayerAttr =
+					PlayerASC->GetSet<UUK_PlayerStatusAttributeSet>())
+				{
+					BestLevel = FMath::Max(1, FMath::RoundToInt(PlayerAttr->GetLevel()));
+				}
+			}
+		}
+	}
+
+	InitializeStatsFromPlayerLevel(BestLevel);
+}
+#pragma endregion
+
 #pragma region HP Bar Widget
 void AAIMonsterBase::ShowHPBar()
 {
@@ -806,11 +988,6 @@ void AAIMonsterBase::ShowAlertIcon()
 	AlertWidgetComponent->SetVisibility(true);
 	AlertWidgetComponent->SetHiddenInGame(false);
 	AlertWidget->SetVisibility(ESlateVisibility::Visible);
-	
-	if (HowlSound)
-	{
-		UGameplayStatics::PlaySound2D(this, HowlSound);
-	}
 }
 
 void AAIMonsterBase::HideAlertIcon()
@@ -824,4 +1001,34 @@ void AAIMonsterBase::HideAlertIcon()
 	AlertWidgetComponent->SetVisibility(false);
 	AlertWidgetComponent->SetHiddenInGame(true);
 }
+#pragma endregion
+
+#pragma region Rotation System
+void AAIMonsterBase::StartRotationUpdate()
+{
+	if (!GetWorld()) return;
+    
+	if (GetWorldTimerManager().IsTimerActive(RotationTimerHandle))
+		return;
+    
+	GetWorldTimerManager().SetTimer(
+		RotationTimerHandle,
+		this,
+		&AAIMonsterBase::UpdateRotation,
+		RotationUpdateInterval,
+		true
+	);
+}
+
+void AAIMonsterBase::StopRotationUpdate()
+{
+	if (!GetWorld()) return;
+    
+	if (GetWorldTimerManager().IsTimerActive(RotationTimerHandle))
+	{
+		GetWorldTimerManager().ClearTimer(RotationTimerHandle);
+	}
+}
+
+void AAIMonsterBase::UpdateRotation(){}
 #pragma endregion

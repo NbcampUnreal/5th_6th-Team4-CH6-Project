@@ -18,7 +18,8 @@ enum class EComboAttackType : uint8
 	HeavyAttackOnGround,
 	DropAttack,
 	NomalSkill,
-	UltimateSkill
+	UltimateSkill,
+	Parry
 };
 UCLASS()
 class UK_API UUK_StatusAnimData : public UDataAsset
