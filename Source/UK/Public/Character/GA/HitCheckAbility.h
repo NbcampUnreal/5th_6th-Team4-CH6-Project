@@ -18,6 +18,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void Attack(FGameplayAbilityTargetDataHandle TargetDataHandle);
+	
+	//UFUNCTION(BlueprintCallable)
+	//FName FindRowNameByAttackType();
 
 	UPROPERTY()
 	TArray<AAIMonsterBase*> HitcheckedActor;
