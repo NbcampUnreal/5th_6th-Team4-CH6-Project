@@ -73,6 +73,7 @@ void AUK_AiMonsterCtl::OnPossess(APawn* InPawn)
 
 		if (BB)
 		{
+			FVector CurrentLocation = ControlledMonster->GetActorLocation();
 			BB->SetValueAsVector(TEXT("SpawnLocation"), ControlledMonster->SpawnLocation);
 			BB->SetValueAsVector(TEXT("PatrolLocation"), ControlledMonster->SpawnLocation);
 		}
@@ -162,7 +163,6 @@ void AUK_AiMonsterCtl::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 
 			if (BB)
 			{
-				BB->ClearValue(TEXT("TargetPlayer"));
 				BB->ClearValue(TEXT("TargetPlayer"));
 			}
 
