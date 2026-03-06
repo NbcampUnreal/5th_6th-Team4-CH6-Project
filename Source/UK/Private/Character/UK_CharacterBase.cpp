@@ -26,6 +26,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Engine/OverlapResult.h"
 #include "Blueprint/UserWidget.h"
+#include <Kismet/GameplayStatics.h>
 
 #pragma region Defualt
 
@@ -749,4 +750,5 @@ void AUK_CharacterBase::UpdateMonsterDetection()
 	}
 	NearbyMonsters = NewSet;
 }
+
 #pragma endregion
