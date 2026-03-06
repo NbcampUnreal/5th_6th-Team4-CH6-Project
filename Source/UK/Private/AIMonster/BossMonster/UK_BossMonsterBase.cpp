@@ -9,6 +9,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "DrawDebugHelpers.h"
 
 AUK_BossMonsterBase::AUK_BossMonsterBase()
 {
@@ -35,6 +36,9 @@ void AUK_BossMonsterBase::BeginPlay()
 	
 	WeaponCollision_L->OnComponentBeginOverlap.AddDynamic(this, &AUK_BossMonsterBase::OnWeaponOverlap);
 	WeaponCollision_L->AttachToComponent(GetMesh(), AttachmentRules, TEXT("weapon_Left"));
+	
+	WeaponCollision_R->SetCollisionResponseToAllChannels(ECR_Overlap);
+	WeaponCollision_L->SetCollisionResponseToAllChannels(ECR_Overlap);
 	
 	BossAnim = Cast<UUK_BossAnimInstance>(GetMesh()->GetAnimInstance());
 	Phase1Tag  = FGameplayTag::RequestGameplayTag(TEXT("Boss.Phase.Phase1"));
@@ -200,12 +204,24 @@ void AUK_BossMonsterBase::OnWeaponOverlap(UPrimitiveComponent* OverlappedCompone
 										  UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
 										  bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (BossAnim && BossAnim->bIsAttacking)
+	UCapsuleComponent* WeaponCapsule = Cast<UCapsuleComponent>(OverlappedComponent);
+        
+	if (WeaponCapsule)
 	{
-		if (BossAnim && BossAnim->bIsAttacking && !HitActors.Contains(OtherActor))
+		
+		DrawDebugCapsule(GetWorld(), 
+			WeaponCapsule->GetComponentLocation(), 
+			WeaponCapsule->GetScaledCapsuleHalfHeight(), 
+			WeaponCapsule->GetScaledCapsuleRadius(), 
+			WeaponCapsule->GetComponentQuat(), 
+			FColor::Red, false, 1.0f);
+	}
+	if (OtherActor && OtherActor != this && BossAnim && BossAnim->bIsAttacking)
+	{
+		if (!HitActors.Contains(OtherActor))
 		{
 			HitActors.Add(OtherActor);
-			ApplyDamageToTarget(OtherActor, 100.f);
+			ApplyDamageToTarget(OtherActor, 30.f);
 		}
 	}
 }
