@@ -96,6 +96,19 @@ void AAIMonsterBase::BeginPlay()
 			&AAIMonsterBase::UpdateHPBarWidget,
 			0.05f, true);
 	}
+
+	if ( HPWidgetComponent )
+	{
+		HPWidget = Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
+
+		if ( HPWidget )
+		{
+			HPWidget->BindMonsterAttributes(
+				AbilitySystemComponent,
+				AttributeSet
+			);
+		}
+	}
 	
 	if (AlertWidgetComponent && AlertWidget)
 	{
@@ -117,12 +130,6 @@ void AAIMonsterBase::PostInitializeComponents()
 	if (HPWidgetComponent && HPWidgetClass)
 	{
 		HPWidgetComponent->SetWidgetClass(HPWidgetClass);
-		HPWidget = Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
-
-		if (HPWidget && AbilitySystemComponent && AttributeSet)
-		{
-			HPWidget->BindMonsterAttributes(AbilitySystemComponent, AttributeSet);
-		}
 	}
 	
 	if (AlertWidgetComponent && AlertWidgetClass)
