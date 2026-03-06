@@ -14,14 +14,14 @@ void UUK_CheckAttackNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequen
 	AUK_CharacterBase* OwnerCharacter = Cast<AUK_CharacterBase>(MeshComp->GetOwner());
 	if ( !IsValid(OwnerCharacter) )
 		return;
-	if ( OwnerCharacter->GetLocalRole() == ROLE_SimulatedProxy )
-		return;
-	if ( OwnerCharacter->bIsInInput == false )
-		return;
-	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OwnerCharacter);
+	if ( OwnerCharacter->InputType == CheckType )
+	{
+		UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OwnerCharacter);
 
-	FGameplayEventData EventData;
-	EventData.EventTag = FGameplayTag::RequestGameplayTag("Attack.Next");
+		FGameplayEventData EventData;
+		EventData.EventTag = FGameplayTag::RequestGameplayTag("Attack.Next");
 
-	ASC->HandleGameplayEvent(EventData.EventTag, &EventData);
+		ASC->HandleGameplayEvent(EventData.EventTag, &EventData);
+	}
+	
 }
