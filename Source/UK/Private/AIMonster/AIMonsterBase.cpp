@@ -526,7 +526,17 @@ void AAIMonsterBase::Die()
 
 	bIsDying     = true;
 	bIsAttacking = false;
+	
+	if (GetCapsuleComponent())
+	{
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
 
+	if (GetMesh())
+	{
+		GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	
 	// AI 정지
 	if (AAIController* AIC = Cast<AAIController>(GetController()))
 	{
@@ -553,6 +563,12 @@ void AAIMonsterBase::FinalizeDeath()
 	{
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
+	
+	if (GetMesh())
+	{
+		GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	
 	if (GetCharacterMovement())
 	{
 		GetCharacterMovement()->DisableMovement();
