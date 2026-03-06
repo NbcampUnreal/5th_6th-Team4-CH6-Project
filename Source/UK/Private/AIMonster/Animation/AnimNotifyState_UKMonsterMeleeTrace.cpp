@@ -8,6 +8,8 @@
 #include "Components/CapsuleComponent.h"
 #include "Sound/SoundCue.h"
 #include "Sound/SoundBase.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "Tags/UK_GameplayTags.h"
 
 UAnimNotifyState_UKMonsterMeleeTrace::UAnimNotifyState_UKMonsterMeleeTrace() {}
 
@@ -120,6 +122,26 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 		{
 			if (UAbilitySystemComponent* PlayerASC = ASCInterface->GetAbilitySystemComponent())
 			{
+				// 패링 체크
+				if (PlayerASC->HasMatchingGameplayTag(UK_GameplayTags::Action::Parrying))
+				{
+					UE_LOG(LogTemp, Warning,
+						TEXT("[MeleeTrace] %s → %s : PARRIED! Attack cancelled."),
+						*Monster->GetName(), *Player->GetName());
+
+					// 몬스터에게 Parry 이벤트 
+					FGameplayEventData ParriedPayload;
+					ParriedPayload.Instigator = Player;
+					ParriedPayload.Target     = Monster;
+					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+						Monster,
+						UK_GameplayTags::Action::Parry,
+						ParriedPayload
+					);
+
+					return;
+				}
+
 				const UUK_PlayerStatusAttributeSet* AttrSet = PlayerASC->GetSet<UUK_PlayerStatusAttributeSet>();
 				const float Defence = AttrSet ? AttrSet->GetDefence() : 0.f;
 				const float FinalDamage = FMath::Max(Monster->AttackDamage - Defence, 0.f);
