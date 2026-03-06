@@ -461,8 +461,11 @@ void AAIMonsterBase::PlayAttackMontage(int32 MontageIndex)
 {
 	if (bIsHit) return;
 	if (!AttackMontages.IsValidIndex(MontageIndex)) return;
+	if (!AttackMontages[MontageIndex]) return;
 
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	if (!MeshComp) return;
+	UAnimInstance* AnimInstance = MeshComp->GetAnimInstance();
 	if (!AnimInstance) return;
 
 	AnimInstance->OnMontageEnded.RemoveDynamic(this, &AAIMonsterBase::OnAttackMontageEnded);
