@@ -50,6 +50,7 @@ void UUK_BTService_CheckChaseDistance::TickNode(UBehaviorTreeComponent& OwnerCom
 
 	BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
 	AIController->StopMovement();
+	AIController->ClearFocus(EAIFocusPriority::Gameplay);
 
 	if (Monster->Personality == EMonsterPersonality::Peaceful && Monster->GetIsAggressive())
 	{

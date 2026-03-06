@@ -12,7 +12,7 @@ int32 AUK_TargetActorTrace::ShowAttackDebug = 1;
 //	TEXT(""),
 //	ECVF_Cheat
 //);
-AUK_TargetActorTrace::AUK_TargetActorTrace() : 
+AUK_TargetActorTrace::AUK_TargetActorTrace() :
 	TraceStartSocketName("StartSocket"),
 	TraceEndSocketName("EndSocket")
 {
@@ -29,7 +29,7 @@ void AUK_TargetActorTrace::ConfirmTargetingAndContinue()
 {
 	check(ShouldProduceTargetData());
 
-	if ( IsConfirmTargetingAllowed() )
+	if (IsConfirmTargetingAllowed())
 	{
 		TArray<TWeakObjectPtr<AActor>> HitResult = GetTraceResult(SourceActor);
 		FGameplayAbilityTargetData_ActorArray* ActorArray = new FGameplayAbilityTargetData_ActorArray();
@@ -43,12 +43,12 @@ TArray<TWeakObjectPtr<AActor>> AUK_TargetActorTrace::GetTraceResult(AActor* InSo
 {
 	TArray<TWeakObjectPtr<AActor>> TargetActors;
 	AUK_CharacterBase* OwnerCharactor = Cast<AUK_CharacterBase>(SourceActor);
-	if ( IsValid(OwnerCharactor) == false )
+	if (IsValid(OwnerCharactor) == false)
 	{
 		UE_LOG(LogTemp, Display, TEXT("Chactor Cast Falied In AUK_TargetActorTrace::GetTraceResult"));
 		return TargetActors;
 	}
-	if ( !IsValid(OwnerCharactor->GetRightHandWeapon()) )
+	if (!IsValid(OwnerCharactor->GetRightHandWeapon()))
 		return TargetActors;
 
 	FVector TraceStart = OwnerCharactor->GetRightHandWeapon()->GetSocketLocation(TraceStartSocketName);
@@ -72,7 +72,7 @@ TArray<TWeakObjectPtr<AActor>> AUK_TargetActorTrace::GetTraceResult(AActor* InSo
 		CollisionShape,
 		CollisionParams
 	);
-	if ( ShowAttackDebug )
+	if (ShowAttackDebug)
 	{
 #if ENABLE_DRAW_DEBUG
 		FColor DrawColor = bIsHit ? FColor::Green : FColor::Red;
@@ -80,8 +80,8 @@ TArray<TWeakObjectPtr<AActor>> AUK_TargetActorTrace::GetTraceResult(AActor* InSo
 		FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceEnd - TraceStart).ToQuat();
 		DrawDebugCapsule(
 			GetWorld(),
-			( TraceStart + TraceEnd ) / 2,
-			( TraceEnd - TraceStart ).Size(),
+			(TraceStart + TraceEnd) / 2,
+			(TraceEnd - TraceStart).Size(),
 			CapsuleRadius,
 			CapsuleRot,
 			DrawColor,
@@ -91,13 +91,23 @@ TArray<TWeakObjectPtr<AActor>> AUK_TargetActorTrace::GetTraceResult(AActor* InSo
 #endif
 	}
 
-	for ( const FHitResult& Hit : HitResult )
+	for (const FHitResult& Hit : HitResult)
 	{
-		if ( Hit.GetActor() )
+		if (Hit.GetActor())
 		{
-			TargetActors.Add(Hit.GetActor());
+			if (TObjectPtr<AAIMonsterBase> Monster = Cast<AAIMonsterBase>(Hit.GetActor()))
+			{
+				bool bAlreadyHit = OwnerCharactor->GetHitList().Contains(Monster);
+				if (bAlreadyHit == true)
+					continue;
+				OwnerCharactor->GetHitList().AddUnique(Monster);
+				OwnerCharactor->AddTarget(Monster);
+				TargetActors.Add(Hit.GetActor());
+				//Monster->ReceiveDamage(UKPC->ApplyDamage());
+			}
 		}
 	}
+	OwnerCharactor->LockON();
 
 	return TargetActors;
 }

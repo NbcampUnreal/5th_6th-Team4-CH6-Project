@@ -33,11 +33,13 @@ UENUM(BlueprintType)
 enum class EMonsterType : uint8
 {
 	None       = 0,
-	EliteGolem = 1,
-	Golem      = 2,
-	Wolf       = 3,
-	Fox        = 4,
-	Reindeer   = 5,
+	Grux	   = 1,
+	EliteGolem = 2,
+	EliteWolf  = 3,
+	Golem      = 4,
+	Wolf       = 5,
+	Fox        = 6,
+	Reindeer   = 7,
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDeath, class AAIMonsterBase*, DeadMonster);
@@ -343,6 +345,70 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "UI|Alert", meta = (ClampMin = "0"))
 	float AlertWidgetCullDistance = 10000.0f;
 
+#pragma endregion
+	
+#pragma region Stat Scaling (Player Level Based)
+public:
+	/**
+	 * 플레이어 레벨 기반 몬스터 스탯 초기화
+	 * BeginPlay 또는 스폰 시 호출 – 서브클래스에서 override 가능
+	 *
+	 *  공격력  = PlayerLevel × 3.14
+	 *  방어력  = (PlayerLevel / 2) + GetMonsterTypeBaseDefense(MonsterType)
+	 */
+	virtual void InitializeStatsFromPlayerLevel(int32 PlayerLevel);
+
+	/** 몬스터 종류별 기본 HP */
+	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
+	static float GetMonsterTypeBaseHP(EMonsterType Type);
+
+	/** 몬스터 종류별 레벨당 HP 증가량 */
+	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
+	static float GetMonsterTypeHPPerLevel(EMonsterType Type);
+
+	/** 최대 HP = BaseHP + (PlayerLevel × HPPerLevel) */
+	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
+	static float CalculateMaxHealth(int32 PlayerLevel, EMonsterType Type);
+
+	/** 몬스터 종류별 기본 방어력 (플레이어 레벨 보정값에 추가) */
+	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
+	static float GetMonsterTypeBaseDefense(EMonsterType Type);
+
+	/** 일반 공격 데미지 = PlayerLevel × 3.14 */
+	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
+	static float CalculateAttackDamage(int32 PlayerLevel);
+
+	/** 광역 공격 데미지 = (PlayerLevel × 3.14) × 1.5 */
+	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
+	static float CalculateAoEDamage(int32 PlayerLevel);
+
+	/** 방어력 = (PlayerLevel / 2) + 종류별 기본 방어력 */
+	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
+	static float CalculateDefense(int32 PlayerLevel, EMonsterType Type);
+
+private:
+	/** BeginPlay 에서 첫 번째 플레이어 레벨로 스탯 자동 초기화 */
+	void AutoInitStatsFromNearestPlayer();
+#pragma endregion
+
+#pragma region Rotation System
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Rotation")
+	bool bUseSmoothRotation = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Rotation", meta = (ClampMin = "1.0", ClampMax = "20.0"))
+	float RotationSpeed = 5.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Rotation", meta = (ClampMin = "0.01", ClampMax = "0.5"))
+	float RotationUpdateInterval = 0.05f;
+
+	void StartRotationUpdate();
+	void StopRotationUpdate();
+
+protected:
+	void UpdateRotation();
+    
+	FTimerHandle RotationTimerHandle;
 #pragma endregion
 	
 #pragma region Private
