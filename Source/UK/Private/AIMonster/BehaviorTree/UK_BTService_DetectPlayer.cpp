@@ -136,7 +136,10 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 	if (BestTarget)
 	{
 		if (!Memory->bHadTarget)
+		{
 			BlackboardComp->SetValueAsObject(PendingTargetKey.SelectedKeyName, BestTarget);
+			AIController->SetFocus(BestTarget);
+		}
 
 		Memory->bHadTarget = true;
 	}
@@ -145,6 +148,7 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 		BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
 		BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
 		Memory->bHadTarget = false;
+		AIController->ClearFocus(EAIFocusPriority::Gameplay);
 	}
 }
 #pragma endregion

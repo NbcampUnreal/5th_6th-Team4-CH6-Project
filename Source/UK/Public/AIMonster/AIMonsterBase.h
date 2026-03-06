@@ -325,6 +325,26 @@ protected:
 
 #pragma endregion
 	
+#pragma region Rotation System
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Rotation")
+	bool bUseSmoothRotation = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Rotation", meta = (ClampMin = "1.0", ClampMax = "20.0"))
+	float RotationSpeed = 5.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Rotation", meta = (ClampMin = "0.01", ClampMax = "0.5"))
+	float RotationUpdateInterval = 0.05f;
+
+	void StartRotationUpdate();
+	void StopRotationUpdate();
+
+protected:
+	void UpdateRotation();
+    
+	FTimerHandle RotationTimerHandle;
+#pragma endregion
+	
 #pragma region Private
 private:
 	FTimerHandle CorpseTimerHandle;

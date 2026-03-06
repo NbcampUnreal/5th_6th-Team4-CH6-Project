@@ -31,8 +31,8 @@ AAIMonsterBase::AAIMonsterBase()
 
 	if (GetCharacterMovement())
 	{
-		GetCharacterMovement()->bOrientRotationToMovement     = true;
-		GetCharacterMovement()->bUseControllerDesiredRotation = false;
+		GetCharacterMovement()->bOrientRotationToMovement     = false;  
+		GetCharacterMovement()->bUseControllerDesiredRotation = true;
 		GetCharacterMovement()->RotationRate                  = FRotator(0.f, 540.f, 0.f);
 	}
 
@@ -161,6 +161,24 @@ void AAIMonsterBase::SetState(EMonsterState NewState)
 	EMonsterState OldState = CurrentState;
 	CurrentState = NewState;
 
+	// 상태별 회전 업데이트 자동 제어
+	switch (NewState)
+	{
+	case EMonsterState::Chase:
+	case EMonsterState::Attack:
+	case EMonsterState::Alert:
+	case EMonsterState::Aggressive:
+		StartRotationUpdate();
+		break;
+            
+	case EMonsterState::Idle:
+	case EMonsterState::Patrol:
+	case EMonsterState::Dead:
+	case EMonsterState::Passive:
+		StopRotationUpdate();
+		break;
+	}
+
 	OnStateChanged.Broadcast(OldState, NewState);
 }
 #pragma endregion
@@ -169,10 +187,32 @@ void AAIMonsterBase::SetState(EMonsterState NewState)
 void AAIMonsterBase::SetAIActive(bool bActive) {}
 void AAIMonsterBase::OnIdle()                  {}
 void AAIMonsterBase::OnPatrol()                {}
-void AAIMonsterBase::OnChase(float DeltaSeconds) {}
-void AAIMonsterBase::OnDead()                  {}
-void AAIMonsterBase::OnPassive()               {}
-void AAIMonsterBase::OnAlert()                 {}
+
+void AAIMonsterBase::OnChase(float DeltaSeconds) 
+{
+	if (bUseSmoothRotation)
+	{
+		StartRotationUpdate();
+	}
+}
+
+void AAIMonsterBase::OnDead()
+{
+	StopRotationUpdate();
+}
+
+void AAIMonsterBase::OnPassive()
+{
+	StopRotationUpdate();
+}
+
+void AAIMonsterBase::OnAlert()
+{
+	if (bUseSmoothRotation)
+	{
+		StartRotationUpdate();
+	}
+}
 
 void AAIMonsterBase::OnAttack()
 {
@@ -805,4 +845,34 @@ void AAIMonsterBase::HideAlertIcon()
 	AlertWidgetComponent->SetVisibility(false);
 	AlertWidgetComponent->SetHiddenInGame(true);
 }
+#pragma endregion
+
+#pragma region Rotation System
+void AAIMonsterBase::StartRotationUpdate()
+{
+	if (!GetWorld()) return;
+    
+	if (GetWorldTimerManager().IsTimerActive(RotationTimerHandle))
+		return;
+    
+	GetWorldTimerManager().SetTimer(
+		RotationTimerHandle,
+		this,
+		&AAIMonsterBase::UpdateRotation,
+		RotationUpdateInterval,
+		true
+	);
+}
+
+void AAIMonsterBase::StopRotationUpdate()
+{
+	if (!GetWorld()) return;
+    
+	if (GetWorldTimerManager().IsTimerActive(RotationTimerHandle))
+	{
+		GetWorldTimerManager().ClearTimer(RotationTimerHandle);
+	}
+}
+
+void AAIMonsterBase::UpdateRotation(){}
 #pragma endregion
