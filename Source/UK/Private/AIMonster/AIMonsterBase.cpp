@@ -576,6 +576,8 @@ static FName GetMonsterEventId(EMonsterType Type)
 	case EMonsterType::Reindeer:   return FName("QuestEvent.Killed.Mob_Common_Reindeer");
 	case EMonsterType::Golem:      return FName("QuestEvent.Killed.Mob_Common_Golem");
 	case EMonsterType::EliteGolem: return FName("QuestEvent.Killed.Mob_Common_EliteGolem");
+	case EMonsterType::EliteWolf : return FName("QuestEvent.Killed.Mob_Common_EliteWolf");
+	case EMonsterType::Grux :	   return FName("QuestEvent.Killed.Mob_Common_Grux");
 	default: return NAME_None;
 	}
 }
@@ -790,7 +792,9 @@ float AAIMonsterBase::GetMonsterTypeBaseHP(EMonsterType Type)
 {
 	switch (Type)
 	{
+	case EMonsterType::Grux:	   return 3000.f;
 	case EMonsterType::EliteGolem: return 2000.f;
+	case EMonsterType::EliteWolf:  return 1000.f;
 	case EMonsterType::Golem:      return 1000.f;
 	case EMonsterType::Wolf:       return  400.f;
 	case EMonsterType::Fox:        return  300.f;
@@ -803,7 +807,9 @@ float AAIMonsterBase::GetMonsterTypeHPPerLevel(EMonsterType Type)
 {
 	switch (Type)
 	{
+	case EMonsterType::Grux:	   return 300.f;
 	case EMonsterType::EliteGolem: return 200.f;
+	case EMonsterType::EliteWolf:  return 100.f;
 	case EMonsterType::Golem:      return 100.f;
 	case EMonsterType::Wolf:       return  40.f;
 	case EMonsterType::Fox:        return  25.f;
@@ -826,7 +832,9 @@ float AAIMonsterBase::GetMonsterTypeBaseDefense(EMonsterType Type)
 {
 	switch (Type)
 	{
+	case EMonsterType::Grux:	   return 100.f;
 	case EMonsterType::EliteGolem: return 50.f;
+	case EMonsterType::EliteWolf:  return 50.f;
 	case EMonsterType::Golem:      return 30.f;
 	case EMonsterType::Wolf:       return 15.f;
 	case EMonsterType::Fox:        return 10.f;
