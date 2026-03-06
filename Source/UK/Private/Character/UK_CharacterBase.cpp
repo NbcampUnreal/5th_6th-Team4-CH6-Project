@@ -708,6 +708,15 @@ float AUK_CharacterBase::ApplyDamage()
 
 void AUK_CharacterBase::Dead()
 {
+	UE_LOG(LogTemp, Error, TEXT("!!! PLAYER IS DEAD !!!"));
+
+	// 2. 화면에 큰 글씨 띄우기 (3초 동안 유지)
+	DrawDebugString(GetWorld(), GetActorLocation() + FVector(0,0,150), 
+		TEXT("GAME OVER - PLAYER DEAD"), nullptr, FColor::Black, 3.0f, true, 5.0f);
+
+	// 3. 물리 엔진 켜기 (Ragdoll - 인형처럼 쓰러지게 만들기)
+	GetMesh()->SetSimulatePhysics(true);
+	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
 	OnDead.Broadcast();
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 }

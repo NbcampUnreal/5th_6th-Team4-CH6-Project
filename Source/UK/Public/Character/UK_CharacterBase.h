@@ -101,7 +101,7 @@ public:
 #pragma endregion
 
 #pragma region GAS
-protected:
+public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	void GiveStartupAbilities();
 

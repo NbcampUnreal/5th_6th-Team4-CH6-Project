@@ -13,16 +13,26 @@ UUK_BTTaskNode_BossAttack::UUK_BTTaskNode_BossAttack()
 
 EBTNodeResult::Type UUK_BTTaskNode_BossAttack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	auto* AICtl = OwnerComp.GetAIOwner();
+	AAIController* AICtl = OwnerComp.GetAIOwner();
 	if (!AICtl) return EBTNodeResult::Failed;
 
-	auto* Boss = Cast<AUK_BossMonsterBase>(AICtl->GetPawn());
+	AUK_BossMonsterBase* Boss = Cast<AUK_BossMonsterBase>(AICtl->GetPawn());
 	if (!Boss) return EBTNodeResult::Failed;
 
 	CurrentTime = 0.f;
 
-	Boss->PlayRandomAttackMontage();
+	//공격 호출 전 강제로 공격 중 플래그를 확인하거나 초기화 (테스트용)
+	Boss->bIsAttacking = false; 
+	
+	bool bAttackStarted = Boss->PlayRandomAttackMontage();
+    
+	if (!bAttackStarted)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Boss Attack Failed to Start! Check bIsAttacking or Montage Array."));
+		return EBTNodeResult::Failed;
+	}
 
+	UE_LOG(LogTemp, Log, TEXT("Boss Attack Started Successfully"));
 	return EBTNodeResult::InProgress;
 }
 

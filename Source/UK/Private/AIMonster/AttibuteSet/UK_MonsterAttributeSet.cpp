@@ -1,4 +1,5 @@
 ﻿#include "AIMonster/AttibuteSet/UK_MonsterAttributeSet.h"
+#include "AIMonster/BossMonster/UK_BossMonsterBase.h"
 #include "AIMonster/AIMonsterBase.h"
 #include "GameplayEffectExtension.h"
 
@@ -115,6 +116,12 @@ void UUK_MonsterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectMod
 		// 다른 속성 변경 - 디버깅용
 		UE_LOG(LogTemp, Verbose, TEXT("[%s] AttributeSet - Other Attribute Changed: %s"), 
 			*MonsterName, *Data.EvaluatedData.Attribute.GetName());
+	}
+	
+	//보스 체력비례 페이즈 체크용
+	if (AUK_BossMonsterBase* Boss = Cast<AUK_BossMonsterBase>(GetOwningActor()))
+	{
+		Boss->UpdatePhase();
 	}
 }
 
