@@ -17,7 +17,6 @@
 #include "Quest/UKQuestManagerSubsystem.h"
 #include "Tags/UK_GameplayTags.h"
 #include "DrawDebugHelpers.h"
-#include "Sound/SoundCue.h"
 
 #pragma region Initialization
 AAIMonsterBase::AAIMonsterBase()
@@ -153,6 +152,13 @@ void AAIMonsterBase::PostInitializeComponents()
 UAbilitySystemComponent* AAIMonsterBase::GetAbilitySystemComponent() const
 {
 	return AbilitySystemComponent;
+}
+
+void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	// 현재 복제가 필요한 UPROPERTY(Replicated) 변수가 없으므로 부모 호출만 유지
+	// 추후 복제 변수 추가 시 여기에 DOREPLIFETIME 매크로 추가
 }
 #pragma endregion
 
@@ -553,11 +559,6 @@ void AAIMonsterBase::FinalizeDeath()
 	}
 }
 
-void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-}
-
 void AAIMonsterBase::HideAndBroadcastDeath()
 {
 	HideCorpse();
@@ -778,21 +779,54 @@ void AAIMonsterBase::ResetToPassive()
 #pragma endregion
 
 #pragma region Stat Scaling (Player Level Based)
-// ── 몬스터 종류별 기본 방어력 테이블 ─────────────────────────────────────────
-//   최종 방어력 = (PlayerLevel / 2) + 아래 값
-//   ──────────────────────────────────────────────────────────────────────
-//   EliteGolem  : +40   
-//   Golem       : +30   
-//   Wolf        : +15   
-//   Fox         : +10   
-//   Reindeer    :  +5   
-//   None        :   0
-// ─────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// 몬스터 종류별 HP 테이블
+//   MaxHealth = BaseHP + (PlayerLevel x HPPerLevel)
+//   EliteGolem : 2000 + Lv x 200   Golem : 1000 + Lv x 100
+//   Wolf       :  400 + Lv x  40   Fox   :  300 + Lv x  25
+//   Reindeer   :  250 + Lv x  20   None  :  200 + Lv x  15
+// ─────────────────────────────────────────────────────────────────────────────
+float AAIMonsterBase::GetMonsterTypeBaseHP(EMonsterType Type)
+{
+	switch (Type)
+	{
+	case EMonsterType::EliteGolem: return 2000.f;
+	case EMonsterType::Golem:      return 1000.f;
+	case EMonsterType::Wolf:       return  400.f;
+	case EMonsterType::Fox:        return  300.f;
+	case EMonsterType::Reindeer:   return  250.f;
+	default:                       return  200.f;
+	}
+}
+
+float AAIMonsterBase::GetMonsterTypeHPPerLevel(EMonsterType Type)
+{
+	switch (Type)
+	{
+	case EMonsterType::EliteGolem: return 200.f;
+	case EMonsterType::Golem:      return 100.f;
+	case EMonsterType::Wolf:       return  40.f;
+	case EMonsterType::Fox:        return  25.f;
+	case EMonsterType::Reindeer:   return  20.f;
+	default:                       return  15.f;
+	}
+}
+
+float AAIMonsterBase::CalculateMaxHealth(int32 PlayerLevel, EMonsterType Type)
+{
+	return GetMonsterTypeBaseHP(Type) + (static_cast<float>(PlayerLevel) * GetMonsterTypeHPPerLevel(Type));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 몬스터 종류별 방어력 테이블
+//   Defense = (PlayerLevel / 2) + BaseDefense
+//   EliteGolem : +50   Golem : +30   Wolf : +15   Fox : +10   Reindeer : +5
+// ─────────────────────────────────────────────────────────────────────────────
 float AAIMonsterBase::GetMonsterTypeBaseDefense(EMonsterType Type)
 {
 	switch (Type)
 	{
-	case EMonsterType::EliteGolem: return 40.f;
+	case EMonsterType::EliteGolem: return 50.f;
 	case EMonsterType::Golem:      return 30.f;
 	case EMonsterType::Wolf:       return 15.f;
 	case EMonsterType::Fox:        return 10.f;
@@ -803,49 +837,52 @@ float AAIMonsterBase::GetMonsterTypeBaseDefense(EMonsterType Type)
 
 float AAIMonsterBase::CalculateAttackDamage(int32 PlayerLevel)
 {
-	// 일반 공격: PlayerLevel × 3.14
-	return static_cast<float>(PlayerLevel) * 3.14f;
+	return 15.0f + static_cast<float>(PlayerLevel) * 10.0f;
 }
 
 float AAIMonsterBase::CalculateAoEDamage(int32 PlayerLevel)
 {
-	// 광역 공격: 일반 공격 × 1.5
 	return CalculateAttackDamage(PlayerLevel) * 1.5f;
 }
 
 float AAIMonsterBase::CalculateDefense(int32 PlayerLevel, EMonsterType Type)
 {
-	// 방어력: (PlayerLevel / 2) + 종류별 기본 방어력
 	return (static_cast<float>(PlayerLevel) * 0.5f) + GetMonsterTypeBaseDefense(Type);
 }
 
 void AAIMonsterBase::InitializeStatsFromPlayerLevel(int32 PlayerLevel)
 {
 	if (PlayerLevel <= 0) return;
+	if (!AbilitySystemComponent || !AttributeSet) return;
 
-	// 공격력 갱신
+	// 1. MaxHealth + Health (체력 만충)
+	const float NewMaxHP = CalculateMaxHealth(PlayerLevel, MonsterType);
+	AbilitySystemComponent->SetNumericAttributeBase(
+		AttributeSet->GetMaxHealthAttribute(), NewMaxHP);
+	AbilitySystemComponent->SetNumericAttributeBase(
+		AttributeSet->GetHealthAttribute(), NewMaxHP);
+
+	// 2. 공격력
 	AttackDamage = CalculateAttackDamage(PlayerLevel);
 
-	// 방어력 갱신 (GAS Attribute)
+	// 3. 방어력
 	const float NewDefense = CalculateDefense(PlayerLevel, MonsterType);
-	if (AbilitySystemComponent && AttributeSet)
-	{
-		AbilitySystemComponent->SetNumericAttributeBase(
-			AttributeSet->GetDefenseAttribute(), NewDefense);
-	}
+	AbilitySystemComponent->SetNumericAttributeBase(
+		AttributeSet->GetDefenseAttribute(), NewDefense);
 
 	UE_LOG(LogTemp, Log,
-		TEXT("[%s] InitializeStatsFromPlayerLevel | Lv=%d | ATK=%.1f | DEF=%.1f (Base=%.1f)"),
+		TEXT("[%s] InitStats | Lv=%d | HP=%.0f (%.0f+Lv*%.0f) | ATK=%.1f | DEF=%.1f"),
 		*GetName(), PlayerLevel,
-		AttackDamage, NewDefense, GetMonsterTypeBaseDefense(MonsterType));
+		NewMaxHP, GetMonsterTypeBaseHP(MonsterType), GetMonsterTypeHPPerLevel(MonsterType),
+		AttackDamage, NewDefense);
 }
 
 void AAIMonsterBase::AutoInitStatsFromNearestPlayer()
 {
 	if (!GetWorld()) return;
 
-	int32  BestLevel  = 1;
-	float  BestDistSq = FLT_MAX;
+	int32 BestLevel   = 1;
+	float BestDistSq  = FLT_MAX;
 
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 	{
@@ -860,11 +897,7 @@ void AAIMonsterBase::AutoInitStatsFromNearestPlayer()
 
 		BestDistSq = DistSq;
 
-		// ── 플레이어 레벨 산출 ────────────────────────────────────────────
-		// UK_CharacterBase 에 GetCharacterLevel() 이 없으므로
-		// PlayerStatusAttributeSet::AttackPower 에서 역산
-		//   AttackPower = PlayerLevel × 3.14  →  Level = round(AP / 3.14)
-		// ASC 접근
+		// 플레이어 ASC 에서 Level 어트리뷰트 직접 읽기
 		if (IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(PlayerChar))
 		{
 			if (UAbilitySystemComponent* PlayerASC = ASCInterface->GetAbilitySystemComponent())
@@ -872,11 +905,7 @@ void AAIMonsterBase::AutoInitStatsFromNearestPlayer()
 				if (const UUK_PlayerStatusAttributeSet* PlayerAttr =
 					PlayerASC->GetSet<UUK_PlayerStatusAttributeSet>())
 				{
-					const float AP = PlayerAttr->GetAttackPower();
-					if (AP > 0.f)
-					{
-						BestLevel = FMath::Max(1, FMath::RoundToInt(AP / 3.14f));
-					}
+					BestLevel = FMath::Max(1, FMath::RoundToInt(PlayerAttr->GetLevel()));
 				}
 			}
 		}
@@ -943,11 +972,6 @@ void AAIMonsterBase::ShowAlertIcon()
 	AlertWidgetComponent->SetVisibility(true);
 	AlertWidgetComponent->SetHiddenInGame(false);
 	AlertWidget->SetVisibility(ESlateVisibility::Visible);
-	
-	if (HowlSound)
-	{
-		UGameplayStatics::PlaySound2D(this, HowlSound);
-	}
 }
 
 void AAIMonsterBase::HideAlertIcon()
