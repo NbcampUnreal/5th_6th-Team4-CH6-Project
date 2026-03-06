@@ -33,9 +33,6 @@ void AUK_PeacefulMonster::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (HasAuthority())
-	{
-		RequestState(EMonsterState::Passive);
-	}
+	RequestState(EMonsterState::Passive);
 }
 #pragma endregion

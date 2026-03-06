@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
-#include "ActorComponent/StatusComponent.h"
 #include "GameplayTagContainer.h"
 #include "UK_PlayerController.h"
 #include "AIMonster/AIMonsterBase.h"
@@ -31,10 +30,12 @@ class AAIMonsterBase;
 class UUK_InputConfig;
 class UUK_InteractionComponent;
 class UUK_QuestComponent;
+class UInputAction;
 struct FInputActionValue;
 #pragma endregion
 
 DECLARE_DYNAMIC_DELEGATE(FOnFloorDelagate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadDelagate);
 UCLASS()
 class UK_API AUK_CharacterBase : public ACharacter, public IAbilitySystemInterface
 {
@@ -45,7 +46,6 @@ public:
 	// Sets default values for this character's properties
 	AUK_CharacterBase();
 
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	// Called every frame
 	//virtual void Tick(float DeltaTime) override;
 
@@ -54,16 +54,17 @@ public:
 
 	virtual void Landed(const FHitResult& Hit) override;
 
-	virtual void OnRep_PlayerState();
 	TObjectPtr<USkeletalMeshComponent> GetRightHandWeapon() { return RightHandWeaponComponent; }
 	TObjectPtr<USkeletalMeshComponent> GetLeftHandWeapon() { return LeftHandWeaponComponent; }
 	TObjectPtr<UUK_InventoryComponent> GetInventoryComponent() { return InventoryComponent; }
-	void OnRep_RightHandWeapon();
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
+	TObjectPtr< UInputAction > IAMove;
 protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -73,13 +74,14 @@ protected:
 	TObjectPtr<UCameraComponent> Camera;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USkeletalMeshComponent> SkeletalMeshComp;
+	 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkeletalMeshComponent> RightHandWeaponComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkeletalMeshComponent> LeftHandWeaponComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", Replicated)
-	TObjectPtr<UStatusComponent> StatusComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUK_InventoryComponent> InventoryComponent;
@@ -109,11 +111,11 @@ private:
 #pragma endregion
 
 #pragma region Input
-protected:
+public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UUK_InputConfig* InputMappingConfig;
 protected:
-
+	UPROPERTY()
 	AUK_PlayerController* PC;
 
 	UFUNCTION()
@@ -153,7 +155,9 @@ protected:
 	void NomalSkill();
 
 	UFUNCTION()
-	void UltimateSkill();
+	void UltimateSkill();	
+	UFUNCTION()
+	void Parry();
 
 public:
 	UFUNCTION(BlueprintCallable)
@@ -193,6 +197,7 @@ protected:
 	int32 index;
 
 	FTimerHandle LockOnTimer;
+	
 	float MaxLockDistance = 1000.f;
 #pragma endregion
 
@@ -211,24 +216,18 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SwapWeapon(int32 Index);
 
-
-	UFUNCTION()
-	void OnRep_CurrentWeaponTag();
-	UFUNCTION()
-	void OnRep_NowWeapon();
-
 	UUK_StatusAnimData* GetNowWeaponStatus() const { return NowWeapon; }
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<UUK_WeaponData> WeaponList;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_NowWeapon)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UUK_StatusAnimData* NowWeapon;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	TObjectPtr<UDataTable> ItmeDataTable;
 
-	UPROPERTY(ReplicatedUsing = OnRep_CurrentWeaponTag)
+	UPROPERTY()
 	FGameplayTag CurrentWeaponTag;
 #pragma endregion
 
@@ -247,20 +246,14 @@ public:
 	UFUNCTION()
 	void Dead();
 
-	UFUNCTION()
-	void OnRep_InInput();
-
-	UFUNCTION()
-	void OnRep_fry();
-
-	UPROPERTY(BlueprintReadWrite, ReplicatedUsing = OnRep_InInput)
+	UPROPERTY(BlueprintReadWrite)
 	bool bIsInInput = false;
 
-	UPROPERTY(BlueprintReadWrite, ReplicatedUsing = OnRep_fry)
+	UPROPERTY(BlueprintReadWrite)
 	bool bIsfry;
 
-	float DefaultGravityValue;
 	FOnFloorDelagate OnFloor;
+	FOnDeadDelagate OnDead;
 #pragma endregion
 
 #pragma region FindMonsterHPBar

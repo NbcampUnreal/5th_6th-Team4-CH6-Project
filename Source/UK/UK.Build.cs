@@ -24,11 +24,11 @@ public class UK : ModuleRules
 			"GameplayAbilities",
             "GameplayTags",
             "GameplayTasks",
-            "OnlineSubsystem",
-            "OnlineSubsystemUtils",
 			"Json",
 			"JsonUtilities",
-			"AssetRegistry"
+			"AssetRegistry",
+			"GameplayTags",
+			"Niagara"
         });
 		
 		PrivateDependencyModuleNames.AddRange(new string[] { });

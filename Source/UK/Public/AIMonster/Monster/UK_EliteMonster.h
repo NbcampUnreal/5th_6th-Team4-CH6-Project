@@ -17,6 +17,12 @@ class UK_API AUK_EliteMonster : public AAIMonsterBase
 #pragma region Initialization
 public:
 	AUK_EliteMonster();
+
+	/**
+	 * 플레이어 레벨 기반 엘리트 스탯 초기화 (override)
+	 * 부모 공식 + 광역 공격 데미지 = (PlayerLevel × 3.14) × 1.5
+	 */
+	virtual void InitializeStatsFromPlayerLevel(int32 PlayerLevel) override;
 #pragma endregion
 
 #pragma region Special Attack
@@ -41,8 +47,20 @@ public:
 	UFUNCTION()
 	void OnSpecialAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlaySpecialAttackMontage(int32 MontageIndex);
+	void PlaySpecialAttackMontage(int32 MontageIndex);
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Special Attack")
+	float SpecialAttackAoERadius = 500.f;  
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Special Attack")
+	float SpecialAttackDamage = 50.f;     
+	
+	FTimerHandle SpecialAttackAoETimerHandle;
+
+	UPROPERTY(EditAnywhere, Category = "Special Attack")
+	float SpecialAttackHitTiming = 0.4f;
+
+	void ApplySpecialAttackAoE();
 #pragma endregion
 
 #pragma region Debug
@@ -68,10 +86,5 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Elite|Debug",
 		meta = (EditCondition = "bShowSpecialAttackDebug"))
 	float SpecialAttackDebugDuration = 1.5f;
-#pragma endregion
-
-#pragma region Replication
-public:
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 #pragma endregion
 };

@@ -33,6 +33,7 @@ EBTNodeResult::Type UUK_BTTask_ReturnToSpawn::ExecuteTask(UBehaviorTreeComponent
 	const float   DistFromSpawn  = FVector::Dist(ControlledPawn->GetActorLocation(), SpawnLocation);
 
 	BB->ClearValue(TargetPlayerKey.SelectedKeyName);
+	AICon->ClearFocus(EAIFocusPriority::Gameplay);
 
 	// 이미 스폰 근처면 즉시 종료
 	if (DistFromSpawn < ArrivalDistance)

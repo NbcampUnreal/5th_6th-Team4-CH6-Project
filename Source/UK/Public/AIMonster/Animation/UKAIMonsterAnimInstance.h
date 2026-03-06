@@ -20,29 +20,41 @@ public:
 
 #pragma region Animation Properties
 	/** 이동 속도 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	float Speed = 0.f;
 
 	/** 사망 여부 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	bool bIsDead = false;
 
 	/** 공격 몽타주 재생 중 여부 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	bool bIsAttacking = false;
 
 	/** 적대 상태 여부 (평화 몬스터용) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	bool bIsAggressive = false;
 #pragma endregion
 
 #pragma region Movement Properties
 	// BS2D Forward, Right Movespeed
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float ForwardSpeed;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float RightSpeed;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Animation")
+	float Direction = 0.f;      
+
+	UPROPERTY(BlueprintReadOnly, Category = "Animation")
+	float LeanAngle = 0.f;      
+
+	UPROPERTY(BlueprintReadOnly, Category = "Animation")
+	bool bIsChasing = false;  
+	
+private:
+	float PrevYaw = 0.f;
 #pragma endregion
 
 #pragma region Private
