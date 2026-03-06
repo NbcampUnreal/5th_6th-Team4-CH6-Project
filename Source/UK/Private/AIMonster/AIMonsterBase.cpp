@@ -832,14 +832,14 @@ float AAIMonsterBase::GetMonsterTypeBaseDefense(EMonsterType Type)
 {
 	switch (Type)
 	{
-	case EMonsterType::Grux:	   return 100.f;
-	case EMonsterType::EliteGolem: return 50.f;
-	case EMonsterType::EliteWolf:  return 50.f;
-	case EMonsterType::Golem:      return 30.f;
-	case EMonsterType::Wolf:       return 15.f;
-	case EMonsterType::Fox:        return 10.f;
-	case EMonsterType::Reindeer:   return  5.f;
-	default:                       return  0.f;
+	case EMonsterType::Grux:	   return 5.f;
+	case EMonsterType::EliteGolem: return 3.f;
+	case EMonsterType::EliteWolf:  return 3.f;
+	case EMonsterType::Golem:      return 2.f;
+	case EMonsterType::Wolf:       return 1.f;
+	case EMonsterType::Fox:        return 1.f;
+	case EMonsterType::Reindeer:   return 1.f;
+	default:                       return 0.f;
 	}
 }
 
