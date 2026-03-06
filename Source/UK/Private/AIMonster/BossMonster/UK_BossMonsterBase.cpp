@@ -54,23 +54,20 @@ void AUK_BossMonsterBase::BeginPlay()
 
 void AUK_BossMonsterBase::StartAttack()
 {
+	bIsAttacking = true;
+	
+	HitActors.Empty();
 	SetWeaponCollisionEnabled(true);
-	if (!BossAnim)
-	{
-		BossAnim = Cast<UUK_BossAnimInstance>(GetMesh()->GetAnimInstance());
-	}
-	if (!BossAnim) return;
-	BossAnim->bIsAttacking = true;
+    
+	UE_LOG(LogTemp, Warning, TEXT("[Boss] Attack Started - Detection ON"));
 }
 
 void AUK_BossMonsterBase::EndAttack() 
 {
-	if (!BossAnim)
-	{
-		BossAnim = Cast<UUK_BossAnimInstance>(GetMesh()->GetAnimInstance());
-	}
-	if (!BossAnim) return;
-	BossAnim->bIsAttacking = false;
+	bIsAttacking = false;
+	SetWeaponCollisionEnabled(false);
+    
+	UE_LOG(LogTemp, Warning, TEXT("[Boss] Attack Ended - Detection OFF"));
 }
 
 void AUK_BossMonsterBase::ReceiveDamage(float Damage)
@@ -158,13 +155,18 @@ bool AUK_BossMonsterBase::PlayRandomAttackMontage()
 void AUK_BossMonsterBase::ApplyDamageToTarget(AActor* TargetActor, float SkillDamageMultiplier)
 {
 	
-	if (!TargetActor || !DamageGEClass) return;
+	if (!TargetActor || !DamageGEClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Target or GE Class is Missing!"));
+		return;
+	}
 	
 	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
 	UAbilitySystemComponent* SourceASC = GetAbilitySystemComponent(); 
 
 	if (TargetASC && SourceASC)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Attempting to apply damage to: %s"), *TargetActor->GetName());
 		
 		FGameplayEffectContextHandle EffectContext = SourceASC->MakeEffectContext();
 		EffectContext.AddInstigator(this, this);
@@ -175,6 +177,7 @@ void AUK_BossMonsterBase::ApplyDamageToTarget(AActor* TargetActor, float SkillDa
 		{
 			SpecHandle.Data.Get()->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(TEXT("Data.Damage")), SkillDamageMultiplier);
 			SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
+			UE_LOG(LogTemp, Error, TEXT("Damage Spec Applied Successfully!"));
 		}
 	}
 }
@@ -204,24 +207,19 @@ void AUK_BossMonsterBase::OnWeaponOverlap(UPrimitiveComponent* OverlappedCompone
 										  UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
 										  bool bFromSweep, const FHitResult& SweepResult)
 {
-	UCapsuleComponent* WeaponCapsule = Cast<UCapsuleComponent>(OverlappedComponent);
-        
-	if (WeaponCapsule)
-	{
-		
-		DrawDebugCapsule(GetWorld(), 
-			WeaponCapsule->GetComponentLocation(), 
-			WeaponCapsule->GetScaledCapsuleHalfHeight(), 
-			WeaponCapsule->GetScaledCapsuleRadius(), 
-			WeaponCapsule->GetComponentQuat(), 
-			FColor::Red, false, 1.0f);
-	}
-	if (OtherActor && OtherActor != this && BossAnim && BossAnim->bIsAttacking)
+	if (!OtherActor || OtherActor == this || bIsDying) return;
+	
+	if (bIsAttacking) 
 	{
 		if (!HitActors.Contains(OtherActor))
 		{
 			HitActors.Add(OtherActor);
+ 
 			ApplyDamageToTarget(OtherActor, 30.f);
+
+#if !UE_BUILD_SHIPPING
+			DrawDebugSphere(GetWorld(), SweepResult.ImpactPoint, 15.f, 8, FColor::Red, false, 1.0f);
+#endif
 		}
 	}
 }
