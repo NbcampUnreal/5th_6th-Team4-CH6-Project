@@ -5,36 +5,54 @@
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 캡처 구조체
-//  · AttackPower : Source(플레이어) 의 공격력
-//  · Defense     : Target(몬스터)  의 방어력
+//
+//  Source (플레이어)
+//   · AttackPower   : 공격력
+//   · CriticalChance: 치명타 확률 (0~100)
+//   · CriticalDamage: 치명타 추가 배율 (ex. 0.5 = +50%)
+//   · Level         : 플레이어 레벨 → 몬스터 방어력 계산에 사용
+//
+//  Target (몬스터)
+//   · Defense       : 방어력 (= PlayerLevel/2 + 종류별 기본값)
 // ─────────────────────────────────────────────────────────────────────────────
 struct FMonsterDamageCapture
 {
 	DECLARE_ATTRIBUTE_CAPTUREDEF(AttackPower)
+	DECLARE_ATTRIBUTE_CAPTUREDEF(CriticalChance)
+	DECLARE_ATTRIBUTE_CAPTUREDEF(CriticalDamage)
+	DECLARE_ATTRIBUTE_CAPTUREDEF(Level)
 	DECLARE_ATTRIBUTE_CAPTUREDEF(Defense)
 
 	FMonsterDamageCapture()
 	{
-		// 플레이어 AttackPower – Source, Snapshot
+		// ── Source : 플레이어 ────────────────────────────────────────────
 		AttackPowerDef = FGameplayEffectAttributeCaptureDefinition(
 			UUK_PlayerStatusAttributeSet::GetAttackPowerAttribute(),
-			EGameplayEffectAttributeCaptureSource::Source,
-			true
-		);
+			EGameplayEffectAttributeCaptureSource::Source, true);
 
-		// 몬스터 Defense – Target, Snapshot
+		CriticalChanceDef = FGameplayEffectAttributeCaptureDefinition(
+			UUK_PlayerStatusAttributeSet::GetCriticalChanceAttribute(),
+			EGameplayEffectAttributeCaptureSource::Source, true);
+
+		CriticalDamageDef = FGameplayEffectAttributeCaptureDefinition(
+			UUK_PlayerStatusAttributeSet::GetCriticalDamageAttribute(),
+			EGameplayEffectAttributeCaptureSource::Source, true);
+
+		LevelDef = FGameplayEffectAttributeCaptureDefinition(
+			UUK_PlayerStatusAttributeSet::GetLevelAttribute(),
+			EGameplayEffectAttributeCaptureSource::Source, true);
+
+		// ── Target : 몬스터 ─────────────────────────────────────────────
 		DefenseDef = FGameplayEffectAttributeCaptureDefinition(
 			UUK_MonsterAttributeSet::GetDefenseAttribute(),
-			EGameplayEffectAttributeCaptureSource::Target,
-			true
-		);
+			EGameplayEffectAttributeCaptureSource::Target, true);
 	}
 };
 
 static FMonsterDamageCapture& GetMonsterDamageCapture()
 {
-	static FMonsterDamageCapture MonsterDamageCapture;
-	return MonsterDamageCapture;
+	static FMonsterDamageCapture Capture;
+	return Capture;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -42,6 +60,7 @@ static FMonsterDamageCapture& GetMonsterDamageCapture()
 UUK_MonsterDamageExecutionCalculation::UUK_MonsterDamageExecutionCalculation()
 {
 	RelevantAttributesToCapture.Add(GetMonsterDamageCapture().AttackPowerDef);
+	RelevantAttributesToCapture.Add(GetMonsterDamageCapture().LevelDef);
 	RelevantAttributesToCapture.Add(GetMonsterDamageCapture().DefenseDef);
 }
 
@@ -60,34 +79,39 @@ void UUK_MonsterDamageExecutionCalculation::Execute_Implementation(
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(
 		GetMonsterDamageCapture().AttackPowerDef, EvalParams, AttackPower);
 
-	// ── 2. 스킬 데미지 퍼센트 (SetByCaller: Data.Damage) ────────────────────
+	// ── 3. 스킬 데미지 퍼센트 (SetByCaller: Data.Damage) ─────────────────
 	float SkillDamagePercent = Spec.GetSetByCallerMagnitude(
 		UK_GameplayTags::Data::Damage,
 		/*bWarnIfNotFound=*/false,
-		0.f
-	);
-
-	// 퍼센트 → 배율 변환 (ex. 150 → 1.5)
+		0.f);
 	SkillDamagePercent /= 100.f;
 
-	// ── 3. 방어 차감 전 원본 데미지 ─────────────────────────────────────
-	//   RawDamage = PlayerAttackPower × SkillDamagePercent
-	const float RawDamage = FMath::Max(AttackPower * SkillDamagePercent, 0.f);
+	// ── 4. 플레이어 레벨 (몬스터 방어력 갱신용) ──────────────────────────
+	//   Defense 는 BeginPlay 에서 이미 설정되어 있으므로
+	//   Level 은 참고용 로그에만 사용 (필요 시 동적 방어력 재계산 가능)
+	float PlayerLevel = 1.f;
+	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(
+		GetMonsterDamageCapture().LevelDef, EvalParams, PlayerLevel);
+	PlayerLevel = FMath::Max(PlayerLevel, 1.f);
 
-	// ── 4. 몬스터 방어력 ─────────────────────────────────────────────────
-	//   Defense = (PlayerLevel / 2) + 몬스터 종류별 기본 방어력
+	// ── 5. 원본 데미지 = 공격력 × 스킬 계수 ─────────────────────────────
+	float RawDamage = FMath::Max(AttackPower * SkillDamagePercent, 0.f);
+
+	// ── 7. 몬스터 방어력 차감 ────────────────────────────────────────────
+	//   Defense = (PlayerLevel / 2) + 종류별 기본 방어력
 	//   → AAIMonsterBase::InitializeStatsFromPlayerLevel() 에서 설정됨
 	float Defense = 0.f;
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(
 		GetMonsterDamageCapture().DefenseDef, EvalParams, Defense);
 	Defense = FMath::Max(Defense, 0.f);
 
-	// ── 5. 최종 데미지 = max(0, RawDamage - Defense) ─────────────────────
+	// ── 8. 최종 데미지 ────────────────────────────────────────────────────
+	//   FinalDamage = max(0, RawDamage - Defense)
 	const float FinalDamage = FMath::Max(RawDamage - Defense, 0.f);
 
 	UE_LOG(LogTemp, Warning,
-		TEXT("[MonsterDamageExec] ATK=%.1f × %.0f%% = Raw%.1f | DEF=%.1f | Final=%.1f"),
-		AttackPower, SkillDamagePercent * 100.f, RawDamage, Defense, FinalDamage);
+		TEXT("[MonsterDmgExec] Lv=%.0f | ATK=%.1f | DEF=%.1f | Final=%.1f"),
+		PlayerLevel, AttackPower, Defense, FinalDamage);
 
 	if (FinalDamage > 0.f)
 	{

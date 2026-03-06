@@ -33,11 +33,13 @@ UENUM(BlueprintType)
 enum class EMonsterType : uint8
 {
 	None       = 0,
-	EliteGolem = 1,
-	Golem      = 2,
-	Wolf       = 3,
-	Fox        = 4,
-	Reindeer   = 5,
+	Grux	   = 1,
+	EliteGolem = 2,
+	EliteWolf  = 3,
+	Golem      = 4,
+	Wolf       = 5,
+	Fox        = 6,
+	Reindeer   = 7,
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDeath, class AAIMonsterBase*, DeadMonster);
@@ -355,6 +357,18 @@ public:
 	 *  방어력  = (PlayerLevel / 2) + GetMonsterTypeBaseDefense(MonsterType)
 	 */
 	virtual void InitializeStatsFromPlayerLevel(int32 PlayerLevel);
+
+	/** 몬스터 종류별 기본 HP */
+	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
+	static float GetMonsterTypeBaseHP(EMonsterType Type);
+
+	/** 몬스터 종류별 레벨당 HP 증가량 */
+	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
+	static float GetMonsterTypeHPPerLevel(EMonsterType Type);
+
+	/** 최대 HP = BaseHP + (PlayerLevel × HPPerLevel) */
+	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
+	static float CalculateMaxHealth(int32 PlayerLevel, EMonsterType Type);
 
 	/** 몬스터 종류별 기본 방어력 (플레이어 레벨 보정값에 추가) */
 	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
