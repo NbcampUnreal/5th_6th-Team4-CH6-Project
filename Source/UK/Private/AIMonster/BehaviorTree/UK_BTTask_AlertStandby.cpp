@@ -57,7 +57,7 @@ EBTNodeResult::Type UUK_BTTask_AlertStandby::ExecuteTask(UBehaviorTreeComponent&
 
 	AICon->StopMovement();
 
-	SetOrientToMovement(ControlledPawn, false);
+	SetOrientToMovement(ControlledPawn, true);
 
 	UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
 	if (BB)
@@ -107,8 +107,16 @@ void UUK_BTTask_AlertStandby::TickTask(UBehaviorTreeComponent& OwnerComp, uint8*
 		if (AAIMonsterBase* Monster = Cast<AAIMonsterBase>(ControlledPawn))
 			Monster->HideAlertIcon();
 
-		// bOrientRotationToMovement 복원 → 추격 중 이동 방향 자동 회전
-		SetOrientToMovement(ControlledPawn, true);
+		if (ACharacter* Char = Cast<ACharacter>(ControlledPawn))
+		{
+			if (UCharacterMovementComponent* MC = Char->GetCharacterMovement())
+			{
+				MC->bOrientRotationToMovement     = true; // 이동 방향 자동회전 OFF
+				MC->bUseControllerDesiredRotation = false;  // 컨트롤러 방향으로 회전
+			}
+		}
+		
+		AICon->ClearFocus(EAIFocusPriority::Gameplay);
 
 		// PendingTarget → TargetPlayer 복사 → [추격] or [공격] 브랜치 진입
 		if (Target)
@@ -127,9 +135,19 @@ EBTNodeResult::Type UUK_BTTask_AlertStandby::AbortTask(UBehaviorTreeComponent& O
 	{
 		if (APawn* ControlledPawn = AICon->GetPawn())
 		{
-			// bOrientRotationToMovement 반드시 복원 (미복원 시 추격/복귀 회전 불가)
-			SetOrientToMovement(ControlledPawn, true);
-
+			// 기존 SetOrientToMovement(true) 대신 명시적으로 복원
+			if (ACharacter* Char = Cast<ACharacter>(ControlledPawn))
+			{
+				if (UCharacterMovementComponent* MC = Char->GetCharacterMovement())
+				{
+					MC->bOrientRotationToMovement     = true; 
+					MC->bUseControllerDesiredRotation = false;
+				}
+				
+				AICon->ClearFocus(EAIFocusPriority::Gameplay);
+				
+			}
+			
 			if (AAIMonsterBase* Monster = Cast<AAIMonsterBase>(ControlledPawn))
 				Monster->HideAlertIcon();
 		}

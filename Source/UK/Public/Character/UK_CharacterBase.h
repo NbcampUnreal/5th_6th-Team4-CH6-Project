@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
-#include "ActorComponent/StatusComponent.h"
 #include "GameplayTagContainer.h"
 #include "UK_PlayerController.h"
 #include "AIMonster/AIMonsterBase.h"
@@ -31,6 +30,7 @@ class AAIMonsterBase;
 class UUK_InputConfig;
 class UUK_InteractionComponent;
 class UUK_QuestComponent;
+class UInputAction;
 struct FInputActionValue;
 #pragma endregion
 
@@ -63,6 +63,8 @@ protected:
 	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
+	TObjectPtr< UInputAction > IAMove;
 protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")

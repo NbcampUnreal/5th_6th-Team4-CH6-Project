@@ -18,7 +18,7 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 	{
 		/*받는 피해량 = (몬스터 공격력 X 스킬 계수) X ( 고정상수 C/ 고정상수C + 방어력)*/
 		float LocalDamage = NewValue;
-		float LocalDefense = 1.f / (1.f * GetDefence());
+		float LocalDefense = 1.f / (1.f + GetDefence());
 		LocalDamage *= LocalDefense;
 		NewValue = LocalDamage;
 	}

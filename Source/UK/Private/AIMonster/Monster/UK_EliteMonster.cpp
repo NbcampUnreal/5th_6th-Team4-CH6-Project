@@ -17,6 +17,19 @@ AUK_EliteMonster::AUK_EliteMonster()
 	AttackCooldown   = 1.8f;
 	CorpseLingerTime = 8.0f;
 }
+
+void AUK_EliteMonster::InitializeStatsFromPlayerLevel(int32 PlayerLevel)
+{
+	// 부모: AttackDamage + Defense 설정
+	Super::InitializeStatsFromPlayerLevel(PlayerLevel);
+
+	// 엘리트 전용: 광역 공격 데미지 = (PlayerLevel × 3.14) × 1.5
+	SpecialAttackDamage = CalculateAoEDamage(PlayerLevel);
+
+	UE_LOG(LogTemp, Log,
+		TEXT("[EliteMonster] %s | Lv=%d | NormalATK=%.1f | AoEDamage=%.1f"),
+		*GetName(), PlayerLevel, AttackDamage, SpecialAttackDamage);
+}
 #pragma endregion
 
 #pragma region Special Attack
