@@ -9,16 +9,11 @@
 /**
  * 
  */
-class AAIMonsterBase;
+
 UCLASS()
 class UK_API UHitCheckAbility : public UGameplayAbility
 {
 	GENERATED_BODY()
-public:
+	
 
-	UFUNCTION(BlueprintCallable)
-	void Attack(FGameplayAbilityTargetDataHandle TargetDataHandle);
-
-	UPROPERTY()
-	TArray<AAIMonsterBase*> HitcheckedActor;
 };

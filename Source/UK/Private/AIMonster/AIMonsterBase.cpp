@@ -294,7 +294,10 @@ void AAIMonsterBase::ApplyDamage(float DamageAmount, AController* InstigatorCont
 
 	// GameplayEffect로 데미지 적용
 	FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
-	EffectContext.AddInstigator(InstigatorController ? InstigatorController->GetPawn() : nullptr, this);
+	AActor* InstigatorPawn = (InstigatorController && InstigatorController->GetPawn())
+	? InstigatorController->GetPawn()
+	: nullptr;
+	EffectContext.AddInstigator(InstigatorPawn, this);
 
 	FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(
 		DamageEffectClass, 1.0f, EffectContext);
@@ -337,35 +340,43 @@ void AAIMonsterBase::ApplyDamage(float DamageAmount, AController* InstigatorCont
 	// 평화 몬스터: 피격 시 적대 전환
 	if (Personality == EMonsterPersonality::Peaceful && !bIsAggressive)
 	{
-		AActor* ClosestPlayer = nullptr;
-		for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+		AActor* Attacker = nullptr;
+		if (InstigatorController && InstigatorController->GetPawn())
 		{
-			APlayerController* PC = It->Get();
-			if (!PC || !PC->GetPawn()) continue;
-
-			if (FVector::Dist(GetActorLocation(), PC->GetPawn()->GetActorLocation()) <= 500.0f)
+			Attacker = InstigatorController->GetPawn();
+		}
+		else
+		{
+			// InstigatorController 없을 때만 근처 탐색 (DetectionRadius 활용)
+			float ClosestDist = DetectionRadius;
+			for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 			{
-				ClosestPlayer = PC->GetPawn();
-				break;
+				APlayerController* PC = It->Get();
+				if (!PC || !PC->GetPawn()) continue;
+				const float Dist = FVector::Dist(GetActorLocation(), PC->GetPawn()->GetActorLocation());
+				if (Dist < ClosestDist)
+				{
+					ClosestDist = Dist;
+					Attacker = PC->GetPawn();
+				}
 			}
 		}
 
-		if (ClosestPlayer)
+		if (Attacker)
 		{
 			bIsAggressive = true;
-			Aggressor      = ClosestPlayer;
+			Aggressor      = Attacker;
 
 			if (AAIController* AIC = Cast<AAIController>(GetController()))
 			{
 				if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
 				{
-					if (!BB->GetValueAsObject(TEXT("TargetPlayer")))
-						BB->SetValueAsObject(TEXT("PendingTarget"), ClosestPlayer);
+					BB->SetValueAsObject(TEXT("TargetPlayer"), Attacker);
 				}
 			}
 
-			CallNearbyAllies(ClosestPlayer);
-			OnAttacked.Broadcast(this, ClosestPlayer);
+			CallNearbyAllies(Attacker);
+			OnAttacked.Broadcast(this, Attacker);
 			RequestState(EMonsterState::Aggressive);
 
 			if (AAIController* AIC = Cast<AAIController>(GetController()))
@@ -387,6 +398,49 @@ void AAIMonsterBase::ReceiveDamage(float Damage)
 void AAIMonsterBase::ReceiveDamageFrom(float Damage, AController* InstigatorController)
 {
 	ApplyDamage(Damage, InstigatorController);
+}
+
+void AAIMonsterBase::NotifyAttacked(AController* InstigatorController)
+{
+	if (Personality != EMonsterPersonality::Peaceful || bIsAggressive) return;
+
+	AActor* Attacker = nullptr;
+	if (InstigatorController && InstigatorController->GetPawn())
+	{
+		Attacker = InstigatorController->GetPawn();
+	}
+	else
+	{
+		float ClosestDist = DetectionRadius;
+		for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+		{
+			APlayerController* PC = It->Get();
+			if (!PC || !PC->GetPawn()) continue;
+			const float Dist = FVector::Dist(GetActorLocation(), PC->GetPawn()->GetActorLocation());
+			if (Dist < ClosestDist) { ClosestDist = Dist; Attacker = PC->GetPawn(); }
+		}
+	}
+
+	if (!Attacker) return;
+
+	bIsAggressive = true;
+	Aggressor = Attacker;
+
+	if (AAIController* AIC = Cast<AAIController>(GetController()))
+	{
+		if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
+		{
+			BB->SetValueAsObject(TEXT("TargetPlayer"), Attacker);  // TargetPlayer 직접 설정
+		}
+		if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AIC->GetBrainComponent()))
+		{
+			BTComp->RestartTree();
+		}
+	}
+
+	CallNearbyAllies(Attacker);
+	OnAttacked.Broadcast(this, Attacker);
+	RequestState(EMonsterState::Aggressive);
 }
 #pragma endregion
 
@@ -414,16 +468,28 @@ void AAIMonsterBase::PlayAttackMontage(int32 MontageIndex)
 {
 	if (bIsHit) return;
 	if (!AttackMontages.IsValidIndex(MontageIndex)) return;
+	if (!AttackMontages[MontageIndex]) return;
 
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	if (!MeshComp) return;
+	UAnimInstance* AnimInstance = MeshComp->GetAnimInstance();
 	if (!AnimInstance) return;
 
+	AnimInstance->OnMontageEnded.RemoveDynamic(this, &AAIMonsterBase::OnAttackMontageEnded);
 	AnimInstance->Montage_Play(AttackMontages[MontageIndex]);
 	AnimInstance->OnMontageEnded.AddDynamic(this, &AAIMonsterBase::OnAttackMontageEnded);
 }
 
 void AAIMonsterBase::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
+	if (!AttackMontages.Contains(Montage)) return;
+
+	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (AnimInstance)
+	{
+		AnimInstance->OnMontageEnded.RemoveDynamic(this, &AAIMonsterBase::OnAttackMontageEnded);
+	}
+	
 	bIsAttacking = false;
 	OnAttackFinished.ExecuteIfBound(!bInterrupted);
 }
@@ -521,7 +587,17 @@ void AAIMonsterBase::Die()
 
 	bIsDying     = true;
 	bIsAttacking = false;
+	
+	if (GetCapsuleComponent())
+	{
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
 
+	if (GetMesh())
+	{
+		GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	
 	// AI 정지
 	if (AAIController* AIC = Cast<AAIController>(GetController()))
 	{
@@ -548,6 +624,12 @@ void AAIMonsterBase::FinalizeDeath()
 	{
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
+	
+	if (GetMesh())
+	{
+		GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	
 	if (GetCharacterMovement())
 	{
 		GetCharacterMovement()->DisableMovement();
@@ -758,7 +840,7 @@ void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
 			if (UBlackboardComponent* BB = AllyAIC->GetBlackboardComponent())
 			{
 				if (!BB->GetValueAsObject(TEXT("TargetPlayer")))
-					BB->SetValueAsObject(TEXT("PendingTarget"), Enemy);
+					BB->SetValueAsObject(TEXT("TargetPlayer"), Enemy);
 			}
 			if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AllyAIC->GetBrainComponent()))
 			{

@@ -240,6 +240,8 @@ public:
 	/** 레거시 호환용 */
 	virtual void ReceiveDamage(float Damage);
 	void ReceiveDamageFrom(float Damage, AController* InstigatorController);
+	
+	void NotifyAttacked(AController* InstigatorController);
 #pragma endregion
 
 #pragma region Idle Animation

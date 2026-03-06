@@ -12,7 +12,7 @@ UUK_PlayerStatusAttributeSet::UUK_PlayerStatusAttributeSet()
 void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
 {
 	Super::PreAttributeChange(Attribute, NewValue);
-	
+
 	// 데미지 전처리
 	if (Attribute == GetDamageAttribute())
 	{
@@ -26,56 +26,57 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 	else if (Attribute == GetHealthAttribute())
 	{
 		const float OldValue = NewValue;
-		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxHealth());
-		
+		NewValue = FMath::Clamp(NewValue, 0.f, GetMaxHealth());
+
 		if (OldValue != NewValue)
 		{
-			UE_LOG(LogTemp, Log, TEXT("[AttributeSet] PreAttributeChange - Health clamped: %.1f → %.1f"), OldValue, NewValue);
+			UE_LOG(LogTemp, Log, TEXT("[AttributeSet] PreAttributeChange - Health clamped: %.1f → %.1f"), OldValue,
+			       NewValue);
 		}
-		
-		UE_LOG(LogTemp, Log, TEXT("   Health: %.1f → %.1f (Max: %.1f)"), 
-			OldValue, GetHealth(), GetMaxHealth());
-		
+
+		if (NewValue <= 0.f)
+		{
+		}
+		UE_LOG(LogTemp, Log, TEXT("   Health: %.1f → %.1f (Max: %.1f)"),
+		       OldValue, NewValue, GetMaxHealth());
 	}
 	// 최대채력 전처리
 	else if (Attribute == GetMaxHealthAttribute())
 	{
 		const float OldMaxHealth = GetMaxHealth();
-		
+
 		if (OldMaxHealth != NewValue)
 		{
 			UE_LOG(LogTemp, Log, TEXT("   Health adjusted: %.1f → %.1f"), OldMaxHealth, GetMaxHealth());
 		}
-		
-	}	
+	}
 	// 최대 MP 전 처리
 	else if (Attribute == GetMaxMpAttribute())
 	{
 		const float OldMaxHealth = GetMaxMp();
-		
-		
+
+
 		if (OldMaxHealth != NewValue)
 		{
 			UE_LOG(LogTemp, Log, TEXT("   Max Mp: %.1f → %.1f"), OldMaxHealth, NewValue);
 		}
-		
 	}
 	// MP 전처리
 	else if (Attribute == GetCurrentMpAttribute())
 	{
-		const float OldValue =  GetCurrentMp();
-		
+		const float OldValue = GetCurrentMp();
+
 		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxMp());
-		
-		
-		UE_LOG(LogTemp, Log, TEXT("   Mp: %.1f → %.1f (Max: %.1f)"), 
-			OldValue, NewValue, GetMaxMp());
+
+
+		UE_LOG(LogTemp, Log, TEXT("   Mp: %.1f → %.1f (Max: %.1f)"),
+		       OldValue, NewValue, GetMaxMp());
 	}
 	// 최대 스테미너 전처리
 	else if (Attribute == GetMaxStaminaAttribute())
 	{
 		const float OldMaxStamina = GetMaxStamina();
-		
+
 		if (OldMaxStamina != NewValue)
 		{
 			UE_LOG(LogTemp, Log, TEXT("   Max Stamina: %.1f → %.1f"), OldMaxStamina, NewValue);
@@ -85,37 +86,36 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 	else if (Attribute == GetCurrentStaminaAttribute())
 	{
 		const float OldValue = GetCurrentStamina();
-		
+
 		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxStamina());
-		
-		
-		UE_LOG(LogTemp, Log, TEXT("   Mp: %.1f → %.1f (Max: %.1f)"), 
-			OldValue, NewValue, GetMaxMp());
+
+
+		UE_LOG(LogTemp, Log, TEXT("   Mp: %.1f → %.1f (Max: %.1f)"),
+		       OldValue, NewValue, GetMaxMp());
 	}
 	// 최대 경험치 전처리
 	else if (Attribute == GetMaxEXPAttribute())
-	{		
+	{
 		const float OldMaxExp = GetMaxEXP();
-		
+
 		if (OldMaxExp != NewValue)
 		{
 			UE_LOG(LogTemp, Log, TEXT("   Max EXP: %.1f → %.1f"), OldMaxExp, NewValue);
 		}
-		
 	}
 	// 경험치 전처리
 	else if (Attribute == GetEXPAttribute())
 	{
 		const float OldValue = GetEXP();
-		
-		UE_LOG(LogTemp, Log, TEXT("   Mp: %.1f → %.1f (Max: %.1f)"), 
-			OldValue, NewValue, GetMaxMp());
+
+		UE_LOG(LogTemp, Log, TEXT("   Mp: %.1f → %.1f (Max: %.1f)"),
+		       OldValue, NewValue, GetMaxMp());
 	}
 	// 최대 레벨 전처리
 	else if (Attribute == GetMaxLevelAttribute())
 	{
 		const float OldValue = GetMaxLevel();
-		
+
 		if (OldValue != NewValue)
 		{
 			UE_LOG(LogTemp, Log, TEXT("   Max EXP: %.1f → %.1f"), OldValue, NewValue);
@@ -125,12 +125,12 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 	else if (Attribute == GetLevelAttribute())
 	{
 		const float OldValue = GetLevel();
-		
+
 		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxLevel());
-		
-		UE_LOG(LogTemp, Log, TEXT("   Mp: %.1f → %.1f (Max: %.1f)"), 
-			OldValue, NewValue, GetMaxLevel());
-	}	
+
+		UE_LOG(LogTemp, Log, TEXT("   Mp: %.1f → %.1f (Max: %.1f)"),
+		       OldValue, NewValue, GetMaxLevel());
+	}
 	// 방어력 전 처리 
 	else if (Attribute == GetLevelAttribute())
 	{
@@ -138,18 +138,24 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 }
 
 void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue,
-	float NewValue)
+                                                       float NewValue)
 {
 	// 데미지 후처리
 	if (Attribute == GetDamageAttribute())
 	{
-		DamageChanged.Broadcast(OldValue, NewValue);
-		SetDamage(0.f);
+		if (NewValue != 0.f)
+		{
+			DamageChanged.Broadcast(OldValue, NewValue);
+			float OldHealth = GetHealth();
+			SetHealth(FMath::Clamp(GetHealth() - GetDamage(), 0.0f, GetMaxHealth()));
+			UE_LOG(LogTemp, Display, TEXT("%f-> %f (MAX : %f)"), OldHealth, GetHealth(), GetMaxHealth())
+			SetDamage(0.f);
+		}
 	}
 	// 체력 후처리
 	else if (Attribute == GetHealthAttribute())
 	{
-		if (GetHealth() <= 0.0f)
+		if (GetHealth() <= 0.f)
 		{
 			HandleOutOfHealth();
 		}
@@ -160,7 +166,7 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 	{
 		SetHealth(GetMaxHealth());
 		MaxHealthChanged.Broadcast(OldValue, NewValue);
-	}	
+	}
 	// 최대 MP 후처리
 	else if (Attribute == GetMaxMpAttribute())
 	{
@@ -187,11 +193,11 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 	else if (Attribute == GetMaxEXPAttribute())
 	{
 		MaxEXPChanged.Broadcast(OldValue, NewValue);
-	}	
+	}
 	// 경험치 후처리
 	else if (Attribute == GetEXPAttribute())
 	{
-		if (GetMaxEXP() != 0 && GetMaxEXP() <= GetEXP() )
+		if (GetMaxEXP() != 0 && GetMaxEXP() <= GetEXP())
 		{
 			SetEXP(GetEXP() - GetMaxEXP());
 		}
@@ -206,7 +212,7 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 	else if (Attribute == GetLevelAttribute())
 	{
 		LevelChanged.Broadcast(OldValue, NewValue);
-	}	
+	}
 	// 방어력 후처리
 	else if (Attribute == GetLevelAttribute())
 	{
@@ -217,8 +223,14 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 
 void UUK_PlayerStatusAttributeSet::HandleOutOfHealth()
 {
-	if (AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(GetOwningActor()))
+	UE_LOG(LogTemp, Log, TEXT("OnDead"));
+
+	if (AActor* Avatar = GetOwningAbilitySystemComponent()->GetAvatarActor())
 	{
-		Player->Dead();
+		if (AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(Avatar))
+		{
+			UE_LOG(LogTemp, Log, TEXT("OnDead1"));
+			Player->Dead();
+		}
 	}
 }

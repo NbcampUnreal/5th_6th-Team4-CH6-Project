@@ -38,7 +38,6 @@ void UUK_BTService_DetectPlayer_Peaceful::TickNode(UBehaviorTreeComponent& Owner
 	if (IsValid(Monster->Aggressor))
 	{
 		BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, Monster->Aggressor);
-		AIController->SetFocus(Monster->Aggressor); 
 		return;
 	}
 
@@ -84,12 +83,10 @@ void UUK_BTService_DetectPlayer_Peaceful::TickNode(UBehaviorTreeComponent& Owner
 	if (BestTarget)
 	{
 		BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, BestTarget);
-		AIController->SetFocus(BestTarget);
 	}
 	else
 	{
 		BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
-		AIController->ClearFocus(EAIFocusPriority::Gameplay); 
 	}
 }
 #pragma endregion
