@@ -3,11 +3,17 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "ActorComponent/StatusComponent.h"
+#include "Containers/Map.h"
 #include "UK_MainHUD.generated.h"
 
 class UTextBlock;
 class UButton;
 class UUK_InvMain;
+
+class UUK_ItemNotify;
+class UVerticalBox;
+class UDataTable;
+class UUK_InventoryComponent;
 
 UCLASS()
 class UK_API UUK_MainHUD : public UUserWidget
@@ -65,4 +71,28 @@ protected:
 
 	UPROPERTY()
 	UUK_InvMain* InvMainWidget; // 생성된 위젯 참조 저장용
+	//Notify
+	UPROPERTY(meta = (BindWidget))
+	UVerticalBox* VB_ItemNotify = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ItemNotify")
+	TSubclassOf<UUK_ItemNotify> ItemNotifyClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ItemNotify")
+	UDataTable* ItemDataTable = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ItemNotify", meta = ( ClampMin = "1" ))
+	int32 MaxNotifyCount = 3;
+
+	UFUNCTION(BlueprintCallable)
+	void ShowItemNotify(FName ItemID, int32 Amount);
+
+	void NotifyChildren();
+
+	UPROPERTY()
+	UUK_InventoryComponent* InvComp = nullptr;
+
+
+	UPROPERTY()
+	TMap<FName, TObjectPtr<UUK_ItemNotify>> ActiveNotifyMap;
 };

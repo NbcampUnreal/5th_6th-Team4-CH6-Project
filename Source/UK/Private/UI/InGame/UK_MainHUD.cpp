@@ -5,6 +5,13 @@
 #include "UI/Inventory/UK_InvMain.h"
 #include "Kismet/GameplayStatics.h"
 
+//추가
+#include "UI/Inventory/UK_ItemNotify.h"
+#include "Components/VerticalBox.h"
+#include "Character/UK_CharacterBase.h"
+#include "ActorComponent/UK_InventoryComponent.h"
+#include "Blueprint/UserWidget.h"
+//끝
 void UUK_MainHUD::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -39,6 +46,17 @@ void UUK_MainHUD::NativeConstruct()
 	{
 		InventoryButton->OnClicked.AddDynamic(this, &UUK_MainHUD::OnInventoryButtonClicked);
 	}
+
+	AUK_CharacterBase* CB = Cast<AUK_CharacterBase>(GetOwningPlayerPawn());
+	if (CB)
+	{
+		InvComp = CB->GetInventoryComponent();
+		if (InvComp)
+		{
+			InvComp->OnItemAdded.AddDynamic(this, &UUK_MainHUD::ShowItemNotify);
+		}
+	}
+
 }
 
 void UUK_MainHUD::UpdateHealthBar(float CurrentHp, float MaxHp)
@@ -127,6 +145,55 @@ void UUK_MainHUD::OnInventoryButtonClicked()
 				PC->SetInputMode(FInputModeGameOnly());
 			}
 		}
+	}
+}
+
+void UUK_MainHUD::ShowItemNotify(FName ItemID, int32 Amount)
+{
+	if ( !VB_ItemNotify ) return;
+	if ( !ItemNotifyClass ) return;
+
+	//수정: IsInViewport() 쓰지 말고, VB에 붙어있는지(Parent 존재)로 체크
+	if ( TObjectPtr<UUK_ItemNotify>* Found = ActiveNotifyMap.Find(ItemID) ) //기존
+	{
+		if ( Found->Get() && Found->Get()->GetParent() != nullptr ) //수정
+		{
+			Found->Get()->AddAmount(Amount); //기존
+			return; //기존
+		}
+		else
+		{
+			ActiveNotifyMap.Remove(ItemID); //기존(정리)
+		}
+	}
+
+	UUK_ItemNotify* Notify = CreateWidget<UUK_ItemNotify>(GetWorld(), ItemNotifyClass);
+	if ( !Notify ) return;
+
+	Notify->ItemDataTable = ItemDataTable;
+	Notify->NotifyItem(ItemID, Amount);
+
+	VB_ItemNotify->AddChild(Notify);
+
+	ActiveNotifyMap.Add(ItemID, Notify); //기존
+
+	NotifyChildren();
+}
+
+void UUK_MainHUD::NotifyChildren()
+{
+	if (!VB_ItemNotify) return;
+
+	while (VB_ItemNotify->GetChildrenCount() > MaxNotifyCount)
+	{
+		UWidget* Oldest = VB_ItemNotify->GetChildAt(0);
+
+		if (UUK_ItemNotify* OldNotify = Cast<UUK_ItemNotify>(Oldest))
+		{
+			ActiveNotifyMap.Remove(OldNotify->GetItemID());
+		}
+
+		VB_ItemNotify->RemoveChildAt(0);
 	}
 }
 

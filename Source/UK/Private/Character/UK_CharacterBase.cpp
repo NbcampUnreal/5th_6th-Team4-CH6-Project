@@ -7,7 +7,6 @@
 #include "AIMonster/AIMonsterBase.h"
 #include "AIMonster/Component/AI_MonsterStatComponent.h"
 #include "Tags/UK_GameplayTags.h"
-#include "ActorComponent/StatusComponent.h"
 #include "ActorComponent/UK_InventoryComponent.h"
 #include "NPC/Component/UK_InteractionComponent.h"
 #include "NPC/Component/UK_QuestComponent.h"
@@ -80,31 +79,15 @@ AUK_CharacterBase::AUK_CharacterBase() :
 	LeftHandWeaponComponent->SetupAttachment(SkeletalMeshComp, TEXT("Weapon_lSocket"));
 	LeftHandWeaponComponent->SetLeaderPoseComponent(SkeletalMeshComp);
 
-	StatusComponent = CreateDefaultSubobject<UStatusComponent>(TEXT("StatusComponent"));
 	InventoryComponent = CreateDefaultSubobject<UUK_InventoryComponent>(TEXT("InventoryComponent"));
 	InteractionComp = CreateDefaultSubobject<UUK_InteractionComponent>(TEXT("InteractionComponent"));
 	QuestComp = CreateDefaultSubobject<UUK_QuestComponent>(TEXT("QuestComponent"));
-}
-
-void AUK_CharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME_CONDITION(AUK_CharacterBase, StatusComponent, COND_None);
-	DOREPLIFETIME_CONDITION(AUK_CharacterBase, CurrentWeaponTag, COND_None);
-	DOREPLIFETIME_CONDITION(AUK_CharacterBase, bIsInInput, COND_None);
-}
-
-void AUK_CharacterBase::OnRep_RightHandWeapon()
-{
 }
 
 // Called when the game starts or when spawned
 void AUK_CharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
-
-	StatusComponent->OnDeadDelegate.AddDynamic(this, &AUK_CharacterBase::Dead);
 
 	PC = Cast<AUK_PlayerController>(GetController());
 
@@ -164,16 +147,9 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	                        ETriggerEvent::Started, this, &ThisClass::NomalSkill);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::UltimateSkill),
 	                        ETriggerEvent::Started, this, &ThisClass::UltimateSkill);
-}
-
-void AUK_CharacterBase::OnRep_PlayerState()
-{
-	Super::OnRep_PlayerState();
-
-	if (!IsValid(GetAbilitySystemComponent()))
-		return;
-
-	GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
+	// 패링 단축기 Y입니다
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::Parry),
+	                        ETriggerEvent::Started, this, &ThisClass::Parry);
 }
 
 void AUK_CharacterBase::PossessedBy(AController* NewController)
@@ -184,6 +160,11 @@ void AUK_CharacterBase::PossessedBy(AController* NewController)
 
 	GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
 	GiveStartupAbilities();
+	AUK_PlayerState* PS = Cast<AUK_PlayerState>(GetPlayerState());
+	if (IsValid(PS))
+	{
+		PS->InitializeAttributes();
+	}
 }
 
 void AUK_CharacterBase::Landed(const FHitResult& Hit)
@@ -195,7 +176,7 @@ void AUK_CharacterBase::Landed(const FHitResult& Hit)
 	}
 
 	FGameplayEventData EventData;
-	EventData.EventTag = FGameplayTag::RequestGameplayTag("Action.DropAttack");
+	EventData.EventTag = UK_GameplayTags::Action::DropAttack;
 
 	GetAbilitySystemComponent()->HandleGameplayEvent(EventData.EventTag, &EventData);
 }
@@ -272,9 +253,6 @@ void AUK_CharacterBase::Look(const FInputActionValue& InputActionValue)
 
 void AUK_CharacterBase::Sprint()
 {
-	if (StatusComponent->IsDead())
-		return;
-
 	if (bIsSprinted == false)
 	{
 		GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
@@ -289,10 +267,6 @@ void AUK_CharacterBase::Sprint()
 
 void AUK_CharacterBase::LightAttack()
 {
-	if (StatusComponent->IsDead())
-	{
-		return;
-	}
 	float Distace = 0.f;
 	if (GetCharacterMovement()->IsFalling() == true)
 	{
@@ -338,10 +312,6 @@ void AUK_CharacterBase::LightAttack()
 
 void AUK_CharacterBase::HeavyAttack()
 {
-	if (StatusComponent->IsDead())
-	{
-		return;
-	}
 	bIsInInput = true;
 	FGameplayTagContainer Container;
 	Container.AddTag(UK_GameplayTags::Action::HeavyAttack);
@@ -350,10 +320,6 @@ void AUK_CharacterBase::HeavyAttack()
 
 void AUK_CharacterBase::NomalSkill()
 {
-	if (StatusComponent->IsDead())
-	{
-		return;
-	}
 	bIsInInput = true;
 	FGameplayTagContainer Container;
 	Container.AddTag(UK_GameplayTags::Input::NomalSkill);
@@ -362,21 +328,22 @@ void AUK_CharacterBase::NomalSkill()
 
 void AUK_CharacterBase::UltimateSkill()
 {
-	if (StatusComponent->IsDead())
-	{
-		return;
-	}
-
 	bIsInInput = true;
 	FGameplayTagContainer Container;
 	Container.AddTag(UK_GameplayTags::Input::UltimateSkill);
 	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
 }
 
+void AUK_CharacterBase::Parry()
+{
+	bIsInInput = true;
+	FGameplayTagContainer Container;
+	Container.AddTag(UK_GameplayTags::Action::Parry);
+	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
+}
+
 void AUK_CharacterBase::CrouchInput()
 {
-	if (StatusComponent->IsDead())
-		return;
 	if (GetCharacterMovement()->IsFalling() == true)
 		return;
 
@@ -394,8 +361,6 @@ void AUK_CharacterBase::CrouchInput()
 
 void AUK_CharacterBase::ToggleMouse()
 {
-	if (StatusComponent->IsDead())
-		return;
 
 	if (PC == nullptr)
 		return;
@@ -414,9 +379,6 @@ void AUK_CharacterBase::Interaction()
 
 void AUK_CharacterBase::Setting()
 {
-	if (StatusComponent->IsDead())
-		return;
-
 	if (PC == nullptr)
 		return;
 
@@ -425,10 +387,6 @@ void AUK_CharacterBase::Setting()
 
 void AUK_CharacterBase::ZoomIn()
 {
-	if (StatusComponent->IsDead())
-	{
-		return;
-	}
 
 	if (!IsValid(SpringArmComp))
 	{
@@ -447,10 +405,6 @@ void AUK_CharacterBase::ZoomIn()
 
 void AUK_CharacterBase::ZoomOut()
 {
-	if (StatusComponent->IsDead())
-	{
-		return;
-	}
 	if (!IsValid(SpringArmComp))
 	{
 		return;
@@ -591,7 +545,8 @@ void AUK_CharacterBase::LockONTick()
 
 		if (Monster->IsDead() == false)
 		{
-			if (const float Distance = FVector::Dist(GetActorLocation(), Monster->GetActorLocation()); Distance > MaxLockDistance)
+			if (const float Distance = FVector::Dist(GetActorLocation(), Monster->GetActorLocation()); Distance >
+				MaxLockDistance)
 			{
 				bIsLock = false;
 				GetWorld()->GetTimerManager().ClearTimer(LockOnTimer);
@@ -713,36 +668,6 @@ void AUK_CharacterBase::SwapWeapon(int32 Index)
 	EquipWeapon(ItemData->ItemTag);
 }
 
-void AUK_CharacterBase::OnRep_CurrentWeaponTag()
-{
-	UUK_StatusAnimData* Weapon = WeaponList->FindAnimsDataAssetByTag(CurrentWeaponTag);
-	NowWeapon = Weapon;
-	if (IsValid(Weapon->GetRightHandWeapon()))
-	{
-		RightHandWeaponComponent->SetSkeletalMesh(Weapon->GetRightHandWeapon());
-
-		RightHandWeaponComponent->SetRelativeLocation(Weapon->GetRightLocationOffset());
-		RightHandWeaponComponent->SetRelativeRotation(Weapon->GetRightRotationOffset());
-	}
-	else
-	{
-		RightHandWeaponComponent->SetSkeletalMesh(nullptr);
-	}
-	if (IsValid(Weapon->GetLeftHandWeapon()))
-	{
-		LeftHandWeaponComponent->SetSkeletalMesh(Weapon->GetLeftHandWeapon());
-		LeftHandWeaponComponent->SetRelativeLocation(Weapon->GetLeftLocationOffset());
-		LeftHandWeaponComponent->SetRelativeRotation(Weapon->GetLeftRotationOffset());
-	}
-	else
-	{
-		LeftHandWeaponComponent->SetSkeletalMesh(nullptr);
-	}
-}
-
-void AUK_CharacterBase::OnRep_NowWeapon()
-{
-}
 #pragma endregion
 
 #pragma region Battle
@@ -771,28 +696,17 @@ void AUK_CharacterBase::ReceiveDamage(float Damage)
 {
 	if (!HasAuthority()) return;
 
-	if (IsValid(StatusComponent))
-	{
-		StatusComponent->TakeDamage(Damage);
-	}
 }
 
 float AUK_CharacterBase::ApplyDamage()
 {
-	if (IsValid(StatusComponent))
-	{
-		return StatusComponent->ApplyDamage();
-	}
 	return 0.f;
 }
 
 void AUK_CharacterBase::Dead()
 {
+	OnDead.Broadcast();
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
-}
-
-void AUK_CharacterBase::OnRep_InInput()
-{
 }
 
 void AUK_CharacterBase::UpdateMonsterDetection()
@@ -829,7 +743,3 @@ void AUK_CharacterBase::UpdateMonsterDetection()
 	NearbyMonsters = NewSet;
 }
 #pragma endregion
-void AUK_CharacterBase::OnRep_fry()
-{
-}
-

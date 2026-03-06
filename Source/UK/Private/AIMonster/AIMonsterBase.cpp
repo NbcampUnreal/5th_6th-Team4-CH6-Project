@@ -3,9 +3,11 @@
 #include "AIMonster/UK_AiMonsterCtl.h"
 #include "AIMonster/AttibuteSet/UK_MonsterAttributeSet.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemInterface.h"
 #include "GameplayEffect.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "Character/UK_CharacterBase.h"
+#include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
 #include "Kismet/GameplayStatics.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BrainComponent.h"
@@ -13,6 +15,9 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Quest/UKQuestManagerSubsystem.h"
+#include "Tags/UK_GameplayTags.h"
+#include "DrawDebugHelpers.h"
+#include "Sound/SoundCue.h"
 
 #pragma region Initialization
 AAIMonsterBase::AAIMonsterBase()
@@ -30,8 +35,8 @@ AAIMonsterBase::AAIMonsterBase()
 
 	if (GetCharacterMovement())
 	{
-		GetCharacterMovement()->bOrientRotationToMovement     = true;
-		GetCharacterMovement()->bUseControllerDesiredRotation = false;
+		GetCharacterMovement()->bOrientRotationToMovement     = false;  
+		GetCharacterMovement()->bUseControllerDesiredRotation = true;
 		GetCharacterMovement()->RotationRate                  = FRotator(0.f, 540.f, 0.f);
 	}
 
@@ -44,14 +49,15 @@ AAIMonsterBase::AAIMonsterBase()
 	HPWidgetComponent->SetRelativeLocation(FVector(0, 0, 120.f));
 	HPWidgetComponent->SetVisibility(false);
 	
-	// Alert Icon Widget 설치
+	// Alert Icon Widget 설치 (HPBar 바로 위)
 	AlertWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("AlertWidgetComponent"));
-	AlertWidgetComponent->SetupAttachment(GetMesh());
-	AlertWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);   
-	AlertWidgetComponent->SetDrawAtDesiredSize(true);
-	AlertWidgetComponent->SetDrawSize(FVector2D(64.f, 64.f));
-	AlertWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, 160.f)); 
+	AlertWidgetComponent->SetupAttachment(RootComponent);
+	AlertWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
+	AlertWidgetComponent->SetDrawAtDesiredSize(true);  
+	AlertWidgetComponent->SetPivot(FVector2D(0.5f, 0.5f));
 	AlertWidgetComponent->SetVisibility(false);
+	AlertWidgetComponent->SetCullDistance(AlertWidgetCullDistance);
+	AlertWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, 225.f));
 }
 
 void AAIMonsterBase::BeginPlay()
@@ -91,6 +97,18 @@ void AAIMonsterBase::BeginPlay()
 			&AAIMonsterBase::UpdateHPBarWidget,
 			0.05f, true);
 	}
+	
+	if (AlertWidgetComponent && AlertWidget)
+	{
+		AlertWidget->SetVisibility(ESlateVisibility::Collapsed);
+		AlertWidgetComponent->SetVisibility(false);
+		AlertWidgetComponent->SetHiddenInGame(true);
+		
+		UE_LOG(LogTemp, Log, TEXT("[Alert] %s: Widget hidden in BeginPlay ✓"), *GetName());
+	}
+
+	// ── 플레이어 레벨 기반 스탯 자동 초기화 ─────────────────────────────
+	AutoInitStatsFromNearestPlayer();
 }
 
 void AAIMonsterBase::PostInitializeComponents()
@@ -111,6 +129,24 @@ void AAIMonsterBase::PostInitializeComponents()
 	if (AlertWidgetComponent && AlertWidgetClass)
 	{
 		AlertWidgetComponent->SetWidgetClass(AlertWidgetClass);
+		AlertWidgetComponent->InitWidget();
+		
+		AlertWidget = AlertWidgetComponent->GetUserWidgetObject();
+		
+		if (AlertWidget)
+		{
+			AlertWidget->SetVisibility(ESlateVisibility::Collapsed);
+			UE_LOG(LogTemp, Log, TEXT("[Alert] %s: Widget initialized ✓"), *GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[Alert] %s: Widget initialization failed ✗"), *GetName());
+		}
+	}
+	else
+	{
+		if (!AlertWidgetClass)
+			UE_LOG(LogTemp, Warning, TEXT("[Alert] %s: AlertWidgetClass not set in BP"), *GetName());
 	}
 }
 
@@ -132,6 +168,24 @@ void AAIMonsterBase::SetState(EMonsterState NewState)
 	EMonsterState OldState = CurrentState;
 	CurrentState = NewState;
 
+	// 상태별 회전 업데이트 자동 제어
+	switch (NewState)
+	{
+	case EMonsterState::Chase:
+	case EMonsterState::Attack:
+	case EMonsterState::Alert:
+	case EMonsterState::Aggressive:
+		StartRotationUpdate();
+		break;
+            
+	case EMonsterState::Idle:
+	case EMonsterState::Patrol:
+	case EMonsterState::Dead:
+	case EMonsterState::Passive:
+		StopRotationUpdate();
+		break;
+	}
+
 	OnStateChanged.Broadcast(OldState, NewState);
 }
 #pragma endregion
@@ -140,10 +194,32 @@ void AAIMonsterBase::SetState(EMonsterState NewState)
 void AAIMonsterBase::SetAIActive(bool bActive) {}
 void AAIMonsterBase::OnIdle()                  {}
 void AAIMonsterBase::OnPatrol()                {}
-void AAIMonsterBase::OnChase(float DeltaSeconds) {}
-void AAIMonsterBase::OnDead()                  {}
-void AAIMonsterBase::OnPassive()               {}
-void AAIMonsterBase::OnAlert()                 {}
+
+void AAIMonsterBase::OnChase(float DeltaSeconds) 
+{
+	if (bUseSmoothRotation)
+	{
+		StartRotationUpdate();
+	}
+}
+
+void AAIMonsterBase::OnDead()
+{
+	StopRotationUpdate();
+}
+
+void AAIMonsterBase::OnPassive()
+{
+	StopRotationUpdate();
+}
+
+void AAIMonsterBase::OnAlert()
+{
+	if (bUseSmoothRotation)
+	{
+		StartRotationUpdate();
+	}
+}
 
 void AAIMonsterBase::OnAttack()
 {
@@ -212,18 +288,8 @@ void AAIMonsterBase::ApplyDamage(float DamageAmount, AController* InstigatorCont
 
 	if (SpecHandle.IsValid())
 	{
-		// Damage 값 설정
-		FGameplayTag DamageTag = FGameplayTag::RequestGameplayTag(FName("Data.Damage"));
-		
-		if (!DamageTag.IsValid())
-		{
-			UE_LOG(LogTemp, Error, TEXT("[%s] ✗✗✗ CRITICAL: GameplayTag 'Data.Damage' NOT REGISTERED!"), 
-				*GetName());
-			UE_LOG(LogTemp, Error, TEXT("   → Project Settings → GameplayTags에서 Data.Damage 추가 필요"));
-			return;
-		}
-		
-		SpecHandle.Data->SetSetByCallerMagnitude(DamageTag, DamageAmount);
+		// 네이티브 태그 사용 (UK_GameplayTags::Data::Damage)
+		SpecHandle.Data->SetSetByCallerMagnitude(UK_GameplayTags::Data::Damage, DamageAmount);
 		
 		UE_LOG(LogTemp, Warning, TEXT("[%s] ✓ Applying GameplayEffect: %.1f damage"), 
 			*GetName(), DamageAmount);
@@ -487,6 +553,11 @@ void AAIMonsterBase::FinalizeDeath()
 	}
 }
 
+void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+}
+
 void AAIMonsterBase::HideAndBroadcastDeath()
 {
 	HideCorpse();
@@ -706,6 +777,115 @@ void AAIMonsterBase::ResetToPassive()
 }
 #pragma endregion
 
+#pragma region Stat Scaling (Player Level Based)
+// ── 몬스터 종류별 기본 방어력 테이블 ─────────────────────────────────────────
+//   최종 방어력 = (PlayerLevel / 2) + 아래 값
+//   ──────────────────────────────────────────────────────────────────────
+//   EliteGolem  : +40   
+//   Golem       : +30   
+//   Wolf        : +15   
+//   Fox         : +10   
+//   Reindeer    :  +5   
+//   None        :   0
+// ─────────────────────────────────────────────────────────────────────────
+float AAIMonsterBase::GetMonsterTypeBaseDefense(EMonsterType Type)
+{
+	switch (Type)
+	{
+	case EMonsterType::EliteGolem: return 40.f;
+	case EMonsterType::Golem:      return 30.f;
+	case EMonsterType::Wolf:       return 15.f;
+	case EMonsterType::Fox:        return 10.f;
+	case EMonsterType::Reindeer:   return  5.f;
+	default:                       return  0.f;
+	}
+}
+
+float AAIMonsterBase::CalculateAttackDamage(int32 PlayerLevel)
+{
+	// 일반 공격: PlayerLevel × 3.14
+	return static_cast<float>(PlayerLevel) * 3.14f;
+}
+
+float AAIMonsterBase::CalculateAoEDamage(int32 PlayerLevel)
+{
+	// 광역 공격: 일반 공격 × 1.5
+	return CalculateAttackDamage(PlayerLevel) * 1.5f;
+}
+
+float AAIMonsterBase::CalculateDefense(int32 PlayerLevel, EMonsterType Type)
+{
+	// 방어력: (PlayerLevel / 2) + 종류별 기본 방어력
+	return (static_cast<float>(PlayerLevel) * 0.5f) + GetMonsterTypeBaseDefense(Type);
+}
+
+void AAIMonsterBase::InitializeStatsFromPlayerLevel(int32 PlayerLevel)
+{
+	if (PlayerLevel <= 0) return;
+
+	// 공격력 갱신
+	AttackDamage = CalculateAttackDamage(PlayerLevel);
+
+	// 방어력 갱신 (GAS Attribute)
+	const float NewDefense = CalculateDefense(PlayerLevel, MonsterType);
+	if (AbilitySystemComponent && AttributeSet)
+	{
+		AbilitySystemComponent->SetNumericAttributeBase(
+			AttributeSet->GetDefenseAttribute(), NewDefense);
+	}
+
+	UE_LOG(LogTemp, Log,
+		TEXT("[%s] InitializeStatsFromPlayerLevel | Lv=%d | ATK=%.1f | DEF=%.1f (Base=%.1f)"),
+		*GetName(), PlayerLevel,
+		AttackDamage, NewDefense, GetMonsterTypeBaseDefense(MonsterType));
+}
+
+void AAIMonsterBase::AutoInitStatsFromNearestPlayer()
+{
+	if (!GetWorld()) return;
+
+	int32  BestLevel  = 1;
+	float  BestDistSq = FLT_MAX;
+
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		APlayerController* PC = It->Get();
+		if (!PC) continue;
+
+		AUK_CharacterBase* PlayerChar = Cast<AUK_CharacterBase>(PC->GetPawn());
+		if (!PlayerChar) continue;
+
+		const float DistSq = FVector::DistSquared(GetActorLocation(), PlayerChar->GetActorLocation());
+		if (DistSq >= BestDistSq) continue;
+
+		BestDistSq = DistSq;
+
+		// ── 플레이어 레벨 산출 ────────────────────────────────────────────
+		// UK_CharacterBase 에 GetCharacterLevel() 이 없으므로
+		// PlayerStatusAttributeSet::AttackPower 에서 역산
+		//   AttackPower = PlayerLevel × 3.14  →  Level = round(AP / 3.14)
+		// ASC 접근
+		if (IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(PlayerChar))
+		{
+			if (UAbilitySystemComponent* PlayerASC = ASCInterface->GetAbilitySystemComponent())
+			{
+				if (const UUK_PlayerStatusAttributeSet* PlayerAttr =
+					PlayerASC->GetSet<UUK_PlayerStatusAttributeSet>())
+				{
+					const float AP = PlayerAttr->GetAttackPower();
+					if (AP > 0.f)
+					{
+						BestLevel = FMath::Max(1, FMath::RoundToInt(AP / 3.14f));
+					}
+				}
+			}
+		}
+	}
+
+	InitializeStatsFromPlayerLevel(BestLevel);
+}
+#pragma endregion
+
 #pragma region HP Bar Widget
 void AAIMonsterBase::ShowHPBar()
 {
@@ -755,27 +935,60 @@ void AAIMonsterBase::UpdateHPBarWidget()
 #pragma region Alert Icon
 void AAIMonsterBase::ShowAlertIcon()
 {
-	if (!AlertWidgetComponent) return;
+	if (bIsAlerting) return;
+	if (!AlertWidgetComponent || !AlertWidget) return;
 
-	if (!AlertWidgetComponent->GetUserWidgetObject() && AlertWidgetClass)
-	{
-		AlertWidgetComponent->SetWidgetClass(AlertWidgetClass);
-		AlertWidgetComponent->InitWidget();
-	}
+	bIsAlerting = true;
 
 	AlertWidgetComponent->SetVisibility(true);
-
-	if (UUserWidget* W = AlertWidgetComponent->GetUserWidgetObject())
-		W->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	AlertWidgetComponent->SetHiddenInGame(false);
+	AlertWidget->SetVisibility(ESlateVisibility::Visible);
+	
+	if (HowlSound)
+	{
+		UGameplayStatics::PlaySound2D(this, HowlSound);
+	}
 }
 
 void AAIMonsterBase::HideAlertIcon()
 {
-	if (!AlertWidgetComponent) return;
+	if (!bIsAlerting) return;
+	if (!AlertWidgetComponent || !AlertWidget) return;
 
-	if (UUserWidget* W = AlertWidgetComponent->GetUserWidgetObject())
-		W->SetVisibility(ESlateVisibility::Collapsed);
+	bIsAlerting = false;
 
+	AlertWidget->SetVisibility(ESlateVisibility::Collapsed);
 	AlertWidgetComponent->SetVisibility(false);
+	AlertWidgetComponent->SetHiddenInGame(true);
 }
+#pragma endregion
+
+#pragma region Rotation System
+void AAIMonsterBase::StartRotationUpdate()
+{
+	if (!GetWorld()) return;
+    
+	if (GetWorldTimerManager().IsTimerActive(RotationTimerHandle))
+		return;
+    
+	GetWorldTimerManager().SetTimer(
+		RotationTimerHandle,
+		this,
+		&AAIMonsterBase::UpdateRotation,
+		RotationUpdateInterval,
+		true
+	);
+}
+
+void AAIMonsterBase::StopRotationUpdate()
+{
+	if (!GetWorld()) return;
+    
+	if (GetWorldTimerManager().IsTimerActive(RotationTimerHandle))
+	{
+		GetWorldTimerManager().ClearTimer(RotationTimerHandle);
+	}
+}
+
+void AAIMonsterBase::UpdateRotation(){}
 #pragma endregion

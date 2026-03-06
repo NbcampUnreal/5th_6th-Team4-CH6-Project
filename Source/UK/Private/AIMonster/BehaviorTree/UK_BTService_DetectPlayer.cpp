@@ -62,9 +62,23 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 	if (Memory->bReturning)
 	{
 		if (DistFromSpawn <= ReturnDistanceThreshold)
+		{
+			// 복귀 완료
 			Memory->bReturning = false;
-		else
+		
+			BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
+			BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
+			Memory->bHadTarget = false;
+		
+			UE_LOG(LogTemp, Warning, TEXT("[DetectPlayer] %s: ✓ Return completed, ready for patrol"), 
+				*GetName());
+		
 			return;
+		}
+		else
+		{
+			return;  
+		}
 	}
 
 	// 추격 한계 초과 → 강제 이탈 처리 (AlertStandby도 Abort됨)
@@ -122,7 +136,10 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 	if (BestTarget)
 	{
 		if (!Memory->bHadTarget)
+		{
 			BlackboardComp->SetValueAsObject(PendingTargetKey.SelectedKeyName, BestTarget);
+			AIController->SetFocus(BestTarget);
+		}
 
 		Memory->bHadTarget = true;
 	}
@@ -131,6 +148,7 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 		BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
 		BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
 		Memory->bHadTarget = false;
+		AIController->ClearFocus(EAIFocusPriority::Gameplay);
 	}
 }
 #pragma endregion
