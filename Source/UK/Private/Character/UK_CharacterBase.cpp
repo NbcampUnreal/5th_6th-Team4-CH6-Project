@@ -5,6 +5,7 @@
 #include "Character/UK_PlayerState.h"
 #include "Character/Weapon/UK_WeaponBase.h"
 #include "AIMonster/AIMonsterBase.h"
+#include "InputAction.h"
 #include "AIMonster/Component/AI_MonsterStatComponent.h"
 #include "Tags/UK_GameplayTags.h"
 #include "ActorComponent/UK_InventoryComponent.h"
@@ -109,8 +110,10 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	{
 		return;
 	}
+	if (IsValid(InputMappingConfig) == false)
+		return;
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Move),
-	                        ETriggerEvent::Triggered, this, &ThisClass::Move);
+	                        ETriggerEvent::Triggered, this, &ThisClass::Move);	
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Look),
 	                        ETriggerEvent::Triggered, this, &AUK_CharacterBase::Look);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Jump),
