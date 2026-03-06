@@ -99,6 +99,7 @@ void AUK_CharacterBase::BeginPlay()
 		0.3f,
 		true
 	);
+	DefualtGravity = GetCharacterMovement()->GravityScale;
 }
 
 void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -113,7 +114,7 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	if (IsValid(InputMappingConfig) == false)
 		return;
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Move),
-	                        ETriggerEvent::Triggered, this, &ThisClass::Move);	
+	                        ETriggerEvent::Triggered, this, &ThisClass::Move);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Look),
 	                        ETriggerEvent::Triggered, this, &AUK_CharacterBase::Look);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Jump),
@@ -299,15 +300,20 @@ void AUK_CharacterBase::LightAttack()
 		}
 	}
 	UE_LOG(LogTemp, Display, TEXT("%f"), Distace);
-	bIsInInput = true;
 	FGameplayTagContainer Container;
-	if (GetCharacterMovement()->IsFalling() == true && Distace > 140)
+	if (GetCharacterMovement()->IsFalling() == true )
 	{
-		Container.AddTag(UK_GameplayTags::Action::AirAttack);
-		GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
+		InputType = EInputMode::Air;
+		UE_LOG(LogTemp, Display, TEXT("%s"), *GetName());
+		if (Distace > 140)
+		{
+			Container.AddTag(UK_GameplayTags::Action::AirAttack);
+			GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
+		}
 	}
 	else
 	{
+		InputType = EInputMode::Light;
 		Container.AddTag(UK_GameplayTags::Action::LightAttack);
 		GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
 	}
@@ -315,7 +321,7 @@ void AUK_CharacterBase::LightAttack()
 
 void AUK_CharacterBase::HeavyAttack()
 {
-	bIsInInput = true;
+	InputType = EInputMode::Heavy;
 	FGameplayTagContainer Container;
 	Container.AddTag(UK_GameplayTags::Action::HeavyAttack);
 	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
@@ -323,7 +329,7 @@ void AUK_CharacterBase::HeavyAttack()
 
 void AUK_CharacterBase::NomalSkill()
 {
-	bIsInInput = true;
+	InputType = EInputMode::NormalSkill;
 	FGameplayTagContainer Container;
 	Container.AddTag(UK_GameplayTags::Input::NomalSkill);
 	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
@@ -331,7 +337,7 @@ void AUK_CharacterBase::NomalSkill()
 
 void AUK_CharacterBase::UltimateSkill()
 {
-	bIsInInput = true;
+	InputType = EInputMode::UltimateSkill;
 	FGameplayTagContainer Container;
 	Container.AddTag(UK_GameplayTags::Input::UltimateSkill);
 	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
@@ -339,7 +345,7 @@ void AUK_CharacterBase::UltimateSkill()
 
 void AUK_CharacterBase::Parry()
 {
-	bIsInInput = true;
+	InputType = EInputMode::Parry;
 	FGameplayTagContainer Container;
 	Container.AddTag(UK_GameplayTags::Action::Parry);
 	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
@@ -364,7 +370,6 @@ void AUK_CharacterBase::CrouchInput()
 
 void AUK_CharacterBase::ToggleMouse()
 {
-
 	if (PC == nullptr)
 		return;
 
@@ -390,7 +395,6 @@ void AUK_CharacterBase::Setting()
 
 void AUK_CharacterBase::ZoomIn()
 {
-
 	if (!IsValid(SpringArmComp))
 	{
 		return;
@@ -679,8 +683,10 @@ void AUK_CharacterBase::StopJumpAndFly()
 {
 	bIsfry = true;
 	UCharacterMovementComponent* PlayerMovement = GetCharacterMovement();
-	PlayerMovement->SetMovementMode(EMovementMode::MOVE_None);
 	StopJumping();
+	PlayerMovement->Velocity = FVector::ZeroVector;
+	PlayerMovement->GravityScale = 0.f;
+	//PlayerMovement->SetMovementMode(EMovementMode::MOVE_None);
 
 	PlayerMovement->SetJumpAllowed(false);
 }
@@ -690,12 +696,13 @@ void AUK_CharacterBase::EndComboAttack()
 	if (bIsfry == false)
 		return;
 	UCharacterMovementComponent* PlayerMovement = GetCharacterMovement();
+	PlayerMovement->GravityScale = DefualtGravity;
 	PlayerMovement->SetMovementMode(EMovementMode::MOVE_Walking);
 	PlayerMovement->SetJumpAllowed(true);
 	bIsfry = false;
 }
 
-void AUK_CharacterBase::ReceiveDamage(float Damage)
+/*void AUK_CharacterBase::ReceiveDamage(float Damage)
 {
 	if (!HasAuthority()) return;
 
@@ -704,7 +711,7 @@ void AUK_CharacterBase::ReceiveDamage(float Damage)
 float AUK_CharacterBase::ApplyDamage()
 {
 	return 0.f;
-}
+}*/
 
 void AUK_CharacterBase::Dead()
 {
