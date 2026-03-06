@@ -50,7 +50,10 @@ namespace UK_GameplayTags
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Next, "Attack.Next", "Next Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(HitCheck, "Attack.HitCheck", "HitCheck Ability")
 	}
-
+	namespace Status
+	{
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Dead, "Status.Dead", "PlayerStatus")
+	}
 	namespace Data
 	{
 		namespace Damages
