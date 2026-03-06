@@ -325,6 +325,38 @@ protected:
 
 #pragma endregion
 	
+#pragma region Stat Scaling (Player Level Based)
+public:
+	/**
+	 * 플레이어 레벨 기반 몬스터 스탯 초기화
+	 * BeginPlay 또는 스폰 시 호출 – 서브클래스에서 override 가능
+	 *
+	 *  공격력  = PlayerLevel × 3.14
+	 *  방어력  = (PlayerLevel / 2) + GetMonsterTypeBaseDefense(MonsterType)
+	 */
+	virtual void InitializeStatsFromPlayerLevel(int32 PlayerLevel);
+
+	/** 몬스터 종류별 기본 방어력 (플레이어 레벨 보정값에 추가) */
+	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
+	static float GetMonsterTypeBaseDefense(EMonsterType Type);
+
+	/** 일반 공격 데미지 = PlayerLevel × 3.14 */
+	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
+	static float CalculateAttackDamage(int32 PlayerLevel);
+
+	/** 광역 공격 데미지 = (PlayerLevel × 3.14) × 1.5 */
+	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
+	static float CalculateAoEDamage(int32 PlayerLevel);
+
+	/** 방어력 = (PlayerLevel / 2) + 종류별 기본 방어력 */
+	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
+	static float CalculateDefense(int32 PlayerLevel, EMonsterType Type);
+
+private:
+	/** BeginPlay 에서 첫 번째 플레이어 레벨로 스탯 자동 초기화 */
+	void AutoInitStatsFromNearestPlayer();
+#pragma endregion
+
 #pragma region Rotation System
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Rotation")

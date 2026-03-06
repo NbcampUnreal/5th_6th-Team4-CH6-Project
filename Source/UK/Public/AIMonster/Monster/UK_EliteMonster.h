@@ -17,6 +17,12 @@ class UK_API AUK_EliteMonster : public AAIMonsterBase
 #pragma region Initialization
 public:
 	AUK_EliteMonster();
+
+	/**
+	 * 플레이어 레벨 기반 엘리트 스탯 초기화 (override)
+	 * 부모 공식 + 광역 공격 데미지 = (PlayerLevel × 3.14) × 1.5
+	 */
+	virtual void InitializeStatsFromPlayerLevel(int32 PlayerLevel) override;
 #pragma endregion
 
 #pragma region Special Attack
