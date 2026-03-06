@@ -53,7 +53,29 @@ namespace UK_GameplayTags
 
 	namespace Data
 	{
+		namespace Damages
+		{
+			namespace OneHandSword
+			{
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Light1, "Data.Damages.OneHandSword.Light1", "DamageTag")
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Light2, "Data.Damages.OneHandSword.Light2", "DamageTag")
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Light3, "Data.Damages.OneHandSword.Light3", "DamageTag")
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Light4, "Data.Damages.OneHandSword.Light4", "DamageTag")
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Heavy1, "Data.Damages.OneHandSword.Heavy1", "DamageTag")
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Heavy2, "Data.Damages.OneHandSword.Heavy2", "DamageTag")
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Heavy3, "Data.Damages.OneHandSword.Heavy3", "DamageTag")
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Heavy4, "Data.Damages.OneHandSword.Heavy4", "DamageTag")
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Air1, "Data.Damages.OneHandSword.Air1", "DamageTag")
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Air2, "Data.Damages.OneHandSword.Air2", "DamageTag")
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Air3, "Data.Damages.OneHandSword.Air3", "DamageTag")
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Air4, "Data.Damages.OneHandSword.Air4", "DamageTag")
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Drop, "Data.Damages.OneHandSword.Drop", "DamageTag")
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(NormalSkill, "Data.Damages.OneHandSword.NormalSkill", "DamageTag")
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(UltimateSkill, "Data.Damages.OneHandSword.UltimateSkill", "DamageTag")
+			}
+		}
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Damage, "Data.Damage", "Damage Data")
+		
 	}
 
 	namespace CoolDown
