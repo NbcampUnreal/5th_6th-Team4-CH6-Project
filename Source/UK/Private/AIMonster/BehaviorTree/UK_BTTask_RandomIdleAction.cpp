@@ -52,10 +52,12 @@ EBTNodeResult::Type UUK_BTTask_RandomIdleAction::ExecuteTask(UBehaviorTreeCompon
 
 	case EIdleActionType::LookAround:
 	{
-		Memory->TargetTime = FMath::RandRange(MinWaitTime, MaxWaitTime);
-		Memory->StartYaw   = Character->GetActorRotation().Yaw;
-		const float Delta  = FMath::RandRange(45.f, 110.f) * (FMath::RandBool() ? 1.f : -1.f);
-		Memory->TargetYaw  = Memory->StartYaw + Delta;
+		Memory->TargetTime  = FMath::RandRange(MinWaitTime, MaxWaitTime);
+		Memory->StartYaw    = Character->GetActorRotation().Yaw;
+		const float Delta   = FMath::RandRange(60.f, 130.f) * (FMath::RandBool() ? 1.f : -1.f);
+		Memory->TargetYaw   = Memory->StartYaw + Delta;
+		Memory->MidYaw      = Memory->StartYaw + Delta * 0.35f; // 중간서 잠깐 멈춤
+		Memory->bReachedMid = false;
 		break;
 	}
 
@@ -93,11 +95,24 @@ void UUK_BTTask_RandomIdleAction::TickTask(UBehaviorTreeComponent& OwnerComp, ui
 
 	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(Character);
 
-	// ── LookAround: EaseOut 회전 ─────────────────────────────────────────
+	// ── LookAround ─────────────────────────────────────────
 	if (Memory->Action == EIdleActionType::LookAround)
 	{
 		FRotator Rot = Character->GetActorRotation();
-		Rot.Yaw = FMath::FInterpTo(Rot.Yaw, Memory->TargetYaw, DeltaSeconds, LookAroundSpeed * 0.1f);
+
+		const float DestYaw = Memory->bReachedMid ? Memory->TargetYaw : Memory->MidYaw;
+		const float Speed   = Memory->bReachedMid 
+							  ? LookAroundSpeed * 0.13f   // 중간 이후: 빠르게
+							  : LookAroundSpeed * 0.06f;  // 초반: 천천히 시작
+
+		Rot.Yaw = FMath::FInterpTo(Rot.Yaw, DestYaw, DeltaSeconds, Speed);
+
+		if (!Memory->bReachedMid && FMath::Abs(FMath::FindDeltaAngleDegrees(Rot.Yaw, Memory->MidYaw)) < 2.f)
+		{
+			Memory->bReachedMid  = true;
+			Memory->TargetTime  += FMath::RandRange(0.4f, 0.9f); // 중간서 잠깐 정지 효과
+		}
+
 		Character->SetActorRotation(Rot);
 	}
 

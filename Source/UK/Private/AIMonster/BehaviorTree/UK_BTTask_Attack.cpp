@@ -24,38 +24,34 @@ EBTNodeResult::Type UUK_BTTask_Attack::ExecuteTask(UBehaviorTreeComponent& Owner
 	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(AICon->GetPawn());
 	if (!Monster || Monster->IsDead()) return EBTNodeResult::Failed;
 
-	// ── 이동 정지 ────────────────────────────────────────────────────────
 	AICon->StopMovement();
 	if (UCharacterMovementComponent* MoveComp = Monster->GetCharacterMovement())
 	{
 		MoveComp->StopMovementImmediately();
+		MoveComp->bOrientRotationToMovement     = false;
+		MoveComp->bUseControllerDesiredRotation = false;
 	}
 
-	// ── 타겟 방향 회전 ────────────────────────────────────────────────────
+	// ── 공격 시작 시 타겟 방향으로 즉시 스냅 (이후 고정) ────────────
 	if (UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent())
 	{
-		if (AActor* TargetPlayer = Cast<AActor>(BB->GetValueAsObject(TEXT("TargetPlayer"))))
+		if (AActor* Target = Cast<AActor>(BB->GetValueAsObject(TEXT("TargetPlayer"))))
 		{
-			FVector Dir = TargetPlayer->GetActorLocation() - Monster->GetActorLocation();
+			FVector Dir = Target->GetActorLocation() - Monster->GetActorLocation();
 			Dir.Z = 0.f;
 			if (!Dir.IsNearlyZero())
-			{
-				Monster->SetActorRotation(Dir.Rotation());
-			}
+				Monster->SetActorRotation(FRotator(0.f, Dir.Rotation().Yaw, 0.f));
 		}
 	}
 
-	// ── 공격 몽타주 재생 ─────────────────────────────────────────────────
 	if (!Monster->PlayRandomAttackMontage())
-	{
 		return EBTNodeResult::Failed;
-	}
 
 	CachedOwnerComp = &OwnerComp;
 	Monster->OnAttackFinished.BindUObject(this, &UUK_BTTask_Attack::OnAttackFinished);
-
 	return EBTNodeResult::InProgress;
 }
+
 #pragma endregion
 
 #pragma region Attack Callback
@@ -85,6 +81,12 @@ EBTNodeResult::Type UUK_BTTask_Attack::AbortTask(UBehaviorTreeComponent& OwnerCo
 	{
 		if (AAIMonsterBase* Monster = Cast<AAIMonsterBase>(AICon->GetPawn()))
 		{
+			if (UCharacterMovementComponent* MC = Monster->GetCharacterMovement())
+			{
+				MC->bOrientRotationToMovement     = false;
+				MC->bUseControllerDesiredRotation = true;
+			}
+			
 			Monster->OnAttackFinished.Unbind();
 			Monster->bIsAttacking = false;
 			if (UAnimInstance* Anim = Monster->GetMesh()->GetAnimInstance())
