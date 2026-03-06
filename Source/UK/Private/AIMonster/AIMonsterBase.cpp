@@ -287,7 +287,10 @@ void AAIMonsterBase::ApplyDamage(float DamageAmount, AController* InstigatorCont
 
 	// GameplayEffect로 데미지 적용
 	FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
-	EffectContext.AddInstigator(InstigatorController ? InstigatorController->GetPawn() : nullptr, this);
+	AActor* InstigatorPawn = (InstigatorController && InstigatorController->GetPawn())
+	? InstigatorController->GetPawn()
+	: nullptr;
+	EffectContext.AddInstigator(InstigatorPawn, this);
 
 	FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(
 		DamageEffectClass, 1.0f, EffectContext);
@@ -411,12 +414,21 @@ void AAIMonsterBase::PlayAttackMontage(int32 MontageIndex)
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (!AnimInstance) return;
 
+	AnimInstance->OnMontageEnded.RemoveDynamic(this, &AAIMonsterBase::OnAttackMontageEnded);
 	AnimInstance->Montage_Play(AttackMontages[MontageIndex]);
 	AnimInstance->OnMontageEnded.AddDynamic(this, &AAIMonsterBase::OnAttackMontageEnded);
 }
 
 void AAIMonsterBase::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
+	if (!AttackMontages.Contains(Montage)) return;
+
+	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (AnimInstance)
+	{
+		AnimInstance->OnMontageEnded.RemoveDynamic(this, &AAIMonsterBase::OnAttackMontageEnded);
+	}
+	
 	bIsAttacking = false;
 	OnAttackFinished.ExecuteIfBound(!bInterrupted);
 }
