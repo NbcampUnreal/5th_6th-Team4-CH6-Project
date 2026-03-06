@@ -7,6 +7,8 @@
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FBossPhaseChanged,const FGameplayTag&);
 class UUK_BossAnimInstance;
+class UGameplayEffect;
+class UCapsuleComponent;
 
 UCLASS()
 class UK_API AUK_BossMonsterBase : public AAIMonsterBase
@@ -26,6 +28,8 @@ public:
 	void StartAttack(); 
 	void EndAttack();
 	
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void SetWeaponCollisionEnabled(bool bEnabled);
 protected:
 	virtual void BeginPlay() override;
 
@@ -65,6 +69,25 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Pattern")
 	TArray<UAnimMontage*> EnragePatterns;;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS")
+	TSubclassOf<UGameplayEffect> DamageGEClass;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	UCapsuleComponent* WeaponCollision_R;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	UCapsuleComponent* WeaponCollision_L;
+	
+	UFUNCTION()
+	void OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
+						 UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
+						 bool bFromSweep, const FHitResult& SweepResult);
+	
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void ApplyDamageToTarget(AActor* TargetActor, float SkillDamageMultiplier);
+	
+	TArray<AActor*> HitActors;
+	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 private:
