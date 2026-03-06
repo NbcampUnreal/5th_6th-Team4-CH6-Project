@@ -144,7 +144,7 @@ void AUK_AiMonsterCtl::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 		{
 			if (!BB->GetValueAsObject(TEXT("TargetPlayer")))
 			{
-				BB->SetValueAsObject(TEXT("PendingTarget"), Actor);
+				BB->SetValueAsObject(TEXT("TargetPlayer"), Actor);
 			}
 		}
 
@@ -163,7 +163,7 @@ void AUK_AiMonsterCtl::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 			if (BB)
 			{
 				BB->ClearValue(TEXT("TargetPlayer"));
-				BB->ClearValue(TEXT("PendingTarget"));
+				BB->ClearValue(TEXT("TargetPlayer"));
 			}
 
 			if (!ControlledMonster->BehaviorTree)
