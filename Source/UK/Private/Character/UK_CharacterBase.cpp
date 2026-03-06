@@ -708,8 +708,12 @@ float AUK_CharacterBase::ApplyDamage()
 
 void AUK_CharacterBase::Dead()
 {
+	UE_LOG(LogTemp, Display, TEXT("Is Player Dead"));
+	GetCharacterMovement()->DisableMovement();
+	GetController()->SetIgnoreMoveInput(true);
+	GetController()->SetIgnoreLookInput(true);
+	GetAbilitySystemComponent()->AddLooseGameplayTag(UK_GameplayTags::Status::Dead);
 	OnDead.Broadcast();
-	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 }
 
 void AUK_CharacterBase::UpdateMonsterDetection()

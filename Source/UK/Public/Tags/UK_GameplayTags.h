@@ -52,6 +52,10 @@ namespace UK_GameplayTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(HitCheck);
 	}
 
+	namespace Status
+	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dead);
+	}
 	namespace Data
 	{
 		namespace Damages
