@@ -31,28 +31,28 @@ void UUK_MonsterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectMod
 	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(GetOwningActor());
 	const FString MonsterName = Monster ? Monster->GetName() : TEXT("Unknown");
 
-	// Damage 
+	// Damage
+	// ※ 방어력 차감은 UK_MonsterDamageExecutionCalculation 에서 처리됨
+	//   여기서 받는 값은 이미 방어력이 적용된 최종 데미지
 	if (Data.EvaluatedData.Attribute == GetDamageAttribute())
 	{
-		const float LocalDamage = GetDamage();
+		const float FinalDamage = GetDamage();
 		
 		UE_LOG(LogTemp, Warning, TEXT(" [%s] AttributeSet::PostGameplayEffectExecute"), *MonsterName);
-		UE_LOG(LogTemp, Warning, TEXT(" Damage Attribute Changed: %.1f"), LocalDamage);
+		UE_LOG(LogTemp, Warning, TEXT(" Final Damage (after Defense): %.1f"), FinalDamage);
 		UE_LOG(LogTemp, Warning, TEXT(" Current Health: %.1f / %.1f"), GetHealth(), GetMaxHealth());
 		
 		SetDamage(0.0f);
 
-		if (LocalDamage > 0.0f)
+		if (FinalDamage > 0.0f)
 		{
-			// 체력 감소
 			const float OldHealth = GetHealth();
-			const float NewHealth = FMath::Max(0.0f, GetHealth() - LocalDamage);
+			const float NewHealth = FMath::Max(0.0f, GetHealth() - FinalDamage);
 			SetHealth(NewHealth);
 			
 			UE_LOG(LogTemp, Warning, TEXT(" Health Updated: %.1f → %.1f (Damage: %.1f)"), 
-				OldHealth, NewHealth, LocalDamage);
+				OldHealth, NewHealth, FinalDamage);
 
-			// 체력이 0이 되었는지 확인
 			if (NewHealth <= 0.0f)
 			{
 				UE_LOG(LogTemp, Error, TEXT(" Health Reached 0 → Calling Die()"));
@@ -65,7 +65,7 @@ void UUK_MonsterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectMod
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT(" Damage was 0 or negative - No health change"));
+			UE_LOG(LogTemp, Warning, TEXT(" Damage was 0 - No health change"));
 		}
 	}
 	// Health가 직접 변경된 경우
@@ -83,7 +83,7 @@ void UUK_MonsterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectMod
 		
 		if (GetHealth() <= 0.0f)
 		{
-			UE_LOG(LogTemp, Error, TEXT("   ☠ Health Reached 0 → Calling Die()"));
+			UE_LOG(LogTemp, Error, TEXT(" Health Reached 0 → Calling Die()"));
 			HandleOutOfHealth();
 		}
 	}
@@ -103,6 +103,13 @@ void UUK_MonsterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectMod
 			UE_LOG(LogTemp, Log, TEXT("   Health adjusted: %.1f → %.1f"), OldHealth, GetHealth());
 		}
 	}
+	// 방어력이 변경된 경우
+	else if (Data.EvaluatedData.Attribute == GetDefenseAttribute())
+	{
+		const float NewDef = FMath::Max(0.f, GetDefense());
+		SetDefense(NewDef);
+		UE_LOG(LogTemp, Log, TEXT("[%s] AttributeSet - Defense Changed to %.1f"), *MonsterName, NewDef);
+	}
 	else
 	{
 		// 다른 속성 변경 - 디버깅용
@@ -118,14 +125,14 @@ void UUK_MonsterAttributeSet::HandleOutOfHealth()
 	// Owner가 몬스터인지 확인
 	if (AAIMonsterBase* Monster = Cast<AAIMonsterBase>(GetOwningActor()))
 	{
-		UE_LOG(LogTemp, Error, TEXT("✓ Monster Cast Successful: %s"), *Monster->GetName());
+		UE_LOG(LogTemp, Error, TEXT(" Monster Cast Successful: %s"), *Monster->GetName());
 		UE_LOG(LogTemp, Error, TEXT("Calling Monster->Die()..."));
 		
 		Monster->Die();
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("✗✗✗ CRITICAL: Failed to cast OwningActor to AAIMonsterBase!"));
+		UE_LOG(LogTemp, Error, TEXT("CRITICAL: Failed to cast OwningActor to AAIMonsterBase!"));
 		if (AActor* Owner = GetOwningActor())
 		{
 			UE_LOG(LogTemp, Error, TEXT("   OwningActor: %s (Class: %s)"), 
