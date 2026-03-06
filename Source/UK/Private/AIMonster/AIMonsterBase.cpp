@@ -96,6 +96,19 @@ void AAIMonsterBase::BeginPlay()
 			&AAIMonsterBase::UpdateHPBarWidget,
 			0.05f, true);
 	}
+
+	if ( HPWidgetComponent )
+	{
+		HPWidget = Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
+
+		if ( HPWidget )
+		{
+			HPWidget->BindMonsterAttributes(
+				AbilitySystemComponent,
+				AttributeSet
+			);
+		}
+	}
 	
 	if (AlertWidgetComponent && AlertWidget)
 	{
@@ -117,12 +130,6 @@ void AAIMonsterBase::PostInitializeComponents()
 	if (HPWidgetComponent && HPWidgetClass)
 	{
 		HPWidgetComponent->SetWidgetClass(HPWidgetClass);
-		HPWidget = Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
-
-		if (HPWidget && AbilitySystemComponent && AttributeSet)
-		{
-			HPWidget->BindMonsterAttributes(AbilitySystemComponent, AttributeSet);
-		}
 	}
 	
 	if (AlertWidgetComponent && AlertWidgetClass)
@@ -333,35 +340,43 @@ void AAIMonsterBase::ApplyDamage(float DamageAmount, AController* InstigatorCont
 	// 평화 몬스터: 피격 시 적대 전환
 	if (Personality == EMonsterPersonality::Peaceful && !bIsAggressive)
 	{
-		AActor* ClosestPlayer = nullptr;
-		for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+		AActor* Attacker = nullptr;
+		if (InstigatorController && InstigatorController->GetPawn())
 		{
-			APlayerController* PC = It->Get();
-			if (!PC || !PC->GetPawn()) continue;
-
-			if (FVector::Dist(GetActorLocation(), PC->GetPawn()->GetActorLocation()) <= 500.0f)
+			Attacker = InstigatorController->GetPawn();
+		}
+		else
+		{
+			// InstigatorController 없을 때만 근처 탐색 (DetectionRadius 활용)
+			float ClosestDist = DetectionRadius;
+			for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 			{
-				ClosestPlayer = PC->GetPawn();
-				break;
+				APlayerController* PC = It->Get();
+				if (!PC || !PC->GetPawn()) continue;
+				const float Dist = FVector::Dist(GetActorLocation(), PC->GetPawn()->GetActorLocation());
+				if (Dist < ClosestDist)
+				{
+					ClosestDist = Dist;
+					Attacker = PC->GetPawn();
+				}
 			}
 		}
 
-		if (ClosestPlayer)
+		if (Attacker)
 		{
 			bIsAggressive = true;
-			Aggressor      = ClosestPlayer;
+			Aggressor      = Attacker;
 
 			if (AAIController* AIC = Cast<AAIController>(GetController()))
 			{
 				if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
 				{
-					if (!BB->GetValueAsObject(TEXT("TargetPlayer")))
-						BB->SetValueAsObject(TEXT("PendingTarget"), ClosestPlayer);
+					BB->SetValueAsObject(TEXT("TargetPlayer"), Attacker);
 				}
 			}
 
-			CallNearbyAllies(ClosestPlayer);
-			OnAttacked.Broadcast(this, ClosestPlayer);
+			CallNearbyAllies(Attacker);
+			OnAttacked.Broadcast(this, Attacker);
 			RequestState(EMonsterState::Aggressive);
 
 			if (AAIController* AIC = Cast<AAIController>(GetController()))
@@ -383,6 +398,49 @@ void AAIMonsterBase::ReceiveDamage(float Damage)
 void AAIMonsterBase::ReceiveDamageFrom(float Damage, AController* InstigatorController)
 {
 	ApplyDamage(Damage, InstigatorController);
+}
+
+void AAIMonsterBase::NotifyAttacked(AController* InstigatorController)
+{
+	if (Personality != EMonsterPersonality::Peaceful || bIsAggressive) return;
+
+	AActor* Attacker = nullptr;
+	if (InstigatorController && InstigatorController->GetPawn())
+	{
+		Attacker = InstigatorController->GetPawn();
+	}
+	else
+	{
+		float ClosestDist = DetectionRadius;
+		for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+		{
+			APlayerController* PC = It->Get();
+			if (!PC || !PC->GetPawn()) continue;
+			const float Dist = FVector::Dist(GetActorLocation(), PC->GetPawn()->GetActorLocation());
+			if (Dist < ClosestDist) { ClosestDist = Dist; Attacker = PC->GetPawn(); }
+		}
+	}
+
+	if (!Attacker) return;
+
+	bIsAggressive = true;
+	Aggressor = Attacker;
+
+	if (AAIController* AIC = Cast<AAIController>(GetController()))
+	{
+		if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
+		{
+			BB->SetValueAsObject(TEXT("TargetPlayer"), Attacker);  // TargetPlayer 직접 설정
+		}
+		if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AIC->GetBrainComponent()))
+		{
+			BTComp->RestartTree();
+		}
+	}
+
+	CallNearbyAllies(Attacker);
+	OnAttacked.Broadcast(this, Attacker);
+	RequestState(EMonsterState::Aggressive);
 }
 #pragma endregion
 
@@ -410,8 +468,11 @@ void AAIMonsterBase::PlayAttackMontage(int32 MontageIndex)
 {
 	if (bIsHit) return;
 	if (!AttackMontages.IsValidIndex(MontageIndex)) return;
+	if (!AttackMontages[MontageIndex]) return;
 
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	if (!MeshComp) return;
+	UAnimInstance* AnimInstance = MeshComp->GetAnimInstance();
 	if (!AnimInstance) return;
 
 	AnimInstance->OnMontageEnded.RemoveDynamic(this, &AAIMonsterBase::OnAttackMontageEnded);
@@ -779,7 +840,7 @@ void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
 			if (UBlackboardComponent* BB = AllyAIC->GetBlackboardComponent())
 			{
 				if (!BB->GetValueAsObject(TEXT("TargetPlayer")))
-					BB->SetValueAsObject(TEXT("PendingTarget"), Enemy);
+					BB->SetValueAsObject(TEXT("TargetPlayer"), Enemy);
 			}
 			if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AllyAIC->GetBrainComponent()))
 			{
@@ -976,25 +1037,33 @@ void AAIMonsterBase::HideHPBar()
 
 void AAIMonsterBase::UpdateHPBarWidget()
 {
-	if (!HPWidgetComponent) return;
+	if ( !HPWidgetComponent )
+		return;
 
 	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	if (!PC) return;
+	if ( !PC )
+		return;
 
-	FVector  CameraLocation;
+	FVector CameraLocation;
 	FRotator CameraRotation;
 	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
 	const FVector WidgetLocation = HPWidgetComponent->GetComponentLocation();
-	FVector  Direction           = CameraLocation - WidgetLocation;
-	FRotator LookAtRotation      = FRotationMatrix::MakeFromX(Direction).Rotator();
 
-	LookAtRotation.Pitch = 0.f;
-	LookAtRotation.Roll  = 0.f;
+	// 카메라 방향 계산
+	FVector Direction = CameraLocation - WidgetLocation;
+
+	// HP바가 기울어지지 않게 Z 제거
+	Direction.Z = 0.f;
+
+	FRotator LookAtRotation = Direction.Rotation();
+
 	HPWidgetComponent->SetWorldRotation(LookAtRotation);
 
-	HPWidgetComponent->SetWorldScale3D(FVector(0.5f, 0.5f, 0.5f));
+	// 크기 고정
+	HPWidgetComponent->SetWorldScale3D(FVector(0.5f));
 }
+
 #pragma endregion
 
 #pragma region Alert Icon
