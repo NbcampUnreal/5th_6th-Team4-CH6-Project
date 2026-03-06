@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "UK_CheckAttackNotify.generated.h"
 
@@ -12,4 +13,6 @@ class UK_API UUK_CheckAttackNotify : public UAnimNotify
 	GENERATED_BODY()
 private:
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
+	
+
 };
