@@ -5,6 +5,8 @@
 UUK_BTDecorator_BackPos::UUK_BTDecorator_BackPos()
 {
 	NodeName = TEXT("Back Home Pos");
+	bNotifyTick = true;
+	FlowAbortMode = EBTFlowAbortMode::Both;
 }
 
 bool UUK_BTDecorator_BackPos::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp,uint8* NodeMemory) const
@@ -24,6 +26,10 @@ bool UUK_BTDecorator_BackPos::CalculateRawConditionValue(UBehaviorTreeComponent&
 		Pawn->GetActorLocation(),
 		Home
 	);
-
+	UE_LOG(LogTemp, Warning,
+		TEXT("Dist: %.1f / Max: %.1f"),
+		Dist,
+		MaxDistance
+	);
 	return Dist > MaxDistance;
 }

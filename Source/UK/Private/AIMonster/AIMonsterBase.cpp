@@ -17,6 +17,7 @@
 #include "Quest/UKQuestManagerSubsystem.h"
 #include "Tags/UK_GameplayTags.h"
 #include "DrawDebugHelpers.h"
+#include "Sound/SoundCue.h"
 
 #pragma region Initialization
 AAIMonsterBase::AAIMonsterBase()
@@ -552,6 +553,11 @@ void AAIMonsterBase::FinalizeDeath()
 	}
 }
 
+void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+}
+
 void AAIMonsterBase::HideAndBroadcastDeath()
 {
 	HideCorpse();
@@ -937,6 +943,11 @@ void AAIMonsterBase::ShowAlertIcon()
 	AlertWidgetComponent->SetVisibility(true);
 	AlertWidgetComponent->SetHiddenInGame(false);
 	AlertWidget->SetVisibility(ESlateVisibility::Visible);
+	
+	if (HowlSound)
+	{
+		UGameplayStatics::PlaySound2D(this, HowlSound);
+	}
 }
 
 void AAIMonsterBase::HideAlertIcon()

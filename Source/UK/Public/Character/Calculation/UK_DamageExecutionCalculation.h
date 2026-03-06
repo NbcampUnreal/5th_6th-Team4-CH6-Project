@@ -17,4 +17,7 @@ public:
 	UUK_DamageExecutionCalculation();
 	virtual void Execute_Implementation(const FGameplayEffectCustomExecutionParameters& ExecutionParams, FGameplayEffectCustomExecutionOutput& OutExecutionOutput) const override;
 	
+protected:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FGameplayTag DamageTag;
 };

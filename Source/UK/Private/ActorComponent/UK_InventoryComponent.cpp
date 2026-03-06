@@ -85,6 +85,7 @@ int32 UUK_InventoryComponent::AddItem(FName ItemID, int32 Amount)
 		EmptySlot->Quantity = AmountToFill;
 		AmountToAdd -= AmountToFill;
 	}
+	OnItemAdded.Broadcast(ItemID, Amount);
 	OnInventoryUpdate.Broadcast();
 
 	return true;

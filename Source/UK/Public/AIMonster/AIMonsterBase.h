@@ -5,6 +5,7 @@
 #include "AbilitySystemInterface.h"
 #include "UI/InGame/UK_MonsterHealthBar.h"
 #include "Components/WidgetComponent.h"
+#include "Net/UnrealNetwork.h"
 #include "AIMonsterBase.generated.h"
 
 class UBehaviorTree;
@@ -12,6 +13,7 @@ class UAnimMontage;
 class UAbilitySystemComponent;
 class UUK_MonsterAttributeSet;
 class UGameplayEffect;
+class USoundCue;
 
 /* ───────────────────── Enums & Delegates ───────────────────── */
 
@@ -234,7 +236,7 @@ public:
 	void ApplyDamage(float DamageAmount, AController* InstigatorController = nullptr);
 
 	/** 레거시 호환용 */
-	void ReceiveDamage(float Damage);
+	virtual void ReceiveDamage(float Damage);
 	void ReceiveDamageFrom(float Damage, AController* InstigatorController);
 #pragma endregion
 
@@ -274,7 +276,19 @@ public:
 
 #pragma region HP Bar Widget
 public:
-	UUK_MonsterHealthBar* GetHPWidget() const { return HPWidget; }
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+private:
+	FTimerHandle CorpseTimerHandle;
+	void HideAndBroadcastDeath();
+	
+	/* 킬 알림 전송 */
+	void NotifyMonsterKilled();
+#pragma region HPBar Widget
+public:
+
+	UUK_MonsterHealthBar* GetHPWidget() const;
 
 	virtual void UpdateHPBarWidget();
 	virtual void ShowHPBar();
@@ -287,6 +301,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|HPBar")
 	float MaxHPBarScale = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|HPBar")
+	FVector DesiredScale;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UUserWidget> HPWidgetClass;
@@ -305,6 +322,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Monster|Alert")
 	bool IsAlerting() const { return bIsAlerting; }
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster | Sounds")
+	USoundCue* HowlSound;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI|Alert")
@@ -379,10 +399,6 @@ protected:
 	
 #pragma region Private
 private:
-	FTimerHandle CorpseTimerHandle;
-
-	void HideAndBroadcastDeath();
-	void NotifyMonsterKilled();
 
 	UPROPERTY()
 	UUK_MonsterHealthBar* HPWidget;
