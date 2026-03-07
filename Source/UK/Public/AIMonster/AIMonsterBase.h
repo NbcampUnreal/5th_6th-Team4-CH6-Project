@@ -66,6 +66,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 #pragma endregion
 
 #pragma region Ability System
