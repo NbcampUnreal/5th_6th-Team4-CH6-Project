@@ -8,6 +8,8 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "BrainComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/GameModeBase.h"
 #include "server/UKGameMode.h"
 
@@ -28,6 +30,13 @@ void AUK_MonsterSpawner::BeginPlay()
 		StartSpawning();
 	}
 }
+
+void AUK_MonsterSpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	StopSpawning();
+	
+	Super::EndPlay(EndPlayReason);
+}
 #pragma endregion
 
 #pragma region Spawning Control
@@ -44,7 +53,10 @@ void AUK_MonsterSpawner::StopSpawning()
 
 	for (FTimerHandle& Timer : RespawnTimers)
 	{
-		if (Timer.IsValid()) GetWorldTimerManager().ClearTimer(Timer);
+		if (Timer.IsValid()) 
+		{
+			GetWorldTimerManager().ClearTimer(Timer);
+		}
 	}
 	RespawnTimers.Empty();
 }
@@ -121,8 +133,10 @@ void AUK_MonsterSpawner::InitializeObjectPool()
 		Monster->SetActorEnableCollision(false);
 		Monster->SetActorTickEnabled(false);
 
-		// 자동 생성 컨트롤러 제거 (풀 컨트롤러로 대체)
-		if (AController* AutoCtrl = Monster->GetController()) AutoCtrl->UnPossess();
+		if (AController* AutoCtrl = Monster->GetController()) 
+		{
+			AutoCtrl->UnPossess();
+		}
 
 		ObjectPool.Add(Monster);
 		InactivePooledMonsters.Add(Monster);
@@ -166,66 +180,117 @@ void AUK_MonsterSpawner::ReturnMonsterToPool(AAIMonsterBase* Monster)
 #pragma region Monster Lifecycle
 void AUK_MonsterSpawner::ActivateMonster(AAIMonsterBase* Monster)
 {
-	if (!Monster) return;
+    if (!Monster || !IsValid(Monster)) return;
 
-	const FVector NewLocation = GetRandomSpawnLocation();
-	Monster->SetActorLocation(NewLocation);
-	Monster->SpawnLocation = NewLocation;
-	Monster->SetActorHiddenInGame(false);
-	Monster->SetActorEnableCollision(true);
-	Monster->SetActorTickEnabled(true);
+    const FVector NewLocation = GetRandomSpawnLocation();
+    Monster->SetActorLocation(NewLocation);
+    Monster->SpawnLocation = NewLocation;
+    Monster->SetActorHiddenInGame(false);
+    Monster->SetActorEnableCollision(true);
+    Monster->SetActorTickEnabled(true);
 
-	// 컨트롤러: 풀에서 꺼내거나 새로 스폰
-	AAIController* AICon = Cast<AAIController>(Monster->GetController());
-	if (!AICon)
-	{
-		if (PooledControllers.Num() > 0)
-		{
-			AICon = PooledControllers.Pop();
-		}
-		else if (Monster->AIControllerClass)
-		{
-			FActorSpawnParameters SpawnInfo;
-			SpawnInfo.SpawnCollisionHandlingOverride =
-				ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-			SpawnInfo.ObjectFlags |= RF_Transient;
+    if (UCapsuleComponent* Capsule = Monster->GetCapsuleComponent())
+    {
+        Capsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    }
 
-			AICon = GetWorld()->SpawnActor<AAIController>(
-				Monster->AIControllerClass,
-				NewLocation, FRotator::ZeroRotator, SpawnInfo);
-		}
+    if (USkeletalMeshComponent* Mesh = Monster->GetMesh())
+    {
+        Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+        Mesh->SetAllBodiesSimulatePhysics(false);
+    }
 
-		if (AICon) AICon->Possess(Monster);
-	}
+    if (UCharacterMovementComponent* Movement = Monster->GetCharacterMovement())
+    {
+        Movement->SetMovementMode(MOVE_Walking);
+        Movement->Velocity = FVector::ZeroVector;
+    }
 
-	// BT 재시작 및 블랙보드 초기화
-	if (AICon)
-	{
-		if (UBrainComponent* Brain = AICon->GetBrainComponent())
-		{
-			Brain->RestartLogic();
-		}
-		else if (Monster->BehaviorTree)
-		{
-			AICon->RunBehaviorTree(Monster->BehaviorTree);
-		}
+    AAIController* AICon = Cast<AAIController>(Monster->GetController());
+    if (AICon)
+    {
+        AICon->StopMovement();
+        if (UBrainComponent* Brain = AICon->GetBrainComponent())
+        {
+            Brain->StopLogic(TEXT("Re-pooling"));
+        }
+        AICon->UnPossess();
+        if (!PooledControllers.Contains(AICon))
+        {
+            PooledControllers.Add(AICon);
+        }
+        AICon = nullptr;
+    }
 
-		if (UBlackboardComponent* BB = AICon->GetBlackboardComponent())
-		{
-			BB->SetValueAsVector(TEXT("SpawnLocation"), NewLocation);
-			BB->SetValueAsVector(TEXT("PatrolLocation"), NewLocation);
-			BB->ClearValue(TEXT("TargetPlayer"));
-		}
-	}
+    if (PooledControllers.Num() > 0)
+    {
+        AICon = PooledControllers.Pop();
+    }
+    else if (Monster->AIControllerClass)
+    {
+        FActorSpawnParameters SpawnInfo;
+        SpawnInfo.SpawnCollisionHandlingOverride =
+            ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+        SpawnInfo.ObjectFlags |= RF_Transient;
 
-	Monster->ResetHealth();
-	ActiveMonsters.Add(Monster);
-	RegisterMonsterToGameMode(Monster);
+        AICon = GetWorld()->SpawnActor<AAIController>(
+            Monster->AIControllerClass,
+            NewLocation, FRotator::ZeroRotator, SpawnInfo);
+    }
+
+    if (AICon) 
+    {
+        AICon->Possess(Monster);
+    }
+
+    if (AICon)
+    {
+        if (UBrainComponent* Brain = AICon->GetBrainComponent())
+        {
+            Brain->RestartLogic();
+        }
+        else if (Monster->BehaviorTree)
+        {
+            AICon->RunBehaviorTree(Monster->BehaviorTree);
+        }
+
+        if (UBlackboardComponent* BB = AICon->GetBlackboardComponent())
+        {
+            BB->SetValueAsVector(TEXT("SpawnLocation"), NewLocation);
+            BB->SetValueAsVector(TEXT("PatrolLocation"), NewLocation);
+            BB->ClearValue(TEXT("TargetPlayer"));
+        }
+    }
+
+    Monster->ResetHealth();
+	Monster->ResetAppearance();
+    
+    Monster->bIsAttacking = false;
+    Monster->bIsHit = false;
+    Monster->bIsAggressive = false;
+    Monster->Aggressor = nullptr;
+
+    if (Monster->Personality == EMonsterPersonality::Peaceful)
+    {
+        Monster->RequestState(EMonsterState::Passive);
+    }
+    else
+    {
+        Monster->RequestState(EMonsterState::Idle);
+    }
+
+    ActiveMonsters.Add(Monster);
+    RegisterMonsterToGameMode(Monster);
 }
 
 void AUK_MonsterSpawner::DeactivateMonster(AAIMonsterBase* Monster)
 {
-	if (!Monster) return;
+	if (!Monster || !IsValid(Monster)) return;
+
+	if (UWorld* World = Monster->GetWorld())
+	{
+		World->GetTimerManager().ClearAllTimersForObject(Monster);
+	}
 
 	Monster->SetActorHiddenInGame(true);
 	Monster->SetActorEnableCollision(false);
@@ -240,10 +305,12 @@ void AUK_MonsterSpawner::DeactivateMonster(AAIMonsterBase* Monster)
 			Brain->StopLogic(TEXT("Pooled"));
 		}
 
-		// UnPossess 후 컨트롤러 풀로 반환 (Destroy 대신)
-		Monster->DetachFromControllerPendingDestroy();
 		AICon->UnPossess();
-		PooledControllers.Add(AICon);
+		
+		if (!PooledControllers.Contains(AICon))
+		{
+			PooledControllers.Add(AICon);
+		}
 	}
 
 	ActiveMonsters.Remove(Monster);
@@ -251,24 +318,32 @@ void AUK_MonsterSpawner::DeactivateMonster(AAIMonsterBase* Monster)
 
 void AUK_MonsterSpawner::OnMonsterDied(AAIMonsterBase* DeadMonster)
 {
-	if (!DeadMonster) return;
+	if (!DeadMonster || !IsValid(DeadMonster)) return;
 
 	TotalDeathCount++;
 	ActiveMonsters.Remove(DeadMonster);
 	ReturnMonsterToPool(DeadMonster);
 
 	FTimerHandle RespawnTimer;
-	GetWorldTimerManager().SetTimer(RespawnTimer, [this]()
+	FTimerDelegate RespawnDelegate;
+	
+	TWeakObjectPtr<AUK_MonsterSpawner> WeakThis(this);
+	
+	RespawnDelegate.BindLambda([WeakThis]()
 	{
-		if (bIsSpawning && ActiveMonsters.Num() < MaxMonsters)
+		if (!WeakThis.IsValid()) return;
+		
+		AUK_MonsterSpawner* Spawner = WeakThis.Get();
+		if (Spawner->bIsSpawning && Spawner->ActiveMonsters.Num() < Spawner->MaxMonsters)
 		{
-			if (AAIMonsterBase* Monster = GetMonsterFromPool())
+			if (AAIMonsterBase* Monster = Spawner->GetMonsterFromPool())
 			{
-				ActivateMonster(Monster);
+				Spawner->ActivateMonster(Monster);
 			}
 		}
-	}, RespawnDelay, false);
+	});
 
+	GetWorldTimerManager().SetTimer(RespawnTimer, RespawnDelegate, RespawnDelay, false);
 	RespawnTimers.Add(RespawnTimer);
 }
 #pragma endregion
