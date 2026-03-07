@@ -34,20 +34,17 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ResetEndCombo();
 
-	//UFUNCTION(BlueprintCallable)
-	//void CurrentCombo();
-
 	UFUNCTION(BlueprintNativeEvent)
 	void EndCombo();
-
 
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "CoolDown", meta = ( DisplayNmae = "OnNomalSkillCoolDown" ))
 	FOnNomalSkill OnNomalSkillCoolDownDelegate;
 
 	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "CoolDown", meta = ( DisplayNmae = "OnNomalSkillCoolDown" ))
 	FOnUltimateSkill OnUltimateSkillCoolDownDelegate;
+	
 protected:
-
+	
 	UPROPERTY(BlueprintReadWrite)
 	int32 index;
 

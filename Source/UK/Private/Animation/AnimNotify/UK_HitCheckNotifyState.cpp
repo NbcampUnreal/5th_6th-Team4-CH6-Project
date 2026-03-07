@@ -12,8 +12,6 @@ void UUK_HitCheckNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAni
 	OwnerCharacter = Cast<AUK_CharacterBase>(MeshComp->GetOwner());
 	if ( !IsValid(OwnerCharacter) )
 		return;
-	if ( OwnerCharacter->GetLocalRole() == ROLE_SimulatedProxy )
-		return;
 	OwnerCharacter->GetWorld()->GetTimerManager().SetTimer(
 		HitTimer,
 		this,
@@ -39,5 +37,5 @@ void UUK_HitCheckNotifyState::HitCheck()
 {
 
 	FGameplayEventData EventData;
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(OwnerCharacter, UK_GameplayTags::Attack::HitCheck, EventData);
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(OwnerCharacter, AttackTag, EventData);
 }

@@ -96,6 +96,19 @@ void AAIMonsterBase::BeginPlay()
 			&AAIMonsterBase::UpdateHPBarWidget,
 			0.05f, true);
 	}
+
+	if ( HPWidgetComponent )
+	{
+		HPWidget = Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
+
+		if ( HPWidget )
+		{
+			HPWidget->BindMonsterAttributes(
+				AbilitySystemComponent,
+				AttributeSet
+			);
+		}
+	}
 	
 	if (AlertWidgetComponent && AlertWidget)
 	{
@@ -117,12 +130,6 @@ void AAIMonsterBase::PostInitializeComponents()
 	if (HPWidgetComponent && HPWidgetClass)
 	{
 		HPWidgetComponent->SetWidgetClass(HPWidgetClass);
-		HPWidget = Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
-
-		if (HPWidget && AbilitySystemComponent && AttributeSet)
-		{
-			HPWidget->BindMonsterAttributes(AbilitySystemComponent, AttributeSet);
-		}
 	}
 	
 	if (AlertWidgetComponent && AlertWidgetClass)
@@ -1030,25 +1037,33 @@ void AAIMonsterBase::HideHPBar()
 
 void AAIMonsterBase::UpdateHPBarWidget()
 {
-	if (!HPWidgetComponent) return;
+	if ( !HPWidgetComponent )
+		return;
 
 	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	if (!PC) return;
+	if ( !PC )
+		return;
 
-	FVector  CameraLocation;
+	FVector CameraLocation;
 	FRotator CameraRotation;
 	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
 	const FVector WidgetLocation = HPWidgetComponent->GetComponentLocation();
-	FVector  Direction           = CameraLocation - WidgetLocation;
-	FRotator LookAtRotation      = FRotationMatrix::MakeFromX(Direction).Rotator();
 
-	LookAtRotation.Pitch = 0.f;
-	LookAtRotation.Roll  = 0.f;
+	// 카메라 방향 계산
+	FVector Direction = CameraLocation - WidgetLocation;
+
+	// HP바가 기울어지지 않게 Z 제거
+	Direction.Z = 0.f;
+
+	FRotator LookAtRotation = Direction.Rotation();
+
 	HPWidgetComponent->SetWorldRotation(LookAtRotation);
 
-	HPWidgetComponent->SetWorldScale3D(FVector(0.5f, 0.5f, 0.5f));
+	// 크기 고정
+	HPWidgetComponent->SetWorldScale3D(FVector(0.5f));
 }
+
 #pragma endregion
 
 #pragma region Alert Icon

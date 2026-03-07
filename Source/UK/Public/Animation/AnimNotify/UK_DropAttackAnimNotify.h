@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
+#include "Character/UK_CharacterBase.h"
 #include "UK_DropAttackAnimNotify.generated.h"
 
 /**
@@ -15,5 +16,7 @@ class UK_API UUK_DropAttackAnimNotify : public UAnimNotify
 	GENERATED_BODY()
 private:
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
-
+protected:
+	UPROPERTY(EditAnywhere)
+	EInputMode CheckType;
 };
