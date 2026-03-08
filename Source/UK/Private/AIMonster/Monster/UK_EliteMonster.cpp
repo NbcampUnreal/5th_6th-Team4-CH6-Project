@@ -146,7 +146,7 @@ void AUK_EliteMonster::ApplySpecialAttackAoE()
 		if (!Player) continue;
 
 		DamagedActors.Add(HitActor);
-		Player->ReceiveDamage(SpecialAttackDamage);
+		//Player->ReceiveDamage(SpecialAttackDamage);
 
 		UE_LOG(LogTemp, Warning,
 			TEXT("[EliteSpecial AoE] %s → %s | Damage: %.1f | Dist: %.1f"),
