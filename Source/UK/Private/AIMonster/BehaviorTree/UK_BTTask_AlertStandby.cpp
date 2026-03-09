@@ -59,12 +59,7 @@ EBTNodeResult::Type UUK_BTTask_AlertStandby::ExecuteTask(UBehaviorTreeComponent&
 
 	SetOrientToMovement(ControlledPawn, true);
 
-	UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
-	if (BB)
-	{
-		AActor* Target = Cast<AActor>(BB->GetValueAsObject(PendingTargetKey.SelectedKeyName));
-		SnapFaceToTarget(ControlledPawn, Target);
-	}
+	// 즉시 회전하지 않음 - Tick에서 부드럽게 회전
 
 	if (AAIMonsterBase* Monster = Cast<AAIMonsterBase>(ControlledPawn))
 		Monster->ShowAlertIcon();
