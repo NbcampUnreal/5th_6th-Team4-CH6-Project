@@ -77,7 +77,7 @@ void AUK_BossMonsterBase::UpdatePhase()
 	if (CurrentPhase == 1 && HPRatio <= 0.5f)
 	{
 		CurrentPhase = 2;
-		// 광폭화 이펙트나 사운드 여기 삽입 필요함 대기중임
+		// 광폭화 이펙트나 사운드 여기 삽입 필요함 대기중임 가로채기 오버라이드 예정
 	}
 }
 

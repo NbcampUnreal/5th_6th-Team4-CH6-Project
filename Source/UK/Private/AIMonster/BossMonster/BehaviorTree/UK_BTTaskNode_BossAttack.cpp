@@ -20,19 +20,15 @@ EBTNodeResult::Type UUK_BTTaskNode_BossAttack::ExecuteTask(UBehaviorTreeComponen
 	if (!Boss) return EBTNodeResult::Failed;
 
 	CurrentTime = 0.f;
-
-	//공격 호출 전 강제로 공격 중 플래그를 확인하거나 초기화 (테스트용)
 	Boss->bIsAttacking = false; 
 	
 	bool bAttackStarted = Boss->PlayRandomAttackMontage();
     
 	if (!bAttackStarted)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Boss Attack Failed to Start! Check bIsAttacking or Montage Array."));
 		return EBTNodeResult::Failed;
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("Boss Attack Started Successfully"));
+	
 	return EBTNodeResult::InProgress;
 }
 
