@@ -1,7 +1,6 @@
 #include "AIMonster/BehaviorTree/UK_BTService_DetectPlayer.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "GameFramework/Character.h"
 #include "AIMonster/AIMonsterBase.h"
 #include "AIMonster/UK_AiMonsterCtl.h"
 
@@ -28,6 +27,20 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 
+	if (bPeacefulMode)
+	{
+		TickPeacefulMode(OwnerComp);
+	}
+	else
+	{
+		TickNormalMode(OwnerComp, NodeMemory);
+	}
+}
+#pragma endregion
+
+#pragma region Normal Mode (기존 DetectPlayer 로직)
+void UUK_BTService_DetectPlayer::TickNormalMode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
 	FDetectPlayerMemory* Memory = reinterpret_cast<FDetectPlayerMemory*>(NodeMemory);
 
 	AAIController* AIController = OwnerComp.GetAIOwner();
@@ -50,38 +63,27 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 	const bool bHasTarget  = (BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName)  != nullptr);
 	const bool bHasPending = (BlackboardComp->GetValueAsObject(PendingTargetKey.SelectedKeyName) != nullptr);
 
-	// 복귀 플래그 관리 
-	// TargetPlayer/Pending 둘 다 사라진 직후 → 복귀 상태 진입
+	// ── 복귀 플래그 관리 ─────────────────────────────────────────────────
 	if (Memory->bHadTarget && !bHasTarget && !bHasPending)
 	{
 		Memory->bReturning = true;
 		Memory->bHadTarget = false;
 	}
 
-	// 복귀 중: 스폰 지점 근처 도착 전까지 감지 억제
+	// ── 복귀 중: 스폰 도착 전까지 감지 억제 ──────────────────────────────
 	if (Memory->bReturning)
 	{
 		if (DistFromSpawn <= ReturnDistanceThreshold)
 		{
-			// 복귀 완료
 			Memory->bReturning = false;
-		
 			BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
 			BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
 			Memory->bHadTarget = false;
-		
-			UE_LOG(LogTemp, Warning, TEXT("[DetectPlayer] %s: ✓ Return completed, ready for patrol"), 
-				*GetName());
-		
-			return;
 		}
-		else
-		{
-			return;  
-		}
+		return;
 	}
 
-	// 추격 한계 초과 → 강제 이탈 처리 (AlertStandby도 Abort됨)
+	// ── 추격 한계 초과 → 강제 이탈 ───────────────────────────────────────
 	if (DistFromSpawn > ChaseLimit)
 	{
 		BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
@@ -91,54 +93,26 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 		return;
 	}
 
-	// 패스트패스: AIPerceptionComponent 결과 재사용
-	if (AUK_AiMonsterCtl* MonsterCtl = Cast<AUK_AiMonsterCtl>(AIController))
+	// ── 플레이어 감지 ────────────────────────────────────────────────────
+	AActor* DetectedPlayer = TryGetPerceptionTarget(AIController);
+	if (!DetectedPlayer)
 	{
-		AActor* CtlTarget = MonsterCtl->GetCurrentTarget();
-		if (CtlTarget)
-		{
-			if (BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName)) 
-			{
-				return; 
-			}
-
-			if (!BlackboardComp->GetValueAsObject(PendingTargetKey.SelectedKeyName))
-			{
-				BlackboardComp->SetValueAsObject(PendingTargetKey.SelectedKeyName, CtlTarget);
-			}
-		}
-		return;
+		DetectedPlayer = FindClosestPlayer(MonsterLocation, DetectionRadius, ControlledPawn->GetWorld());
 	}
 
-	// 폴백: 직접 PlayerController 순회 
-	UWorld* World = ControlledPawn->GetWorld();
-	if (!World) return;
-
-	AActor* BestTarget = nullptr;
-	float   BestDist   = DetectionRadius;
-
-	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
+	if (DetectedPlayer)
 	{
-		APlayerController* PC = It->Get();
-		if (!PC) continue;
-
-		APawn* PlayerPawn = PC->GetPawn();
-		if (!PlayerPawn) continue;
-
-		const float Dist = FVector::Dist(MonsterLocation, PlayerPawn->GetActorLocation());
-		if (Dist < BestDist)
+		// 이미 TargetPlayer 있으면 스킵 (AlertStandby 진행 중)
+		if (BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName))
 		{
-			BestDist   = Dist;
-			BestTarget = PlayerPawn;
+			return;
 		}
-	}
 
-	if (BestTarget)
-	{
-		if (!Memory->bHadTarget)
+		// PendingTarget에 설정
+		if (!BlackboardComp->GetValueAsObject(PendingTargetKey.SelectedKeyName))
 		{
-			BlackboardComp->SetValueAsObject(PendingTargetKey.SelectedKeyName, BestTarget);
-			AIController->SetFocus(BestTarget);
+			BlackboardComp->SetValueAsObject(PendingTargetKey.SelectedKeyName, DetectedPlayer);
+			AIController->SetFocus(DetectedPlayer);
 		}
 
 		Memory->bHadTarget = true;
@@ -150,5 +124,83 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 		Memory->bHadTarget = false;
 		AIController->ClearFocus(EAIFocusPriority::Gameplay);
 	}
+}
+#pragma endregion
+
+#pragma region Peaceful Mode (기존 DetectPlayer_Peaceful 로직)
+void UUK_BTService_DetectPlayer::TickPeacefulMode(UBehaviorTreeComponent& OwnerComp)
+{
+	AAIController* AIController = OwnerComp.GetAIOwner();
+	if (!AIController) return;
+
+	APawn* ControlledPawn = AIController->GetPawn();
+	if (!ControlledPawn) return;
+
+	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
+	if (!BlackboardComp) return;
+
+	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(ControlledPawn);
+	if (!Monster) return;
+
+	// ── Aggressor 최우선 ─────────────────────────────────────────────────
+	if (IsValid(Monster->Aggressor))
+	{
+		BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, Monster->Aggressor);
+		return;
+	}
+
+	// ── 플레이어 감지 ────────────────────────────────────────────────────
+	AActor* DetectedPlayer = TryGetPerceptionTarget(AIController);
+	if (!DetectedPlayer)
+	{
+		DetectedPlayer = FindClosestPlayer(ControlledPawn->GetActorLocation(), DetectionRadius, ControlledPawn->GetWorld());
+	}
+
+	if (DetectedPlayer)
+	{
+		BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, DetectedPlayer);
+	}
+	else
+	{
+		BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
+	}
+}
+#pragma endregion
+
+#pragma region Helpers
+AActor* UUK_BTService_DetectPlayer::TryGetPerceptionTarget(AAIController* AICon)
+{
+	if (!AICon) return nullptr;
+
+	AUK_AiMonsterCtl* MonsterCtl = Cast<AUK_AiMonsterCtl>(AICon);
+	if (!MonsterCtl) return nullptr;
+
+	return MonsterCtl->GetCurrentTarget();
+}
+
+AActor* UUK_BTService_DetectPlayer::FindClosestPlayer(const FVector& Location, float MaxRadius, UWorld* World)
+{
+	if (!World) return nullptr;
+
+	AActor* BestTarget = nullptr;
+	float   BestDist   = MaxRadius;
+
+	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
+	{
+		APlayerController* PC = It->Get();
+		if (!PC) continue;
+
+		APawn* PlayerPawn = PC->GetPawn();
+		if (!PlayerPawn) continue;
+
+		const float Dist = FVector::Dist(Location, PlayerPawn->GetActorLocation());
+		if (Dist < BestDist)
+		{
+			BestDist   = Dist;
+			BestTarget = PlayerPawn;
+		}
+	}
+
+	return BestTarget;
 }
 #pragma endregion
