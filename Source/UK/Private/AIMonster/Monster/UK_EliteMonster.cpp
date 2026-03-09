@@ -171,6 +171,6 @@ void AUK_EliteMonster::OnSpecialAttackMontageEnded(UAnimMontage* Montage, bool b
 	}
 
 	bIsAttacking = false;
-	OnSpecialAttackFinished.ExecuteIfBound(!bInterrupted);
+	OnSpecialAttackFinished.ExecuteIfBound(); 
 }
 #pragma endregion

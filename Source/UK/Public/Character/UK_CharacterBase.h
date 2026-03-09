@@ -31,6 +31,7 @@ class UUK_InputConfig;
 class UUK_InteractionComponent;
 class UUK_QuestComponent;
 class UInputAction;
+class USoundAttenuation;
 struct FInputActionValue;
 #pragma endregion
 
@@ -69,6 +70,10 @@ public:
 	TObjectPtr<USkeletalMeshComponent> GetRightHandWeapon() { return RightHandWeaponComponent; }
 	TObjectPtr<USkeletalMeshComponent> GetLeftHandWeapon() { return LeftHandWeaponComponent; }
 	TObjectPtr<UUK_InventoryComponent> GetInventoryComponent() { return InventoryComponent; }
+public:
+	
+	UPROPERTY(editAnywhere, BlueprintReadOnly, Category = "Sound")
+	TObjectPtr<USoundAttenuation> Attenuation;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -102,6 +107,7 @@ protected:
 	TObjectPtr<UAIPerceptionStimuliSourceComponent> StimuliSource;
 	
 	float DefualtGravity;
+	
 #pragma endregion
 
 #pragma region Interaction And Quest
@@ -115,10 +121,10 @@ public:
 #pragma endregion
 
 #pragma region GAS
-protected:
+public:
 	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-	
+protected:
 	void GiveStartupAbilities();
 protected:
 	

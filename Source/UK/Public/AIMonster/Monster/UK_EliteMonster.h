@@ -38,17 +38,25 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Elite|SpecialAttack")
 	bool CanUseSpecialAttack() const;
 
+	/**
+	 * 특수 공격 몽타주 재생
+	 * BT에서 호출됨
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Elite|SpecialAttack")
 	bool PlaySpecialAttack();
 
-	DECLARE_DELEGATE_OneParam(FOnSpecialAttackFinished, bool /*bSucceeded*/);
-	FOnSpecialAttackFinished OnSpecialAttackFinished;
+	/**
+	 * 특수 공격 완료 델리게이트
+	 * BT_Task_AttackBase에서 바인딩
+	 */
+	FSimpleDelegate OnSpecialAttackFinished;
 
 	UFUNCTION()
 	void OnSpecialAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 	void PlaySpecialAttackMontage(int32 MontageIndex);
 	
+	// ── AoE 데미지 ───────────────────────────────────────────────────────
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Special Attack")
 	float SpecialAttackAoERadius = 500.f;  
 
