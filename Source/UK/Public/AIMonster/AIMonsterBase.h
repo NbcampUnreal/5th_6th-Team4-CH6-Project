@@ -360,7 +360,7 @@ public:
 	virtual void InitializeStatsFromPlayerLevel(int32 PlayerLevel);
 
 	/** 몬스터 종류별 기본 HP */
-	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
+		UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
 	static float GetMonsterTypeBaseHP(EMonsterType Type);
 
 	/** 몬스터 종류별 레벨당 HP 증가량 */

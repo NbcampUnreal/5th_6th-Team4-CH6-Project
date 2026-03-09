@@ -20,13 +20,11 @@ protected:
 	virtual void OnUnPossess() override;
 
 	UPROPERTY()
-	AUK_BossMonsterBase* Boss;
-
-	void SyncBossPhaseToBB();
-
-	FTimerHandle PhaseSyncTimer;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Boss")
-	float PhaseSyncInterval = 0.25f;
-
+	TObjectPtr<AUK_BossMonsterBase> BossPtr;
+	
+	UFUNCTION()
+	void HandlePhaseChanged(const FGameplayTag& NewPhaseTag);
+	
+	const FName BB_BossPhase = TEXT("BossPhase");
+	const FName BB_TargetActor = TEXT("TargetActor");
 };

@@ -618,6 +618,11 @@ void AAIMonsterBase::Die()
 			Brain->StopLogic(TEXT("Dead"));
 		}
 	}
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance)
+	{
+		AnimInstance->StopAllMontages(0.1f); 
+	}
 
 	SetState(EMonsterState::Dead);
 
@@ -1035,7 +1040,7 @@ void AAIMonsterBase::HideAlertIcon()
 	AlertWidgetComponent->SetVisibility(false);
 	AlertWidgetComponent->SetHiddenInGame(true);
 }
-#pragma endregion
+#pragma endregion	
 
 #pragma region Rotation System
 void AAIMonsterBase::StartRotationUpdate()
