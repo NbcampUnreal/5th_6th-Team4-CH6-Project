@@ -69,16 +69,6 @@ void AUK_BossMonsterBase::ReceiveDamage(float Damage)
 
 void AUK_BossMonsterBase::UpdatePhase()
 {
-	if (!AttributeSet) return;
-
-	float HPRatio = AttributeSet->GetHealth() / AttributeSet->GetMaxHealth();
-
-	// 체력이 절반으로 떨어졌을때 페이즈 전환 임시용으로 넣어둠 수정 필요함 대기중임
-	if (CurrentPhase == 1 && HPRatio <= 0.5f)
-	{
-		CurrentPhase = 2;
-		// 광폭화 이펙트나 사운드 여기 삽입 필요함 대기중임 가로채기 오버라이드 예정
-	}
 }
 
 bool AUK_BossMonsterBase::PlayRandomAttackMontage()

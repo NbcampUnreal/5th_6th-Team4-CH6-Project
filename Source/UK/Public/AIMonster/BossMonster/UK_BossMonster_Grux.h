@@ -14,9 +14,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-    virtual void Tick(float DeltaSeconds) override;
 	virtual void UpdatePhase() override;
-	virtual void ReceiveDamage(float Damage) override;
 	virtual bool PlayRandomAttackMontage() override;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Grux|Patterns")
