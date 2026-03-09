@@ -89,12 +89,25 @@ void AAIMonsterBase::BeginPlay()
 		CurrentState = EMonsterState::Passive;
 	}
 
-	if (HPWidgetComponent)
+	if (HPWidgetComponent && GetWorld())
 	{
 		GetWorldTimerManager().SetTimer(
 			HPBarUpdateTimer, this,
 			&AAIMonsterBase::UpdateHPBarWidget,
 			0.05f, true);
+	}
+
+	if (HPWidgetComponent)
+	{
+		HPWidget = Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
+
+		if (HPWidget)
+		{
+			HPWidget->BindMonsterAttributes(
+				AbilitySystemComponent,
+				AttributeSet
+			);
+		}
 	}
 	
 	if (AlertWidgetComponent && AlertWidget)
@@ -110,6 +123,17 @@ void AAIMonsterBase::BeginPlay()
 	AutoInitStatsFromNearestPlayer();
 }
 
+
+void AAIMonsterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearAllTimersForObject(this);
+	}
+	
+	Super::EndPlay(EndPlayReason);
+}
+
 void AAIMonsterBase::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
@@ -117,12 +141,6 @@ void AAIMonsterBase::PostInitializeComponents()
 	if (HPWidgetComponent && HPWidgetClass)
 	{
 		HPWidgetComponent->SetWidgetClass(HPWidgetClass);
-		HPWidget = Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
-
-		if (HPWidget && AbilitySystemComponent && AttributeSet)
-		{
-			HPWidget->BindMonsterAttributes(AbilitySystemComponent, AttributeSet);
-		}
 	}
 	
 	if (AlertWidgetComponent && AlertWidgetClass)
@@ -287,7 +305,10 @@ void AAIMonsterBase::ApplyDamage(float DamageAmount, AController* InstigatorCont
 
 	// GameplayEffect로 데미지 적용
 	FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
-	EffectContext.AddInstigator(InstigatorController ? InstigatorController->GetPawn() : nullptr, this);
+	AActor* InstigatorPawn = (InstigatorController && InstigatorController->GetPawn())
+	? InstigatorController->GetPawn()
+	: nullptr;
+	EffectContext.AddInstigator(InstigatorPawn, this);
 
 	FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(
 		DamageEffectClass, 1.0f, EffectContext);
@@ -330,35 +351,43 @@ void AAIMonsterBase::ApplyDamage(float DamageAmount, AController* InstigatorCont
 	// 평화 몬스터: 피격 시 적대 전환
 	if (Personality == EMonsterPersonality::Peaceful && !bIsAggressive)
 	{
-		AActor* ClosestPlayer = nullptr;
-		for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+		AActor* Attacker = nullptr;
+		if (InstigatorController && InstigatorController->GetPawn())
 		{
-			APlayerController* PC = It->Get();
-			if (!PC || !PC->GetPawn()) continue;
-
-			if (FVector::Dist(GetActorLocation(), PC->GetPawn()->GetActorLocation()) <= 500.0f)
+			Attacker = InstigatorController->GetPawn();
+		}
+		else
+		{
+			// InstigatorController 없을 때만 근처 탐색 (DetectionRadius 활용)
+			float ClosestDist = DetectionRadius;
+			for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 			{
-				ClosestPlayer = PC->GetPawn();
-				break;
+				APlayerController* PC = It->Get();
+				if (!PC || !PC->GetPawn()) continue;
+				const float Dist = FVector::Dist(GetActorLocation(), PC->GetPawn()->GetActorLocation());
+				if (Dist < ClosestDist)
+				{
+					ClosestDist = Dist;
+					Attacker = PC->GetPawn();
+				}
 			}
 		}
 
-		if (ClosestPlayer)
+		if (Attacker)
 		{
 			bIsAggressive = true;
-			Aggressor      = ClosestPlayer;
+			Aggressor      = Attacker;
 
 			if (AAIController* AIC = Cast<AAIController>(GetController()))
 			{
 				if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
 				{
-					if (!BB->GetValueAsObject(TEXT("TargetPlayer")))
-						BB->SetValueAsObject(TEXT("PendingTarget"), ClosestPlayer);
+					BB->SetValueAsObject(TEXT("TargetPlayer"), Attacker);
 				}
 			}
 
-			CallNearbyAllies(ClosestPlayer);
-			OnAttacked.Broadcast(this, ClosestPlayer);
+			CallNearbyAllies(Attacker);
+			OnAttacked.Broadcast(this, Attacker);
 			RequestState(EMonsterState::Aggressive);
 
 			if (AAIController* AIC = Cast<AAIController>(GetController()))
@@ -380,6 +409,49 @@ void AAIMonsterBase::ReceiveDamage(float Damage)
 void AAIMonsterBase::ReceiveDamageFrom(float Damage, AController* InstigatorController)
 {
 	ApplyDamage(Damage, InstigatorController);
+}
+
+void AAIMonsterBase::NotifyAttacked(AController* InstigatorController)
+{
+	if (Personality != EMonsterPersonality::Peaceful || bIsAggressive) return;
+
+	AActor* Attacker = nullptr;
+	if (InstigatorController && InstigatorController->GetPawn())
+	{
+		Attacker = InstigatorController->GetPawn();
+	}
+	else
+	{
+		float ClosestDist = DetectionRadius;
+		for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+		{
+			APlayerController* PC = It->Get();
+			if (!PC || !PC->GetPawn()) continue;
+			const float Dist = FVector::Dist(GetActorLocation(), PC->GetPawn()->GetActorLocation());
+			if (Dist < ClosestDist) { ClosestDist = Dist; Attacker = PC->GetPawn(); }
+		}
+	}
+
+	if (!Attacker) return;
+
+	bIsAggressive = true;
+	Aggressor = Attacker;
+
+	if (AAIController* AIC = Cast<AAIController>(GetController()))
+	{
+		if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
+		{
+			BB->SetValueAsObject(TEXT("TargetPlayer"), Attacker);  // TargetPlayer 직접 설정
+		}
+		if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AIC->GetBrainComponent()))
+		{
+			BTComp->RestartTree();
+		}
+	}
+
+	CallNearbyAllies(Attacker);
+	OnAttacked.Broadcast(this, Attacker);
+	RequestState(EMonsterState::Aggressive);
 }
 #pragma endregion
 
@@ -407,16 +479,28 @@ void AAIMonsterBase::PlayAttackMontage(int32 MontageIndex)
 {
 	if (bIsHit) return;
 	if (!AttackMontages.IsValidIndex(MontageIndex)) return;
+	if (!AttackMontages[MontageIndex]) return;
 
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	if (!MeshComp) return;
+	UAnimInstance* AnimInstance = MeshComp->GetAnimInstance();
 	if (!AnimInstance) return;
 
+	AnimInstance->OnMontageEnded.RemoveDynamic(this, &AAIMonsterBase::OnAttackMontageEnded);
 	AnimInstance->Montage_Play(AttackMontages[MontageIndex]);
 	AnimInstance->OnMontageEnded.AddDynamic(this, &AAIMonsterBase::OnAttackMontageEnded);
 }
 
 void AAIMonsterBase::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
+	if (!AttackMontages.Contains(Montage)) return;
+
+	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (AnimInstance)
+	{
+		AnimInstance->OnMontageEnded.RemoveDynamic(this, &AAIMonsterBase::OnAttackMontageEnded);
+	}
+	
 	bIsAttacking = false;
 	OnAttackFinished.ExecuteIfBound(!bInterrupted);
 }
@@ -514,7 +598,17 @@ void AAIMonsterBase::Die()
 
 	bIsDying     = true;
 	bIsAttacking = false;
+	
+	if (GetCapsuleComponent())
+	{
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
 
+	if (GetMesh())
+	{
+		GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	
 	// AI 정지
 	if (AAIController* AIC = Cast<AAIController>(GetController()))
 	{
@@ -546,6 +640,12 @@ void AAIMonsterBase::FinalizeDeath()
 	{
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
+	
+	if (GetMesh())
+	{
+		GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	
 	if (GetCharacterMovement())
 	{
 		GetCharacterMovement()->DisableMovement();
@@ -610,82 +710,16 @@ void AAIMonsterBase::HideCorpse()
 #pragma region Respawn
 void AAIMonsterBase::ResetHealth()
 {
-	GetWorldTimerManager().ClearTimer(CorpseTimerHandle);
-
-	// 플래그 리셋
-	bIsAttacking           = false;
-	bIsDying               = false;
-	LastAttackerController = nullptr;
-
-	// GAS를 통한 체력 복원
-	if (AbilitySystemComponent && AttributeSet)
-	{
-		const float MaxHP = AttributeSet->GetMaxHealth();
-		AbilitySystemComponent->SetNumericAttributeBase(
-			AttributeSet->GetHealthAttribute(), MaxHP
-		);
-	}
-
-	// 상태 복원
-	if (Personality == EMonsterPersonality::Peaceful)
-	{
-		bIsAggressive = false;
-		Aggressor     = nullptr;
-		SetState(EMonsterState::Passive);
-	}
-	else
-	{
-		SetState(EMonsterState::Idle);
-	}
-
-	// 충돌 / 이동 복원
-	if (GetCapsuleComponent())
-	{
-		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	}
-	if (GetCharacterMovement())
-	{
-		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
-		GetCharacterMovement()->StopMovementImmediately();
-	}
-
-	// 위치 초기화
-	SetActorLocation(SpawnLocation, false, nullptr, ETeleportType::ResetPhysics);
-	SetActorRotation(FRotator::ZeroRotator);
-
-	// 외형 + 애니메이션 리셋
-	ResetAppearance();
-
-	// AI 재시작
-	if (AAIController* AIC = Cast<AAIController>(GetController()))
-	{
-		if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
-		{
-			BB->SetValueAsVector(TEXT("SpawnLocation"), SpawnLocation);
-			BB->SetValueAsVector(TEXT("PatrolLocation"), SpawnLocation);
-			BB->ClearValue(TEXT("TargetPlayer"));
-		}
-
-		if (BehaviorTree)
-		{
-			if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AIC->GetBrainComponent()))
-			{
-				BTComp->StopTree();
-
-				FTimerHandle RestartTimer;
-				GetWorldTimerManager().SetTimer(RestartTimer, [this, AIC]()
-				{
-					if (BehaviorTree && AIC && AIC->GetBrainComponent())
-					{
-						if (UBehaviorTreeComponent* BT = Cast<UBehaviorTreeComponent>(AIC->GetBrainComponent()))
-						{
-							BT->StartTree(*BehaviorTree);
-						}
-					}
-				}, 0.5f, false);
-			}
-		}
-	}
+	if (!AbilitySystemComponent || !AttributeSet) return;
+	
+	const float MaxHP = AttributeSet->GetMaxHealth();
+	AbilitySystemComponent->SetNumericAttributeBase(
+		AttributeSet->GetHealthAttribute(), MaxHP
+	);
+	
+	bIsDying = false;
+	
+	UE_LOG(LogTemp, Log, TEXT("[%s] ResetHealth: HP restored to %.0f"), *GetName(), MaxHP);
 }
 
 void AAIMonsterBase::ResetAppearance()
@@ -756,7 +790,7 @@ void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
 			if (UBlackboardComponent* BB = AllyAIC->GetBlackboardComponent())
 			{
 				if (!BB->GetValueAsObject(TEXT("TargetPlayer")))
-					BB->SetValueAsObject(TEXT("PendingTarget"), Enemy);
+					BB->SetValueAsObject(TEXT("TargetPlayer"), Enemy);
 			}
 			if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AllyAIC->GetBrainComponent()))
 			{
@@ -953,25 +987,33 @@ void AAIMonsterBase::HideHPBar()
 
 void AAIMonsterBase::UpdateHPBarWidget()
 {
-	if (!HPWidgetComponent) return;
+	if ( !HPWidgetComponent )
+		return;
 
 	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	if (!PC) return;
+	if ( !PC )
+		return;
 
-	FVector  CameraLocation;
+	FVector CameraLocation;
 	FRotator CameraRotation;
 	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
 	const FVector WidgetLocation = HPWidgetComponent->GetComponentLocation();
-	FVector  Direction           = CameraLocation - WidgetLocation;
-	FRotator LookAtRotation      = FRotationMatrix::MakeFromX(Direction).Rotator();
 
-	LookAtRotation.Pitch = 0.f;
-	LookAtRotation.Roll  = 0.f;
+	// 카메라 방향 계산
+	FVector Direction = CameraLocation - WidgetLocation;
+
+	// HP바가 기울어지지 않게 Z 제거
+	Direction.Z = 0.f;
+
+	FRotator LookAtRotation = Direction.Rotation();
+
 	HPWidgetComponent->SetWorldRotation(LookAtRotation);
 
-	HPWidgetComponent->SetWorldScale3D(FVector(0.5f, 0.5f, 0.5f));
+	// 크기 고정
+	HPWidgetComponent->SetWorldScale3D(FVector(0.5f));
 }
+
 #pragma endregion
 
 #pragma region Alert Icon

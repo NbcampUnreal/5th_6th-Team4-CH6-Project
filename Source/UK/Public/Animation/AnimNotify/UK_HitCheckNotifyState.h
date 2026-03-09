@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "UK_HitCheckNotifyState.generated.h"
 
@@ -25,5 +26,8 @@ protected:
 	FTimerHandle HitTimer;
 				
 	AUK_CharacterBase* OwnerCharacter;
-			
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FGameplayTag AttackTag;
+
 };

@@ -26,7 +26,7 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 	else if (Attribute == GetHealthAttribute())
 	{
 		const float OldValue = NewValue;
-		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxHealth());
+		NewValue = FMath::Clamp(NewValue, 0.f, GetMaxHealth());
 
 		if (OldValue != NewValue)
 		{
@@ -34,6 +34,9 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 			       NewValue);
 		}
 
+		if (NewValue <= 0.f)
+		{
+		}
 		UE_LOG(LogTemp, Log, TEXT("   Health: %.1f → %.1f (Max: %.1f)"),
 		       OldValue, NewValue, GetMaxHealth());
 	}
@@ -152,7 +155,7 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 	// 체력 후처리
 	else if (Attribute == GetHealthAttribute())
 	{
-		if (GetHealth() <= 0.0f)
+		if (GetHealth() <= 0.f)
 		{
 			HandleOutOfHealth();
 		}
@@ -220,8 +223,14 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 
 void UUK_PlayerStatusAttributeSet::HandleOutOfHealth()
 {
-	if (AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(GetOwningActor()))
+	UE_LOG(LogTemp, Log, TEXT("OnDead"));
+
+	if (AActor* Avatar = GetOwningAbilitySystemComponent()->GetAvatarActor())
 	{
-		Player->Dead();
+		if (AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(Avatar))
+		{
+			UE_LOG(LogTemp, Log, TEXT("OnDead1"));
+			Player->Dead();
+		}
 	}
 }

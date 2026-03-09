@@ -66,6 +66,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 #pragma endregion
 
 #pragma region Ability System
@@ -240,6 +241,8 @@ public:
 	/** 레거시 호환용 */
 	virtual void ReceiveDamage(float Damage);
 	void ReceiveDamageFrom(float Damage, AController* InstigatorController);
+	
+	void NotifyAttacked(AController* InstigatorController);
 #pragma endregion
 
 #pragma region Idle Animation

@@ -50,6 +50,24 @@ void UUK_MonsterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectMod
 			const float OldHealth = GetHealth();
 			const float NewHealth = FMath::Max(0.0f, GetHealth() - FinalDamage);
 			SetHealth(NewHealth);
+			if (Monster)
+			{
+				AController* InstigatorController = nullptr;
+				if (Data.EffectSpec.GetContext().GetInstigator())
+				{
+					APawn* InstigatorPawn = Cast<APawn>(Data.EffectSpec.GetContext().GetInstigator());
+					if (InstigatorPawn)
+					{
+						InstigatorController = InstigatorPawn->GetController();
+					}
+				}
+				Monster->NotifyAttacked(InstigatorController);  
+			}
+
+			if (NewHealth <= 0.0f)
+			{
+				HandleOutOfHealth();
+			}
 			
 			UE_LOG(LogTemp, Warning, TEXT(" Health Updated: %.1f → %.1f (Damage: %.1f)"), 
 				OldHealth, NewHealth, FinalDamage);

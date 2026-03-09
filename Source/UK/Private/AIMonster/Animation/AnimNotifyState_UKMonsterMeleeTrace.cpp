@@ -3,10 +3,13 @@
 #include "Character/UK_CharacterBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
+#include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
 #include "GameFramework/Character.h"
 #include "Components/CapsuleComponent.h"
 #include "Sound/SoundCue.h"
 #include "Sound/SoundBase.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "Tags/UK_GameplayTags.h"
 
 UAnimNotifyState_UKMonsterMeleeTrace::UAnimNotifyState_UKMonsterMeleeTrace() {}
 
@@ -115,8 +118,42 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 			*Player->GetName(),
 			Monster->AttackDamage,
 			*Hit.ImpactPoint.ToString());
+		if (IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(Player))
+		{
+			if (UAbilitySystemComponent* PlayerASC = ASCInterface->GetAbilitySystemComponent())
+			{
+				// 패링 체크
+				if (PlayerASC->HasMatchingGameplayTag(UK_GameplayTags::Action::Parrying))
+				{
+					UE_LOG(LogTemp, Warning,
+						TEXT("[MeleeTrace] %s → %s : PARRIED! Attack cancelled."),
+						*Monster->GetName(), *Player->GetName());
 
-		Player->ReceiveDamage(Monster->AttackDamage);
+					// 몬스터에게 Parry 이벤트 
+					FGameplayEventData ParriedPayload;
+					ParriedPayload.Instigator = Player;
+					ParriedPayload.Target     = Monster;
+					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+						Monster,
+						UK_GameplayTags::Action::Parry,
+						ParriedPayload
+					);
+
+					return;
+				}
+
+				const UUK_PlayerStatusAttributeSet* AttrSet = PlayerASC->GetSet<UUK_PlayerStatusAttributeSet>();
+				const float Defence = AttrSet ? AttrSet->GetDefence() : 0.f;
+				const float FinalDamage = FMath::Max(Monster->AttackDamage - Defence, 0.f);
+				if (FinalDamage > 0.f)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("[Player] Hit | Raw: %.1f | Defence: %.1f | Final: %.1f | HP: %.1f -> %.1f"),
+						Monster->AttackDamage, Defence, FinalDamage, AttrSet->GetHealth(), AttrSet->GetHealth() - FinalDamage);
+					PlayerASC->SetNumericAttributeBase(
+						UUK_PlayerStatusAttributeSet::GetDamageAttribute(), FinalDamage);
+				}
+			}
+		}
 	}
 }
 #pragma endregion

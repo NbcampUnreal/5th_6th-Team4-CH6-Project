@@ -4,9 +4,7 @@
 #include "Character/GA/UK_LightAttackAbility.h"
 #include "Character/UK_CharacterBase.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "DataAsset/UK_AnimData.h"
-#include "Tags/UK_GameplayTags.h"
 
 UUK_LightAttackAbility::UUK_LightAttackAbility() : index(1)
 {
@@ -60,7 +58,7 @@ void UUK_LightAttackAbility::ResetInput()
 	{
 		return;
 	}
-	UKPC->bIsInInput = false;
+	UKPC->InputType = EInputMode::None;
 }
 void UUK_LightAttackAbility::CharactorStopJump()
 {
@@ -77,15 +75,3 @@ void UUK_LightAttackAbility::EndCombo_Implementation()
 {
 
 }
-//void UUK_LightAttackAbility::CurrentCombo()
-//{
-//	AUK_CharacterBase* UKPC = Cast<AUK_CharacterBase>(GetAvatarActorFromActorInfo());
-//
-//	UUK_StatusAnimData* Status = UKPC->GetNowWeaponStatus();
-//
-//	UKPC->bIsInInput = false;
-//	++index;
-//	//FName SectionName = *FString::Printf(TEXT("%s%d"), *AnimData->MontageSectionName, index);
-//
-//}
-
