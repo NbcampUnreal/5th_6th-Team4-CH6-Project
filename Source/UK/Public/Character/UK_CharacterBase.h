@@ -124,7 +124,7 @@ public:
 public:
 	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-	
+protected:
 	void GiveStartupAbilities();
 protected:
 	

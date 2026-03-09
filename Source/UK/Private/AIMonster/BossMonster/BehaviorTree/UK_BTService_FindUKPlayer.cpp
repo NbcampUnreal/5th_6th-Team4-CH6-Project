@@ -49,11 +49,7 @@ void UUK_BTService_FindUKPlayer::TickNode(UBehaviorTreeComponent& OwnerComp,uint
 
 		if (!IsValid(Player)) continue;
 
-		float Dist = FVector::Dist(
-			Player->GetActorLocation(),
-			SelfPawn->GetActorLocation()
-		);
-
+		float Dist = FVector::Dist(Player->GetActorLocation(),SelfPawn->GetActorLocation());
 		if (Dist <= MinDist)
 		{
 			MinDist = Dist;
@@ -64,10 +60,13 @@ void UUK_BTService_FindUKPlayer::TickNode(UBehaviorTreeComponent& OwnerComp,uint
 	if (ClosestPlayer)
 	{
 		BB->SetValueAsObject(TEXT("TargetActor"), ClosestPlayer);
+		float Distance = FVector::Dist(SelfPawn->GetActorLocation(), ClosestPlayer->GetActorLocation());
+		BB->SetValueAsFloat(TEXT("DistanceToTarget"), Distance);
 	}
 	else
 	{
 		BB->ClearValue(TEXT("TargetActor"));
+		BB->ClearValue(TEXT("DistanceToTarget"));
 	}
 	
 }
