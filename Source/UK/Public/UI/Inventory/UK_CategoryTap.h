@@ -19,8 +19,13 @@ class UK_API UUK_CategoryTap : public UUserWidget
 
 	
 public:
-	UPROPERTY(meta = ( BindWidget ))
+
+	UPROPERTY(meta = (BindWidget))
 	UButton* CategoryButton;
+
+	//메인 UI의 디테일 패널에서 수정 가능하도록 노출
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "InvCategoryTap")
+	FButtonStyle CustomButtonStyle;
 
 	//델리게이트 속성, 이벤트 호출 시 실행될 동작
 	UPROPERTY(BlueprintAssignable, Category = "InvCategoryTap")
@@ -31,4 +36,9 @@ public:
 	UFUNCTION()
 	void CategoryTapClicked();
 
+	UPROPERTY(BlueprintReadOnly)
+	bool bSelected = false;
+
+	UFUNCTION(BlueprintCallable)
+	void SetSelected(bool bInSelected);
 };

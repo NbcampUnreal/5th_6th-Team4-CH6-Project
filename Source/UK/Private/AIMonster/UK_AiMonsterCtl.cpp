@@ -44,7 +44,7 @@ void AUK_AiMonsterCtl::OnPossess(APawn* InPawn)
 	{
 		MoveComp->bUseControllerDesiredRotation = false;
 		MoveComp->bOrientRotationToMovement     = true;
-		MoveComp->RotationRate                  = FRotator(0.f, 540.f, 0.f);
+		MoveComp->RotationRate                  = FRotator(0.f, 240.f, 0.f);  // 부드러운 회전
 		MoveComp->bEnablePhysicsInteraction     = false;
 		MoveComp->bSweepWhileNavWalking         = false;
 	}

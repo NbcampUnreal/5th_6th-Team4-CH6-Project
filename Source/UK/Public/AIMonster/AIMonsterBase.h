@@ -50,8 +50,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnMonsterKilled,
 	EMonsterType, MonsterType,
 	class APlayerController*, KillerController);
 
-DECLARE_DELEGATE_OneParam(FOnAttackFinished, bool /*bSucceeded*/);
-
 /* ─────────────────────────────────────────────────────────────── */
 
 UCLASS(Abstract)
@@ -224,7 +222,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	virtual bool PlayRandomAttackMontage();
 
-	FOnAttackFinished OnAttackFinished;
+	FSimpleDelegate OnAttackFinished;
 
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
@@ -362,7 +360,7 @@ public:
 	virtual void InitializeStatsFromPlayerLevel(int32 PlayerLevel);
 
 	/** 몬스터 종류별 기본 HP */
-	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
+		UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
 	static float GetMonsterTypeBaseHP(EMonsterType Type);
 
 	/** 몬스터 종류별 레벨당 HP 증가량 */
