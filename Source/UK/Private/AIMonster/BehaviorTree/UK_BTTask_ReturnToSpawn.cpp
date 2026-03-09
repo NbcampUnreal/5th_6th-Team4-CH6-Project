@@ -114,16 +114,6 @@ void UUK_BTTask_ReturnToSpawn::TickTask(UBehaviorTreeComponent& OwnerComp, uint8
 	}
 	
 	AICon->MoveToLocation(SpawnLocation, ArrivalDistance, false, true, false, false);
-	
-	// 이동 상태 로깅
-	if (AAIMonsterBase* Monster = Cast<AAIMonsterBase>(ControlledPawn))
-	{
-		if (UCharacterMovementComponent* MoveComp = Monster->GetCharacterMovement())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[ReturnToSpawn] Tick Move - Speed: %.1f, Dist: %.1f"), 
-				MoveComp->Velocity.Size(), DistFromSpawn);
-		}
-	}
 }
 #pragma endregion
 
