@@ -16,63 +16,57 @@ void AUK_BossAIController::BeginPlay()
 void AUK_BossAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
-	UE_LOG(LogTemp, Warning, TEXT("Boss Possessed"));
-	if (!HasAuthority()) return;
+	
+	BossPtr = Cast<AUK_BossMonsterBase>(InPawn);
+	if (!BossPtr) return;
 
-	Boss = Cast<AUK_BossMonsterBase>(InPawn);
-	if (!Boss) return;
-
-	if (Boss->BehaviorTree)
+	if (BossPtr->BehaviorTree)
 	{
-		RunBehaviorTree(Boss->BehaviorTree);
+		RunBehaviorTree(BossPtr->BehaviorTree);
 	}
+	
 	UBlackboardComponent* BB = GetBlackboardComponent();
 	if (!BB) return;
 	
-	BB->SetValueAsVector(TEXT("HomeLocation"),InPawn->GetActorLocation());
-	APawn* Player = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
-	
-	if (Player)
+	if (BB)
 	{
-		BB->SetValueAsObject(TEXT("TargetActor"), Player);
-	}
-	
-	GetWorld()->GetTimerManager().SetTimer(
-		PhaseSyncTimer,
-		this,
-		&AUK_BossAIController::SyncBossPhaseToBB,
-		PhaseSyncInterval,
-		true
-	);
+		// 홈 위치 설정
+		BB->SetValueAsVector(TEXT("HomeLocation"), InPawn->GetActorLocation());
 
-	SyncBossPhaseToBB();
+		// 초기 타겟 설정 (가장 가까운 플레이어로 확장 가능)
+		APawn* Player = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+		if (Player)
+		{
+			BB->SetValueAsObject(BB_TargetActor, Player);
+		}
+
+		// 2. [중요] 페이즈 동기화: 타이머 대신 보스의 델리게이트에 바인딩!
+		// 보스 클래스에 OnBossPhaseChanged 델리게이트가 정의되어 있어야 합니다.
+		BossPtr->OnBossPhaseChanged.AddDynamic(this, &AUK_BossAIController::HandlePhaseChanged);
+
+		// 초기 페이즈 값 강제 동기화
+		HandlePhaseChanged(BossPtr->CurrentPhaseTag);
+	}
 }
 
 void AUK_BossAIController::OnUnPossess()
 {
-	if (HasAuthority())
+	if (BossPtr)
 	{
-		GetWorld()->GetTimerManager().ClearTimer(PhaseSyncTimer);
+		// 바인딩 해제
+		BossPtr->OnBossPhaseChanged.RemoveAll(this);
 	}
 
-	Boss = nullptr;
-
+	BossPtr = nullptr;
 	Super::OnUnPossess();
 }
 
-void AUK_BossAIController::SyncBossPhaseToBB()
+void AUK_BossAIController::HandlePhaseChanged(const FGameplayTag& NewPhaseTag)
 {
-	if (!HasAuthority()) return;
-	if (!Boss) return;
-
 	UBlackboardComponent* BB = GetBlackboardComponent();
-	if (!BB) return;
-
-	const FGameplayTag PhaseTag = Boss->GetCurrentPhase();
-	const FName PhaseName = PhaseTag.GetTagName();
-
-	if (BB->GetValueAsName(TEXT("BossPhase")) != PhaseName)
+	if (BB && NewPhaseTag.IsValid())
 	{
-		BB->SetValueAsName(TEXT("BossPhase"), PhaseName);
+		BB->SetValueAsName(BB_BossPhase, NewPhaseTag.GetTagName());
+		UE_LOG(LogTemp, Warning, TEXT("AI Controller: Blackboard Updated Phase to %s"), *NewPhaseTag.ToString());
 	}
 }

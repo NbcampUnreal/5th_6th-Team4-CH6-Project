@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "DataAsset/UK_StatusAnimData.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "UK_HitCheckNotifyState.generated.h"
 
@@ -29,5 +30,8 @@ protected:
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FGameplayTag AttackTag;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	EComboAttackType AttackType;
 
 };

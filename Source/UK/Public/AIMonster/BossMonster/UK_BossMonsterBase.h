@@ -7,6 +7,10 @@
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FBossPhaseChanged,const FGameplayTag&);
 class UUK_BossAnimInstance;
+class UGameplayEffect;
+class UCapsuleComponent;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBossPhaseChanged, const FGameplayTag&, NewPhaseTag);
 
 UCLASS()
 class UK_API AUK_BossMonsterBase : public AAIMonsterBase
@@ -16,63 +20,57 @@ class UK_API AUK_BossMonsterBase : public AAIMonsterBase
 public:
 	AUK_BossMonsterBase();
 	
-	FBossPhaseChanged OnBossPhaseChanged;
-	
-	UFUNCTION(BlueprintCallable, Category="Boss|Phase")
-	FGameplayTag GetCurrentPhase() const { return CurrentPhaseTag; }
-	
-	virtual bool PlayRandomAttackMontage() override;
-	bool bIsAttacking = false; 
-	void StartAttack(); 
-	void EndAttack();
-	
 protected:
 	virtual void BeginPlay() override;
+	
+	AActor* GetTargetActor() const;
+	
+	float PlayMontage(UAnimMontage* Montage, float InPlayRate = 1.f);
+	
+#pragma region Phase & Combat
+public:
+	virtual void ReceiveDamage(float Damage) override;
+	
+	virtual bool PlayRandomAttackMontage() override;
 
-	UPROPERTY(ReplicatedUsing=OnRep_Phase, BlueprintReadOnly, Category="Boss|Phase")
+	UFUNCTION(BlueprintCallable, Category = "Boss|Combat")
+	void SetWeaponCollisionEnabled(bool bEnabled);
+
+	void StartAttack();
+	void EndAttack();
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Phase")
 	FGameplayTag CurrentPhaseTag;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase")
-	float Phase2HPRatio = 0.7f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase")
-	float Phase3HPRatio = 0.4f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Boss|Phase")
-	float EnrageHPRatio = 0.15f;
-
-	UFUNCTION()
-	void OnRep_Phase();
-
-	void UpdatePhase();
-
-	void SetPhase(const FGameplayTag& NewPhase);
+	virtual void UpdatePhase();
 	
-	virtual void ShowHPBar() override;
-
+	int32 CurrentPhase = 1;
+	
+	//페이즈 변경 알림 델리게이트
+	UPROPERTY(BlueprintAssignable, Category = "Boss|Events")
+	FOnBossPhaseChanged OnBossPhaseChanged;
+	
+	FGameplayTag GetCurrentPhase() const { return CurrentPhaseTag; }
+	
 protected:
-	void ReceiveDamage(float Damage);
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Pattern")
+	UPROPERTY(EditAnywhere, Category = "Boss|Patterns")
 	TArray<UAnimMontage*> Phase1Patterns;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Pattern")
+	UPROPERTY(EditAnywhere, Category = "Boss|Patterns")
 	TArray<UAnimMontage*> Phase2Patterns;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Pattern")
-	TArray<UAnimMontage*> Phase3Patterns;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Pattern")
-	TArray<UAnimMontage*> EnragePatterns;;
-
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
+	UPROPERTY(VisibleAnywhere, Category = "Boss|Combat")
+	UCapsuleComponent* WeaponCollision_R;
+	
+	UPROPERTY(VisibleAnywhere, Category = "Boss|Combat")
+	UCapsuleComponent* WeaponCollision_L;
+	
+	UFUNCTION()
+	void OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
+						UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
+						bool bFromSweep, const FHitResult& SweepResult);
+
 private:
 	UPROPERTY()
-	UUK_BossAnimInstance* BossAnim;
-	
-	FGameplayTag Phase1Tag;
-	FGameplayTag Phase2Tag;
-	FGameplayTag Phase3Tag;
-	FGameplayTag EnrageTag;
+	TArray<AActor*> HitActors;
+#pragma endregion
 };
