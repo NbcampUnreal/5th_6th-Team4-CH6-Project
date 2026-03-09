@@ -74,5 +74,4 @@ public:
 
 	UFUNCTION()
 	void CategoryTap(UUK_CategoryTap* CategoryTap);
-	
 };
