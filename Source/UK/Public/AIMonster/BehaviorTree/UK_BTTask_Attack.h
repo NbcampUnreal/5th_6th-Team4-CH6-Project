@@ -1,14 +1,14 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "BehaviorTree/BTTaskNode.h"
+#include "AIMonster/BehaviorTree/UK_BTTask_AttackBase.h"
 #include "UK_BTTask_Attack.generated.h"
 
 /**
- * 몬스터 공격 BT Task
+ * 일반 몬스터 공격 태스크
  */
 UCLASS()
-class UK_API UUK_BTTask_Attack : public UBTTaskNode
+class UK_API UUK_BTTask_Attack : public UUK_BTTask_AttackBase
 {
 	GENERATED_BODY()
 
@@ -17,19 +17,9 @@ public:
 	UUK_BTTask_Attack();
 #pragma endregion
 
-#pragma region Execution
+#pragma region Attack Interface
 protected:
-	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-#pragma endregion
-
-#pragma region Attack Callback
-	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-#pragma endregion
-
-#pragma region Private
-private:
-	TWeakObjectPtr<UBehaviorTreeComponent> CachedOwnerComp;
-
-	void OnAttackFinished(bool bSucceeded);
+	virtual bool PlayAttackMontage(AAIMonsterBase* Monster) override;
+	virtual FSimpleDelegate& GetAttackDelegate(AAIMonsterBase* Monster) override;
 #pragma endregion
 };
