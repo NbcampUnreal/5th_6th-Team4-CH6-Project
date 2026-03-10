@@ -6,6 +6,7 @@
 #include "Character/Weapon/UK_WeaponBase.h"
 #include "AIMonster/AIMonsterBase.h"
 #include "InputAction.h"
+#include "AIMonster/Component/AI_MonsterStatComponent.h"
 #include "Tags/UK_GameplayTags.h"
 #include "ActorComponent/UK_InventoryComponent.h"
 #include "NPC/Component/UK_InteractionComponent.h"
@@ -20,8 +21,12 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "AbilitySystemComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Net/UnrealNetwork.h"
 #include "Engine/OverlapResult.h"
+#include "Blueprint/UserWidget.h"
+#include <Kismet/GameplayStatics.h>
 #include "Sound/SoundAttenuation.h"
 
 #pragma region Defualt
@@ -477,7 +482,7 @@ void AUK_CharacterBase::LockONToggle()
 			Start,
 			End,
 			FQuat::Identity,
-			ECC_LockOn,
+			ECC_LockOn, /*추후에 카메라 전용 트레이스 채널로 변경 요망*/
 			CollisionShape,
 			Params
 		);
