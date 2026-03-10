@@ -282,6 +282,14 @@ public:
 
 	FOnFloorDelagate OnFloor;
 	FOnDeadDelagate OnDead;
+	
+	UFUNCTION()
+	void SetParry(const bool CheckParry){ bIsParry = CheckParry; }
+	UFUNCTION()
+	bool GetParry(const bool CheckParry) const { return CheckParry; }
+protected:
+	UPROPERTY()
+	bool bIsParry;
 #pragma endregion
 
 #pragma region FindMonsterHPBar
