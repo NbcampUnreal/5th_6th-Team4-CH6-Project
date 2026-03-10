@@ -87,6 +87,12 @@ AUK_CharacterBase::AUK_CharacterBase() :
 	QuestComp = CreateDefaultSubobject<UUK_QuestComponent>(TEXT("QuestComponent"));
 }
 
+void AUK_CharacterBase::ChangedAttribute(ECharacterAttribute NewAttribute)
+{
+	Attribute = NewAttribute;
+	OnChangedAttribute.Broadcast(NewAttribute);
+}
+
 // Called when the game starts or when spawned
 void AUK_CharacterBase::BeginPlay()
 {
@@ -674,6 +680,7 @@ void AUK_CharacterBase::SwapWeapon(int32 Index)
 	{
 		return;
 	}
+	ChangedAttribute(ItemData->WeaponAttribute);
 	EquipWeapon(ItemData->ItemTag);
 }
 
