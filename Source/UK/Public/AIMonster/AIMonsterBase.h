@@ -32,14 +32,16 @@ enum class EMonsterPersonality : uint8
 UENUM(BlueprintType)
 enum class EMonsterType : uint8
 {
-	None       = 0,
-	Grux	   = 1,
-	EliteGolem = 2,
-	EliteWolf  = 3,
-	Golem      = 4,
-	Wolf       = 5,
-	Fox        = 6,
-	Reindeer   = 7,
+	None				 = 0,
+	Grux				 = 1,
+	EliteGolem			 = 2,
+	EliteWolf			 = 3,
+	EliteInsectBeast	 = 4,
+	Golem				 = 5,
+	Wolf				 = 6,
+	Fox					 = 7,
+	Reindeer			 = 8,
+	InsectBeast			 = 9,
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDeath, class AAIMonsterBase*, DeadMonster);
