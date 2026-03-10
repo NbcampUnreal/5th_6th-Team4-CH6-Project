@@ -34,9 +34,9 @@ AAIMonsterBase::AAIMonsterBase()
 
 	if (GetCharacterMovement())
 	{
-		GetCharacterMovement()->bOrientRotationToMovement     = false;  
-		GetCharacterMovement()->bUseControllerDesiredRotation = true;
-		GetCharacterMovement()->RotationRate                  = FRotator(0.f, 540.f, 0.f);
+		GetCharacterMovement()->bOrientRotationToMovement     = true;   
+		GetCharacterMovement()->bUseControllerDesiredRotation = false;
+		GetCharacterMovement()->RotationRate                  = FRotator(0.f, 240.f, 0.f);  
 	}
 
 	// HP Widget 설치
@@ -502,7 +502,7 @@ void AAIMonsterBase::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupt
 	}
 	
 	bIsAttacking = false;
-	OnAttackFinished.ExecuteIfBound(!bInterrupted);
+	OnAttackFinished.ExecuteIfBound();
 }
 #pragma endregion
 
@@ -1069,5 +1069,53 @@ void AAIMonsterBase::StopRotationUpdate()
 	}
 }
 
-void AAIMonsterBase::UpdateRotation(){}
+void AAIMonsterBase::UpdateRotation()
+{
+	if (!bUseSmoothRotation) return;
+
+	// 이동 중이면 bOrientRotationToMovement가 자동 처리
+	const float CurrentSpeed = GetVelocity().Size2D();
+	if (CurrentSpeed > 10.f) return;
+
+	AAIController* AIC = Cast<AAIController>(GetController());
+	if (!AIC) return;
+
+	UBlackboardComponent* BB = AIC->GetBlackboardComponent();
+	if (!BB) return;
+
+	FVector TargetLocation = FVector::ZeroVector;
+	bool bHasTarget = false;
+
+	// 정지 상태에서만 타겟을 부드럽게 바라봄
+	if (CurrentState == EMonsterState::Alert || 
+	    CurrentState == EMonsterState::Aggressive ||
+	    CurrentState == EMonsterState::Attack)
+	{
+		AActor* TargetActor = Cast<AActor>(BB->GetValueAsObject(TEXT("TargetPlayer")));
+		if (TargetActor)
+		{
+			TargetLocation = TargetActor->GetActorLocation();
+			bHasTarget = true;
+		}
+	}
+
+	if (!bHasTarget) return;
+
+	const FVector CurrentLocation = GetActorLocation();
+	const FVector DirectionToTarget = (TargetLocation - CurrentLocation).GetSafeNormal2D();
+	
+	if (DirectionToTarget.IsNearlyZero()) return;
+
+	const FRotator TargetRotation = DirectionToTarget.Rotation();
+	const FRotator CurrentRotation = GetActorRotation();
+
+	const FRotator NewRotation = FMath::RInterpTo(
+		CurrentRotation,
+		TargetRotation,
+		RotationUpdateInterval,
+		RotationSpeed
+	);
+
+	SetActorRotation(NewRotation);
+}
 #pragma endregion

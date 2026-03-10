@@ -29,28 +29,24 @@ public:
 #pragma endregion
 
 #pragma region Trace Settings
-	/** 트레이스 시작 높이 오프셋 (액터 위치 기준 위로) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trace")
-	float TraceStartHeight = 60.f;
+	float TraceRadius = 60.f;
 
-	/** 전방 트레이스 길이 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trace")
-	float TraceForwardLength = 200.f;
+	float TraceForwardLength = 150.f;
 
-	/** 스윕 반지름 */
+	// 여러 높이에서 트레이스 (캡슐 중심 기준 오프셋)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trace")
-	float TraceRadius = 50.f;
+	TArray<float> TraceHeightOffsets = {-30.f, 20.f, 70.f};
 	
 #pragma endregion
 
 #pragma region Debug Settings
-	/** 디버그 캡슐 표시 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
 	bool bShowDebug = true;
 
-	/** 디버그 지속 시간 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
-	float DebugDrawDuration = 0.5f;
+	float DebugDrawDuration = 2.f;
 #pragma endregion
 
 #pragma region Private

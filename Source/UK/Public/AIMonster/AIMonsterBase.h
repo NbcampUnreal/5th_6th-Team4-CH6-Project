@@ -50,8 +50,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnMonsterKilled,
 	EMonsterType, MonsterType,
 	class APlayerController*, KillerController);
 
-DECLARE_DELEGATE_OneParam(FOnAttackFinished, bool /*bSucceeded*/);
-
 /* ─────────────────────────────────────────────────────────────── */
 
 UCLASS(Abstract)
@@ -224,7 +222,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	virtual bool PlayRandomAttackMontage();
 
-	FOnAttackFinished OnAttackFinished;
+	FSimpleDelegate OnAttackFinished;
 
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
