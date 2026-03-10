@@ -47,8 +47,26 @@ enum class EInputMode : uint8
 	Parry
 };
 
+UENUM(BlueprintType)
+enum class ECharacterMovementMode : uint8
+{
+	None,
+	Walking,
+	Swimming,
+	Gliding
+};
+
+UENUM(BlueprintType)
+enum class ECharacterAttribute : uint8
+{
+	None,
+	Fire,
+	Wind
+};
+
 DECLARE_DYNAMIC_DELEGATE(FOnFloorDelagate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadDelagate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCharacterAttribute,ECharacterAttribute, CharacterAttribute);
 UCLASS()
 class UK_API AUK_CharacterBase : public ACharacter, public IAbilitySystemInterface
 {
@@ -74,12 +92,26 @@ public:
 	
 	UPROPERTY(editAnywhere, BlueprintReadOnly, Category = "Sound")
 	TObjectPtr<USoundAttenuation> Attenuation;
+	UPROPERTY(BlueprintAssignable)
+	FOnCharacterAttribute OnChangedAttribute;
+public:
+	UFUNCTION(BlueprintCallable)
+	void ChangedAttribute(ECharacterAttribute NewAttribute);
+	UFUNCTION(BlueprintCallable)
+	ECharacterAttribute GetAttribute() const {return Attribute;}
+protected:
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
+	ECharacterAttribute Attribute;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	ECharacterMovementMode MovementMode;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	
 protected:
 	
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
@@ -107,6 +139,8 @@ protected:
 	TObjectPtr<UAIPerceptionStimuliSourceComponent> StimuliSource;
 	
 	float DefualtGravity;
+	
+	float DefualtAirControl;
 	
 #pragma endregion
 
@@ -189,7 +223,13 @@ public:
 	void AddTarget(const TObjectPtr<AAIMonsterBase> Monster);
 
 	bool Locking()const { return bIsLock; }
-
+	
+	UFUNCTION(BlueprintCallable)
+	bool StartGliding();
+		
+	UFUNCTION(BlueprintCallable)
+	void EndGliding();
+	
 	TArray<TObjectPtr<AAIMonsterBase>>& GetHitList() { return HitList; }
 
 	void ResetHitList() { HitList.Reset(); }
