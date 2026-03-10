@@ -71,6 +71,27 @@ void AUK_BossMonsterBase::UpdatePhase()
 {
 }
 
+void AUK_BossMonsterBase::NotifyAttacked(AController* InstigatorController)
+{
+	Super::NotifyAttacked(InstigatorController);
+	
+	if (bIsAttacking || bIsDying) return;
+	
+	float CurrentTime = GetWorld()->GetTimeSeconds();
+	if (CurrentTime - LastHitReactTime < 5.0f) return;
+	
+	if (HitReactMontage)
+	{
+		PlayMontage(HitReactMontage);
+		LastHitReactTime = CurrentTime;
+		
+		if (AAIController* AICtl = Cast<AAIController>(GetController()))
+		{
+			AICtl->StopMovement();
+		}
+	}
+}
+
 bool AUK_BossMonsterBase::PlayRandomAttackMontage()
 {
 	if (bIsHit || bIsAttacking || bIsDying) return false;

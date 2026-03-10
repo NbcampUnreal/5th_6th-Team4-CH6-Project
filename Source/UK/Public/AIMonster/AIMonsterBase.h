@@ -240,7 +240,7 @@ public:
 	virtual void ReceiveDamage(float Damage);
 	void ReceiveDamageFrom(float Damage, AController* InstigatorController);
 	
-	void NotifyAttacked(AController* InstigatorController);
+	virtual void NotifyAttacked(AController* InstigatorController);
 #pragma endregion
 
 #pragma region Idle Animation

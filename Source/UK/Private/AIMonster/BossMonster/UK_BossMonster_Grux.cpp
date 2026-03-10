@@ -6,6 +6,8 @@
 #include "AIController.h"
 #include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
 #include "Character/UK_CharacterBase.h"
+#include "Components/DecalComponent.h"
+#include "Components/CapsuleComponent.h"
 
 AUK_BossMonster_Grux::AUK_BossMonster_Grux()
 {
@@ -14,12 +16,21 @@ AUK_BossMonster_Grux::AUK_BossMonster_Grux()
 	AttackRange = 350.f;
 	AttackCooldown = 1.2f;
 	MonsterType = EMonsterType::Grux;
-    
+	SmashRadius = 600.f;
 	CurrentPhase = 1;
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bUseControllerDesiredRotation = true; 
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 130.f, 0.f);
 	GetCharacterMovement()->bOrientRotationToMovement = false;
+	
+	JumpTargetDecal = CreateDefaultSubobject<UDecalComponent>(TEXT("JumpTargetDecal"));
+	JumpTargetDecal->SetupAttachment(RootComponent);
+	
+	JumpTargetDecal->SetVisibility(false);
+	JumpTargetDecal->SetRelativeRotation(FRotator(-90.f, 0.f, 0.f));
+	
+	FVector DecalSize = FVector(50.f, JumpTargetRadius, JumpTargetRadius);
+	JumpTargetDecal->DecalSize = DecalSize;
 }
 
 void AUK_BossMonster_Grux::BeginPlay()
@@ -36,10 +47,16 @@ void AUK_BossMonster_Grux::UpdatePhase()
 	if (CurrentPhase == 1 && HPRatio <= 0.7f)
 	{
 		CurrentPhase = 2;
+		SmashRadius = 600.f;
 	}
 	else if (CurrentPhase == 2 && HPRatio <= 0.3f)
 	{
 		CurrentPhase = 3;
+		SmashRadius = 1000.f;
+		if (JumpTargetDecal)
+		{
+			JumpTargetDecal->DecalSize = FVector(50.f, SmashRadius, SmashRadius);
+		}
 		ApplyBerserkBuff();
 	}
 }
@@ -98,23 +115,42 @@ bool AUK_BossMonster_Grux::ExecuteJumpAttackAction(float PlayRate)
 {
     if (!JumpAttack) return false;
     bIsAttacking = true;
-
-    FVector LaunchDir = (GetTargetActor()->GetActorLocation() - GetActorLocation());
-    LaunchDir.Z = 0.f;
-    float PureDist = LaunchDir.Size();
-    LaunchDir.Normalize();
-
-	float MaxJumpDist = 900.f;
-	float ActualJumpDist = FMath::Min(PureDist, MaxJumpDist);
 	
-	float JumpSpeed = (CurrentPhase == 3) ? 1100.f : 900.f;
-	FVector HorizontalVelocity = LaunchDir * JumpSpeed;
-	float UpStrength = (CurrentPhase == 3) ? 850.f : 900.f; 
-	FVector FinalVelocity = HorizontalVelocity + FVector(0.f, 0.f, UpStrength);
-
-	SetActorRotation(LaunchDir.Rotation());
+	FVector StartLoc = GetActorLocation();
+	FVector TargetLoc = GetTargetActor()->GetActorLocation();
+	
+	if (JumpTargetDecal)
+	{
+		JumpTargetDecal->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+		FVector DecalLocation = TargetLoc;
+		DecalLocation.Z = StartLoc.Z - GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+		JumpTargetDecal->SetWorldLocation(DecalLocation);
+		JumpTargetDecal->SetVisibility(true);
+	}
+	
+	GetCharacterMovement()->BrakingDecelerationFalling = 0.f;
+	GetCharacterMovement()->AirControl = 0.f;
+	
+	FVector Dir = TargetLoc - StartLoc;
+	float Dist = Dir.Size2D();
+	
+	float BonusHeight = (CurrentPhase == 3) ? 700.f : 500.f;
+	float FlightTime = (CurrentPhase == 3) ? 1.1f : 1.4f;
+	float OverShootCorrection = 0.75f;
+	
+	FVector HorizontalDir = Dir;
+	HorizontalDir.Z = 0.f;
+	HorizontalDir.Normalize();
+	FVector HorizontalVel = HorizontalDir * (Dist / FlightTime) * OverShootCorrection;
+	
+	float Gravity = GetWorld()->GetGravityZ() * -1.f;
+	float VerticalVel = (TargetLoc.Z - StartLoc.Z + (0.5f * Gravity * FMath::Square(FlightTime))) / FlightTime;
+	VerticalVel += (BonusHeight / FlightTime);
+	FVector FinalVelocity = HorizontalVel + FVector(0.f, 0.f, VerticalVel);
+	
+	SetActorRotation(HorizontalDir.Rotation());
 	GetCharacterMovement()->StopMovementImmediately();
-	
+
 	LaunchCharacter(FinalVelocity, true, true);
     PlayMontage(JumpAttack, PlayRate);
     
@@ -181,14 +217,11 @@ void AUK_BossMonster_Grux::ExecuteJumpSmashDamage()
 		{
 			if (AActor* HitActor = Result.GetActor())
 			{
-				// 2. 플레이어인지 확인하고 ASC 가져오기
 				if (AUK_CharacterBase* TargetPlayer = Cast<AUK_CharacterBase>(HitActor))
 				{
 					UAbilitySystemComponent* TargetASC = TargetPlayer->GetAbilitySystemComponent();
 					if (TargetASC)
 					{
-						// 3. 무기 공격과 동일하게 어트리뷰트에 직접 데미지 적용
-						// CalculateAoEDamage(1)의 리턴값이 AttackDamage 역할을 한다고 보시면 됩니다.
 						float FinalDamage = CalculateAoEDamage(1);
 
 						TargetASC->ApplyModToAttribute(
@@ -196,14 +229,22 @@ void AUK_BossMonster_Grux::ExecuteJumpSmashDamage()
 						   EGameplayModOp::Additive, 
 						   FinalDamage
 						);
-
-						// 확인용 디버그
+						
 						UE_LOG(LogTemp, Warning, TEXT("Smash Hit! Target: %s, Damage: %f"), *HitActor->GetName(), FinalDamage);
 						DrawDebugString(GetWorld(), HitActor->GetActorLocation(), TEXT("SMASH HIT!"), nullptr, FColor::Red, 1.0f);
 					}
 				}
 			}
 		}
+	}
+	if (JumpTargetDecal)
+	{
+		JumpTargetDecal->SetVisibility(false);
+		FAttachmentTransformRules AttachRules(EAttachmentRule::KeepWorld, true);
+		JumpTargetDecal->AttachToComponent(GetRootComponent(), AttachRules);
+		
+		JumpTargetDecal->SetRelativeLocation(FVector::ZeroVector);
+		JumpTargetDecal->SetRelativeRotation(FRotator(-90.f, 0.f, 0.f));
 	}
 }
 

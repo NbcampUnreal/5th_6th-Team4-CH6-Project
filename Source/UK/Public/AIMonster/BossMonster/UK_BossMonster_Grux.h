@@ -36,6 +36,13 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Grux|Patterns")
 	float SmashRadius = 600.f;
+	
+	UPROPERTY(VisibleAnywhere, Category = "Boss | Combat")
+	UDecalComponent* JumpTargetDecal;
+	
+	UPROPERTY(EditAnywhere, Category = "Boss | Combat")
+	float JumpTargetRadius = 400.f; // 데칼 크기
+	
 private:
 	void ApplyBerserkBuff();
 	void OnDashFinished(UAnimMontage* Montage, bool bInterrupted);
