@@ -22,14 +22,6 @@ bool UUK_BTDecorator_BackPos::CalculateRawConditionValue(UBehaviorTreeComponent&
 
 	FVector Home = BB->GetValueAsVector(TEXT("HomeLocation"));
 
-	float Dist = FVector::Dist(
-		Pawn->GetActorLocation(),
-		Home
-	);
-	UE_LOG(LogTemp, Warning,
-		TEXT("Dist: %.1f / Max: %.1f"),
-		Dist,
-		MaxDistance
-	);
+	float Dist = FVector::Dist(Pawn->GetActorLocation(),Home);
 	return Dist > MaxDistance;
 }
