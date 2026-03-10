@@ -178,6 +178,18 @@ void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	// 현재 복제가 필요한 UPROPERTY(Replicated) 변수가 없으므로 부모 호출만 유지
 	// 추후 복제 변수 추가 시 여기에 DOREPLIFETIME 매크로 추가
 }
+
+void AAIMonsterBase::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->GenericGameplayEventCallbacks.FindOrAdd(UK_GameplayTags::Action::Parry)
+			.AddUObject(this, &AAIMonsterBase::OnParryGameplayEvent);
+	}
+
+}
 #pragma endregion
 
 #pragma region State Management
@@ -452,6 +464,64 @@ void AAIMonsterBase::NotifyAttacked(AController* InstigatorController)
 	CallNearbyAllies(Attacker);
 	OnAttacked.Broadcast(this, Attacker);
 	RequestState(EMonsterState::Aggressive);
+}
+
+void AAIMonsterBase::OnParryGameplayEvent(const FGameplayEventData* Payload)
+{
+	HandleParryReaction();
+}
+
+void AAIMonsterBase::HandleParryReaction()
+{
+	if (bIsDying) return;
+
+	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (AnimInstance)
+	{
+		AnimInstance->Montage_Stop(0.2f); 
+	}
+
+	bIsAttacking = false;
+	bIsHit = true;
+
+	if (StaggerMontage)
+	{
+		if (AAIController* AICtl = Cast<AAIController>(GetController()))
+		{
+			if (UBrainComponent* Brain = AICtl->GetBrainComponent())
+			{
+				Brain->PauseLogic(TEXT("Parried"));
+			}
+		}
+		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+		{
+			MoveComp->StopMovementImmediately();
+			MoveComp->DisableMovement();   
+		}
+		
+		float Duration = PlayAnimMontage(StaggerMontage);
+
+		// 몽타주가 끝나면 실행될 콜백 등록해두는 용도
+		FOnMontageEnded EndDelegate;
+		EndDelegate.BindUObject(this, &AAIMonsterBase::OnStaggerMontageEnded);
+		AnimInstance->Montage_SetEndDelegate(EndDelegate, StaggerMontage);
+	}
+}
+void AAIMonsterBase::OnStaggerMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	bIsHit = false; 
+	if (AAIController* AICtl = Cast<AAIController>(GetController()))
+	{
+		if (UBrainComponent* Brain = AICtl->GetBrainComponent())
+		{
+			Brain->ResumeLogic(TEXT("StunEnd"));
+		}
+	}
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->SetDefaultMovementMode();
+	}
 }
 #pragma endregion
 

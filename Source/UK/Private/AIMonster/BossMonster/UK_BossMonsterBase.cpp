@@ -32,7 +32,7 @@ void AUK_BossMonsterBase::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	GetCharacterMovement()->MaxWalkSpeed = 400.f; 
+	GetCharacterMovement()->MaxWalkSpeed = 475.f; 
 	FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, true);
 	
 	WeaponCollision_R->OnComponentBeginOverlap.AddDynamic(this, &AUK_BossMonsterBase::OnWeaponOverlap);

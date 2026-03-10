@@ -8,6 +8,7 @@
 #include "Character/UK_CharacterBase.h"
 #include "Components/DecalComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 
 AUK_BossMonster_Grux::AUK_BossMonster_Grux()
 {
@@ -86,6 +87,7 @@ bool AUK_BossMonster_Grux::PlayRandomAttackMontage()
 		AttackCooldown = 0.2f;
 		if (Distance > 350.f && Distance < 1500.f)
 		{
+			if (RandomValue <= 20) return ExecuteRangedAttackAction(CurrentPlayRate);
 			if (RandomValue <= 50) return ExecuteJumpAttackAction(CurrentPlayRate);
 			if (RandomValue <= 85) return ExecuteDashAttackAction(CurrentPlayRate);
 		}
@@ -96,9 +98,9 @@ bool AUK_BossMonster_Grux::PlayRandomAttackMontage()
 	{
 		if (Distance > 400.f && Distance < 1500.f)
 		{
-			if (RandomValue <= 10) return ExecuteJumpAttackAction(CurrentPlayRate);
-			if (RandomValue > 10 && RandomValue <= 20) return ExecuteDashAttackAction(CurrentPlayRate);
-			
+			if (RandomValue <= 10) return ExecuteRangedAttackAction(CurrentPlayRate);
+			if (RandomValue > 10 && RandomValue <= 20) return ExecuteJumpAttackAction(CurrentPlayRate);
+			if (RandomValue > 20 && RandomValue <= 25) return ExecuteDashAttackAction(CurrentPlayRate);
 			return false;
 		}
 	}
@@ -109,6 +111,31 @@ bool AUK_BossMonster_Grux::PlayRandomAttackMontage()
 	}
 
 	return false;
+}
+
+bool AUK_BossMonster_Grux::ExecuteRangedAttackAction(float PlayRate)
+{
+	if (!RangedAttackMontage) return false;
+	bIsAttacking = true;
+	
+	AActor* Target = GetTargetActor();
+	if (Target)
+	{
+		FVector Dir = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
+		SetActorRotation(Dir.Rotation());
+	}
+
+	PlayMontage(RangedAttackMontage, PlayRate);
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance)
+	{
+		FOnMontageEnded EndDelegate;
+		EndDelegate.BindUObject(this, &AAIMonsterBase::OnAttackMontageEnded);
+		AnimInstance->Montage_SetEndDelegate(EndDelegate, RangedAttackMontage);
+	}
+
+	return true;
 }
 
 bool AUK_BossMonster_Grux::ExecuteJumpAttackAction(float PlayRate)
@@ -229,8 +256,6 @@ void AUK_BossMonster_Grux::ExecuteJumpSmashDamage()
 						   EGameplayModOp::Additive, 
 						   FinalDamage
 						);
-						
-						UE_LOG(LogTemp, Warning, TEXT("Smash Hit! Target: %s, Damage: %f"), *HitActor->GetName(), FinalDamage);
 						DrawDebugString(GetWorld(), HitActor->GetActorLocation(), TEXT("SMASH HIT!"), nullptr, FColor::Red, 1.0f);
 					}
 				}
@@ -308,4 +333,32 @@ bool AUK_BossMonster_Grux::PlayBaseAttackWithSpeed(float PlayRate)
 		}
 	}
 	return bSuccess;
+}
+
+void AUK_BossMonster_Grux::LaunchSwordWave()
+{
+	UE_LOG(LogTemp, Warning, TEXT("LaunchSwordWave 호출됨!"));
+	if (!SwordWaveClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("SwordWaveClass가 비어있습니다!"));
+		return;
+	}
+	FVector MuzzleLocation = GetMesh()->GetSocketLocation(MuzzleSocketName);
+	FRotator SpawnRotation = GetActorRotation(); 
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.Instigator = GetInstigator();
+	
+	AActor* Projectile = GetWorld()->SpawnActor<AActor>(
+		SwordWaveClass, 
+		MuzzleLocation, 
+		SpawnRotation, 
+		SpawnParams
+	);
+
+	if (Projectile)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Grux] 검기 발사!"));
+	}
 }
