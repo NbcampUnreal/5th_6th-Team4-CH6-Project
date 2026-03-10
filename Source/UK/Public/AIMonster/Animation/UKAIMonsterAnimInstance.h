@@ -51,7 +51,11 @@ public:
 	float LeanAngle = 0.f;      
 
 	UPROPERTY(BlueprintReadOnly, Category = "Animation")
-	bool bIsChasing = false;  
+	bool bIsChasing = false;
+
+	/** 좌우 회전 각도 (-180 ~ 180, 턴 애니메이션용) */
+	UPROPERTY(BlueprintReadOnly, Category = "Animation")
+	float TurnAngle = 0.f;
 	
 private:
 	float PrevYaw = 0.f;

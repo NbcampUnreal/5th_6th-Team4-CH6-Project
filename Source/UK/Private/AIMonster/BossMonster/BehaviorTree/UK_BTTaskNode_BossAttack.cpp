@@ -13,16 +13,22 @@ UUK_BTTaskNode_BossAttack::UUK_BTTaskNode_BossAttack()
 
 EBTNodeResult::Type UUK_BTTaskNode_BossAttack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	auto* AICtl = OwnerComp.GetAIOwner();
+	AAIController* AICtl = OwnerComp.GetAIOwner();
 	if (!AICtl) return EBTNodeResult::Failed;
 
-	auto* Boss = Cast<AUK_BossMonsterBase>(AICtl->GetPawn());
+	AUK_BossMonsterBase* Boss = Cast<AUK_BossMonsterBase>(AICtl->GetPawn());
 	if (!Boss) return EBTNodeResult::Failed;
 
 	CurrentTime = 0.f;
-
-	Boss->PlayRandomAttackMontage();
-
+	Boss->bIsAttacking = false; 
+	
+	bool bAttackStarted = Boss->PlayRandomAttackMontage();
+    
+	if (!bAttackStarted)
+	{
+		return EBTNodeResult::Failed;
+	}
+	
 	return EBTNodeResult::InProgress;
 }
 

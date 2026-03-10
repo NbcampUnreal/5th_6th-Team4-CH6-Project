@@ -11,25 +11,27 @@ void UUK_InvUI::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	if ( TapALL )
+	if (TapALL)
 	{
 		TapALL->OnCategoryTap.AddDynamic(this, &UUK_InvUI::CategoryTap);
+		TapALL->SetSelected(true);
 	}
 
-	if ( TapWeapon )
+	if (TapWeapon)
 	{
 		TapWeapon->OnCategoryTap.AddDynamic(this, &UUK_InvUI::CategoryTap);
 	}
 
-	if ( TapFood )
+	if (TapFood)
 	{
 		TapFood->OnCategoryTap.AddDynamic(this, &UUK_InvUI::CategoryTap);
 	}
 
-	if ( TapMaterial )
+	if (TapMaterial)
 	{
 		TapMaterial->OnCategoryTap.AddDynamic(this, &UUK_InvUI::CategoryTap);
 	}
+
 	//소유한 플레이어 폰의 인벤토리 컴포넌트 바인드
 	AUK_CharacterBase* CB = Cast<AUK_CharacterBase>(GetOwningPlayerPawn());
 	if (IsValid(CB))
@@ -52,8 +54,7 @@ void UUK_InvUI::NativeConstruct()
 
 void UUK_InvUI::BindInventoryComponent(UUK_InventoryComponent* InInvComp)
 {
-	if ( !InInvComp )
-		return;
+	if (!InInvComp)	return;
 	//인벤토리 컴포넌트 저장
 	InvComp = InInvComp;
 	//인벤토리 컴포넌트의 OnInventoryUpdate 델리게이트에 바인드
@@ -69,13 +70,13 @@ void UUK_InvUI::BindInventoryComponent(UUK_InventoryComponent* InInvComp)
 void UUK_InvUI::OnInvCompUpdated()
 {
 
-	if ( !InvComp ) return;
+	if (!InvComp) return;
 	//인벤토리 컴포넌트에서 모든 슬롯 배열 가져오기
 	const TArray<FInventorySlot>& AllSlots = InvComp->GetItemSlot();
 
 	if (CategoryALL)
 	{
-		int32 NewAllSlotCount = 0; //추가
+		int32 NewAllSlotCount = 0;
 
 		if ( CategoryWeapon )   NewAllSlotCount += CategoryWeapon->CurrentSlot;  
 		if ( CategoryFood )     NewAllSlotCount += CategoryFood->CurrentSlot;   
@@ -109,21 +110,30 @@ void UUK_InvUI::HandleCategoryUnhovered()
 
 void UUK_InvUI::CategoryTap(UUK_CategoryTap* CategoryTap)
 {
-	if ( !InvCateSwitcher ) return;
+	if (!InvCateSwitcher || !CategoryTap) return;
 
-	if ( CategoryTap == TapALL )
+	// 모든 탭 false
+	if (TapALL) TapALL->SetSelected(false);
+	if (TapWeapon) TapWeapon->SetSelected(false);
+	if (TapFood) TapFood->SetSelected(false);
+	if (TapMaterial) TapMaterial->SetSelected(false);
+
+	// 클릭된 탭만 true
+	CategoryTap->SetSelected(true);
+
+	if (CategoryTap == TapALL)
 	{
 		InvCateSwitcher->SetActiveWidgetIndex(0);
 	}
-	else if ( CategoryTap == TapWeapon )
+	else if (CategoryTap == TapWeapon)
 	{
 		InvCateSwitcher->SetActiveWidgetIndex(1);
 	}
-	else if ( CategoryTap == TapFood )
+	else if (CategoryTap == TapFood)
 	{
 		InvCateSwitcher->SetActiveWidgetIndex(2);
 	}
-	else if ( CategoryTap == TapMaterial )
+	else if (CategoryTap == TapMaterial)
 	{
 		InvCateSwitcher->SetActiveWidgetIndex(3);
 	}
