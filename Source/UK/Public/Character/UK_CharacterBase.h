@@ -46,13 +46,16 @@ enum class EInputMode : uint8
 	UltimateSkill,
 	Parry
 };
+
 UENUM(BlueprintType)
 enum class ECharacterMovementMode : uint8
 {
 	None,
 	Walking,
-	Swimming
+	Swimming,
+	Gliding
 };
+
 UENUM(BlueprintType)
 enum class ECharacterAttribute : uint8
 {
@@ -137,6 +140,8 @@ protected:
 	
 	float DefualtGravity;
 	
+	float DefualtAirControl;
+	
 #pragma endregion
 
 #pragma region Interaction And Quest
@@ -218,7 +223,13 @@ public:
 	void AddTarget(const TObjectPtr<AAIMonsterBase> Monster);
 
 	bool Locking()const { return bIsLock; }
-
+	
+	UFUNCTION(BlueprintCallable)
+	bool StartGliding();
+		
+	UFUNCTION(BlueprintCallable)
+	void EndGliding();
+	
 	TArray<TObjectPtr<AAIMonsterBase>>& GetHitList() { return HitList; }
 
 	void ResetHitList() { HitList.Reset(); }
