@@ -16,11 +16,14 @@ void UUK_ParryNotifiState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSe
 }
 
 void UUK_ParryNotifiState::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
-	const FAnimNotifyEventReference& EventReference)
+                                     const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyEnd(MeshComp, Animation, EventReference);
 	if (IAbilitySystemInterface* ASCActor = Cast<IAbilitySystemInterface>(MeshComp->GetOwner()))
 	{
-		ASCActor->GetAbilitySystemComponent()->RemoveLooseGameplayTag(UK_GameplayTags::Action::Parrying);
+		if (IsValid(ASCActor->GetAbilitySystemComponent()))
+		{
+			ASCActor->GetAbilitySystemComponent()->RemoveLooseGameplayTag(UK_GameplayTags::Action::Parrying);
+		}
 	}
 }
