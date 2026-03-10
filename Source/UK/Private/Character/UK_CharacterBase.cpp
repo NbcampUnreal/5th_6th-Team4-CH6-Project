@@ -231,7 +231,12 @@ void AUK_CharacterBase::Move(const FInputActionValue& InputActionValue)
 {
 	const FVector2D MovementVector = InputActionValue.Get<FVector2D>();
 	const FRotator MovementRotation(0.f, Controller->GetControlRotation().Yaw, 0.f);
-
+	if ( MovementMode == ECharacterMovementMode::Swimming )
+	{
+		FVector ForwardDirection = Controller->GetControlRotation().Vector();
+		AddMovementInput(ForwardDirection, MovementVector.X);
+		return;
+	}
 	if (FMath::IsNearlyZero(MovementVector.X) == false)
 	{
 		const FVector ForwardDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::X);

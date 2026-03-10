@@ -47,6 +47,13 @@ enum class EInputMode : uint8
 	Parry
 };
 UENUM(BlueprintType)
+enum class ECharacterMovementMode : uint8
+{
+	None,
+	Walking,
+	Swimming
+};
+UENUM(BlueprintType)
 enum class ECharacterAttribute : uint8
 {
 	None,
@@ -92,6 +99,9 @@ public:
 protected:
 	UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
 	ECharacterAttribute Attribute;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	ECharacterMovementMode MovementMode;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
