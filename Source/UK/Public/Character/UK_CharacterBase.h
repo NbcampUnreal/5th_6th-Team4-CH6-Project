@@ -46,9 +46,17 @@ enum class EInputMode : uint8
 	UltimateSkill,
 	Parry
 };
+UENUM(BlueprintType)
+enum class ECharacterAttribute : uint8
+{
+	None,
+	Fire,
+	Wind
+};
 
 DECLARE_DYNAMIC_DELEGATE(FOnFloorDelagate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadDelagate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCharacterAttribute,ECharacterAttribute, CharacterAttribute);
 UCLASS()
 class UK_API AUK_CharacterBase : public ACharacter, public IAbilitySystemInterface
 {
@@ -74,12 +82,23 @@ public:
 	
 	UPROPERTY(editAnywhere, BlueprintReadOnly, Category = "Sound")
 	TObjectPtr<USoundAttenuation> Attenuation;
+	UPROPERTY(BlueprintAssignable)
+	FOnCharacterAttribute OnChangedAttribute;
+public:
+	UFUNCTION(BlueprintCallable)
+	void ChangedAttribute(ECharacterAttribute NewAttribute);
+	UFUNCTION(BlueprintCallable)
+	ECharacterAttribute GetAttribute() const {return Attribute;}
+protected:
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
+	ECharacterAttribute Attribute;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	
 protected:
 	
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
