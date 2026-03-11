@@ -6,6 +6,10 @@
 //아이템
 #include "DataAsset/Data/UK_ItemData.h"
 #include "ActorComponent/UK_InventoryComponent.h"
+//드래그
+#include "UI/Inventory/UK_DraggedItem.h"
+#include "UI/Inventory/UK_InvDragDropOperation.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 
 void UUK_InvSlot::NativePreConstruct()
 {
@@ -64,4 +68,55 @@ void UUK_InvSlot::UpdateSlot()
 			}
 		}
 	}
+}
+
+FReply UUK_InvSlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+
+	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) && !SlotData.isEmpty())
+	{
+		return UWidgetBlueprintLibrary::DetectDragIfPressed(
+			InMouseEvent,
+			this,
+			EKeys::LeftMouseButton
+		).NativeReply;
+
+	}
+
+	return FReply::Unhandled();
+}
+
+void UUK_InvSlot::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation)
+{
+	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
+
+	if (SlotData.isEmpty()) return;
+
+	UUK_InvDragDropOperation* DragOp = NewObject<UUK_InvDragDropOperation>();
+
+	if (!DragOp) return;
+
+	DragOp->DraggedSlotData = SlotData;
+	DragOp->SourceIndex = SlotIndex;
+
+	// 드래그 비주얼 생성
+	if (DraggedItemClass)
+	{
+		UUK_DraggedItem* DragVisual = CreateWidget<UUK_DraggedItem>(GetWorld(), DraggedItemClass);
+
+		if (DragVisual && ItemDataTable)
+		{
+			FUK_ItemData* ItemInfo = ItemDataTable->FindRow<FUK_ItemData>(SlotData.ItemID,TEXT("DragVisual"));
+
+			if (ItemInfo)
+			{
+				UTexture2D* Icon = ItemInfo->ItemIcon.LoadSynchronous();
+				DragVisual->SetIcon(Icon);
+			}
+		}
+		DragOp->DefaultDragVisual = DragVisual;
+	}
+	DragOp->Pivot = EDragPivot::MouseDown;
+	OutOperation = DragOp;
 }
