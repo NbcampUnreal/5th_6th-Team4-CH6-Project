@@ -15,6 +15,7 @@ enum class EMonsterType : uint8
 	Fox              = 7,
 	Reindeer         = 8,
 	InsectBeast      = 9,
+	Centipede		 =10,
 };
 
 UENUM(BlueprintType)
