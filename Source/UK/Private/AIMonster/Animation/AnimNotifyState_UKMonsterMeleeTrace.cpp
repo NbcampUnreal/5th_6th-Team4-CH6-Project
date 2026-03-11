@@ -1,6 +1,7 @@
 ﻿// AnimNotifyState_UKMonsterMeleeTrace.cpp
 #include "AIMonster/Animation/AnimNotifyState_UKMonsterMeleeTrace.h"
 #include "AIMonster/AIMonsterBase.h"
+#include "AIMonster/UK_MonsterTypes.h"
 #include "Character/UK_CharacterBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
