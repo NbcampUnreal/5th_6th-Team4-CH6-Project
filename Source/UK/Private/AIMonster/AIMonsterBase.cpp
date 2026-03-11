@@ -742,35 +742,17 @@ void AAIMonsterBase::HideAndBroadcastDeath()
 	OnDeath.Broadcast(this);
 }
 
-static FName GetMonsterEventId(EMonsterType Type)
-{
-	switch (Type)
-	{
-	case EMonsterType::Wolf:				return FName("QuestEvent.Killed.Mob_Common_Wolf");
-	case EMonsterType::Fox:					return FName("QuestEvent.Killed.Mob_Common_Fox");
-	case EMonsterType::Reindeer:			return FName("QuestEvent.Killed.Mob_Common_Reindeer");
-	case EMonsterType::Golem:				return FName("QuestEvent.Killed.Mob_Common_Golem");
-	case EMonsterType::EliteGolem:			return FName("QuestEvent.Killed.Mob_Common_EliteGolem");
-	case EMonsterType::EliteWolf :			return FName("QuestEvent.Killed.Mob_Common_EliteWolf");
-	case EMonsterType::Grux :				return FName("QuestEvent.Killed.Mob_Common_Grux");
-	case EMonsterType::EliteInsectBeast:	return FName("QuestEvent.Killed.Mob_Common_EliteInsectBeast");
-	case EMonsterType::InsectBeast:			return FName("QuestEvent.Killed.Mob_Common_InsectBeast");
-	default: return NAME_None;
-	}
-}
-
 void AAIMonsterBase::NotifyMonsterKilled()
 {
 	OnMonsterKilled.Broadcast(this, MonsterType, LastAttackerController);
 
-	// 퀘스트 이벤트
-	//const FName EventId = GetMonsterEventId(MonsterType);
-	//if (EventId == NAME_None) return;
+	const FString EventId = GetKillEventId();
+	if (EventId.IsEmpty()) return;
 
-	//if (UUKQuestManagerSubsystem* QM = GetGameInstance()->GetSubsystem<UUKQuestManagerSubsystem>())
-	//{
-	//	QM->EmitQuestEvent(EventId);
-	//}
+	if (UUKQuestManagerSubsystem* QM = GetGameInstance()->GetSubsystem<UUKQuestManagerSubsystem>())
+	{
+		QM->EmitQuestEvent(FName(*EventId));
+	}
 }
 
 void AAIMonsterBase::HideCorpse()
@@ -888,153 +870,6 @@ void AAIMonsterBase::ResetToPassive()
 	}
 
 	RequestState(EMonsterState::Passive);
-}
-#pragma endregion
-
-#pragma region Stat Scaling (Player Level Based)
-// ─────────────────────────────────────────────────────────────────────────────
-// 몬스터 종류별 HP 테이블
-//   MaxHealth = BaseHP + (PlayerLevel x HPPerLevel)
-//   EliteGolem : 2000 + Lv x 200   Golem : 1000 + Lv x 100
-//   Wolf       :  400 + Lv x  40   Fox   :  300 + Lv x  25
-//   Reindeer   :  250 + Lv x  20   None  :  200 + Lv x  15
-// ─────────────────────────────────────────────────────────────────────────────
-float AAIMonsterBase::GetMonsterTypeBaseHP(EMonsterType Type)
-{
-	switch (Type)
-	{
-	case EMonsterType::Grux:			return 3000.f;
-	case EMonsterType::EliteGolem:		return 1500.f;
-	case EMonsterType::EliteInsectBeast:return 1100.f;
-	case EMonsterType::EliteWolf:		return 1000.f;
-	case EMonsterType::Golem:			return  800.f;
-	case EMonsterType::InsectBeast:	    return  700.f;
-	case EMonsterType::Wolf:			return  400.f;
-	case EMonsterType::Fox:				return  300.f;
-	case EMonsterType::Reindeer:		return  250.f;
-	default:							return  200.f;
-	}
-}
-
-float AAIMonsterBase::GetMonsterTypeHPPerLevel(EMonsterType Type)
-{
-	switch (Type)
-	{
-	case EMonsterType::Grux:	   return 300.f;
-	case EMonsterType::EliteGolem: return 200.f;
-	case EMonsterType::EliteWolf:  return 100.f;
-	case EMonsterType::Golem:      return 100.f;
-	case EMonsterType::Wolf:       return  40.f;
-	case EMonsterType::Fox:        return  25.f;
-	case EMonsterType::Reindeer:   return  20.f;
-	default:                       return  15.f;
-	}
-}
-
-float AAIMonsterBase::CalculateMaxHealth(int32 PlayerLevel, EMonsterType Type)
-{
-	return GetMonsterTypeBaseHP(Type) + (static_cast<float>(PlayerLevel) * GetMonsterTypeHPPerLevel(Type));
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 몬스터 종류별 방어력 테이블
-//   Defense = (PlayerLevel / 2) + BaseDefense
-//   EliteGolem : +50   Golem : +30   Wolf : +15   Fox : +10   Reindeer : +5
-// ─────────────────────────────────────────────────────────────────────────────
-float AAIMonsterBase::GetMonsterTypeBaseDefense(EMonsterType Type)
-{
-	switch (Type)
-	{
-	case EMonsterType::Grux:			return 5.f;
-	case EMonsterType::EliteGolem:		return 4.f;
-	case EMonsterType::EliteInsectBeast:return 4.f;
-	case EMonsterType::EliteWolf:		return 3.f;
-	case EMonsterType::Golem:			return 2.f;
-	case EMonsterType::InsectBeast:     return 1.f;
-	case EMonsterType::Wolf:			return 1.f;
-	case EMonsterType::Fox:				return 1.f;
-	case EMonsterType::Reindeer:		return 1.f;
-	default:							return 0.f;
-	}
-}
-
-float AAIMonsterBase::CalculateAttackDamage(int32 PlayerLevel)
-{
-	return 15.0f + static_cast<float>(PlayerLevel) * 10.0f;
-}
-
-float AAIMonsterBase::CalculateAoEDamage(int32 PlayerLevel)
-{
-	return CalculateAttackDamage(PlayerLevel) * 1.5f;
-}
-
-float AAIMonsterBase::CalculateDefense(int32 PlayerLevel, EMonsterType Type)
-{
-	return (static_cast<float>(PlayerLevel) * 0.5f) + GetMonsterTypeBaseDefense(Type);
-}
-
-void AAIMonsterBase::InitializeStatsFromPlayerLevel(int32 PlayerLevel)
-{
-	if (PlayerLevel <= 0) return;
-	if (!AbilitySystemComponent || !AttributeSet) return;
-
-	// 1. MaxHealth + Health (체력 만충)
-	const float NewMaxHP = CalculateMaxHealth(PlayerLevel, MonsterType);
-	AbilitySystemComponent->SetNumericAttributeBase(
-		AttributeSet->GetMaxHealthAttribute(), NewMaxHP);
-	AbilitySystemComponent->SetNumericAttributeBase(
-		AttributeSet->GetHealthAttribute(), NewMaxHP);
-
-	// 2. 공격력
-	AttackDamage = CalculateAttackDamage(PlayerLevel);
-
-	// 3. 방어력
-	const float NewDefense = CalculateDefense(PlayerLevel, MonsterType);
-	AbilitySystemComponent->SetNumericAttributeBase(
-		AttributeSet->GetDefenseAttribute(), NewDefense);
-
-	UE_LOG(LogTemp, Log,
-		TEXT("[%s] InitStats | Lv=%d | HP=%.0f (%.0f+Lv*%.0f) | ATK=%.1f | DEF=%.1f"),
-		*GetName(), PlayerLevel,
-		NewMaxHP, GetMonsterTypeBaseHP(MonsterType), GetMonsterTypeHPPerLevel(MonsterType),
-		AttackDamage, NewDefense);
-}
-
-void AAIMonsterBase::AutoInitStatsFromNearestPlayer()
-{
-	if (!GetWorld()) return;
-
-	int32 BestLevel   = 1;
-	float BestDistSq  = FLT_MAX;
-
-	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
-	{
-		APlayerController* PC = It->Get();
-		if (!PC) continue;
-
-		AUK_CharacterBase* PlayerChar = Cast<AUK_CharacterBase>(PC->GetPawn());
-		if (!PlayerChar) continue;
-
-		const float DistSq = FVector::DistSquared(GetActorLocation(), PlayerChar->GetActorLocation());
-		if (DistSq >= BestDistSq) continue;
-
-		BestDistSq = DistSq;
-
-		// 플레이어 ASC 에서 Level 어트리뷰트 직접 읽기
-		if (IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(PlayerChar))
-		{
-			if (UAbilitySystemComponent* PlayerASC = ASCInterface->GetAbilitySystemComponent())
-			{
-				if (const UUK_PlayerStatusAttributeSet* PlayerAttr =
-					PlayerASC->GetSet<UUK_PlayerStatusAttributeSet>())
-				{
-					BestLevel = FMath::Max(1, FMath::RoundToInt(PlayerAttr->GetLevel()));
-				}
-			}
-		}
-	}
-
-	InitializeStatsFromPlayerLevel(BestLevel);
 }
 #pragma endregion
 
@@ -1193,5 +1028,156 @@ void AAIMonsterBase::UpdateRotation()
 	);
 
 	SetActorRotation(NewRotation);
+}
+#pragma endregion
+
+#pragma region DataTable
+FName AAIMonsterBase::GetRowName() const
+{
+    const UEnum* Enum = StaticEnum<EMonsterType>();
+    if (!Enum) return NAME_None;
+
+    FString Full = Enum->GetNameStringByValue((int64)MonsterType);
+
+    int32 ColonIdx;
+    if (Full.FindLastChar(':', ColonIdx))
+        return FName(*Full.Mid(ColonIdx + 1));
+
+    return FName(*Full);
+}
+
+const FUK_MonsterStatRow* AAIMonsterBase::GetStatRow() const
+{
+    if (!MonsterStatTable)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[%s] MonsterStatTable이 할당되지 않았습니다."), *GetName());
+        return nullptr;
+    }
+    return MonsterStatTable->FindRow<FUK_MonsterStatRow>(GetRowName(), TEXT("GetStatRow"));
+}
+
+const FUK_MonsterMetaRow* AAIMonsterBase::GetMetaRow() const
+{
+    if (!MonsterMetaTable)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[%s] MonsterMetaTable이 할당되지 않았습니다."), *GetName());
+        return nullptr;
+    }
+    return MonsterMetaTable->FindRow<FUK_MonsterMetaRow>(GetRowName(), TEXT("GetMetaRow"));
+}
+
+// ────────────────────────────────────────────────
+//  스탯 계산
+// ────────────────────────────────────────────────
+
+float AAIMonsterBase::CalculateMaxHealth(int32 PlayerLevel) const
+{
+    const FUK_MonsterStatRow* Row = GetStatRow();
+    if (!Row) return 100.f;
+    return Row->BaseHP + (PlayerLevel * Row->HPPerLevel);
+}
+
+float AAIMonsterBase::CalculateAttackDamage(int32 PlayerLevel) const
+{
+    const FUK_MonsterStatRow* Row = GetStatRow();
+    if (!Row) return 0.f;
+    return PlayerLevel * Row->AttackMultiplier;
+}
+
+float AAIMonsterBase::CalculateAoEDamage(int32 PlayerLevel) const
+{
+    const FUK_MonsterStatRow* Row = GetStatRow();
+    if (!Row) return 0.f;
+    return CalculateAttackDamage(PlayerLevel) * Row->AoEMultiplier;
+}
+
+float AAIMonsterBase::CalculateDefense(int32 PlayerLevel) const
+{
+    const FUK_MonsterStatRow* Row = GetStatRow();
+    if (!Row) return 0.f;
+    return (PlayerLevel / 2.f) + Row->BaseDefense;
+}
+
+// ────────────────────────────────────────────────
+//  스탯 초기화
+// ────────────────────────────────────────────────
+
+void AAIMonsterBase::InitializeStatsFromPlayerLevel(int32 PlayerLevel)
+{
+    if (PlayerLevel <= 0) return;
+
+    const FUK_MonsterStatRow* Row = GetStatRow();
+    if (!Row) return;
+
+    // 전투 파라미터 반영
+    AttackDamage     = CalculateAttackDamage(PlayerLevel);
+    AttackRange      = Row->AttackRange;
+    AttackCooldown   = Row->AttackCooldown;
+    DetectionRadius  = Row->DetectionRadius;
+    MaxChaseDistance = Row->MaxChaseDistance;
+
+    // GAS AttributeSet HP/Defense 반영
+    if (AbilitySystemComponent && AttributeSet)
+    {
+        const float MaxHP     = CalculateMaxHealth(PlayerLevel);
+        const float NewDefense = CalculateDefense(PlayerLevel);
+
+        AbilitySystemComponent->SetNumericAttributeBase(AttributeSet->GetMaxHealthAttribute(), MaxHP);
+        AbilitySystemComponent->SetNumericAttributeBase(AttributeSet->GetHealthAttribute(), MaxHP);
+        AbilitySystemComponent->SetNumericAttributeBase(AttributeSet->GetDefenseAttribute(), NewDefense);
+
+        UE_LOG(LogTemp, Log,
+            TEXT("[%s] InitStats | Lv=%d | HP=%.0f | ATK=%.1f | DEF=%.1f"),
+            *GetName(), PlayerLevel, MaxHP, AttackDamage, NewDefense);
+    }
+}
+
+// ────────────────────────────────────────────────
+//  퀘스트 연동
+// ────────────────────────────────────────────────
+
+FString AAIMonsterBase::GetKillEventId() const
+{
+    const FUK_MonsterMetaRow* Meta = GetMetaRow();
+    if (!Meta || Meta->MobEntityId.IsNone()) return FString();
+
+    // QuestEvent.Killed.Mob_Common_Wolf
+    return FString::Printf(TEXT("QuestEvent.Killed.%s"), *Meta->MobEntityId.ToString());
+}
+
+void AAIMonsterBase::AutoInitStatsFromNearestPlayer()
+{
+	if (!GetWorld()) return;
+
+	int32 BestLevel  = 1;
+	float BestDistSq = FLT_MAX;
+
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		APlayerController* PC = It->Get();
+		if (!PC) continue;
+
+		AUK_CharacterBase* PlayerChar = Cast<AUK_CharacterBase>(PC->GetPawn());
+		if (!PlayerChar) continue;
+
+		const float DistSq = FVector::DistSquared(GetActorLocation(), PlayerChar->GetActorLocation());
+		if (DistSq >= BestDistSq) continue;
+
+		BestDistSq = DistSq;
+
+		if (IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(PlayerChar))
+		{
+			if (UAbilitySystemComponent* PlayerASC = ASCInterface->GetAbilitySystemComponent())
+			{
+				if (const UUK_PlayerStatusAttributeSet* PlayerAttr =
+					PlayerASC->GetSet<UUK_PlayerStatusAttributeSet>())
+				{
+					BestLevel = FMath::Max(1, FMath::RoundToInt(PlayerAttr->GetLevel()));
+				}
+			}
+		}
+	}
+
+	InitializeStatsFromPlayerLevel(BestLevel);
 }
 #pragma endregion
