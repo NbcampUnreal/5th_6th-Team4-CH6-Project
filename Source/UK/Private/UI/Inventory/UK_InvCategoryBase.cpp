@@ -12,6 +12,7 @@ void UUK_InvCategoryBase::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	WeaponRootTag = UK_GameplayTags::Weapon::WeaponRoot;
 	CreateSlots();
 }
 
@@ -35,6 +36,9 @@ void UUK_InvCategoryBase::CreateSlots()
 
 		SlotWidget->SlotIndex = i;
 		SlotWidget->ItemDataTable = ItemDataTable;
+
+		SlotWidget->bAllowDrag = bAllowSlotDrag;
+		SlotWidget->WeaponRootTag = WeaponRootTag;
 
 		SlotWidget->OnSlotHovered.AddDynamic(this, &UUK_InvCategoryBase::HandleSlotHovered);
 		SlotWidget->OnSlotUnhovered.AddDynamic(this, &UUK_InvCategoryBase::HandleSlotUnhovered);

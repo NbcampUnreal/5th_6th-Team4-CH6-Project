@@ -34,6 +34,10 @@ public:
 	/** 적대 상태 여부 (평화 몬스터용) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	bool bIsAggressive = false;
+	
+	/** 땅속 대기 상태 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	bool bIsBurrowed = false;
 #pragma endregion
 
 #pragma region Movement Properties
