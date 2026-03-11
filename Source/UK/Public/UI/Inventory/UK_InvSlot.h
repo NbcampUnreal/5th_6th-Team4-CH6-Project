@@ -3,6 +3,9 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "ActorComponent/UK_InventoryComponent.h"
+#include "UI/Inventory/UK_DraggedItem.h"
+#include "UI/Inventory/UK_InvDragDropOperation.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "UK_InvSlot.generated.h"
 
 class UImage;
@@ -49,6 +52,16 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	void UpdateSlot();
+
+	UPROPERTY(EditAnywhere, Category = "Drag")
+	TSubclassOf<UUK_DraggedItem> DraggedItemClass;
+
+	virtual FReply NativeOnMouseButtonDown(
+		const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+	virtual void NativeOnDragDetected(
+		const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
+
 
 protected:
 	virtual void NativePreConstruct() override;
