@@ -219,10 +219,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	bool bIsDying = false;
 
-	UPROPERTY(EditAnywhere, Category = "Combat")
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Combat")
 	float AttackDamage = 20.f;
 
-	UPROPERTY(EditAnywhere, Category = "Combat")
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Combat")
 	float AttackRange = 250.f;
 
 	UPROPERTY(EditAnywhere, Category = "Combat")

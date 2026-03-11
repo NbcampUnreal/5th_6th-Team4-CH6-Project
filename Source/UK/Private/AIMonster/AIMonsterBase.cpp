@@ -6,6 +6,7 @@
 #include "AbilitySystemInterface.h"
 #include "GameplayEffect.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
+#include "BehaviorTree/BTTaskNode.h"
 #include "Character/UK_CharacterBase.h"
 #include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
 #include "Kismet/GameplayStatics.h"
