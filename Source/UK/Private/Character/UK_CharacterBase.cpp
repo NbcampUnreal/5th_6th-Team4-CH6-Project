@@ -113,7 +113,7 @@ void AUK_CharacterBase::PossessedBy(AController* NewController)
 void AUK_CharacterBase::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
-	if (MovementMode == ECharacterMovementMode::Gliding)
+	if (MovementMode == ECustomMovementMode::CMOVE_Glide)
 	{
 		EndGliding();
 	}
@@ -205,6 +205,36 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	                        ETriggerEvent::Started, this, &ThisClass::Parry);
 }
 
+float AUK_CharacterBase::GetFloorDistance()
+{
+	float FloorDist = 0.f;
+	constexpr float TraceDistance = 1000.f;
+
+	const FVector Start = GetActorLocation();
+	const FVector End = Start - FVector(0.f, 0.f, TraceDistance);
+
+	FHitResult Hit;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+
+	const bool bHit = GetWorld()->LineTraceSingleByChannel(
+		Hit,
+		Start,
+		End,
+		ECC_LockOn,
+		Params
+	);
+	if (bHit)
+	{
+		FloorDist = Start.Z - Hit.Location.Z;
+	}
+	else
+	{
+		FloorDist = 2000.f;
+	}
+	return FloorDist;
+}
+
 
 #pragma endregion
 
@@ -239,21 +269,28 @@ void AUK_CharacterBase::Move(const FInputActionValue& InputActionValue)
 {
 	const FVector2D MovementVector = InputActionValue.Get<FVector2D>();
 	const FRotator MovementRotation(0.f, Controller->GetControlRotation().Yaw, 0.f);
-	if (MovementMode == ECharacterMovementMode::Swimming)
+
+	FVector ForwardDirection;
+	FVector RightDirection;
+	switch (MovementMode)
 	{
-		FVector ForwardDirection = Controller->GetControlRotation().Vector();
-		AddMovementInput(ForwardDirection, MovementVector.X);
-		return;
+	case ECustomMovementMode::CMOVE_Glide:
+
+		ForwardDirection = Controller->GetControlRotation().Vector();
+		RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
+		break;
+	default:
+		ForwardDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::X);
+		RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
+		break;
 	}
 	if (FMath::IsNearlyZero(MovementVector.X) == false)
 	{
-		const FVector ForwardDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::X);
 		AddMovementInput(ForwardDirection, MovementVector.X);
 	}
 
 	if (FMath::IsNearlyZero(MovementVector.Y) == false)
 	{
-		const FVector RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
 		AddMovementInput(RightDirection, MovementVector.Y);
 	}
 }
@@ -326,41 +363,15 @@ void AUK_CharacterBase::ZoomOut()
 
 void AUK_CharacterBase::LightAttack()
 {
-	float Distace = 0.f;
-	if (GetCharacterMovement()->IsFalling() == true)
-	{
-		constexpr float TraceDistance = 1000.f;
-
-		FVector Start = GetActorLocation();
-		FVector End = Start - FVector(0.f, 0.f, TraceDistance);
-
-		FHitResult Hit;
-		FCollisionQueryParams Params;
-		Params.AddIgnoredActor(this);
-
-		bool bHit = GetWorld()->LineTraceSingleByChannel(
-			Hit,
-			Start,
-			End,
-			ECC_LockOn,
-			Params
-		);
-		if (bHit)
-		{
-			Distace = Start.Z - Hit.Location.Z;
-		}
-		else
-		{
-			Distace = 150.f;
-		}
-	}
-	UE_LOG(LogTemp, Display, TEXT("%f"), Distace);
+	float Dist = 0.f;
 	FGameplayTagContainer Container;
 	if (GetCharacterMovement()->IsFalling() == true)
 	{
+		Dist = GetFloorDistance();
+		UE_LOG(LogTemp, Display, TEXT("%f"), Dist);
 		InputType = EInputMode::Air;
 		UE_LOG(LogTemp, Display, TEXT("%s"), *GetName());
-		if (Distace > 140)
+		if (Dist > 140)
 		{
 			Container.AddTag(UK_GameplayTags::Action::AirAttack);
 			GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
@@ -631,7 +642,11 @@ bool AUK_CharacterBase::StartGliding()
 {
 	if (GetCharacterMovement()->IsFalling() == false)
 		return true;
-	if (MovementMode == ECharacterMovementMode::Gliding)
+	if ( GetFloorDistance() < 220.f)
+	{
+		return true;
+	}
+	if (MovementMode == ECustomMovementMode::CMOVE_Glide)
 	{
 		EndGliding();
 		return false;
@@ -641,17 +656,16 @@ bool AUK_CharacterBase::StartGliding()
 	GetCharacterMovement()->GravityScale = 0.f;
 	GetCharacterMovement()->AirControl = 0.8;
 	GetCharacterMovement()->Velocity = Vel;
-	
-	MovementMode = ECharacterMovementMode::Gliding;
+	MovementMode = ECustomMovementMode::CMOVE_Glide;
 	return false;
 }
 
 void AUK_CharacterBase::EndGliding()
 {
-	MovementMode = ECharacterMovementMode::Walking;
+	MovementMode = ECustomMovementMode::CMOVE_None;
+
 	GetCharacterMovement()->GravityScale = DefualtGravity;
-	 GetCharacterMovement()->AirControl = DefualtAirControl;
-	
+	GetCharacterMovement()->AirControl = DefualtAirControl;
 }
 
 #pragma endregion
@@ -711,7 +725,7 @@ void AUK_CharacterBase::SlotWeaponThree()
 
 void AUK_CharacterBase::SwapWeapon(int32 Index)
 {
-	if (IsValid(ItmeDataTable) == false)
+	if (IsValid(WeaponDataTable) == false)
 	{
 		UE_LOG(LogTemp, Display, TEXT("ItmeDataTable is Nullptr"));
 		return;
@@ -721,13 +735,13 @@ void AUK_CharacterBase::SwapWeapon(int32 Index)
 	{
 		return;
 	}
-	const FUK_ItemData* ItemData = ItmeDataTable->FindRow<FUK_ItemData>(
+	const FUK_ItemData* ItemData = WeaponDataTable->FindRow<FUK_ItemData>(
 		WeaponSlot->ItemID, TEXT("AUK_CharacterBase::SwapWeapon"));
 	if (ItemData == nullptr)
 	{
 		return;
 	}
-	ChangedAttribute(ItemData->WeaponAttribute);
+	//ChangedAttribute(ItemData->WeaponAttribute);
 	EquipWeapon(ItemData->ItemTag);
 }
 

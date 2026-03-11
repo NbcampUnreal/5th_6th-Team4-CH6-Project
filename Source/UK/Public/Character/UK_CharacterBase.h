@@ -13,7 +13,6 @@
 #define ECC_LockOn ECollisionChannel::ECC_GameTraceChannel2
 
 
-
 #pragma region Forward Declaration
 class USpringArmComponent;
 class UCameraComponent;
@@ -47,12 +46,10 @@ enum class EInputMode : uint8
 };
 
 UENUM(BlueprintType)
-enum class ECharacterMovementMode : uint8
+enum class ECustomMovementMode : uint8
 {
-	None,
-	Walking,
-	Swimming,
-	Gliding
+	CMOVE_None UMETA(DisplayName="None"),
+	CMOVE_Glide UMETA(DisplayName="Glide")
 };
 
 UENUM(BlueprintType)
@@ -64,8 +61,11 @@ enum class ECharacterAttribute : uint8
 };
 
 DECLARE_DYNAMIC_DELEGATE(FOnFloorDelagate);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadDelagate);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCharacterAttribute,ECharacterAttribute, CharacterAttribute);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCharacterAttribute, ECharacterAttribute, CharacterAttribute);
+
 UCLASS()
 class UK_API AUK_CharacterBase : public ACharacter, public IAbilitySystemInterface
 {
@@ -86,13 +86,14 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ChangedAttribute(ECharacterAttribute NewAttribute);
-	
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-	
+
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	
+
+	float GetFloorDistance();
 	//geter, seter
 public:
 	TObjectPtr<USkeletalMeshComponent> GetRightHandWeapon() { return RightHandWeaponComponent; }
@@ -100,11 +101,12 @@ public:
 	TObjectPtr<UUK_InventoryComponent> GetInventoryComponent() { return InventoryComponent; }
 
 	UFUNCTION(BlueprintCallable)
-	ECharacterAttribute GetAttribute() const {return Attribute;}
+	ECharacterAttribute GetAttribute() const { return Attribute; }
+
 	// 변수
 protected:
 #pragma region component
-	
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USpringArmComponent> SpringArmComp;
 
@@ -113,7 +115,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkeletalMeshComponent> SkeletalMeshComp;
-	 
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkeletalMeshComponent> RightHandWeaponComponent;
 
@@ -126,32 +128,33 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UAIPerceptionStimuliSourceComponent> StimuliSource;
 #pragma endregion
+
 public:
-	
 	UPROPERTY(editAnywhere, BlueprintReadOnly, Category = "Sound")
 	TObjectPtr<USoundAttenuation> Attenuation;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float GlideFallSpeed;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float DefualtGravity;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float DefualtAirControl;
 
 	UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
 	ECharacterAttribute Attribute;
-	
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	ECharacterMovementMode MovementMode;
-	
+	ECustomMovementMode MovementMode;
+
 	UPROPERTY(BlueprintAssignable)
 	FOnCharacterAttribute OnChangedAttribute;
-	
+
 #pragma endregion
 
 #pragma region Interaction And Quest
+
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UUK_InteractionComponent> InteractionComp;
@@ -162,19 +165,21 @@ public:
 #pragma endregion
 
 #pragma region GAS
+
 public:
-	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
 protected:
 	void GiveStartupAbilities();
+
 protected:
-	
 	UPROPERTY(EditDefaultsOnly, Category = "GB|Abilities")
 	TArray<TSubclassOf<UGameplayAbility>> StartupAbilities;
 #pragma endregion
 
 #pragma region Input
 #pragma region MovementFunction
+
 protected:
 	UFUNCTION()
 	void Move(const FInputActionValue& InputActionValue);
@@ -190,7 +195,7 @@ protected:
 
 	UFUNCTION()
 	void ZoomOut();
-	
+
 	UFUNCTION()
 	void LightAttack();
 
@@ -201,8 +206,8 @@ protected:
 	void NomalSkill();
 
 	UFUNCTION()
-	void UltimateSkill();	
-	
+	void UltimateSkill();
+
 	UFUNCTION()
 	void Parry();
 
@@ -218,10 +223,10 @@ protected:
 	UFUNCTION()
 	void Setting();
 #pragma endregion
-	
+
 public:
 #pragma region LockOn
-	
+
 	UFUNCTION(BlueprintCallable)
 	void LockON();
 
@@ -233,15 +238,15 @@ public:
 
 	void AddTarget(const TObjectPtr<AAIMonsterBase> Monster);
 
-	bool Locking()const { return bIsLock; }
-	
+	bool Locking() const { return bIsLock; }
+
 	TArray<TObjectPtr<AAIMonsterBase>>& GetHitList() { return HitList; }
 
 	void ResetHitList() { HitList.Reset(); }
-protected:
 
+protected:
 	bool bIsLock;
-	
+
 	UPROPERTY()
 	TArray<TObjectPtr<AAIMonsterBase>> LockOnList;
 
@@ -251,21 +256,20 @@ protected:
 	int32 index;
 
 	FTimerHandle LockOnTimer;
-	
+
 	float MaxLockDistance = 1000.f;
 #pragma endregion
-	
+
 #pragma region Gliding
-	
+
 	UFUNCTION(BlueprintCallable)
 	bool StartGliding();
-		
+
 	UFUNCTION(BlueprintCallable)
 	void EndGliding();
 #pragma endregion
-	
+
 public:
-	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UUK_InputConfig* InputMappingConfig;
 
@@ -274,20 +278,21 @@ public:
 
 	UPROPERTY(BlueprintReadWrite)
 	EInputMode InputType;
-protected:
 
+protected:
 	bool bIsCrouched;
 
-	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bIsSprinted;
 
-	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float SprintSpeed;
 
 
 #pragma endregion
 
 #pragma region Weapon
+
 public:
 	UFUNCTION(BlueprintCallable)
 	void EquipWeapon(FGameplayTag NewWeapon);
@@ -303,6 +308,7 @@ public:
 	void SwapWeapon(int32 Index);
 
 	UUK_StatusAnimData* GetNowWeaponStatus() const { return NowWeapon; }
+
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<UUK_WeaponData> WeaponList;
@@ -311,11 +317,12 @@ protected:
 	UUK_StatusAnimData* NowWeapon;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	TObjectPtr<UDataTable> ItmeDataTable;
+	TObjectPtr<UDataTable> WeaponDataTable;
 
 #pragma endregion
 
 #pragma region Battle
+
 public:
 	UFUNCTION(BlueprintCallable)
 	void StopJumpAndFly();
@@ -331,27 +338,29 @@ public:
 
 	FOnFloorDelagate OnFloor;
 	FOnDeadDelagate OnDead;
-	
+
 	UFUNCTION()
-	void SetParry(const bool CheckParry){ bIsParry = CheckParry; }
+	void SetParry(const bool CheckParry) { bIsParry = CheckParry; }
+
 	UFUNCTION()
 	bool GetParry(const bool CheckParry) const { return CheckParry; }
+
 protected:
 	UPROPERTY()
 	bool bIsParry;
 #pragma endregion
 
 #pragma region FindMonsterHPBar
-	public:
 
-		void UpdateMonsterDetection();
+public:
+	void UpdateMonsterDetection();
 
-		UPROPERTY()
-		TSet<AAIMonsterBase*> NearbyMonsters;
+	UPROPERTY()
+	TSet<AAIMonsterBase*> NearbyMonsters;
 
-		UPROPERTY(BlueprintReadWrite, EditAnywhere,  Category = "UI/DetactBoundary")
-		float DetectRadius = 2000.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "UI/DetactBoundary")
+	float DetectRadius = 2000.0f;
 
-		FTimerHandle DetectTimer;
+	FTimerHandle DetectTimer;
 #pragma endregion
 };
