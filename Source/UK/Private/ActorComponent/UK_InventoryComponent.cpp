@@ -177,6 +177,7 @@ bool UUK_InventoryComponent::AddWeapon(FName ItemID, int32 index)
 	{
 		Slot->ItemID = ItemID;
 		Slot->Quantity = 1;
+		RemoveItem(ItemID);
 	}
 	else
 	{

@@ -7,6 +7,8 @@
 #include "ActorComponent/UK_InventoryComponent.h"
 #include "UI/Inventory/UK_InvCategoryBase.h"
 #include "Character/UK_CharacterBase.h"
+#include "UI/Inventory/UK_DragEquipSlot.h"
+#include "Tags/UK_GameplayTags.h"
 
 void UUK_InvUI::NativeConstruct()
 {
@@ -40,6 +42,32 @@ void UUK_InvUI::NativeConstruct()
 	if (IsValid(CB))
 	{
 		BindInventoryComponent(CB->GetInventoryComponent());
+
+		if (EquipSlot1)
+		{
+			EquipSlot1->EquipIndex = 0;
+			EquipSlot1->ItemDataTable = ItemDataTable;
+			EquipSlot1->WeaponRootTag = UK_GameplayTags::Weapon::WeaponRoot;
+			EquipSlot1->BindInventory(CB->GetInventoryComponent());
+		}
+
+		//추가
+		if (EquipSlot2)
+		{
+			EquipSlot2->EquipIndex = 1;
+			EquipSlot2->ItemDataTable = ItemDataTable;
+			EquipSlot2->WeaponRootTag = UK_GameplayTags::Weapon::WeaponRoot;
+			EquipSlot2->BindInventory(CB->GetInventoryComponent());
+		}
+
+		//추가
+		if (EquipSlot3)
+		{
+			EquipSlot3->EquipIndex = 2;
+			EquipSlot3->ItemDataTable = ItemDataTable;
+			EquipSlot3->WeaponRootTag = UK_GameplayTags::Weapon::WeaponRoot;
+			EquipSlot3->BindInventory(CB->GetInventoryComponent());
+		}
 	}
 
 	auto BindCategory = [this](UUK_InvCategoryBase* Cat)
