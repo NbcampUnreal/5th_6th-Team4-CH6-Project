@@ -42,14 +42,11 @@ void UUK_BTService_CheckChaseDistance::TickNode(UBehaviorTreeComponent& OwnerCom
 	const float DistanceFromSpawn = FVector::Dist(MonsterLocation, SpawnLocation);
 	const float ChaseLimit        = Monster->MaxChaseDistance > 0 ? Monster->MaxChaseDistance : MaxChaseDistance;
 
-	// 공격 범위 안 → InAttackRange 데코레이터가 처리
-	if (DistanceToPlayer <= Monster->AttackRange) return;
-
 	const bool bShouldStopChase = (DistanceFromSpawn > ChaseLimit) || (DistanceToPlayer > ChaseLimit);
 	if (!bShouldStopChase) return;
 
 	BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
-	AIController->StopMovement();
+
 	AIController->ClearFocus(EAIFocusPriority::Gameplay);
 
 	if (Monster->Personality == EMonsterPersonality::Peaceful && Monster->GetIsAggressive())

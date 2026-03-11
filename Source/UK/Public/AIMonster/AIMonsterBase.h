@@ -6,6 +6,7 @@
 #include "UI/InGame/UK_MonsterHealthBar.h"
 #include "Components/WidgetComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Abilities/GameplayAbilityTypes.h"
 #include "AIMonsterBase.generated.h"
 
 class UBehaviorTree;
@@ -32,14 +33,16 @@ enum class EMonsterPersonality : uint8
 UENUM(BlueprintType)
 enum class EMonsterType : uint8
 {
-	None       = 0,
-	Grux	   = 1,
-	EliteGolem = 2,
-	EliteWolf  = 3,
-	Golem      = 4,
-	Wolf       = 5,
-	Fox        = 6,
-	Reindeer   = 7,
+	None				 = 0,
+	Grux				 = 1,
+	EliteGolem			 = 2,
+	EliteWolf			 = 3,
+	EliteInsectBeast	 = 4,
+	Golem				 = 5,
+	Wolf				 = 6,
+	Fox					 = 7,
+	Reindeer			 = 8,
+	InsectBeast			 = 9,
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDeath, class AAIMonsterBase*, DeadMonster);
@@ -49,8 +52,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnMonsterKilled,
 	class AAIMonsterBase*, KilledMonster,
 	EMonsterType, MonsterType,
 	class APlayerController*, KillerController);
-
-DECLARE_DELEGATE_OneParam(FOnAttackFinished, bool /*bSucceeded*/);
 
 /* ─────────────────────────────────────────────────────────────── */
 
@@ -63,9 +64,10 @@ class UK_API AAIMonsterBase : public ACharacter, public IAbilitySystemInterface
 public:
 	AAIMonsterBase();
 	virtual void PostInitializeComponents() override;
-
+	virtual void PossessedBy(AController* NewController) override;
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 #pragma endregion
 
 #pragma region Ability System
@@ -201,6 +203,14 @@ public:
 	TArray<UAnimMontage*> AttackMontages;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Animation")
+	TObjectPtr<UAnimMontage> StaggerMontage;
+	
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	virtual void HandleParryReaction();
+	void OnStaggerMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	virtual void OnParryGameplayEvent(const FGameplayEventData* Payload);
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Animation")
 	float CorpseLingerTime = 5.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
@@ -223,7 +233,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	virtual bool PlayRandomAttackMontage();
 
-	FOnAttackFinished OnAttackFinished;
+	FSimpleDelegate OnAttackFinished;
 
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
@@ -241,7 +251,7 @@ public:
 	virtual void ReceiveDamage(float Damage);
 	void ReceiveDamageFrom(float Damage, AController* InstigatorController);
 	
-	void NotifyAttacked(AController* InstigatorController);
+	virtual void NotifyAttacked(AController* InstigatorController);
 #pragma endregion
 
 #pragma region Idle Animation
@@ -361,7 +371,7 @@ public:
 	virtual void InitializeStatsFromPlayerLevel(int32 PlayerLevel);
 
 	/** 몬스터 종류별 기본 HP */
-	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
+		UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
 	static float GetMonsterTypeBaseHP(EMonsterType Type);
 
 	/** 몬스터 종류별 레벨당 HP 증가량 */

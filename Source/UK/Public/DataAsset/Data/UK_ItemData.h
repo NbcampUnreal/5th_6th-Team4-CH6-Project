@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "Character/UK_CharacterBase.h"
 #include "UK_ItemData.generated.h"
 
 /**
@@ -35,5 +36,8 @@ public:
 	TSoftClassPtr<AActor> ItemClass;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	FGameplayTag ItemTag;
+	FGameplayTag ItemTag;	
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	ECharacterAttribute WeaponAttribute;
 };

@@ -2,7 +2,6 @@
 
 
 #include "Animation/AnimNotify/UK_DropAttackAnimNotify.h"
-#include "Character/UK_CharacterBase.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayTagContainer.h"
@@ -16,12 +15,15 @@ void UUK_DropAttackAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 		return;
 	if ( OwnerCharacter->GetLocalRole() == ROLE_SimulatedProxy )
 		return;
-	if ( OwnerCharacter->bIsInInput == false )
+	if ( OwnerCharacter->InputType == EInputMode::None )
 		return;
-	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OwnerCharacter);
+	if ( OwnerCharacter->InputType == CheckType )
+	{
+		UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OwnerCharacter);
 
-	FGameplayEventData EventData;
-	EventData.EventTag = FGameplayTag::RequestGameplayTag("Action.DropAttack");
+		FGameplayEventData EventData;
+		EventData.EventTag = FGameplayTag::RequestGameplayTag("Action.DropAttack");
 
-	ASC->HandleGameplayEvent(EventData.EventTag, &EventData);
+		ASC->HandleGameplayEvent(EventData.EventTag, &EventData);
+	}
 }

@@ -6,146 +6,203 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Animation/AnimInstance.h"
 #include "AIMonster/BossMonster/UK_BossAnimInstance.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "DrawDebugHelpers.h"
+#include "Kismet/GameplayStatics.h"
+#include "Character/UK_CharacterBase.h"
+#include "AbilitySystemComponent.h"
+#include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
 
 AUK_BossMonsterBase::AUK_BossMonsterBase()
 {
 	bReplicates = true;
+	
+	WeaponCollision_R = CreateDefaultSubobject<UCapsuleComponent>(TEXT("WeaponCollision_R"));
+	WeaponCollision_R->SetupAttachment(GetMesh(),TEXT("weapon_Right"));
+	WeaponCollision_R->SetCollisionProfileName(TEXT("NoCollision"));
+	
+	WeaponCollision_L = CreateDefaultSubobject<UCapsuleComponent>(TEXT("WeaponCollision_L"));
+	WeaponCollision_L->SetupAttachment(GetMesh(),TEXT("weapon_Left"));
+	WeaponCollision_L->SetCollisionProfileName(TEXT("NoCollision"));
 }
 
 void AUK_BossMonsterBase::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	GetCharacterMovement()->MaxWalkSpeed = 400.f; 
+	GetCharacterMovement()->MaxWalkSpeed = 475.f; 
+	FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, true);
 	
-	BossAnim = Cast<UUK_BossAnimInstance>(GetMesh()->GetAnimInstance());
-	Phase1Tag  = FGameplayTag::RequestGameplayTag(TEXT("Boss.Phase.Phase1"));
-	Phase2Tag  = FGameplayTag::RequestGameplayTag(TEXT("Boss.Phase.Phase2"));
-	Phase3Tag  = FGameplayTag::RequestGameplayTag(TEXT("Boss.Phase.Phase3"));
-	EnrageTag  = FGameplayTag::RequestGameplayTag(TEXT("Boss.Phase.Enrage"));
-
-	if (HasAuthority())
-	{
-		SetPhase(Phase1Tag);
-	}
+	WeaponCollision_R->OnComponentBeginOverlap.AddDynamic(this, &AUK_BossMonsterBase::OnWeaponOverlap);
+	WeaponCollision_R->AttachToComponent(GetMesh(), AttachmentRules, TEXT("weapon_Right"));
+	
+	WeaponCollision_L->OnComponentBeginOverlap.AddDynamic(this, &AUK_BossMonsterBase::OnWeaponOverlap);
+	WeaponCollision_L->AttachToComponent(GetMesh(), AttachmentRules, TEXT("weapon_Left"));
+	
+	WeaponCollision_R->SetCollisionResponseToAllChannels(ECR_Overlap);
+	WeaponCollision_L->SetCollisionResponseToAllChannels(ECR_Overlap);
 }
 
 void AUK_BossMonsterBase::StartAttack()
 {
-	if (!BossAnim)
-	{
-		BossAnim = Cast<UUK_BossAnimInstance>(GetMesh()->GetAnimInstance());
-	}
-	if (!BossAnim) return;
-	BossAnim->bIsAttacking = true;
+	bIsAttacking = true;
+	
+	HitActors.Empty();
+	SetWeaponCollisionEnabled(true);
+
 }
 
 void AUK_BossMonsterBase::EndAttack() 
 {
-	if (!BossAnim)
-	{
-		BossAnim = Cast<UUK_BossAnimInstance>(GetMesh()->GetAnimInstance());
-	}
-	if (!BossAnim) return;
-	BossAnim->bIsAttacking = false;
+	bIsAttacking = false;
+	SetWeaponCollisionEnabled(false);
 }
 
 void AUK_BossMonsterBase::ReceiveDamage(float Damage)
 {
 	Super::ReceiveDamage(Damage);
-
-	if (HasAuthority())
-	{
-		UpdatePhase();
-	}
+	
+	UpdatePhase();
 }
 
 void AUK_BossMonsterBase::UpdatePhase()
 {
-	if (!AttributeSet) return;
-	const float CurrentHP = AttributeSet->GetHealth();
-	const float MaxHP = AttributeSet->GetMaxHealth();
-	
-	if (MaxHP <= 0.f) return;
-	const float HPRatio = CurrentHP / MaxHP;
-
-	if (HPRatio <= EnrageHPRatio)
-	{
-		SetPhase(EnrageTag);
-	}
-	else if (HPRatio <= Phase3HPRatio)
-	{
-		SetPhase(Phase3Tag);
-	}
-	else if (HPRatio <= Phase2HPRatio)
-	{
-		SetPhase(Phase2Tag);
-	}
 }
 
-void AUK_BossMonsterBase::SetPhase(const FGameplayTag& NewPhase)
+void AUK_BossMonsterBase::NotifyAttacked(AController* InstigatorController)
 {
-	if (!HasAuthority()) return;
-
-	if (CurrentPhaseTag == NewPhase) return;
-
-	CurrentPhaseTag = NewPhase;
-
-	OnBossPhaseChanged.Broadcast(CurrentPhaseTag);
-}
-
-void AUK_BossMonsterBase::OnRep_Phase()
-{
-	UE_LOG(LogTemp, Log,TEXT("[Boss] Phase Changed : %s"),*CurrentPhaseTag.ToString());
+	Super::NotifyAttacked(InstigatorController);
 	
-	OnBossPhaseChanged.Broadcast(CurrentPhaseTag);
+	if (bIsAttacking || bIsDying) return;
+	
+	float CurrentTime = GetWorld()->GetTimeSeconds();
+	if (CurrentTime - LastHitReactTime < 5.0f) return;
+	
+	if (HitReactMontage)
+	{
+		PlayMontage(HitReactMontage);
+		LastHitReactTime = CurrentTime;
+		
+		if (AAIController* AICtl = Cast<AAIController>(GetController()))
+		{
+			AICtl->StopMovement();
+		}
+	}
 }
 
 bool AUK_BossMonsterBase::PlayRandomAttackMontage()
 {
-	StartAttack();
-	UE_LOG(LogTemp, Warning, TEXT("Boss Try Attack"));
-	TArray<UAnimMontage*>* Pattern = nullptr;
+	if (bIsHit || bIsAttacking || bIsDying) return false;
 
-	if (CurrentPhaseTag == Phase1Tag)
-	{
-		Pattern = &Phase1Patterns;
-	}
-	else if (CurrentPhaseTag == Phase2Tag)
-	{
-		Pattern = &Phase2Patterns;
-	}
-	else if (CurrentPhaseTag == Phase3Tag)
-	{
-		Pattern = &Phase3Patterns;
-	}
-	else if (CurrentPhaseTag == EnrageTag)
-	{
-		Pattern = &EnragePatterns;
-	}
+	// 페이즈별 패턴 선택하기 임시로 올려둠 이것도
+	TArray<UAnimMontage*>& TargetPatterns = (CurrentPhase == 1) ? Phase1Patterns : Phase2Patterns;
+    
+	if (TargetPatterns.Num() == 0) return Super::PlayRandomAttackMontage();
 
-	if (!Pattern || Pattern->Num() == 0)
-		return false;
+	const int32 Index = FMath::RandRange(0, TargetPatterns.Num() - 1);
+	UAnimMontage* Selected = TargetPatterns[Index];
 
-	const int32 Index =
-		FMath::RandRange(0, Pattern->Num() - 1);
-
-	return PlayAnimMontage((*Pattern)[Index]) > 0.f;
+	if (Selected)
+	{
+		bIsAttacking = true;
+		LastAttackTime = GetWorld()->GetTimeSeconds();
+		
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance)
+		{
+			AnimInstance->Montage_Play(Selected);
+			FOnMontageEnded EndDelegate;
+			EndDelegate.BindUObject(this, &AAIMonsterBase::OnAttackMontageEnded);
+			AnimInstance->Montage_SetEndDelegate(EndDelegate, Selected);
+		}
+		return true;
+	}
+	return false;
 }
 
-void AUK_BossMonsterBase::ShowHPBar()
+void AUK_BossMonsterBase::SetWeaponCollisionEnabled(bool bEnabled)
 {
-	Super::ShowHPBar();
+	ECollisionEnabled::Type NewType = bEnabled ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision;
 
-	if (HPWidgetComponent)
+	if (bEnabled) HitActors.Empty();
+
+	if (WeaponCollision_R)
 	{
-		HPWidgetComponent->SetDrawSize(FVector2D(400.f, 40.f));
+		WeaponCollision_R->SetCollisionEnabled(NewType);
+		WeaponCollision_R->SetHiddenInGame(!bEnabled); 
+	}
+
+	if (WeaponCollision_L)
+	{
+		WeaponCollision_L->SetCollisionEnabled(NewType);
+		WeaponCollision_L->SetHiddenInGame(!bEnabled);
+	}
+	
+	if(bEnabled)
+	{
+		FVector Loc = WeaponCollision_R->GetComponentLocation();
+		FQuat Rot = WeaponCollision_R->GetComponentQuat();
+		float Radius = WeaponCollision_R->GetUnscaledCapsuleRadius();
+		float HalfHeight = WeaponCollision_R->GetUnscaledCapsuleHalfHeight();
+
+		DrawDebugCapsule(GetWorld(), Loc, HalfHeight, Radius, Rot, FColor::Blue, false, 0.5f);
 	}
 }
 
-void AUK_BossMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void AUK_BossMonsterBase::OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
+										  UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
+										  bool bFromSweep, const FHitResult& SweepResult)
 {
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	if (!bIsAttacking || HitActors.Contains(OtherActor)) return;
 
-	DOREPLIFETIME(AUK_BossMonsterBase, CurrentPhaseTag);
+	if (AUK_CharacterBase* TargetPlayer = Cast<AUK_CharacterBase>(OtherActor))
+	{
+		UAbilitySystemComponent* TargetASC = TargetPlayer->GetAbilitySystemComponent();
+        
+		if (TargetASC)
+		{
+			HitActors.Add(OtherActor); 
+			const UUK_PlayerStatusAttributeSet* PlayerStats = Cast<UUK_PlayerStatusAttributeSet>(TargetASC->GetAttributeSet(UUK_PlayerStatusAttributeSet::StaticClass()));
+
+			if (PlayerStats)
+			{
+				float BeforeHP = PlayerStats->GetHealth();
+
+				TargetASC->ApplyModToAttribute(
+					UUK_PlayerStatusAttributeSet::GetDamageAttribute(), 
+					EGameplayModOp::Additive, 
+					AttackDamage
+				);
+
+				FVector HitLocation = OtherActor->GetActorLocation();
+				DrawDebugSphere(GetWorld(), HitLocation, 50.f, 12, FColor::Red, false, 2.0f);
+				DrawDebugString(GetWorld(), HitLocation + FVector(0.f, 0.f, 100.f), TEXT("!!! HIT !!!"), nullptr, FColor::Yellow, 1.5f);
+			}
+		}
+	}
+}
+
+AActor* AUK_BossMonsterBase::GetTargetActor() const
+{
+	AAIController* AIC = Cast<AAIController>(GetController());
+	if (AIC && AIC->GetBlackboardComponent())
+	{
+		return Cast<AActor>(AIC->GetBlackboardComponent()->GetValueAsObject(TEXT("TargetActor")));
+	}
+	return nullptr;
+}
+
+float AUK_BossMonsterBase::PlayMontage(UAnimMontage* Montage, float InPlayRate)
+{
+	if (Montage)
+	{
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance)
+		{
+			return AnimInstance->Montage_Play(Montage, InPlayRate);
+		}
+	}
+	return 0.f;
 }

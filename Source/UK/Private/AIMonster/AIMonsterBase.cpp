@@ -34,9 +34,9 @@ AAIMonsterBase::AAIMonsterBase()
 
 	if (GetCharacterMovement())
 	{
-		GetCharacterMovement()->bOrientRotationToMovement     = false;  
-		GetCharacterMovement()->bUseControllerDesiredRotation = true;
-		GetCharacterMovement()->RotationRate                  = FRotator(0.f, 540.f, 0.f);
+		GetCharacterMovement()->bOrientRotationToMovement     = true;   
+		GetCharacterMovement()->bUseControllerDesiredRotation = false;
+		GetCharacterMovement()->RotationRate                  = FRotator(0.f, 240.f, 0.f);  
 	}
 
 	// HP Widget 설치
@@ -89,7 +89,7 @@ void AAIMonsterBase::BeginPlay()
 		CurrentState = EMonsterState::Passive;
 	}
 
-	if (HPWidgetComponent)
+	if (HPWidgetComponent && GetWorld())
 	{
 		GetWorldTimerManager().SetTimer(
 			HPBarUpdateTimer, this,
@@ -97,11 +97,11 @@ void AAIMonsterBase::BeginPlay()
 			0.05f, true);
 	}
 
-	if ( HPWidgetComponent )
+	if (HPWidgetComponent)
 	{
 		HPWidget = Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
 
-		if ( HPWidget )
+		if (HPWidget)
 		{
 			HPWidget->BindMonsterAttributes(
 				AbilitySystemComponent,
@@ -121,6 +121,17 @@ void AAIMonsterBase::BeginPlay()
 
 	// ── 플레이어 레벨 기반 스탯 자동 초기화 ─────────────────────────────
 	AutoInitStatsFromNearestPlayer();
+}
+
+
+void AAIMonsterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearAllTimersForObject(this);
+	}
+	
+	Super::EndPlay(EndPlayReason);
 }
 
 void AAIMonsterBase::PostInitializeComponents()
@@ -166,6 +177,18 @@ void AAIMonsterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	// 현재 복제가 필요한 UPROPERTY(Replicated) 변수가 없으므로 부모 호출만 유지
 	// 추후 복제 변수 추가 시 여기에 DOREPLIFETIME 매크로 추가
+}
+
+void AAIMonsterBase::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->GenericGameplayEventCallbacks.FindOrAdd(UK_GameplayTags::Action::Parry)
+			.AddUObject(this, &AAIMonsterBase::OnParryGameplayEvent);
+	}
+
 }
 #pragma endregion
 
@@ -442,6 +465,64 @@ void AAIMonsterBase::NotifyAttacked(AController* InstigatorController)
 	OnAttacked.Broadcast(this, Attacker);
 	RequestState(EMonsterState::Aggressive);
 }
+
+void AAIMonsterBase::OnParryGameplayEvent(const FGameplayEventData* Payload)
+{
+	HandleParryReaction();
+}
+
+void AAIMonsterBase::HandleParryReaction()
+{
+	if (bIsDying) return;
+
+	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (AnimInstance)
+	{
+		AnimInstance->Montage_Stop(0.2f); 
+	}
+
+	bIsAttacking = false;
+	bIsHit = true;
+
+	if (StaggerMontage)
+	{
+		if (AAIController* AICtl = Cast<AAIController>(GetController()))
+		{
+			if (UBrainComponent* Brain = AICtl->GetBrainComponent())
+			{
+				Brain->PauseLogic(TEXT("Parried"));
+			}
+		}
+		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+		{
+			MoveComp->StopMovementImmediately();
+			MoveComp->DisableMovement();   
+		}
+		
+		float Duration = PlayAnimMontage(StaggerMontage);
+
+		// 몽타주가 끝나면 실행될 콜백 등록해두는 용도
+		FOnMontageEnded EndDelegate;
+		EndDelegate.BindUObject(this, &AAIMonsterBase::OnStaggerMontageEnded);
+		AnimInstance->Montage_SetEndDelegate(EndDelegate, StaggerMontage);
+	}
+}
+void AAIMonsterBase::OnStaggerMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	bIsHit = false; 
+	if (AAIController* AICtl = Cast<AAIController>(GetController()))
+	{
+		if (UBrainComponent* Brain = AICtl->GetBrainComponent())
+		{
+			Brain->ResumeLogic(TEXT("StunEnd"));
+		}
+	}
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->SetDefaultMovementMode();
+	}
+}
 #pragma endregion
 
 #pragma region Attack Animation
@@ -491,7 +572,7 @@ void AAIMonsterBase::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupt
 	}
 	
 	bIsAttacking = false;
-	OnAttackFinished.ExecuteIfBound(!bInterrupted);
+	OnAttackFinished.ExecuteIfBound();
 }
 #pragma endregion
 
@@ -607,6 +688,11 @@ void AAIMonsterBase::Die()
 			Brain->StopLogic(TEXT("Dead"));
 		}
 	}
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance)
+	{
+		AnimInstance->StopAllMontages(0.1f); 
+	}
 
 	SetState(EMonsterState::Dead);
 
@@ -660,13 +746,15 @@ static FName GetMonsterEventId(EMonsterType Type)
 {
 	switch (Type)
 	{
-	case EMonsterType::Wolf:       return FName("QuestEvent.Killed.Mob_Common_Wolf");
-	case EMonsterType::Fox:        return FName("QuestEvent.Killed.Mob_Common_Fox");
-	case EMonsterType::Reindeer:   return FName("QuestEvent.Killed.Mob_Common_Reindeer");
-	case EMonsterType::Golem:      return FName("QuestEvent.Killed.Mob_Common_Golem");
-	case EMonsterType::EliteGolem: return FName("QuestEvent.Killed.Mob_Common_EliteGolem");
-	case EMonsterType::EliteWolf : return FName("QuestEvent.Killed.Mob_Common_EliteWolf");
-	case EMonsterType::Grux :	   return FName("QuestEvent.Killed.Mob_Common_Grux");
+	case EMonsterType::Wolf:				return FName("QuestEvent.Killed.Mob_Common_Wolf");
+	case EMonsterType::Fox:					return FName("QuestEvent.Killed.Mob_Common_Fox");
+	case EMonsterType::Reindeer:			return FName("QuestEvent.Killed.Mob_Common_Reindeer");
+	case EMonsterType::Golem:				return FName("QuestEvent.Killed.Mob_Common_Golem");
+	case EMonsterType::EliteGolem:			return FName("QuestEvent.Killed.Mob_Common_EliteGolem");
+	case EMonsterType::EliteWolf :			return FName("QuestEvent.Killed.Mob_Common_EliteWolf");
+	case EMonsterType::Grux :				return FName("QuestEvent.Killed.Mob_Common_Grux");
+	case EMonsterType::EliteInsectBeast:	return FName("QuestEvent.Killed.Mob_Common_EliteInsectBeast");
+	case EMonsterType::InsectBeast:			return FName("QuestEvent.Killed.Mob_Common_InsectBeast");
 	default: return NAME_None;
 	}
 }
@@ -694,82 +782,16 @@ void AAIMonsterBase::HideCorpse()
 #pragma region Respawn
 void AAIMonsterBase::ResetHealth()
 {
-	GetWorldTimerManager().ClearTimer(CorpseTimerHandle);
-
-	// 플래그 리셋
-	bIsAttacking           = false;
-	bIsDying               = false;
-	LastAttackerController = nullptr;
-
-	// GAS를 통한 체력 복원
-	if (AbilitySystemComponent && AttributeSet)
-	{
-		const float MaxHP = AttributeSet->GetMaxHealth();
-		AbilitySystemComponent->SetNumericAttributeBase(
-			AttributeSet->GetHealthAttribute(), MaxHP
-		);
-	}
-
-	// 상태 복원
-	if (Personality == EMonsterPersonality::Peaceful)
-	{
-		bIsAggressive = false;
-		Aggressor     = nullptr;
-		SetState(EMonsterState::Passive);
-	}
-	else
-	{
-		SetState(EMonsterState::Idle);
-	}
-
-	// 충돌 / 이동 복원
-	if (GetCapsuleComponent())
-	{
-		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	}
-	if (GetCharacterMovement())
-	{
-		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
-		GetCharacterMovement()->StopMovementImmediately();
-	}
-
-	// 위치 초기화
-	SetActorLocation(SpawnLocation, false, nullptr, ETeleportType::ResetPhysics);
-	SetActorRotation(FRotator::ZeroRotator);
-
-	// 외형 + 애니메이션 리셋
-	ResetAppearance();
-
-	// AI 재시작
-	if (AAIController* AIC = Cast<AAIController>(GetController()))
-	{
-		if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
-		{
-			BB->SetValueAsVector(TEXT("SpawnLocation"), SpawnLocation);
-			BB->SetValueAsVector(TEXT("PatrolLocation"), SpawnLocation);
-			BB->ClearValue(TEXT("TargetPlayer"));
-		}
-
-		if (BehaviorTree)
-		{
-			if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AIC->GetBrainComponent()))
-			{
-				BTComp->StopTree();
-
-				FTimerHandle RestartTimer;
-				GetWorldTimerManager().SetTimer(RestartTimer, [this, AIC]()
-				{
-					if (BehaviorTree && AIC && AIC->GetBrainComponent())
-					{
-						if (UBehaviorTreeComponent* BT = Cast<UBehaviorTreeComponent>(AIC->GetBrainComponent()))
-						{
-							BT->StartTree(*BehaviorTree);
-						}
-					}
-				}, 0.5f, false);
-			}
-		}
-	}
+	if (!AbilitySystemComponent || !AttributeSet) return;
+	
+	const float MaxHP = AttributeSet->GetMaxHealth();
+	AbilitySystemComponent->SetNumericAttributeBase(
+		AttributeSet->GetHealthAttribute(), MaxHP
+	);
+	
+	bIsDying = false;
+	
+	UE_LOG(LogTemp, Log, TEXT("[%s] ResetHealth: HP restored to %.0f"), *GetName(), MaxHP);
 }
 
 void AAIMonsterBase::ResetAppearance()
@@ -881,14 +903,16 @@ float AAIMonsterBase::GetMonsterTypeBaseHP(EMonsterType Type)
 {
 	switch (Type)
 	{
-	case EMonsterType::Grux:	   return 3000.f;
-	case EMonsterType::EliteGolem: return 2000.f;
-	case EMonsterType::EliteWolf:  return 1000.f;
-	case EMonsterType::Golem:      return 1000.f;
-	case EMonsterType::Wolf:       return  400.f;
-	case EMonsterType::Fox:        return  300.f;
-	case EMonsterType::Reindeer:   return  250.f;
-	default:                       return  200.f;
+	case EMonsterType::Grux:			return 3000.f;
+	case EMonsterType::EliteGolem:		return 1500.f;
+	case EMonsterType::EliteInsectBeast:return 1100.f;
+	case EMonsterType::EliteWolf:		return 1000.f;
+	case EMonsterType::Golem:			return  800.f;
+	case EMonsterType::InsectBeast:	    return  700.f;
+	case EMonsterType::Wolf:			return  400.f;
+	case EMonsterType::Fox:				return  300.f;
+	case EMonsterType::Reindeer:		return  250.f;
+	default:							return  200.f;
 	}
 }
 
@@ -921,14 +945,16 @@ float AAIMonsterBase::GetMonsterTypeBaseDefense(EMonsterType Type)
 {
 	switch (Type)
 	{
-	case EMonsterType::Grux:	   return 5.f;
-	case EMonsterType::EliteGolem: return 3.f;
-	case EMonsterType::EliteWolf:  return 3.f;
-	case EMonsterType::Golem:      return 2.f;
-	case EMonsterType::Wolf:       return 1.f;
-	case EMonsterType::Fox:        return 1.f;
-	case EMonsterType::Reindeer:   return 1.f;
-	default:                       return 0.f;
+	case EMonsterType::Grux:			return 5.f;
+	case EMonsterType::EliteGolem:		return 4.f;
+	case EMonsterType::EliteInsectBeast:return 4.f;
+	case EMonsterType::EliteWolf:		return 3.f;
+	case EMonsterType::Golem:			return 2.f;
+	case EMonsterType::InsectBeast:     return 1.f;
+	case EMonsterType::Wolf:			return 1.f;
+	case EMonsterType::Fox:				return 1.f;
+	case EMonsterType::Reindeer:		return 1.f;
+	default:							return 0.f;
 	}
 }
 
@@ -1090,7 +1116,7 @@ void AAIMonsterBase::HideAlertIcon()
 	AlertWidgetComponent->SetVisibility(false);
 	AlertWidgetComponent->SetHiddenInGame(true);
 }
-#pragma endregion
+#pragma endregion	
 
 #pragma region Rotation System
 void AAIMonsterBase::StartRotationUpdate()
@@ -1119,5 +1145,53 @@ void AAIMonsterBase::StopRotationUpdate()
 	}
 }
 
-void AAIMonsterBase::UpdateRotation(){}
+void AAIMonsterBase::UpdateRotation()
+{
+	if (!bUseSmoothRotation) return;
+
+	// 이동 중이면 bOrientRotationToMovement가 자동 처리
+	const float CurrentSpeed = GetVelocity().Size2D();
+	if (CurrentSpeed > 10.f) return;
+
+	AAIController* AIC = Cast<AAIController>(GetController());
+	if (!AIC) return;
+
+	UBlackboardComponent* BB = AIC->GetBlackboardComponent();
+	if (!BB) return;
+
+	FVector TargetLocation = FVector::ZeroVector;
+	bool bHasTarget = false;
+
+	// 정지 상태에서만 타겟을 부드럽게 바라봄
+	if (CurrentState == EMonsterState::Alert || 
+	    CurrentState == EMonsterState::Aggressive ||
+	    CurrentState == EMonsterState::Attack)
+	{
+		AActor* TargetActor = Cast<AActor>(BB->GetValueAsObject(TEXT("TargetPlayer")));
+		if (TargetActor)
+		{
+			TargetLocation = TargetActor->GetActorLocation();
+			bHasTarget = true;
+		}
+	}
+
+	if (!bHasTarget) return;
+
+	const FVector CurrentLocation = GetActorLocation();
+	const FVector DirectionToTarget = (TargetLocation - CurrentLocation).GetSafeNormal2D();
+	
+	if (DirectionToTarget.IsNearlyZero()) return;
+
+	const FRotator TargetRotation = DirectionToTarget.Rotation();
+	const FRotator CurrentRotation = GetActorRotation();
+
+	const FRotator NewRotation = FMath::RInterpTo(
+		CurrentRotation,
+		TargetRotation,
+		RotationUpdateInterval,
+		RotationSpeed
+	);
+
+	SetActorRotation(NewRotation);
+}
 #pragma endregion
