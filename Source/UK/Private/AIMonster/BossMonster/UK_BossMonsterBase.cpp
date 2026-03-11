@@ -32,7 +32,7 @@ void AUK_BossMonsterBase::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	GetCharacterMovement()->MaxWalkSpeed = 400.f; 
+	GetCharacterMovement()->MaxWalkSpeed = 475.f; 
 	FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, true);
 	
 	WeaponCollision_R->OnComponentBeginOverlap.AddDynamic(this, &AUK_BossMonsterBase::OnWeaponOverlap);
@@ -69,15 +69,26 @@ void AUK_BossMonsterBase::ReceiveDamage(float Damage)
 
 void AUK_BossMonsterBase::UpdatePhase()
 {
-	if (!AttributeSet) return;
+}
 
-	float HPRatio = AttributeSet->GetHealth() / AttributeSet->GetMaxHealth();
-
-	// 체력이 절반으로 떨어졌을때 페이즈 전환 임시용으로 넣어둠 수정 필요함 대기중임
-	if (CurrentPhase == 1 && HPRatio <= 0.5f)
+void AUK_BossMonsterBase::NotifyAttacked(AController* InstigatorController)
+{
+	Super::NotifyAttacked(InstigatorController);
+	
+	if (bIsAttacking || bIsDying) return;
+	
+	float CurrentTime = GetWorld()->GetTimeSeconds();
+	if (CurrentTime - LastHitReactTime < 5.0f) return;
+	
+	if (HitReactMontage)
 	{
-		CurrentPhase = 2;
-		// 광폭화 이펙트나 사운드 여기 삽입 필요함 대기중임 가로채기 오버라이드 예정
+		PlayMontage(HitReactMontage);
+		LastHitReactTime = CurrentTime;
+		
+		if (AAIController* AICtl = Cast<AAIController>(GetController()))
+		{
+			AICtl->StopMovement();
+		}
 	}
 }
 
