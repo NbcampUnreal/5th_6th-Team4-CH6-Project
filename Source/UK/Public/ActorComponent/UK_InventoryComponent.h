@@ -25,7 +25,6 @@ public:
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryUpdate);
-//추가
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemAdded, FName, ItemID, int32, Amount);
 
 UCLASS(ClassGroup = ( Custom ), meta = ( BlueprintSpawnableComponent ))
@@ -74,7 +73,7 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnInventoryUpdate OnInventoryUpdate;
-	//추가
+	
 	UPROPERTY(BlueprintAssignable)
 	FOnItemAdded OnItemAdded;
 
