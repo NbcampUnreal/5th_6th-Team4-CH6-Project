@@ -6,6 +6,9 @@
 #include "UI/InGame/UK_MonsterHealthBar.h"
 #include "Components/WidgetComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "AIMonster/DataTable/UK_MonsterStatRow.h"
+#include "AIMonster/DataTable/UK_MonsterMetaRow.h"
+#include "AIMonster/UK_MonsterTypes.h"
 #include "Abilities/GameplayAbilityTypes.h"
 #include "AIMonsterBase.generated.h"
 
@@ -28,21 +31,6 @@ UENUM(BlueprintType)
 enum class EMonsterPersonality : uint8
 {
 	Aggressive, Peaceful
-};
-
-UENUM(BlueprintType)
-enum class EMonsterType : uint8
-{
-	None				 = 0,
-	Grux				 = 1,
-	EliteGolem			 = 2,
-	EliteWolf			 = 3,
-	EliteInsectBeast	 = 4,
-	Golem				 = 5,
-	Wolf				 = 6,
-	Fox					 = 7,
-	Reindeer			 = 8,
-	InsectBeast			 = 9,
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMonsterDeath, class AAIMonsterBase*, DeadMonster);
@@ -359,50 +347,6 @@ protected:
 
 #pragma endregion
 	
-#pragma region Stat Scaling (Player Level Based)
-public:
-	/**
-	 * 플레이어 레벨 기반 몬스터 스탯 초기화
-	 * BeginPlay 또는 스폰 시 호출 – 서브클래스에서 override 가능
-	 *
-	 *  공격력  = PlayerLevel × 3.14
-	 *  방어력  = (PlayerLevel / 2) + GetMonsterTypeBaseDefense(MonsterType)
-	 */
-	virtual void InitializeStatsFromPlayerLevel(int32 PlayerLevel);
-
-	/** 몬스터 종류별 기본 HP */
-		UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
-	static float GetMonsterTypeBaseHP(EMonsterType Type);
-
-	/** 몬스터 종류별 레벨당 HP 증가량 */
-	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
-	static float GetMonsterTypeHPPerLevel(EMonsterType Type);
-
-	/** 최대 HP = BaseHP + (PlayerLevel × HPPerLevel) */
-	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
-	static float CalculateMaxHealth(int32 PlayerLevel, EMonsterType Type);
-
-	/** 몬스터 종류별 기본 방어력 (플레이어 레벨 보정값에 추가) */
-	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
-	static float GetMonsterTypeBaseDefense(EMonsterType Type);
-
-	/** 일반 공격 데미지 = PlayerLevel × 3.14 */
-	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
-	static float CalculateAttackDamage(int32 PlayerLevel);
-
-	/** 광역 공격 데미지 = (PlayerLevel × 3.14) × 1.5 */
-	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
-	static float CalculateAoEDamage(int32 PlayerLevel);
-
-	/** 방어력 = (PlayerLevel / 2) + 종류별 기본 방어력 */
-	UFUNCTION(BlueprintPure, Category = "Monster|Scaling")
-	static float CalculateDefense(int32 PlayerLevel, EMonsterType Type);
-
-private:
-	/** BeginPlay 에서 첫 번째 플레이어 레벨로 스탯 자동 초기화 */
-	void AutoInitStatsFromNearestPlayer();
-#pragma endregion
-
 #pragma region Rotation System
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Rotation")
@@ -421,6 +365,49 @@ protected:
 	void UpdateRotation();
     
 	FTimerHandle RotationTimerHandle;
+#pragma endregion
+	
+#pragma region DataTable
+public:
+	/**
+	 * BP마다 직접 할당
+	 * RowName = EMonsterType 이름 (ex. "Wolf", "Golem")
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Data")
+	UDataTable* MonsterStatTable;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Data")
+	UDataTable* MonsterMetaTable;
+
+	/** 플레이어 레벨 기반 스탯 초기화 */
+	virtual void InitializeStatsFromPlayerLevel(int32 PlayerLevel);
+
+	/**
+	 * 퀘스트 킬 이벤트 ID 반환
+	 * ex) "QuestEvent.Killed.Mob_Common_Wolf"
+	 */
+	UFUNCTION(BlueprintPure, Category = "Monster|Quest")
+	FString GetKillEventId() const;
+
+	// ── 계산 유틸 (외부/BP에서 호출 가능) ──────
+	UFUNCTION(BlueprintPure, Category = "Monster|Data")
+	float CalculateMaxHealth(int32 PlayerLevel) const;
+
+	UFUNCTION(BlueprintPure, Category = "Monster|Data")
+	float CalculateAttackDamage(int32 PlayerLevel) const;
+
+	UFUNCTION(BlueprintPure, Category = "Monster|Data")
+	float CalculateAoEDamage(int32 PlayerLevel) const;
+
+	UFUNCTION(BlueprintPure, Category = "Monster|Data")
+	float CalculateDefense(int32 PlayerLevel) const;
+
+private:
+	FName GetRowName() const;
+	const FUK_MonsterStatRow* GetStatRow() const;
+	const FUK_MonsterMetaRow* GetMetaRow() const;
+
+	void AutoInitStatsFromNearestPlayer();
 #pragma endregion
 	
 #pragma region Private
