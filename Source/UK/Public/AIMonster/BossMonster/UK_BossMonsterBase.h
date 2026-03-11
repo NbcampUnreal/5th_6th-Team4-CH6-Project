@@ -51,12 +51,19 @@ public:
 	
 	FGameplayTag GetCurrentPhase() const { return CurrentPhaseTag; }
 	
+	virtual void NotifyAttacked(AController* InstigatorController) override;
+	
 protected:
 	UPROPERTY(EditAnywhere, Category = "Boss|Patterns")
 	TArray<UAnimMontage*> Phase1Patterns;
 
 	UPROPERTY(EditAnywhere, Category = "Boss|Patterns")
 	TArray<UAnimMontage*> Phase2Patterns;
+	
+	UPROPERTY(EditAnywhere, Category = "Design | Animation")
+	UAnimMontage* HitReactMontage;
+	
+	float LastHitReactTime = 0.f; //마지막으로 받은 피격 애님 플레이 시간 체크용
 	
 	UPROPERTY(VisibleAnywhere, Category = "Boss|Combat")
 	UCapsuleComponent* WeaponCollision_R;
@@ -65,9 +72,7 @@ protected:
 	UCapsuleComponent* WeaponCollision_L;
 	
 	UFUNCTION()
-	void OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
-						UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
-						bool bFromSweep, const FHitResult& SweepResult);
+	void OnWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 private:
 	UPROPERTY()

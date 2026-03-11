@@ -1,6 +1,7 @@
 ﻿// AnimNotifyState_UKMonsterMeleeTrace.cpp
 #include "AIMonster/Animation/AnimNotifyState_UKMonsterMeleeTrace.h"
 #include "AIMonster/AIMonsterBase.h"
+#include "AIMonster/UK_MonsterTypes.h"
 #include "Character/UK_CharacterBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
@@ -134,8 +135,10 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 			{
 				if (UAbilitySystemComponent* PlayerASC = ASCInterface->GetAbilitySystemComponent())
 				{
+					bool bIsPlayerParrying = PlayerASC->HasMatchingGameplayTag(UK_GameplayTags::Action::Parrying);
+					bool bIsEliteOrBoss = (Monster->MonsterType == EMonsterType::Grux || Monster->MonsterType == EMonsterType::EliteGolem || Monster->MonsterType == EMonsterType::EliteWolf);
 					// 패리 체크
-					if (PlayerASC->HasMatchingGameplayTag(UK_GameplayTags::Action::Parrying))
+					if (bIsPlayerParrying && bIsEliteOrBoss)
 					{
 						UE_LOG(LogTemp, Warning,
 							TEXT("[MeleeTrace] %s → %s : PARRIED! Attack cancelled."),

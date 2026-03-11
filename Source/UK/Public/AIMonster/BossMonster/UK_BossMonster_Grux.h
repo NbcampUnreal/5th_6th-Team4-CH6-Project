@@ -27,6 +27,18 @@ protected:
 	UAnimMontage* DashAttack; // 점프 공격 (페이즈 2)
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Grux|Patterns")
+	UAnimMontage* RangedAttackMontage;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Grux|Projectile")
+	TSubclassOf<AActor> SwordWaveClass;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Grux|Projectile")
+	FName MuzzleSocketName = TEXT("Muzzle_Front");
+	
+	UFUNCTION(BlueprintCallable, Category = "Grux|Patterns")
+	void LaunchSwordWave();
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Grux|Patterns")
 	UAnimMontage* Berserk;
 	float BerserkPlayRate = 1.0f;
 	
@@ -36,12 +48,20 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Grux|Patterns")
 	float SmashRadius = 600.f;
+	
+	UPROPERTY(VisibleAnywhere, Category = "Boss | Combat")
+	UDecalComponent* JumpTargetDecal;
+	
+	UPROPERTY(EditAnywhere, Category = "Boss | Combat")
+	float JumpTargetRadius = 400.f; // 데칼 크기
+	
 private:
 	void ApplyBerserkBuff();
 	void OnDashFinished(UAnimMontage* Montage, bool bInterrupted);
 	
 	bool ExecuteJumpAttackAction(float PlayRate);
 	bool ExecuteDashAttackAction(float PlayRate);
+	bool ExecuteRangedAttackAction(float PlayRate);
 	bool PlayBaseAttackWithSpeed(float PlayRate);
 	
 	FTimerHandle DashTimerHandle;
