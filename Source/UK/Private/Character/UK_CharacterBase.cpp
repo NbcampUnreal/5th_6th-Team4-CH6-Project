@@ -108,6 +108,7 @@ void AUK_CharacterBase::BeginPlay()
 		true
 	);
 	DefualtGravity = GetCharacterMovement()->GravityScale;
+	DefualtAirControl = GetCharacterMovement()->AirControl;
 }
 
 void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -182,6 +183,10 @@ void AUK_CharacterBase::PossessedBy(AController* NewController)
 void AUK_CharacterBase::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
+	if (MovementMode == ECharacterMovementMode::Gliding)
+	{
+		EndGliding();
+	}
 	if (OnFloor.IsBound() == true)
 	{
 		OnFloor.Execute();
@@ -189,7 +194,6 @@ void AUK_CharacterBase::Landed(const FHitResult& Hit)
 
 	FGameplayEventData EventData;
 	EventData.EventTag = UK_GameplayTags::Action::DropAttack;
-
 	GetAbilitySystemComponent()->HandleGameplayEvent(EventData.EventTag, &EventData);
 }
 
@@ -231,7 +235,12 @@ void AUK_CharacterBase::Move(const FInputActionValue& InputActionValue)
 {
 	const FVector2D MovementVector = InputActionValue.Get<FVector2D>();
 	const FRotator MovementRotation(0.f, Controller->GetControlRotation().Yaw, 0.f);
-
+	if (MovementMode == ECharacterMovementMode::Swimming)
+	{
+		FVector ForwardDirection = Controller->GetControlRotation().Vector();
+		AddMovementInput(ForwardDirection, MovementVector.X);
+		return;
+	}
 	if (FMath::IsNearlyZero(MovementVector.X) == false)
 	{
 		const FVector ForwardDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::X);
@@ -309,7 +318,7 @@ void AUK_CharacterBase::LightAttack()
 	}
 	UE_LOG(LogTemp, Display, TEXT("%f"), Distace);
 	FGameplayTagContainer Container;
-	if (GetCharacterMovement()->IsFalling() == true )
+	if (GetCharacterMovement()->IsFalling() == true)
 	{
 		InputType = EInputMode::Air;
 		UE_LOG(LogTemp, Display, TEXT("%s"), *GetName());
@@ -458,6 +467,29 @@ void AUK_CharacterBase::LockON()
 void AUK_CharacterBase::AddTarget(const TObjectPtr<AAIMonsterBase> Monster)
 {
 	LockOnList.AddUnique(Monster);
+}
+
+bool AUK_CharacterBase::StartGliding()
+{
+	if (GetCharacterMovement()->IsFalling() == false)
+		return true;
+	if (MovementMode == ECharacterMovementMode::Gliding)
+	{
+		EndGliding();
+		return false;
+	}
+	MovementMode = ECharacterMovementMode::Gliding;
+	GetCharacterMovement()->GravityScale = 0.15f;
+	GetCharacterMovement()->AirControl = 0.8;
+	return false;
+}
+
+void AUK_CharacterBase::EndGliding()
+{
+	MovementMode = ECharacterMovementMode::Walking;
+	GetCharacterMovement()->GravityScale = DefualtGravity;
+	 GetCharacterMovement()->AirControl = DefualtAirControl;
+	
 }
 
 void AUK_CharacterBase::LockONToggle()
