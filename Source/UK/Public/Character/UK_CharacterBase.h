@@ -138,8 +138,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UAIPerceptionStimuliSourceComponent> StimuliSource;
 	
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float GlideFallSpeed;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float DefualtGravity;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float DefualtAirControl;
 	
 #pragma endregion

@@ -38,10 +38,11 @@ AUK_CharacterBase::AUK_CharacterBase() :
 	bIsLock(false),
 	bIsCrouched(false),
 	SprintSpeed(800.f),
+	GlideFallSpeed(200.f),
 	NowWeapon(nullptr)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
 
 	GetMesh()->SetRelativeLocationAndRotation(
@@ -478,9 +479,13 @@ bool AUK_CharacterBase::StartGliding()
 		EndGliding();
 		return false;
 	}
-	MovementMode = ECharacterMovementMode::Gliding;
-	GetCharacterMovement()->GravityScale = 0.15f;
+	FVector Vel = GetCharacterMovement()->Velocity;
+	Vel.Z = -GlideFallSpeed;
+	GetCharacterMovement()->GravityScale = 0.f;
 	GetCharacterMovement()->AirControl = 0.8;
+	GetCharacterMovement()->Velocity = Vel;
+	
+	MovementMode = ECharacterMovementMode::Gliding;
 	return false;
 }
 
