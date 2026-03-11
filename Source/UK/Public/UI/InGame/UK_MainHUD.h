@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "ActorComponent/StatusComponent.h"
+//#include "ActorComponent/StatusComponent.h"
 #include "Containers/Map.h"
 #include "UK_MainHUD.generated.h"
 

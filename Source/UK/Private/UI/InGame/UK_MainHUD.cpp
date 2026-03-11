@@ -16,46 +16,46 @@ void UUK_MainHUD::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	APawn* PlayerPawn = GetOwningPlayerPawn();
-	if ( PlayerPawn )
-	{
-		UStatusComponent* StatusComp = PlayerPawn->FindComponentByClass<UStatusComponent>();
-		if ( StatusComp )
-		{
-			// HP, MP, 레벨, 스테미나 바인딩
-			StatusComp->HpStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateHealthBar);
-			StatusComp->MpStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateMpBar);
-			StatusComp->LevelStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateLevel);
-
-			FStructProperty* StatusProp = FindFieldChecked<FStructProperty>(UStatusComponent::StaticClass(), TEXT("Status"));
-			if ( StatusProp )
-			{
-				const FStatus* StatusPtr = StatusProp->ContainerPtrToValuePtr<FStatus>(StatusComp);
-				if ( StatusPtr )
-				{
-					UpdateHealthBar(StatusPtr->CurrentHp, StatusPtr->MaxHp);
-					UpdateMpBar(StatusPtr->CurrentMp, StatusPtr->MaxMp);
-					UpdateLevel(StatusPtr->Level);
-					//UpdateStaminaBar(StatusPtr->CurrentStamina, StatusPtr->MaxStamina); 
-				}
-			}
-		}
-	}
-
-	if ( InventoryButton )
-	{
-		InventoryButton->OnClicked.AddDynamic(this, &UUK_MainHUD::OnInventoryButtonClicked);
-	}
-
-	AUK_CharacterBase* CB = Cast<AUK_CharacterBase>(GetOwningPlayerPawn());
-	if (CB)
-	{
-		InvComp = CB->GetInventoryComponent();
-		if (InvComp)
-		{
-			InvComp->OnItemAdded.AddDynamic(this, &UUK_MainHUD::ShowItemNotify);
-		}
-	}
+	// APawn* PlayerPawn = GetOwningPlayerPawn();
+	// if ( PlayerPawn )
+	// {
+	// 	UStatusComponent* StatusComp = PlayerPawn->FindComponentByClass<UStatusComponent>();
+	// 	if ( StatusComp )
+	// 	{
+	// 		// HP, MP, 레벨, 스테미나 바인딩
+	// 		StatusComp->HpStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateHealthBar);
+	// 		StatusComp->MpStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateMpBar);
+	// 		StatusComp->LevelStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateLevel);
+	//
+	// 		FStructProperty* StatusProp = FindFieldChecked<FStructProperty>(UStatusComponent::StaticClass(), TEXT("Status"));
+	// 		if ( StatusProp )
+	// 		{
+	// 			const FStatus* StatusPtr = StatusProp->ContainerPtrToValuePtr<FStatus>(StatusComp);
+	// 			if ( StatusPtr )
+	// 			{
+	// 				UpdateHealthBar(StatusPtr->CurrentHp, StatusPtr->MaxHp);
+	// 				UpdateMpBar(StatusPtr->CurrentMp, StatusPtr->MaxMp);
+	// 				UpdateLevel(StatusPtr->Level);
+	// 				//UpdateStaminaBar(StatusPtr->CurrentStamina, StatusPtr->MaxStamina); 
+	// 			}
+	// 		}
+	// 	}
+	// }
+	//
+	// if ( InventoryButton )
+	// {
+	// 	InventoryButton->OnClicked.AddDynamic(this, &UUK_MainHUD::OnInventoryButtonClicked);
+	// }
+	//
+	// AUK_CharacterBase* CB = Cast<AUK_CharacterBase>(GetOwningPlayerPawn());
+	// if (CB)
+	// {
+	// 	InvComp = CB->GetInventoryComponent();
+	// 	if (InvComp)
+	// 	{
+	// 		InvComp->OnItemAdded.AddDynamic(this, &UUK_MainHUD::ShowItemNotify);
+	// 	}
+	// }
 
 }
 
