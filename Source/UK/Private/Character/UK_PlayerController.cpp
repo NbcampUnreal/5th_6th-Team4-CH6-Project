@@ -308,13 +308,13 @@ void AUK_PlayerController::ConnectStaminaWidget()
 	APawn* MyPawn = GetPawn();
 	if ( !MyPawn ) return;
 
-	UStatusComponent* StatusComp =
-		MyPawn->FindComponentByClass<UStatusComponent>();
-
-	if ( StatusComp )
-	{
-		StaminaWidget->BindStatusComponent(StatusComp);
-	}
+	// UStatusComponent* StatusComp =
+	// 	MyPawn->FindComponentByClass<UStatusComponent>();
+	//
+	// if ( StatusComp )
+	// {
+	// 	StaminaWidget->BindStatusComponent(StatusComp);
+	// }
 }
 
 // -------- 퀘스트 UI Interaction (무현 구현중)

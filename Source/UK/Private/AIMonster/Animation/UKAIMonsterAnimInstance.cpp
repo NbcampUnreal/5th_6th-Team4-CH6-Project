@@ -1,5 +1,6 @@
 ﻿#include "AIMonster/Animation/UKAIMonsterAnimInstance.h"
 #include "AIMonster/AIMonsterBase.h"
+#include "AIMonster/Monster/UK_BurrowMonster.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 #pragma region Initialization
@@ -53,6 +54,21 @@ void UUKAIMonsterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
                              : 0.f;
     const float TargetLean = FMath::Clamp(YawSpeed * 0.03f, -15.f, 15.f);
     LeanAngle = FMath::FInterpTo(LeanAngle, TargetLean, DeltaSeconds, 6.f);
+
+    // ── TurnAngle (턴 애니메이션용 좌우 회전 각도) ────────────────────
+    // YawDelta가 크면 회전 중, 작으면 정면
+    const float TargetTurn = FMath::Clamp(YawDelta * 2.f, -90.f, 90.f);
+    TurnAngle = FMath::FInterpTo(TurnAngle, TargetTurn, DeltaSeconds, 8.f);
+    
     PrevYaw   = CurrentYaw;
+	
+	if (AUK_BurrowMonster* Burrow = Cast<AUK_BurrowMonster>(OwnerMonster))
+	{
+		bIsBurrowed = Burrow->bIsBurrowed;
+	}
+	else
+	{
+		bIsBurrowed = false;
+	}
 }
 #pragma endregion

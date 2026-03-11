@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/Image.h"
-#include "ActorComponent/StatusComponent.h"
+//#include "ActorComponent/StatusComponent.h"
 #include "UK_Stamina.generated.h"
 
 /**
@@ -22,7 +22,7 @@ protected:
 public:
 
 	// PlayerController가 연결해줄 함수
-	void BindStatusComponent(UStatusComponent* NewStatusComp);
+	//void BindStatusComponent(UStatusComponent* NewStatusComp);
 
 	// 스테미나 업데이트
 	UFUNCTION()
@@ -43,7 +43,7 @@ private:
 	UPROPERTY()
 	UMaterialInstanceDynamic* StaminaMID;
 
-	UPROPERTY()
-	UStatusComponent* CachedStatusComp;
+	// UPROPERTY()
+	// UStatusComponent* CachedStatusComp;
 	
 };

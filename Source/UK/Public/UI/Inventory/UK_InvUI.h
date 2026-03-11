@@ -8,6 +8,7 @@ class UUK_CategoryTap;
 class UWidgetSwitcher;
 class UUK_InventoryComponent;
 class UUK_InvCategoryBase;
+class UTextBlock;
 
 //info
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInvSlotPreview, const FInventorySlot&, SlotData);
@@ -69,10 +70,29 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UUK_InvCategoryBase* CategoryMaterial;
 
+	//텍스트 바인드
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* TextBlock_ALL;
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* TextBlock_Weapon;
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* TextBlock_Food;
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* TextBlock_Material;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "InvAlpha")
+	float ActiveAlpha = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "InvAlpha")
+	float InactiveAlpha = 0.7f;
+
 	UPROPERTY()
 	UUK_InventoryComponent* InvComp;
 
 	UFUNCTION()
 	void CategoryTap(UUK_CategoryTap* CategoryTap);
-	
+	void UpdateTabTextOpacity(UUK_CategoryTap* SelectedTap);
 };

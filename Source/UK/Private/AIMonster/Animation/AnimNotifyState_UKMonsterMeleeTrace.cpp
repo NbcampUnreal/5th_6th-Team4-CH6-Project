@@ -1,5 +1,7 @@
-﻿#include "AIMonster/Animation/AnimNotifyState_UKMonsterMeleeTrace.h"
+﻿// AnimNotifyState_UKMonsterMeleeTrace.cpp
+#include "AIMonster/Animation/AnimNotifyState_UKMonsterMeleeTrace.h"
 #include "AIMonster/AIMonsterBase.h"
+#include "AIMonster/UK_MonsterTypes.h"
 #include "Character/UK_CharacterBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
@@ -20,9 +22,11 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyBegin(
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
 	HitActors.Empty();
-	
 
-	UGameplayStatics::PlaySound2D(MeshComp->GetWorld(), AttackSound);
+	if (AttackSound)
+	{
+		UGameplayStatics::PlaySound2D(MeshComp->GetWorld(), AttackSound);
+	}
 }
 
 void UAnimNotifyState_UKMonsterMeleeTrace::NotifyEnd(
@@ -41,20 +45,16 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 {
 	Super::NotifyTick(MeshComp, Animation, FrameDeltaTime, EventReference);
 
-	if (!MeshComp || !MeshComp->GetOwner())	return;
+	if (!MeshComp || !MeshComp->GetOwner()) return;
 
 	AActor* OwnerActor = MeshComp->GetOwner();
 	UWorld* World = OwnerActor->GetWorld();
+	if (!World) return;
 
-	if (!World)	return;
-	
 	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(OwnerActor);
-	if (!Monster)
-	{
-		return;
-	}
+	if (!Monster) return;
 
-	// ── 전방 구체 스윕  ─────────────────
+	// ── 캡슐 높이 가져오기 ───────────────────────────────────────
 	float CapsuleHalf = 90.f;
 	if (ACharacter* Char = Cast<ACharacter>(OwnerActor))
 	{
@@ -63,8 +63,9 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 			CapsuleHalf = Cap->GetScaledCapsuleHalfHeight();
 		}
 	}
-	const FVector TraceStart = OwnerActor->GetActorLocation() + FVector(0, 0, CapsuleHalf * 0.1f);
-	const FVector TraceEnd   = TraceStart + OwnerActor->GetActorForwardVector() * TraceForwardLength;
+
+	const FVector BaseLocation = OwnerActor->GetActorLocation();
+	const FVector ForwardVector = OwnerActor->GetActorForwardVector();
 
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(OwnerActor);
@@ -72,85 +73,105 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 
 	FCollisionObjectQueryParams ObjectQueryParams(FCollisionObjectQueryParams::AllObjects);
 
-	TArray<FHitResult> HitResults;
-	const bool bHit = World->SweepMultiByObjectType(
-		HitResults, TraceStart, TraceEnd,
-		FQuat::Identity, ObjectQueryParams,
-		FCollisionShape::MakeSphere(TraceRadius), QueryParams);
+	// ── 여러 높이에서 트레이스 수행 ────────────────────────────────
+	bool bAnyHit = false;
 
-#pragma region Debug
-	if (bShowDebug)
+	for (float HeightOffset : TraceHeightOffsets)
 	{
-		const FColor DrawColor = bHit ? FColor::Red : FColor::Green;
-		const FVector Center   = (TraceStart + TraceEnd) * 0.5f;
-		const float HalfHeight = FVector::Dist(TraceStart, TraceEnd) * 0.5f + TraceRadius;
-		const FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceEnd - TraceStart).ToQuat();
-		DrawDebugCapsule(World, Center, HalfHeight, TraceRadius,
-			CapsuleRot, DrawColor, false, DebugDrawDuration, 0, 3.f);
-	}
-#pragma endregion
+		const FVector TraceStart = BaseLocation + FVector(0, 0, HeightOffset);
+		const FVector TraceEnd = TraceStart + ForwardVector * TraceForwardLength;
 
-	if (!bHit) return;
+		TArray<FHitResult> HitResults;
+		const bool bHit = World->SweepMultiByObjectType(
+			HitResults, TraceStart, TraceEnd,
+			FQuat::Identity, ObjectQueryParams,
+			FCollisionShape::MakeSphere(TraceRadius), QueryParams);
 
-	// ── 히트 처리: 플레이어(UK_CharacterBase)만 대상 ────────────────────
-	for (const FHitResult& Hit : HitResults)
-	{
-		AActor* HitActor = Hit.GetActor();
-		if (!HitActor || HitActor == OwnerActor) continue;
+		if (bHit) bAnyHit = true;
 
-		AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(HitActor);
-		if (!Player) continue;
-
-		if (HitActors.Contains(HitActor)) continue;
-		HitActors.Add(HitActor);
-
-#pragma region Debug
+		// ── 디버그 드로우 ────────────────────────────────────────
 		if (bShowDebug)
 		{
-			DrawDebugSphere(World, Hit.ImpactPoint, 20.f, 12,
-				FColor::Yellow, false, DebugDrawDuration, 0, 3.f);
+			const FColor DrawColor = bHit ? FColor::Red : FColor::Green;
+			const FVector Center = (TraceStart + TraceEnd) * 0.5f;
+			const float HalfHeight = FVector::Dist(TraceStart, TraceEnd) * 0.5f + TraceRadius;
+			const FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceEnd - TraceStart).ToQuat();
+			DrawDebugCapsule(World, Center, HalfHeight, TraceRadius,
+				CapsuleRot, DrawColor, false, DebugDrawDuration, 0, 2.f);
 		}
-#pragma endregion
 
-		UE_LOG(LogTemp, Warning,
-			TEXT("[MeleeTrace] %s → %s | Damage: %.1f | ImpactPoint: %s"),
-			*Monster->GetName(),
-			*Player->GetName(),
-			Monster->AttackDamage,
-			*Hit.ImpactPoint.ToString());
-		if (IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(Player))
+		if (!bHit) continue;
+
+		// ── 히트 처리: 플레이어(UK_CharacterBase)만 대상 ─────────────
+		for (const FHitResult& Hit : HitResults)
 		{
-			if (UAbilitySystemComponent* PlayerASC = ASCInterface->GetAbilitySystemComponent())
+			AActor* HitActor = Hit.GetActor();
+			if (!HitActor || HitActor == OwnerActor) continue;
+
+			AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(HitActor);
+			if (!Player) continue;
+
+			// 중복 히트 방지
+			if (HitActors.Contains(HitActor)) continue;
+			HitActors.Add(HitActor);
+
+			// ── 디버그: 히트 포인트 표시 ─────────────────────────────
+			if (bShowDebug)
 			{
-				// 패링 체크
-				if (PlayerASC->HasMatchingGameplayTag(UK_GameplayTags::Action::Parrying))
+				DrawDebugSphere(World, Hit.ImpactPoint, 20.f, 12,
+					FColor::Yellow, false, DebugDrawDuration, 0, 3.f);
+			}
+
+			UE_LOG(LogTemp, Warning,
+				TEXT("[MeleeTrace] %s → %s | Damage: %.1f | Height: %.1f | ImpactPoint: %s"),
+				*Monster->GetName(),
+				*Player->GetName(),
+				Monster->AttackDamage,
+				HeightOffset,
+				*Hit.ImpactPoint.ToString());
+
+			// ── GAS 데미지 처리 ──────────────────────────────────────
+			if (IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(Player))
+			{
+				if (UAbilitySystemComponent* PlayerASC = ASCInterface->GetAbilitySystemComponent())
 				{
-					UE_LOG(LogTemp, Warning,
-						TEXT("[MeleeTrace] %s → %s : PARRIED! Attack cancelled."),
-						*Monster->GetName(), *Player->GetName());
+					bool bIsPlayerParrying = PlayerASC->HasMatchingGameplayTag(UK_GameplayTags::Action::Parrying);
+					bool bIsEliteOrBoss = (Monster->MonsterType == EMonsterType::Grux || Monster->MonsterType == EMonsterType::EliteGolem || Monster->MonsterType == EMonsterType::EliteWolf);
+					// 패리 체크
+					if (bIsPlayerParrying && bIsEliteOrBoss)
+					{
+						UE_LOG(LogTemp, Warning,
+							TEXT("[MeleeTrace] %s → %s : PARRIED! Attack cancelled."),
+							*Monster->GetName(), *Player->GetName());
 
-					// 몬스터에게 Parry 이벤트 
-					FGameplayEventData ParriedPayload;
-					ParriedPayload.Instigator = Player;
-					ParriedPayload.Target     = Monster;
-					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
-						Monster,
-						UK_GameplayTags::Action::Parry,
-						ParriedPayload
-					);
+						// 몬스터에게 Parry 이벤트
+						FGameplayEventData ParriedPayload;
+						ParriedPayload.Instigator = Player;
+						ParriedPayload.Target = Monster;
+						UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+							Monster,
+							UK_GameplayTags::Action::Parry,
+							ParriedPayload
+						);
 
-					return;
-				}
+						return;
+					}
 
-				const UUK_PlayerStatusAttributeSet* AttrSet = PlayerASC->GetSet<UUK_PlayerStatusAttributeSet>();
-				const float Defence = AttrSet ? AttrSet->GetDefence() : 0.f;
-				const float FinalDamage = FMath::Max(Monster->AttackDamage - Defence, 0.f);
-				if (FinalDamage > 0.f)
-				{
-					UE_LOG(LogTemp, Warning, TEXT("[Player] Hit | Raw: %.1f | Defence: %.1f | Final: %.1f | HP: %.1f -> %.1f"),
-						Monster->AttackDamage, Defence, FinalDamage, AttrSet->GetHealth(), AttrSet->GetHealth() - FinalDamage);
-					PlayerASC->SetNumericAttributeBase(
-						UUK_PlayerStatusAttributeSet::GetDamageAttribute(), FinalDamage);
+					// 데미지 계산 및 적용
+					const UUK_PlayerStatusAttributeSet* AttrSet = PlayerASC->GetSet<UUK_PlayerStatusAttributeSet>();
+					const float Defence = AttrSet ? AttrSet->GetDefence() : 0.f;
+					const float FinalDamage = FMath::Max(Monster->AttackDamage - Defence, 0.f);
+
+					if (FinalDamage > 0.f)
+					{
+						UE_LOG(LogTemp, Warning,
+							TEXT("[Player] Hit | Raw: %.1f | Defence: %.1f | Final: %.1f | HP: %.1f -> %.1f"),
+							Monster->AttackDamage, Defence, FinalDamage,
+							AttrSet->GetHealth(), AttrSet->GetHealth() - FinalDamage);
+
+						PlayerASC->SetNumericAttributeBase(
+							UUK_PlayerStatusAttributeSet::GetDamageAttribute(), FinalDamage);
+					}
 				}
 			}
 		}

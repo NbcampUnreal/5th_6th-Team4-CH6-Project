@@ -34,6 +34,10 @@ public:
 	/** 적대 상태 여부 (평화 몬스터용) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	bool bIsAggressive = false;
+	
+	/** 땅속 대기 상태 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	bool bIsBurrowed = false;
 #pragma endregion
 
 #pragma region Movement Properties
@@ -51,7 +55,11 @@ public:
 	float LeanAngle = 0.f;      
 
 	UPROPERTY(BlueprintReadOnly, Category = "Animation")
-	bool bIsChasing = false;  
+	bool bIsChasing = false;
+
+	/** 좌우 회전 각도 (-180 ~ 180, 턴 애니메이션용) */
+	UPROPERTY(BlueprintReadOnly, Category = "Animation")
+	float TurnAngle = 0.f;
 	
 private:
 	float PrevYaw = 0.f;
