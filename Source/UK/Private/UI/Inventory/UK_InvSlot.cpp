@@ -143,14 +143,5 @@ bool UUK_InvSlot::IsWeaponItem() const
 		}
 	}
 
-	if (!ItemInfo->ItemClass.IsNull())
-	{
-		UClass* LoadedClass = ItemInfo->ItemClass.LoadSynchronous();
-		if (LoadedClass && LoadedClass->IsChildOf(AUK_WeaponBase::StaticClass()))
-		{
-			return true;
-		}
-	}
-
 	return false;
 }
