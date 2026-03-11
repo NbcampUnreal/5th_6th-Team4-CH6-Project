@@ -6,6 +6,7 @@
 #include "UI/InGame/UK_MonsterHealthBar.h"
 #include "Components/WidgetComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Abilities/GameplayAbilityTypes.h"
 #include "AIMonsterBase.generated.h"
 
 class UBehaviorTree;
@@ -63,7 +64,7 @@ class UK_API AAIMonsterBase : public ACharacter, public IAbilitySystemInterface
 public:
 	AAIMonsterBase();
 	virtual void PostInitializeComponents() override;
-
+	virtual void PossessedBy(AController* NewController) override;
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -202,6 +203,14 @@ public:
 	TArray<UAnimMontage*> AttackMontages;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Animation")
+	TObjectPtr<UAnimMontage> StaggerMontage;
+	
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	virtual void HandleParryReaction();
+	void OnStaggerMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	virtual void OnParryGameplayEvent(const FGameplayEventData* Payload);
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Animation")
 	float CorpseLingerTime = 5.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
@@ -242,7 +251,7 @@ public:
 	virtual void ReceiveDamage(float Damage);
 	void ReceiveDamageFrom(float Damage, AController* InstigatorController);
 	
-	void NotifyAttacked(AController* InstigatorController);
+	virtual void NotifyAttacked(AController* InstigatorController);
 #pragma endregion
 
 #pragma region Idle Animation
