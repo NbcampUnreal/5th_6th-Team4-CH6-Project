@@ -23,6 +23,14 @@ namespace UK_GameplayTags
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(LockOnToggle, "Input.LockOnToggle", "Default Movement Ability")
 	}
 
+	namespace Movement
+	{
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(None, "Movement.None", "Movement")
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Walking, "Movement.Walking", "Movement")
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Swimming, "Movement.Swimming", "Movement")
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Gliding, "Movement.Gliding", "Movement")
+		
+	}
 	namespace Weapon
 	{
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(WeaponRoot, "Weapon", "Root Weapon Ability")
