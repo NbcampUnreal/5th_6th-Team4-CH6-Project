@@ -1,9 +1,7 @@
 ﻿#include "AIMonster/BehaviorTree/UK_BTService_CheckPlayerProximity.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "GameFramework/Character.h"
 #include "AIMonster/AIMonsterBase.h"
-#include "Kismet/GameplayStatics.h"
 
 #pragma region Initialization
 UUK_BTService_CheckPlayerProximity::UUK_BTService_CheckPlayerProximity()
