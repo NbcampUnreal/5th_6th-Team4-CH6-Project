@@ -211,6 +211,7 @@ int32 UUK_InventoryComponent::subtractionGold(int32 cost)
 	}
 	
 	Gold -= cost;
+	OnChangedGold.Broadcast(Gold);
 	return Gold;
 }
 
@@ -222,8 +223,8 @@ bool UUK_InventoryComponent::AddGold(int32 Value)
 		return false;
 	}
 	Gold += Value;
+	OnChangedGold.Broadcast(Gold);
 	return true;
-	
 }
 
 
