@@ -11,7 +11,7 @@ struct FUKRewardItemGrant
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FName ItemId;          // Item_<Zone>_<Name>
+	FName ItemID;          // Item_<Zone>_<Name>
 							//ex) Item_Steampunk_Permit 
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
