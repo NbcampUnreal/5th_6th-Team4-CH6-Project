@@ -63,11 +63,6 @@ void UUK_MonsterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectMod
 				}
 				Monster->NotifyAttacked(InstigatorController);  
 			}
-
-			if (NewHealth <= 0.0f)
-			{
-				HandleOutOfHealth();
-			}
 			
 			UE_LOG(LogTemp, Warning, TEXT(" Health Updated: %.1f → %.1f (Damage: %.1f)"), 
 				OldHealth, NewHealth, FinalDamage);
