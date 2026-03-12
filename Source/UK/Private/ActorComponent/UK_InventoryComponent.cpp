@@ -45,6 +45,7 @@ int32 UUK_InventoryComponent::AddItem(FName ItemID, int32 Amount)
 
 	// 데이터 테이블에서 데이터 찾아오기
 	const FUK_ItemData* ItemData = ItemDataTable->FindRow<FUK_ItemData>(ItemID, TEXT("UUK_InventoryComponent::AddItem"));
+	
 	if ( ItemData == nullptr )
 	{
 		UE_LOG(LogTemp, Display, TEXT("아이템 데이터 테이블에 존재하지 않는 ID가 있습니다 : %s"), *ItemID.ToString());

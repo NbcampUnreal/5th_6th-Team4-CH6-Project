@@ -63,6 +63,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	bool AddWeapon(FName ItemID, int32 index = -1);
+	
 	bool RemoveWeapon(FName ItemID, int32 index);
 
 	FInventorySlot* FindWeaponSlot(FName ItemID);

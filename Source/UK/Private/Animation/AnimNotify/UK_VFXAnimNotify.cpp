@@ -1,6 +1,7 @@
 #include "Animation/AnimNotify/UK_VFXAnimNotify.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
+#include "NiagaraComponent.h"
 #include "GameFramework/Actor.h"
 #include "Components/MeshComponent.h"
 
@@ -48,14 +49,34 @@ void UUK_VFXAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBa
         FinalTarget = MeshComp;
     }
 	
-    UNiagaraFunctionLibrary::SpawnSystemAttached(
-        NiagaraVFX,
-        FinalTarget,
-        SocketName,
-        LocationOffset,
-        RotationOffset,
-        EAttachLocation::SnapToTargetIncludingScale,
-        true,
-        true
-    );
+	// 4. 이펙트 부착 소환 (다시 따라오게 설정)
+	UNiagaraComponent* SpawnedVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+		NiagaraVFX,
+		FinalTarget,
+		SocketName,
+		LocationOffset,
+		RotationOffset,
+		EAttachLocation::SnapToTargetIncludingScale,
+		true, // bAutoDestroy
+		true  // bAutoActivate
+	);
+
+	// 5. 스케일 및 시간 설정
+	if (SpawnedVFX)
+	{
+		SpawnedVFX->SetRelativeScale3D(VFXScale);
+
+		if (VFXDuration > 0.0f)
+		{
+			// 타이머를 사용하여 지정된 시간(VFXDuration) 후에 컴포넌트 파괴
+			FTimerHandle TimerHandle;
+			MeshComp->GetWorld()->GetTimerManager().SetTimer(TimerHandle, [SpawnedVFX]()
+			{
+				if (IsValid(SpawnedVFX))
+				{
+					SpawnedVFX->DestroyComponent();
+				}
+			}, VFXDuration, false);
+		}
+	}
 }
