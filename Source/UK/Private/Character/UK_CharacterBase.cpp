@@ -637,14 +637,13 @@ void AUK_CharacterBase::AddTarget(const TObjectPtr<AAIMonsterBase> Monster)
 bool AUK_CharacterBase::StartGliding()
 {
 	if (GetCharacterMovement()->IsFalling() == false)
-		return true;
-	if ( GetFloorDistance() < 220.f)
-	{
-		return true;
-	}
+		return false;
 	if (MovementMode == ECustomMovementMode::CMOVE_Glide)
 	{
-		EndGliding();
+		return false;
+	}
+	if ( GetFloorDistance() < 220.f)
+	{
 		return false;
 	}
 	FVector Vel = GetCharacterMovement()->Velocity;
@@ -653,7 +652,7 @@ bool AUK_CharacterBase::StartGliding()
 	GetCharacterMovement()->AirControl = 0.8;
 	GetCharacterMovement()->Velocity = Vel;
 	MovementMode = ECustomMovementMode::CMOVE_Glide;
-	return false;
+	return true;
 }
 
 void AUK_CharacterBase::EndGliding()

@@ -1,12 +1,10 @@
 ﻿#include "AIMonster/AIMonsterBase.h"
 #include "AIController.h"
-#include "AIMonster/UK_AiMonsterCtl.h"
 #include "AIMonster/AttibuteSet/UK_MonsterAttributeSet.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "GameplayEffect.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
-#include "BehaviorTree/BTTaskNode.h"
 #include "Character/UK_CharacterBase.h"
 #include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
 #include "Kismet/GameplayStatics.h"
@@ -17,7 +15,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Quest/UKQuestManagerSubsystem.h"
 #include "Tags/UK_GameplayTags.h"
-#include "DrawDebugHelpers.h"
+#include "AIMonster/DataTable/UK_MonsterLootRow.h"
+#include "ActorComponent/UK_InventoryComponent.h"
 
 #pragma region Initialization
 AAIMonsterBase::AAIMonsterBase()
@@ -703,6 +702,8 @@ void AAIMonsterBase::Die()
 		&AAIMonsterBase::FinalizeDeath,
 		CorpseLingerTime > 0.f ? 1.0f : 0.1f,
 		false);
+	
+	NotifyMonsterKilled(); 
 }
 
 void AAIMonsterBase::FinalizeDeath()
@@ -754,6 +755,8 @@ void AAIMonsterBase::NotifyMonsterKilled()
 	{
 		QM->EmitQuestEvent(FName(*EventId));
 	}
+	
+	GrantRewardsToKiller();
 }
 
 void AAIMonsterBase::HideCorpse()
@@ -1033,6 +1036,20 @@ void AAIMonsterBase::UpdateRotation()
 #pragma endregion
 
 #pragma region DataTable
+float AAIMonsterBase::CalculateExp(int32 PlayerLevel) const
+{
+	const FUK_MonsterStatRow* Row = GetStatRow();
+	if (!Row) return 0.f;
+	return Row->BaseExp + Row->ExpPerLevel * (PlayerLevel - 1);
+}
+
+float AAIMonsterBase::CalculateGold(int32 PlayerLevel) const
+{
+	const FUK_MonsterStatRow* Row = GetStatRow();
+	if (!Row) return 0.f;
+	return Row->BaseGold + Row->GoldPerLevel * (PlayerLevel - 1);
+}
+
 FName AAIMonsterBase::GetRowName() const
 {
     const UEnum* Enum = StaticEnum<EMonsterType>();
@@ -1180,5 +1197,94 @@ void AAIMonsterBase::AutoInitStatsFromNearestPlayer()
 	}
 
 	InitializeStatsFromPlayerLevel(BestLevel);
+}
+
+void AAIMonsterBase::GrantRewardsToKiller()
+{
+	if (bRewardGranted) return;
+	bRewardGranted = true;
+	
+	if (!LastAttackerController)
+	{
+		APlayerController* FallbackPC = GetWorld()->GetFirstPlayerController();
+		LastAttackerController = FallbackPC;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[Reward] GrantRewardsToKiller - Controller: %s"),
+		LastAttackerController ? *LastAttackerController->GetName() : TEXT("NULL"));
+
+	if (!LastAttackerController) return;
+
+    APawn* KillerPawn = LastAttackerController->GetPawn();
+    if (!KillerPawn) return;
+
+    int32 PlayerLevel = 1;
+    float ExpGain = 0.f;
+    int32 GoldGain = 0;
+
+    // ── 경험치 ──────────────────────────────────────────
+    if (IAbilitySystemInterface* ASIPlayer = Cast<IAbilitySystemInterface>(KillerPawn))
+    {
+        if (UAbilitySystemComponent* PlayerASC = ASIPlayer->GetAbilitySystemComponent())
+        {
+            PlayerLevel = FMath::Max(1, FMath::RoundToInt(
+                PlayerASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetLevelAttribute())));
+
+            const float CurrentExp = PlayerASC->GetNumericAttribute(
+                UUK_PlayerStatusAttributeSet::GetEXPAttribute());
+            ExpGain = CalculateExp(PlayerLevel);
+            PlayerASC->SetNumericAttributeBase(
+                UUK_PlayerStatusAttributeSet::GetEXPAttribute(), CurrentExp + ExpGain);
+        }
+    }
+
+    // ── Gold ────────────────────────────────────────────
+    UUK_InventoryComponent* Inventory = KillerPawn->FindComponentByClass<UUK_InventoryComponent>();
+    if (Inventory)
+    {
+        GoldGain = FMath::RoundToInt(CalculateGold(PlayerLevel));
+        Inventory->AddGold(GoldGain);
+    }
+
+    // ── 아이템 드롭 ──────────────────────────────────────
+    TArray<FString> DroppedItems;
+
+    if (MonsterLootTable && Inventory)
+    {
+        const FUK_MonsterLootRow* LootRow = MonsterLootTable->FindRow<FUK_MonsterLootRow>(
+            GetRowName(), TEXT("AAIMonsterBase::GrantRewardsToKiller"));
+
+        if (LootRow)
+        {
+            for (const FUK_MonsterLootEntry& Entry : LootRow->Entries)
+            {
+                if (Entry.ItemId == NAME_None) continue;
+                if (FMath::FRand() > Entry.DropChance) continue;
+
+                const int32 Count = FMath::RandRange(Entry.MinCount, Entry.MaxCount);
+                Inventory->AddItem(Entry.ItemId, Count);
+                DroppedItems.Add(FString::Printf(TEXT("%s x%d"), *Entry.ItemId.ToString(), Count));
+            }
+        }
+    }
+
+    // ── 로그 ─────────────────────────────────────────────
+    UE_LOG(LogTemp, Warning, TEXT("========= [Monster Killed: %s] ========="), *GetName());
+    UE_LOG(LogTemp, Warning, TEXT("  Player Level : %d"), PlayerLevel);
+    UE_LOG(LogTemp, Warning, TEXT("  EXP Gained   : %.1f"), ExpGain);
+    UE_LOG(LogTemp, Warning, TEXT("  Gold Gained  : %d"), GoldGain);
+
+    if (DroppedItems.Num() == 0)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("  Items        : None"));
+    }
+    else
+    {
+        for (const FString& ItemLog : DroppedItems)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("  Item Drop    : %s"), *ItemLog);
+        }
+    }
+    UE_LOG(LogTemp, Warning, TEXT("========================================="));
 }
 #pragma endregion

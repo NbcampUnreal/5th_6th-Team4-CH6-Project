@@ -2,8 +2,6 @@
 #include "Components/WidgetSwitcher.h"
 #include "UI/Inventory/UK_CategoryTap.h"
 #include "Components/TextBlock.h"
-
-//인벤토리 컴포넌트
 #include "ActorComponent/UK_InventoryComponent.h"
 #include "UI/Inventory/UK_InvCategoryBase.h"
 #include "Character/UK_CharacterBase.h"
@@ -37,7 +35,30 @@ void UUK_InvUI::NativeConstruct()
 
 	UpdateTabTextOpacity(TapALL);
 
-	//소유한 플레이어 폰의 인벤토리 컴포넌트 바인드
+	if (CategoryALL)
+	{
+		CategoryALL->ItemDataTables = ItemDataTables;
+		CategoryALL->CreateSlots();
+	}
+
+	if (CategoryWeapon)
+	{
+		CategoryWeapon->ItemDataTables = ItemDataTables;
+		CategoryWeapon->CreateSlots();
+	}
+
+	if (CategoryFood)
+	{
+		CategoryFood->ItemDataTables = ItemDataTables;
+		CategoryFood->CreateSlots();
+	}
+
+	if (CategoryMaterial)
+	{
+		CategoryMaterial->ItemDataTables = ItemDataTables;
+		CategoryMaterial->CreateSlots();
+	}
+
 	AUK_CharacterBase* CB = Cast<AUK_CharacterBase>(GetOwningPlayerPawn());
 	if (IsValid(CB))
 	{
@@ -46,31 +67,29 @@ void UUK_InvUI::NativeConstruct()
 		if (EquipSlot1)
 		{
 			EquipSlot1->EquipIndex = 0;
-			EquipSlot1->ItemDataTable = ItemDataTable;
+			EquipSlot1->ItemDataTables = ItemDataTables;
 			EquipSlot1->WeaponRootTag = UK_GameplayTags::Weapon::WeaponRoot;
 			EquipSlot1->BindInventory(CB->GetInventoryComponent());
 		}
 
-		//추가
 		if (EquipSlot2)
 		{
 			EquipSlot2->EquipIndex = 1;
-			EquipSlot2->ItemDataTable = ItemDataTable;
+			EquipSlot2->ItemDataTables = ItemDataTables;
 			EquipSlot2->WeaponRootTag = UK_GameplayTags::Weapon::WeaponRoot;
 			EquipSlot2->BindInventory(CB->GetInventoryComponent());
 		}
 
-		//추가
 		if (EquipSlot3)
 		{
 			EquipSlot3->EquipIndex = 2;
-			EquipSlot3->ItemDataTable = ItemDataTable;
+			EquipSlot3->ItemDataTables = ItemDataTables;
 			EquipSlot3->WeaponRootTag = UK_GameplayTags::Weapon::WeaponRoot;
 			EquipSlot3->BindInventory(CB->GetInventoryComponent());
 		}
 	}
 
-	auto BindCategory = [this](UUK_InvCategoryBase* Cat)
+	auto BindCategory = [this] (UUK_InvCategoryBase* Cat)
 		{
 			if (!Cat) return;
 			Cat->OnCategorySlotHovered.AddDynamic(this, &UUK_InvUI::HandleCategoryHovered);
@@ -81,53 +100,50 @@ void UUK_InvUI::NativeConstruct()
 	BindCategory(CategoryWeapon);
 	BindCategory(CategoryFood);
 	BindCategory(CategoryMaterial);
-
 }
 
 void UUK_InvUI::BindInventoryComponent(UUK_InventoryComponent* InInvComp)
 {
-	if (!InInvComp)	return;
-	//인벤토리 컴포넌트 저장
+	if (!InInvComp) return;
+
 	InvComp = InInvComp;
-	//인벤토리 컴포넌트의 OnInventoryUpdate 델리게이트에 바인드
-	InvComp->OnInventoryUpdate.AddDynamic
-	(
-		this,
-		&UUK_InvUI::OnInvCompUpdated
-	);
+	InvComp->OnInventoryUpdate.AddDynamic(this, &UUK_InvUI::OnInvCompUpdated);
 
 	OnInvCompUpdated();
 }
 
 void UUK_InvUI::OnInvCompUpdated()
 {
-
 	if (!InvComp) return;
-	//인벤토리 컴포넌트에서 모든 슬롯 배열 가져오기
+
 	const TArray<FInventorySlot>& AllSlots = InvComp->GetItemSlot();
 
 	if (CategoryALL)
 	{
 		int32 NewAllSlotCount = 0;
 
-		if ( CategoryWeapon )   NewAllSlotCount += CategoryWeapon->CurrentSlot;  
-		if ( CategoryFood )     NewAllSlotCount += CategoryFood->CurrentSlot;   
-		if ( CategoryMaterial ) NewAllSlotCount += CategoryMaterial->CurrentSlot;
+		if (CategoryWeapon)   NewAllSlotCount += CategoryWeapon->CurrentSlot;
+		if (CategoryFood)     NewAllSlotCount += CategoryFood->CurrentSlot;
+		if (CategoryMaterial) NewAllSlotCount += CategoryMaterial->CurrentSlot;
 
-		NewAllSlotCount = FMath::Clamp(NewAllSlotCount, 0, CategoryALL->MaxSlot); 
+		NewAllSlotCount = FMath::Clamp(NewAllSlotCount, 0, CategoryALL->MaxSlot);
 
-		if (CategoryALL->CurrentSlot != NewAllSlotCount) 
+		if ( CategoryALL->CurrentSlot != NewAllSlotCount )
 		{
-			CategoryALL->CurrentSlot = NewAllSlotCount; 
-			CategoryALL->CreateSlots();                 
+			CategoryALL->CurrentSlot = NewAllSlotCount;
+			CategoryALL->CreateSlots();
 		}
 	}
 
-	//CategoryBase에 모든 슬롯 배열 전달
 	if (CategoryALL) CategoryALL->SetInvArraySlots(AllSlots);
 	if (CategoryWeapon) CategoryWeapon->SetInvArraySlots(AllSlots);
 	if (CategoryFood) CategoryFood->SetInvArraySlots(AllSlots);
 	if (CategoryMaterial) CategoryMaterial->SetInvArraySlots(AllSlots);
+
+	if (CategoryALL) CategoryALL->UpdateSlots();
+	if (CategoryWeapon) CategoryWeapon->UpdateSlots();
+	if (CategoryFood) CategoryFood->UpdateSlots();
+	if (CategoryMaterial) CategoryMaterial->UpdateSlots();
 }
 
 void UUK_InvUI::HandleCategoryHovered(const FInventorySlot& SlotData)
@@ -144,15 +160,12 @@ void UUK_InvUI::CategoryTap(UUK_CategoryTap* CategoryTap)
 {
 	if (!InvCateSwitcher || !CategoryTap) return;
 
-	// 모든 탭 false
 	if (TapALL) TapALL->SetSelected(false);
 	if (TapWeapon) TapWeapon->SetSelected(false);
 	if (TapFood) TapFood->SetSelected(false);
 	if (TapMaterial) TapMaterial->SetSelected(false);
 
 	UpdateTabTextOpacity(CategoryTap);
-
-	// 클릭된 탭만 true
 	CategoryTap->SetSelected(true);
 
 	if (CategoryTap == TapALL)
@@ -175,8 +188,7 @@ void UUK_InvUI::CategoryTap(UUK_CategoryTap* CategoryTap)
 
 void UUK_InvUI::UpdateTabTextOpacity(UUK_CategoryTap* SelectedTap)
 {
-
-	auto SetOpacity = [](UTextBlock* Text, float Alpha)
+	auto SetOpacity = [] (UTextBlock* Text, float Alpha)
 		{
 			if (!Text) return;
 
@@ -190,4 +202,54 @@ void UUK_InvUI::UpdateTabTextOpacity(UUK_CategoryTap* SelectedTap)
 	SetOpacity(TextBlock_Weapon, SelectedTap == TapWeapon ? ActiveAlpha : InactiveAlpha);
 	SetOpacity(TextBlock_Food, SelectedTap == TapFood ? ActiveAlpha : InactiveAlpha);
 	SetOpacity(TextBlock_Material, SelectedTap == TapMaterial ? ActiveAlpha : InactiveAlpha);
+}
+
+void UUK_InvUI::ApplyItemDataTables()
+{
+	if (CategoryALL)
+	{
+		CategoryALL->ItemDataTables = ItemDataTables;
+		CategoryALL->CreateSlots();
+	}
+
+	if (CategoryWeapon)
+	{
+		CategoryWeapon->ItemDataTables = ItemDataTables;
+		CategoryWeapon->CreateSlots();
+	}
+
+	if (CategoryFood)
+	{
+		CategoryFood->ItemDataTables = ItemDataTables;
+		CategoryFood->CreateSlots();
+	}
+
+	if (CategoryMaterial)
+	{
+		CategoryMaterial->ItemDataTables = ItemDataTables;
+		CategoryMaterial->CreateSlots();
+	}
+
+	if (EquipSlot1)
+	{
+		EquipSlot1->ItemDataTables = ItemDataTables;
+		EquipSlot1->UpdateEquipSlotVisual();
+	}
+
+	if (EquipSlot2)
+	{
+		EquipSlot2->ItemDataTables = ItemDataTables;
+		EquipSlot2->UpdateEquipSlotVisual();
+	}
+
+	if (EquipSlot3)
+	{
+		EquipSlot3->ItemDataTables = ItemDataTables;
+		EquipSlot3->UpdateEquipSlotVisual();
+	}
+
+	if (InvComp)
+	{
+		OnInvCompUpdated();
+	}
 }

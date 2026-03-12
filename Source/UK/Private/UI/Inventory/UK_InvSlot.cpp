@@ -2,16 +2,12 @@
 #include "Components/Image.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
-
-//아이템
-#include "DataAsset/Data/UK_ItemData.h"
 #include "ActorComponent/UK_InventoryComponent.h"
 #include "Character/Weapon/UK_WeaponBase.h"
-//드래그
 #include "UI/Inventory/UK_DraggedItem.h"
 #include "UI/Inventory/UK_InvDragDropOperation.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
-
+#include "UI/Inventory/UK_ItemTableHelper.h"
 
 void UUK_InvSlot::NativePreConstruct()
 {
@@ -24,7 +20,9 @@ void UUK_InvSlot::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointer
 	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
 
 	if (!SlotData.isEmpty())
+	{
 		OnSlotHovered.Broadcast(SlotData);
+	}
 }
 
 void UUK_InvSlot::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
@@ -43,31 +41,25 @@ void UUK_InvSlot::UpdateSlot()
 	{
 		QuantitySizeBox->SetVisibility(TargetVisibility);
 	}
-	if(ItemImage)
+
+	if (ItemImage)
 	{
 		ItemImage->SetVisibility(TargetVisibility);
 	}
 
-	if (bIsEmpty) return;
+	if ( bIsEmpty ) return;
 
 	if (ItemQuantityText)
 	{
 		ItemQuantityText->SetText(FText::AsNumber(SlotData.Quantity));
 	}
 
-	if (ItemDataTable && !SlotData.ItemID.IsNone())
+	FUK_ItemTableRowView ItemInfo;
+	if (UK_ItemTableHelper::FindItemData(ItemDataTables, SlotData.ItemID, ItemInfo) && ItemImage)
 	{
-
-		FUK_ItemData* ItemInfo = ItemDataTable->FindRow<FUK_ItemData>(SlotData.ItemID, TEXT("UI_UpdateSlot"));
-
-		if (ItemInfo && ItemImage)
+		if (UTexture2D* IconTexture = ItemInfo.ItemIcon.LoadSynchronous())
 		{
-
-			UTexture2D* IconTexture = ItemInfo->ItemIcon.LoadSynchronous();
-			if (IconTexture)
-			{
-				ItemImage->SetBrushFromTexture(IconTexture);
-			}
+			ItemImage->SetBrushFromTexture(IconTexture);
 		}
 	}
 }
@@ -80,7 +72,6 @@ FReply UUK_InvSlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const F
 		&& !SlotData.isEmpty()
 		&& bAllowDrag
 		&& IsWeaponItem())
-
 	{
 		return UWidgetBlueprintLibrary::DetectDragIfPressed(
 			InMouseEvent,
@@ -99,48 +90,42 @@ void UUK_InvSlot::NativeOnDragDetected(const FGeometry& InGeometry, const FPoint
 	if (SlotData.isEmpty() || !bAllowDrag || !IsWeaponItem()) return;
 
 	UUK_InvDragDropOperation* DragOp = NewObject<UUK_InvDragDropOperation>();
-
 	if (!DragOp) return;
 
 	DragOp->DraggedSlotData = SlotData;
 	DragOp->SourceIndex = SlotIndex;
 
-	// 드래그 비주얼 생성
 	if (DraggedItemClass)
 	{
 		UUK_DraggedItem* DragVisual = CreateWidget<UUK_DraggedItem>(GetWorld(), DraggedItemClass);
 
-		if (DragVisual && ItemDataTable)
+		FUK_ItemTableRowView ItemInfo;
+		if (DragVisual && UK_ItemTableHelper::FindItemData(ItemDataTables, SlotData.ItemID, ItemInfo))
 		{
-			FUK_ItemData* ItemInfo = ItemDataTable->FindRow<FUK_ItemData>(SlotData.ItemID,TEXT("DragVisual"));
-
-			if (ItemInfo)
+			if (UTexture2D* Icon = ItemInfo.ItemIcon.LoadSynchronous())
 			{
-				UTexture2D* Icon = ItemInfo->ItemIcon.LoadSynchronous();
 				DragVisual->SetIcon(Icon);
 			}
 		}
+
 		DragOp->DefaultDragVisual = DragVisual;
 	}
+
 	DragOp->Pivot = EDragPivot::MouseDown;
 	OutOperation = DragOp;
 }
 
 bool UUK_InvSlot::IsWeaponItem() const
 {
-	if (!ItemDataTable || SlotData.ItemID.IsNone()) return false;
-	
-	const FUK_ItemData* ItemInfo = ItemDataTable->FindRow<FUK_ItemData>(SlotData.ItemID,TEXT("UUK_InvSlot::IsWeaponItem"));
-
-	if (!ItemInfo) return false;
-	
-
-	if (WeaponRootTag.IsValid() && ItemInfo->ItemTag.IsValid())
+	FUK_ItemTableRowView ItemInfo;
+	if (!UK_ItemTableHelper::FindItemData(ItemDataTables, SlotData.ItemID, ItemInfo))
 	{
-		if (ItemInfo->ItemTag.MatchesTag(WeaponRootTag))
-		{
-			return true;
-		}
+		return false;
+	}
+
+	if (WeaponRootTag.IsValid() && ItemInfo.ItemTag.IsValid())
+	{
+		return ItemInfo.ItemTag.MatchesTag(WeaponRootTag);
 	}
 
 	return false;

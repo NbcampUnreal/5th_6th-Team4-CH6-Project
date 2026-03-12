@@ -63,37 +63,34 @@ void UUK_BTService_DetectPlayer::TickNormalMode(UBehaviorTreeComponent& OwnerCom
     const bool bHasTarget  = (BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName)  != nullptr);
     const bool bHasPending = (BlackboardComp->GetValueAsObject(PendingTargetKey.SelectedKeyName) != nullptr);
 
-    UE_LOG(LogTemp, Warning, TEXT("[Detect] bHasTarget=%d bHasPending=%d bReturning=%d bHadTarget=%d DistFromSpawn=%.1f"),
-        bHasTarget, bHasPending, Memory->bReturning, Memory->bHadTarget, DistFromSpawn);
-
     // 복귀 플래그 관리
     if (Memory->bHadTarget && !bHasTarget && !bHasPending)
     {
-        UE_LOG(LogTemp, Warning, TEXT("[Detect] → bReturning SET"));
         Memory->bReturning = true;
         Memory->bHadTarget = false;
     }
 
     if (Memory->bReturning)
     {
+        // 복귀 중엔 타겟 즉시 클리어 + 재감지 완전 차단
+        BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
+        BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
+        AIController->ClearFocus(EAIFocusPriority::Gameplay);
+
         if (DistFromSpawn <= ReturnDistanceThreshold)
         {
-            UE_LOG(LogTemp, Warning, TEXT("[Detect] → Arrived at spawn, clearing returning"));
             Memory->bReturning = false;
-            BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
-            BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
-            Memory->bHadTarget = false;
         }
         return;
     }
 
     if (DistFromSpawn > ChaseLimit)
     {
-        UE_LOG(LogTemp, Warning, TEXT("[Detect] → ChaseLimit exceeded, forcing return"));
+        Memory->bReturning = true;
+        Memory->bHadTarget = false;
         BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
         BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
-        Memory->bHadTarget = false;
-        Memory->bReturning = true;
+        AIController->ClearFocus(EAIFocusPriority::Gameplay);
         return;
     }
 
@@ -101,25 +98,24 @@ void UUK_BTService_DetectPlayer::TickNormalMode(UBehaviorTreeComponent& OwnerCom
     if (!DetectedPlayer)
         DetectedPlayer = FindClosestPlayer(MonsterLocation, DetectionRadius, ControlledPawn->GetWorld());
 
-    UE_LOG(LogTemp, Warning, TEXT("[Detect] DetectedPlayer=%s"), DetectedPlayer ? *DetectedPlayer->GetName() : TEXT("NULL"));
+    // Perception이 근거리에서 실패하는 경우 보정: AttackRange * 2 이내는 항상 감지
+    if (!DetectedPlayer && Monster)
+    {
+        const float GuaranteedRange = Monster->AttackRange * 2.f;
+        DetectedPlayer = FindClosestPlayer(MonsterLocation, GuaranteedRange, ControlledPawn->GetWorld());
+    }
 
     if (DetectedPlayer)
     {
         if (BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName))
         {
-            UE_LOG(LogTemp, Warning, TEXT("[Detect] → TargetPlayer already set, skip"));
             return;
         }
 
         if (!BlackboardComp->GetValueAsObject(PendingTargetKey.SelectedKeyName))
         {
-            UE_LOG(LogTemp, Warning, TEXT("[Detect] → SET PendingTarget"));
             BlackboardComp->SetValueAsObject(PendingTargetKey.SelectedKeyName, DetectedPlayer);
             AIController->SetFocus(DetectedPlayer);
-        }
-        else
-        {
-            UE_LOG(LogTemp, Warning, TEXT("[Detect] → PendingTarget already set, skip"));
         }
 
         Memory->bHadTarget = true;
@@ -128,11 +124,9 @@ void UUK_BTService_DetectPlayer::TickNormalMode(UBehaviorTreeComponent& OwnerCom
     {
         if (BlackboardComp->GetValueAsObject(PendingTargetKey.SelectedKeyName))
         {
-            UE_LOG(LogTemp, Warning, TEXT("[Detect] → DetectedPlayer NULL but PendingTarget exists, SKIP CLEAR"));
             return;
         }
 
-        UE_LOG(LogTemp, Warning, TEXT("[Detect] → CLEAR all"));
         BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
         BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
         Memory->bHadTarget = false;

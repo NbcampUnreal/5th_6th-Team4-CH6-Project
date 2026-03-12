@@ -83,8 +83,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ItemNotify")
 	TSubclassOf<UUK_ItemNotify> ItemNotifyClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ItemNotify")
-	UDataTable* ItemDataTable = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<TObjectPtr<UDataTable>> ItemDataTables;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ItemNotify", meta = ( ClampMin = "1" ))
 	int32 MaxNotifyCount = 3;
