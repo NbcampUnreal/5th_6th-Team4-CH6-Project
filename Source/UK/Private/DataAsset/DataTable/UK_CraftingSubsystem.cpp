@@ -1,15 +1,24 @@
 #include "DataAsset/DataTable/UK_CraftingSubsystem.h"
 #include "DataAsset/DataTable/UK_CraftingRecipeRow.h"
 #include "ActorComponent/UK_InventoryComponent.h"
+#include "DataAsset/Data/UK_ItemData.h"
+
 void UUK_CraftingSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	RecipeDataTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Game/ItemData/DT_WeaponRecipes")));
+    
+	if (RecipeDataTable)
+	{
+		UE_LOG(LogTemp, Log, TEXT("RecipeDataTable 로드 성공!"));
+	}
 
-	static ConstructorHelpers::FObjectFinder<UDataTable> RecipeTableObj(TEXT("/Game/ItemData/DT_WeaponRecipes"));
-	if (RecipeTableObj.Succeeded()) RecipeDataTable = RecipeTableObj.Object;
-	
-	static ConstructorHelpers::FObjectFinder<UDataTable> ItemTableObj(TEXT("/Game/ItemData/DT_ItemTableble"));
-	if (ItemTableObj.Succeeded()) ItemDataTable = ItemTableObj.Object;
+	ItemDataTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Game/ItemData/DT_ItemTableble")));
+    
+	if (ItemDataTable)
+	{
+		UE_LOG(LogTemp, Log, TEXT("ItemDataTable 로드 성공!"));
+	}
 }
 
 const FUK_ItemData* UUK_CraftingSubsystem::GetItemData(FName ItemId) const
