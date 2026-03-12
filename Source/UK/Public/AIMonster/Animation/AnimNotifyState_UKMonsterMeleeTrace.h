@@ -41,14 +41,6 @@ public:
 	
 #pragma endregion
 
-#pragma region Debug Settings
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
-	bool bShowDebug = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
-	float DebugDrawDuration = 2.f;
-#pragma endregion
-
 #pragma region Private
 private:
 	UPROPERTY()

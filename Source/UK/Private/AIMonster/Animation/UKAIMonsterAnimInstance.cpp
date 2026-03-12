@@ -1,7 +1,6 @@
 ﻿#include "AIMonster/Animation/UKAIMonsterAnimInstance.h"
 #include "AIMonster/AIMonsterBase.h"
 #include "AIMonster/Monster/UK_BurrowMonster.h"
-#include "GameFramework/CharacterMovementComponent.h"
 
 #pragma region Initialization
 void UUKAIMonsterAnimInstance::NativeInitializeAnimation()
