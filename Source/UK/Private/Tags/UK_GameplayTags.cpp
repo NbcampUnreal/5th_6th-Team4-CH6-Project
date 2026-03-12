@@ -50,6 +50,9 @@ namespace UK_GameplayTags
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(OnGroundAttack, "Action.OnGroundAttack", "OnGroundAttack Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Parry, "Action.Parry", "Parry Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Parrying, "Action.Parrying", "Parrying Ability")
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Glide, "Action.Glide", "Glide Ability")
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Swim, "Action.Swim", "Swim Ability")
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(StopSwimming, "Action.StopSwimming", "StopSwimming Ability")
 	}
 
 	namespace Attack

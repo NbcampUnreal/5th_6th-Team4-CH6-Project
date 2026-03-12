@@ -358,9 +358,11 @@ public:
 	UPROPERTY()
 	TSet<AAIMonsterBase*> NearbyMonsters;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "UI/DetactBoundary")
-	float DetectRadius = 2000.0f;
+		UPROPERTY(BlueprintReadWrite, EditAnywhere,  Category = "UI/DetactBoundary")
+		float DetectRadius = 1500.0f;
 
-	FTimerHandle DetectTimer;
+		FTimerHandle DetectTimer;
+
+		bool bDrawDetectRadius = false;
 #pragma endregion
 };
