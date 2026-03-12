@@ -2,8 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-//#include "ActorComponent/StatusComponent.h"
 #include "Containers/Map.h"
+#include "AbilitySystemComponent.h"
 #include "UK_MainHUD.generated.h"
 
 class UTextBlock;
@@ -14,6 +14,8 @@ class UUK_ItemNotify;
 class UVerticalBox;
 class UDataTable;
 class UUK_InventoryComponent;
+class AUK_CharacterBase;
+//struct FOnAttributeChangeData;
 
 UCLASS()
 class UK_API UUK_MainHUD : public UUserWidget
@@ -23,11 +25,19 @@ class UK_API UUK_MainHUD : public UUserWidget
 protected:
 	// 초기화를 위해 NativeConstruct 오버라이드 
 	virtual void NativeConstruct() override;
-
+public:
 	// 체력이 변할 때 실행될 함수 
-	UFUNCTION()
-	void UpdateHealthBar(float CurrentHp, float MaxHp);
+	//UFUNCTION()
+	void UpdateHealthBar(const FOnAttributeChangeData& Data);
+	
+	// 마나가 변할 때 실행될 함수
+	//UFUNCTION()
+	void UpdateMpBar(const FOnAttributeChangeData& Data);
 
+	// 레벨이 변할 때 실행될 함수
+	//UFUNCTION()
+	void UpdateLevel(const FOnAttributeChangeData& Data);
+	
 	UPROPERTY(meta = ( BindWidget ))
 	class UProgressBar* HealthBar;
 
@@ -38,9 +48,6 @@ protected:
 	UPROPERTY(meta = ( BindWidget ))
 	UTextBlock* MaxHealthText;     // 최대 체력
 
-	// 마나가 변할 때 실행될 함수
-	UFUNCTION()
-	void UpdateMpBar(float CurrentMp, float MaxMp);
 
 	UPROPERTY(meta = ( BindWidget ))
 	class UProgressBar* MpBar;
@@ -52,13 +59,11 @@ protected:
 	UPROPERTY(meta = ( BindWidget ))
 	UTextBlock* MaxMpText; // 최대 마나
 
-	// 레벨이 변할 때 실행될 함수
-	UFUNCTION()
-	void UpdateLevel(int32 NewLevel);
 
 	// 레벨 표시용 텍스트 
 	UPROPERTY(meta = ( BindWidget ))
 	UTextBlock* LevelText;
+	
 	// 인벤토리 버튼
 	UFUNCTION()
 	void OnInventoryButtonClicked();
@@ -78,8 +83,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ItemNotify")
 	TSubclassOf<UUK_ItemNotify> ItemNotifyClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ItemNotify")
-	UDataTable* ItemDataTable = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<TObjectPtr<UDataTable>> ItemDataTables;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ItemNotify", meta = ( ClampMin = "1" ))
 	int32 MaxNotifyCount = 3;
@@ -95,4 +100,10 @@ protected:
 
 	UPROPERTY()
 	TMap<FName, TObjectPtr<UUK_ItemNotify>> ActiveNotifyMap;
+	
+	UPROPERTY()
+	AUK_CharacterBase* PlayerPawn;
+	
+	UPROPERTY()
+	UAbilitySystemComponent* ASC;
 };

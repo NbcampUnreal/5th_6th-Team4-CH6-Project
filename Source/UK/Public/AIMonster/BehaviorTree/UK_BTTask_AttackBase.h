@@ -40,6 +40,7 @@ private:
 
 	void OnAttackComplete();  
 	void StopMovementAndRotateToTarget(AAIMonsterBase* Monster, UBehaviorTreeComponent& OwnerComp);
+	void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds);
 	void CleanupAttack(AAIMonsterBase* Monster);
 #pragma endregion
 };

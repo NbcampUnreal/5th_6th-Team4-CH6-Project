@@ -34,6 +34,9 @@ public:
 	float SpecialAttackCooldown = 8.0f;
 
 	float LastSpecialAttackTime = 0.f;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Combat")
+	bool bIsSpecialAttacking = false;
 
 	UFUNCTION(BlueprintPure, Category = "Elite|SpecialAttack")
 	bool CanUseSpecialAttack() const;
@@ -69,30 +72,5 @@ public:
 	float SpecialAttackHitTiming = 0.4f;
 
 	void ApplySpecialAttackAoE();
-#pragma endregion
-
-#pragma region Debug
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Elite|Debug")
-	bool bShowSpecialAttackDebug = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Elite|Debug",
-		meta = (EditCondition = "bShowSpecialAttackDebug"))
-	float SpecialAttackDebugRadius = 350.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Elite|Debug",
-		meta = (EditCondition = "bShowSpecialAttackDebug"))
-	float SpecialAttackDebugTraceHeight = 60.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Elite|Debug",
-		meta = (EditCondition = "bShowSpecialAttackDebug"))
-	float SpecialAttackDebugTraceLength = 300.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Elite|Debug",
-		meta = (EditCondition = "bShowSpecialAttackDebug"))
-	float SpecialAttackDebugTraceRadius = 80.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Elite|Debug",
-		meta = (EditCondition = "bShowSpecialAttackDebug"))
-	float SpecialAttackDebugDuration = 1.5f;
 #pragma endregion
 };
