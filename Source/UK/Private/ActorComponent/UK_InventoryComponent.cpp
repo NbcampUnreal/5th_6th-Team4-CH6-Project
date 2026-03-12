@@ -203,6 +203,30 @@ bool UUK_InventoryComponent::RemoveWeapon(FName ItemID, int32 index)
 	return true;
 }
 
+int32 UUK_InventoryComponent::subtractionGold(int32 cost)
+{
+	if (Gold - cost < 0)
+	{
+		return Gold - cost; // 부족한 값을 리턴  
+	}
+	
+	Gold -= cost;
+	OnChangedGold.Broadcast(Gold);
+	return Gold;
+}
+
+bool UUK_InventoryComponent::AddGold(int32 Value)
+{
+	// 오버플로우 방지
+	if (Gold + Value < 0)
+	{
+		return false;
+	}
+	Gold += Value;
+	OnChangedGold.Broadcast(Gold);
+	return true;
+}
+
 
 FInventorySlot* UUK_InventoryComponent::FindWeaponSlot(FName ItemID)
 {
