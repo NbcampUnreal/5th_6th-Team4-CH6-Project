@@ -114,7 +114,6 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		UE_LOG(LogTemp, Log, TEXT("[Quest][DefScan] Done. Found=%d Registered=%d Path=%s"),
 			Assets.Num(), RegisteredCount, *ScanPath.ToString());
 	}
-	BuildItemIDCache();
 }
 
 
@@ -216,7 +215,7 @@ bool UUKQuestManagerSubsystem::CompleteQuest(FName QuestId)
 	FQuestProgress* P = RuntimeProgress.Find(QuestId);
 	if ( !P ) return false;
 
-	if ( P->bCompleted ) return true;
+	P->bCompleted = true;
 
 	// Completed 플래그 세팅 (명명규칙: F.<QuestID>.Completed)
 	SetFlag(*P, MakeFlagKey(QuestId, FName("Completed")));
@@ -457,69 +456,21 @@ bool UUKQuestManagerSubsystem::GetProgress(FName QuestId, FQuestProgress& OutPro
 }
 
 // [7] Reward / ItemDataTable (기존 유지)
-
-void UUKQuestManagerSubsystem::BuildItemIDCache()
-{
-	ItemIDToRowName.Empty();
-
-	if ( !ItemDataTable )
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ItemID] ItemDataTable is null. Cache build skipped."));
-		return;
-	}
-
-	const TArray<FName> RowNames = ItemDataTable->GetRowNames();
-
-	for ( const FName RowName : RowNames )
-	{
-		const FUK_ItemData* Row = ItemDataTable->FindRow<FUK_ItemData>(RowName, TEXT("BuildItemIDCache"));
-		if ( !Row ) continue;
-
-		// ItemID 컬럼이 비어있으면 스킵
-		if ( Row->ItemID.IsNone() )
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[ItemID] Row has None ItemID. RowName=%s"), *RowName.ToString());
-			continue;
-		}
-
-		// 중복 ItemID 방지
-		if ( ItemIDToRowName.Contains(Row->ItemID) )
-		{
-			UE_LOG(LogTemp, Error, TEXT("[ItemID] Duplicate ItemID=%s (RowName=%s)"),
-				*Row->ItemID.ToString(), *RowName.ToString());
-			continue;
-		}
-
-		ItemIDToRowName.Add(Row->ItemID, RowName);
-	}
-
-	UE_LOG(LogTemp, Log, TEXT("[ItemID] Cache built. Count=%d"), ItemIDToRowName.Num());
-}
-
-const FUK_ItemData* UUKQuestManagerSubsystem::GetItemDataByItemID(FName ItemID) const
+const FUK_ItemData* UUKQuestManagerSubsystem::GetItemData(FName ItemRowName) const
 {
 	if ( !ItemDataTable ) return nullptr;
-	if ( ItemID.IsNone() ) return nullptr;
-
-	const FName* RowName = ItemIDToRowName.Find(ItemID);
-	if ( !RowName )
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ItemID] Not found in cache: %s"), *ItemID.ToString());
-		return nullptr;
-	}
-
-	return ItemDataTable->FindRow<FUK_ItemData>(*RowName, TEXT("GetItemDataByItemID"));
+	return ItemDataTable->FindRow<FUK_ItemData>(ItemRowName, TEXT("QuestRewardLookup"));
 }
 
-void UUKQuestManagerSubsystem::GiveQuestReward(FName ItemID, int32 Amount)
+void UUKQuestManagerSubsystem::GiveQuestReward(FName ItemRowName, int32 Amount)
 {
-	const FUK_ItemData* Data = GetItemDataByItemID(ItemID);
+	const FUK_ItemData* Data = GetItemData(ItemRowName);
 	if ( !Data ) return;
 
-	// TODO: 실제 인벤토리 지급 연결
-	// 예: InventoryComponent->AddItem(ItemID, Amount);
+	// 인벤토리 컴포넌트 연결 (추후)
+	// InventoryComponent->AddItem(Data, Amount);
 
-	UE_LOG(LogTemp, Log, TEXT("[Reward] Item Given: %s x%d"), *ItemID.ToString(), Amount);
+	UE_LOG(LogTemp, Warning, TEXT("Reward Given: %s x%d"), *Data->ItemName.ToString(), Amount);
 }
 
 
@@ -676,13 +627,14 @@ bool UUKQuestManagerSubsystem::ApplyRewardById(FName RewardId, FName QuestId)
 	// 2) Items 지급
 	for ( const FUKRewardItemGrant& Grant : Row->Items )
 	{
-		if ( Grant.ItemID.IsNone() || Grant.Amount <= 0 )
+		if ( Grant.ItemId.IsNone() || Grant.Amount <= 0 )
 			continue;
 
-		GiveQuestReward(Grant.ItemID, Grant.Amount);
+		// 지금 프로젝트 구조상 GiveQuestReward(ItemRowName, Amount)가 “아이템 지급 훅” 역할
+		GiveQuestReward(Grant.ItemId, Grant.Amount);
 
 		UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] Item %s x%d (Quest=%s RewardId=%s)"),
-			*Grant.ItemID.ToString(), Grant.Amount,
+			*Grant.ItemId.ToString(), Grant.Amount,
 			*QuestId.ToString(), *RewardId.ToString());
 	}
 
@@ -727,7 +679,6 @@ bool UUKQuestManagerSubsystem::ApplyRewardById(FName RewardId, FName QuestId)
 
 void UUKQuestManagerSubsystem::Deinitialize()
 {
-	ItemIDToRowName.Empty();
 	RuntimeProgress.Empty();
 	QuestDefinitions.Empty();
 	PresetAsset = nullptr;

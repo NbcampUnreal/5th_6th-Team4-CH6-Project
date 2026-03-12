@@ -20,7 +20,6 @@ EBTNodeResult::Type UUK_BTTask_BurrowIdle::ExecuteTask(UBehaviorTreeComponent& O
 	if (!Monster) return EBTNodeResult::Failed;
 
 	AICon->StopMovement();
-	Monster->SetBurrowed(true);
 
 	return EBTNodeResult::InProgress;
 }

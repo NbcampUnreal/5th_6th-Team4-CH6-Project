@@ -59,21 +59,12 @@ protected:
 	class UDataTable* ItemDataTable;
 
 	// 데이터 테이블에서 아이템 정보를 찾아오는 헬퍼 함수
-	// Item EntityID(ItemID 컬럼)로 아이템 데이터를 찾는다
-	const FUK_ItemData* GetItemDataByItemID(FName ItemID) const;
-
-	// [Item EntityID] ItemID(EntityID) -> DataTable RowName 캐시
-	UPROPERTY(Transient)
-	TMap<FName, FName> ItemIDToRowName;
-
-	void BuildItemIDCache();
+	const FUK_ItemData* GetItemData(FName ItemRowName) const;
 
 public:
 	// 퀘스트 보상을 실제로 지급하는 함수
 	UFUNCTION(BlueprintCallable, Category = "UK|Quest")
-	
-	// ItemID(EntityID) 기반으로 보상 지급
-	void GiveQuestReward(FName ItemID, int32 Amount);
+	void GiveQuestReward(FName ItemRowName, int32 Amount);
 
 protected:
 	// [Reward v2] RewardId -> RewardRow(DataTable)
@@ -119,6 +110,8 @@ public:
 
 protected:
 	// [Quest Definitions] (신규)
+
+protected:
 	UPROPERTY(Transient)
 	TMap<FName, TObjectPtr<const UUKQuestDefinitionAsset>> QuestDefinitions;
 
