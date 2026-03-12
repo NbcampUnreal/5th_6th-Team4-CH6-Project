@@ -1,5 +1,6 @@
 ﻿#include "AIMonster/Animation/UKAIMonsterAnimInstance.h"
 #include "AIMonster/AIMonsterBase.h"
+#include "AIMonster/Monster/UK_BurrowMonster.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 #pragma region Initialization
@@ -60,5 +61,14 @@ void UUKAIMonsterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
     TurnAngle = FMath::FInterpTo(TurnAngle, TargetTurn, DeltaSeconds, 8.f);
     
     PrevYaw   = CurrentYaw;
+	
+	if (AUK_BurrowMonster* Burrow = Cast<AUK_BurrowMonster>(OwnerMonster))
+	{
+		bIsBurrowed = Burrow->bIsBurrowed;
+	}
+	else
+	{
+		bIsBurrowed = false;
+	}
 }
 #pragma endregion

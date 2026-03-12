@@ -7,11 +7,11 @@
 
 AUK_PlayerState::AUK_PlayerState()
 {
-	SetNetUpdateFrequency(100.f);
+	//SetNetUpdateFrequency(100.f);
 
 	ASC = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("ASC"));
-	ASC->SetIsReplicated(true);
-	ASC->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
+	ASC->SetIsReplicated(false);
+	//ASC->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 	
 	StatusAttributeSet = CreateDefaultSubobject<UUK_PlayerStatusAttributeSet>(TEXT("PlayerStatusAttributeSet"));
 	ASC->AddAttributeSetSubobject(StatusAttributeSet);

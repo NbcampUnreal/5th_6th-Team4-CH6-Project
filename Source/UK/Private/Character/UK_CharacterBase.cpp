@@ -39,11 +39,12 @@ AUK_CharacterBase::AUK_CharacterBase() :
 	bIsLock(false),
 	bIsCrouched(false),
 	SprintSpeed(800.f),
+	GlideFallSpeed(200.f),
 	NowWeapon(nullptr)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
-	bReplicates = true;
+	PrimaryActorTick.bCanEverTick = true;
+	bReplicates = false;
 
 	GetMesh()->SetRelativeLocationAndRotation(
 		FVector(0.f, 0.f, -90.f),
@@ -86,6 +87,45 @@ AUK_CharacterBase::AUK_CharacterBase() :
 	InventoryComponent = CreateDefaultSubobject<UUK_InventoryComponent>(TEXT("InventoryComponent"));
 	InteractionComp = CreateDefaultSubobject<UUK_InteractionComponent>(TEXT("InteractionComponent"));
 	QuestComp = CreateDefaultSubobject<UUK_QuestComponent>(TEXT("QuestComponent"));
+}
+
+//// Called every frame
+//void AUK_CharacterBase::Tick(float DeltaTime)
+//{
+//	Super::Tick(DeltaTime);
+//
+//}
+
+void AUK_CharacterBase::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	if (!IsValid(GetAbilitySystemComponent()))
+		return;
+
+	GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
+	GiveStartupAbilities();
+	AUK_PlayerState* PS = Cast<AUK_PlayerState>(GetPlayerState());
+	if (IsValid(PS))
+	{
+		PS->InitializeAttributes();
+	}
+}
+
+void AUK_CharacterBase::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+	if (MovementMode == ECustomMovementMode::CMOVE_Glide)
+	{
+		EndGliding();
+	}
+	if (OnFloor.IsBound() == true)
+	{
+		OnFloor.Execute();
+	}
+
+	FGameplayEventData EventData;
+	EventData.EventTag = UK_GameplayTags::Action::DropAttack;
+	GetAbilitySystemComponent()->HandleGameplayEvent(EventData.EventTag, &EventData);
 }
 
 void AUK_CharacterBase::ChangedAttribute(ECharacterAttribute NewAttribute)
@@ -166,44 +206,37 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	                        ETriggerEvent::Started, this, &ThisClass::Parry);
 }
 
-void AUK_CharacterBase::PossessedBy(AController* NewController)
+float AUK_CharacterBase::GetFloorDistance()
 {
-	Super::PossessedBy(NewController);
-	if (!IsValid(GetAbilitySystemComponent()))
-		return;
+	float FloorDist = 0.f;
+	constexpr float TraceDistance = 1000.f;
 
-	GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
-	GiveStartupAbilities();
-	AUK_PlayerState* PS = Cast<AUK_PlayerState>(GetPlayerState());
-	if (IsValid(PS))
+	const FVector Start = GetActorLocation();
+	const FVector End = Start - FVector(0.f, 0.f, TraceDistance);
+
+	FHitResult Hit;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+
+	const bool bHit = GetWorld()->LineTraceSingleByChannel(
+		Hit,
+		Start,
+		End,
+		ECC_LockOn,
+		Params
+	);
+	if (bHit)
 	{
-		PS->InitializeAttributes();
+		FloorDist = Start.Z - Hit.Location.Z;
 	}
+	else
+	{
+		FloorDist = 2000.f;
+	}
+	return FloorDist;
 }
 
-void AUK_CharacterBase::Landed(const FHitResult& Hit)
-{
-	Super::Landed(Hit);
-	if (MovementMode == ECharacterMovementMode::Gliding)
-	{
-		EndGliding();
-	}
-	if (OnFloor.IsBound() == true)
-	{
-		OnFloor.Execute();
-	}
 
-	FGameplayEventData EventData;
-	EventData.EventTag = UK_GameplayTags::Action::DropAttack;
-	GetAbilitySystemComponent()->HandleGameplayEvent(EventData.EventTag, &EventData);
-}
-
-//// Called every frame
-//void AUK_CharacterBase::Tick(float DeltaTime)
-//{
-//	Super::Tick(DeltaTime);
-//
-//}
 #pragma endregion
 
 #pragma region GAS
@@ -231,26 +264,34 @@ void AUK_CharacterBase::GiveStartupAbilities()
 #pragma endregion
 
 #pragma region Input
+#pragma region MovementFunction
 
 void AUK_CharacterBase::Move(const FInputActionValue& InputActionValue)
 {
 	const FVector2D MovementVector = InputActionValue.Get<FVector2D>();
 	const FRotator MovementRotation(0.f, Controller->GetControlRotation().Yaw, 0.f);
-	if (MovementMode == ECharacterMovementMode::Swimming)
+
+	FVector ForwardDirection;
+	FVector RightDirection;
+	switch (MovementMode)
 	{
-		FVector ForwardDirection = Controller->GetControlRotation().Vector();
-		AddMovementInput(ForwardDirection, MovementVector.X);
-		return;
+	case ECustomMovementMode::CMOVE_Glide:
+
+		ForwardDirection = Controller->GetControlRotation().Vector();
+		RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
+		break;
+	default:
+		ForwardDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::X);
+		RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
+		break;
 	}
 	if (FMath::IsNearlyZero(MovementVector.X) == false)
 	{
-		const FVector ForwardDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::X);
 		AddMovementInput(ForwardDirection, MovementVector.X);
 	}
 
 	if (FMath::IsNearlyZero(MovementVector.Y) == false)
 	{
-		const FVector RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
 		AddMovementInput(RightDirection, MovementVector.Y);
 	}
 }
@@ -287,43 +328,51 @@ void AUK_CharacterBase::Sprint()
 	}
 }
 
+void AUK_CharacterBase::ZoomIn()
+{
+	if (!IsValid(SpringArmComp))
+	{
+		return;
+	}
+	const float DeltaTime = GetWorld()->GetDeltaSeconds();
+
+	constexpr float Target = 70.f;
+	SpringArmComp->TargetArmLength = FMath::FInterpTo(
+		SpringArmComp->TargetArmLength,
+		Target,
+		DeltaTime,
+		12.f
+	);
+}
+
+void AUK_CharacterBase::ZoomOut()
+{
+	if (!IsValid(SpringArmComp))
+	{
+		return;
+	}
+	const float DeltaTime = GetWorld()->GetDeltaSeconds();
+
+	constexpr float Target = 300.f;
+	SpringArmComp->TargetArmLength = FMath::FInterpTo(
+		SpringArmComp->TargetArmLength,
+		Target,
+		DeltaTime,
+		12.f
+	);
+}
+
 void AUK_CharacterBase::LightAttack()
 {
-	float Distace = 0.f;
-	if (GetCharacterMovement()->IsFalling() == true)
-	{
-		constexpr float TraceDistance = 1000.f;
-
-		FVector Start = GetActorLocation();
-		FVector End = Start - FVector(0.f, 0.f, TraceDistance);
-
-		FHitResult Hit;
-		FCollisionQueryParams Params;
-		Params.AddIgnoredActor(this);
-
-		bool bHit = GetWorld()->LineTraceSingleByChannel(
-			Hit,
-			Start,
-			End,
-			ECC_LockOn,
-			Params
-		);
-		if (bHit)
-		{
-			Distace = Start.Z - Hit.Location.Z;
-		}
-		else
-		{
-			Distace = 150.f;
-		}
-	}
-	UE_LOG(LogTemp, Display, TEXT("%f"), Distace);
+	float Dist = 0.f;
 	FGameplayTagContainer Container;
 	if (GetCharacterMovement()->IsFalling() == true)
 	{
+		Dist = GetFloorDistance();
+		UE_LOG(LogTemp, Display, TEXT("%f"), Dist);
 		InputType = EInputMode::Air;
 		UE_LOG(LogTemp, Display, TEXT("%s"), *GetName());
-		if (Distace > 140)
+		if (Dist > 140)
 		{
 			Container.AddTag(UK_GameplayTags::Action::AirAttack);
 			GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
@@ -410,40 +459,9 @@ void AUK_CharacterBase::Setting()
 
 	PC->Setting_UI();
 }
+#pragma endregion
 
-void AUK_CharacterBase::ZoomIn()
-{
-	if (!IsValid(SpringArmComp))
-	{
-		return;
-	}
-	const float DeltaTime = GetWorld()->GetDeltaSeconds();
-
-	constexpr float Target = 70.f;
-	SpringArmComp->TargetArmLength = FMath::FInterpTo(
-		SpringArmComp->TargetArmLength,
-		Target,
-		DeltaTime,
-		12.f
-	);
-}
-
-void AUK_CharacterBase::ZoomOut()
-{
-	if (!IsValid(SpringArmComp))
-	{
-		return;
-	}
-	const float DeltaTime = GetWorld()->GetDeltaSeconds();
-
-	constexpr float Target = 300.f;
-	SpringArmComp->TargetArmLength = FMath::FInterpTo(
-		SpringArmComp->TargetArmLength,
-		Target,
-		DeltaTime,
-		12.f
-	);
-}
+#pragma region LockOn
 
 void AUK_CharacterBase::LockON()
 {
@@ -463,34 +481,6 @@ void AUK_CharacterBase::LockON()
 			);
 		}
 	}
-}
-
-void AUK_CharacterBase::AddTarget(const TObjectPtr<AAIMonsterBase> Monster)
-{
-	LockOnList.AddUnique(Monster);
-}
-
-bool AUK_CharacterBase::StartGliding()
-{
-	if (GetCharacterMovement()->IsFalling() == false)
-		return true;
-	if (MovementMode == ECharacterMovementMode::Gliding)
-	{
-		EndGliding();
-		return false;
-	}
-	MovementMode = ECharacterMovementMode::Gliding;
-	GetCharacterMovement()->GravityScale = 0.15f;
-	GetCharacterMovement()->AirControl = 0.8;
-	return false;
-}
-
-void AUK_CharacterBase::EndGliding()
-{
-	MovementMode = ECharacterMovementMode::Walking;
-	GetCharacterMovement()->GravityScale = DefualtGravity;
-	 GetCharacterMovement()->AirControl = DefualtAirControl;
-	
 }
 
 void AUK_CharacterBase::LockONToggle()
@@ -641,13 +631,52 @@ void AUK_CharacterBase::LockONTick()
 	}
 }
 
+void AUK_CharacterBase::AddTarget(const TObjectPtr<AAIMonsterBase> Monster)
+{
+	LockOnList.AddUnique(Monster);
+}
+#pragma endregion
+
+#pragma region Gliding
+
+bool AUK_CharacterBase::StartGliding()
+{
+	if (GetCharacterMovement()->IsFalling() == false)
+		return true;
+	if ( GetFloorDistance() < 220.f)
+	{
+		return true;
+	}
+	if (MovementMode == ECustomMovementMode::CMOVE_Glide)
+	{
+		EndGliding();
+		return false;
+	}
+	FVector Vel = GetCharacterMovement()->Velocity;
+	Vel.Z = -GlideFallSpeed;
+	GetCharacterMovement()->GravityScale = 0.f;
+	GetCharacterMovement()->AirControl = 0.8;
+	GetCharacterMovement()->Velocity = Vel;
+	MovementMode = ECustomMovementMode::CMOVE_Glide;
+	return false;
+}
+
+void AUK_CharacterBase::EndGliding()
+{
+	MovementMode = ECustomMovementMode::CMOVE_None;
+
+	GetCharacterMovement()->GravityScale = DefualtGravity;
+	GetCharacterMovement()->AirControl = DefualtAirControl;
+}
+
+#pragma endregion
+
 #pragma endregion
 
 #pragma region Weapon
 
 void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 {
-	CurrentWeaponTag = NewWeapon;
 	UUK_StatusAnimData* Weapon = WeaponList->FindAnimsDataAssetByTag(NewWeapon);
 	NowWeapon = Weapon;
 	if (IsValid(Weapon->GetRightHandWeapon()))
@@ -697,7 +726,7 @@ void AUK_CharacterBase::SlotWeaponThree()
 
 void AUK_CharacterBase::SwapWeapon(int32 Index)
 {
-	if (IsValid(ItmeDataTable) == false)
+	if (IsValid(WeaponDataTable) == false)
 	{
 		UE_LOG(LogTemp, Display, TEXT("ItmeDataTable is Nullptr"));
 		return;
@@ -707,13 +736,13 @@ void AUK_CharacterBase::SwapWeapon(int32 Index)
 	{
 		return;
 	}
-	const FUK_ItemData* ItemData = ItmeDataTable->FindRow<FUK_ItemData>(
+	const FUK_ItemData* ItemData = WeaponDataTable->FindRow<FUK_ItemData>(
 		WeaponSlot->ItemID, TEXT("AUK_CharacterBase::SwapWeapon"));
 	if (ItemData == nullptr)
 	{
 		return;
 	}
-	ChangedAttribute(ItemData->WeaponAttribute);
+	//ChangedAttribute(ItemData->WeaponAttribute);
 	EquipWeapon(ItemData->ItemTag);
 }
 
@@ -723,37 +752,25 @@ void AUK_CharacterBase::SwapWeapon(int32 Index)
 
 void AUK_CharacterBase::StopJumpAndFly()
 {
-	bIsfry = true;
+	bIsFry = true;
 	UCharacterMovementComponent* PlayerMovement = GetCharacterMovement();
 	StopJumping();
 	PlayerMovement->Velocity = FVector::ZeroVector;
 	PlayerMovement->GravityScale = 0.f;
-	//PlayerMovement->SetMovementMode(EMovementMode::MOVE_None);
 
 	PlayerMovement->SetJumpAllowed(false);
 }
 
 void AUK_CharacterBase::EndComboAttack()
 {
-	if (bIsfry == false)
+	if (bIsFry == false)
 		return;
 	UCharacterMovementComponent* PlayerMovement = GetCharacterMovement();
 	PlayerMovement->GravityScale = DefualtGravity;
 	PlayerMovement->SetMovementMode(EMovementMode::MOVE_Walking);
 	PlayerMovement->SetJumpAllowed(true);
-	bIsfry = false;
+	bIsFry = false;
 }
-
-/*void AUK_CharacterBase::ReceiveDamage(float Damage)
-{
-	if (!HasAuthority()) return;
-
-}
-
-float AUK_CharacterBase::ApplyDamage()
-{
-	return 0.f;
-}*/
 
 void AUK_CharacterBase::Dead()
 {

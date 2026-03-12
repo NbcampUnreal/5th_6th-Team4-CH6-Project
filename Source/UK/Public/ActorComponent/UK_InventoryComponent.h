@@ -25,7 +25,6 @@ public:
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryUpdate);
-//추가
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemAdded, FName, ItemID, int32, Amount);
 
 UCLASS(ClassGroup = ( Custom ), meta = ( BlueprintSpawnableComponent ))
@@ -64,6 +63,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	bool AddWeapon(FName ItemID, int32 index = -1);
+	
 	bool RemoveWeapon(FName ItemID, int32 index);
 
 	FInventorySlot* FindWeaponSlot(FName ItemID);
@@ -74,7 +74,7 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnInventoryUpdate OnInventoryUpdate;
-	//추가
+	
 	UPROPERTY(BlueprintAssignable)
 	FOnItemAdded OnItemAdded;
 

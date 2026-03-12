@@ -23,6 +23,13 @@ namespace UK_GameplayTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Setting);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(LockOnToggle);
 	}
+	namespace Movement
+	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(None);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Walking);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Swimming);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Gliding);
+	}
 
 	namespace Weapon
 	{

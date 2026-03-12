@@ -24,6 +24,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX")
 	FVector VFXScale = FVector(1.0f);
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX")
+	float VFXDuration = 0.0f;
 
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
 };

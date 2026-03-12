@@ -1,6 +1,6 @@
 ﻿#include "UI/InGame/UK_Stamina.h"
 #include "Components/ProgressBar.h"
-#include "ActorComponent/StatusComponent.h"
+//#include "ActorComponent/StatusComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 
 void UUK_Stamina::NativeConstruct()
@@ -8,33 +8,33 @@ void UUK_Stamina::NativeConstruct()
 	Super::NativeConstruct();
 }
 
-void UUK_Stamina::BindStatusComponent(UStatusComponent* NewStatusComp)
-{
-	if ( !NewStatusComp ) return;
-
-	if ( CachedStatusComp )
-	{
-		CachedStatusComp->StaminaStatusDelegate.RemoveAll(this);
-	}
-
-	CachedStatusComp = NewStatusComp;
-
-	CachedStatusComp->StaminaStatusDelegate.AddDynamic(
-		this,
-		&UUK_Stamina::UpdateStaminaBar
-	);
-
-	// 초기값 반영
-	FStructProperty* StatusProp = FindFieldChecked<FStructProperty>(UStatusComponent::StaticClass(), TEXT("Status"));
-	if ( StatusProp )
-	{
-		const FStatus* StatusPtr = StatusProp->ContainerPtrToValuePtr<FStatus>(CachedStatusComp);
-		if ( StatusPtr )
-		{
-			UpdateStaminaBar(StatusPtr->CurrentStamina, StatusPtr->MaxStamina);
-		}
-	}
-}
+// void UUK_Stamina::BindStatusComponent(UStatusComponent* NewStatusComp)
+// {
+// 	if ( !NewStatusComp ) return;
+//
+// 	if ( CachedStatusComp )
+// 	{
+// 		CachedStatusComp->StaminaStatusDelegate.RemoveAll(this);
+// 	}
+// 	
+// 	CachedStatusComp = NewStatusComp;
+// 	
+// 	CachedStatusComp->StaminaStatusDelegate.AddDynamic(
+// 		this,
+// 		&UUK_Stamina::UpdateStaminaBar
+// 	);
+// 	
+// 	// 초기값 반영
+// 	FStructProperty* StatusProp = FindFieldChecked<FStructProperty>(UStatusComponent::StaticClass(), TEXT("Status"));
+// 	if ( StatusProp )
+// 	{
+// 		const FStatus* StatusPtr = StatusProp->ContainerPtrToValuePtr<FStatus>(CachedStatusComp);
+// 		if ( StatusPtr )
+// 		{
+// 			UpdateStaminaBar(StatusPtr->CurrentStamina, StatusPtr->MaxStamina);
+// 		}
+// 	}
+// }
 
 void UUK_Stamina::UpdateStaminaBar(float CurrentStamina, float MaxStamina)
 {
