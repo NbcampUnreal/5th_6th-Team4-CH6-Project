@@ -6,10 +6,12 @@
 //아이템
 #include "DataAsset/Data/UK_ItemData.h"
 #include "ActorComponent/UK_InventoryComponent.h"
+#include "Character/Weapon/UK_WeaponBase.h"
 //드래그
 #include "UI/Inventory/UK_DraggedItem.h"
 #include "UI/Inventory/UK_InvDragDropOperation.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+
 
 void UUK_InvSlot::NativePreConstruct()
 {
@@ -74,14 +76,17 @@ FReply UUK_InvSlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const F
 {
 	Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 
-	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) && !SlotData.isEmpty())
+	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton)
+		&& !SlotData.isEmpty()
+		&& bAllowDrag
+		&& IsWeaponItem())
+
 	{
 		return UWidgetBlueprintLibrary::DetectDragIfPressed(
 			InMouseEvent,
 			this,
 			EKeys::LeftMouseButton
 		).NativeReply;
-
 	}
 
 	return FReply::Unhandled();
@@ -91,7 +96,7 @@ void UUK_InvSlot::NativeOnDragDetected(const FGeometry& InGeometry, const FPoint
 {
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
 
-	if (SlotData.isEmpty()) return;
+	if (SlotData.isEmpty() || !bAllowDrag || !IsWeaponItem()) return;
 
 	UUK_InvDragDropOperation* DragOp = NewObject<UUK_InvDragDropOperation>();
 
@@ -119,4 +124,24 @@ void UUK_InvSlot::NativeOnDragDetected(const FGeometry& InGeometry, const FPoint
 	}
 	DragOp->Pivot = EDragPivot::MouseDown;
 	OutOperation = DragOp;
+}
+
+bool UUK_InvSlot::IsWeaponItem() const
+{
+	if (!ItemDataTable || SlotData.ItemID.IsNone()) return false;
+	
+	const FUK_ItemData* ItemInfo = ItemDataTable->FindRow<FUK_ItemData>(SlotData.ItemID,TEXT("UUK_InvSlot::IsWeaponItem"));
+
+	if (!ItemInfo) return false;
+	
+
+	if (WeaponRootTag.IsValid() && ItemInfo->ItemTag.IsValid())
+	{
+		if (ItemInfo->ItemTag.MatchesTag(WeaponRootTag))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }

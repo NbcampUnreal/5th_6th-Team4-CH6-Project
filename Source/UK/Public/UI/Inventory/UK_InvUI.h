@@ -9,6 +9,8 @@ class UWidgetSwitcher;
 class UUK_InventoryComponent;
 class UUK_InvCategoryBase;
 class UTextBlock;
+class UUK_DragEquipSlot;
+class UDataTable;
 
 //info
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInvSlotPreview, const FInventorySlot&, SlotData);
@@ -95,4 +97,17 @@ public:
 	UFUNCTION()
 	void CategoryTap(UUK_CategoryTap* CategoryTap);
 	void UpdateTabTextOpacity(UUK_CategoryTap* SelectedTap);
+
+	//드래그
+	UPROPERTY(meta = (BindWidgetOptional))
+	UUK_DragEquipSlot* EquipSlot1;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UUK_DragEquipSlot* EquipSlot2;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UUK_DragEquipSlot* EquipSlot3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equip")
+	UDataTable* ItemDataTable;
 };

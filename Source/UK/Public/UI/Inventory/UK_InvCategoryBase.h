@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "ActorComponent/UK_InventoryComponent.h"
+#include "GameplayTagContainer.h"
 #include "UK_InvCategoryBase.generated.h"
 
 class UUniformGridPanel;
@@ -80,4 +81,13 @@ public:
 	//인벤토리 전체 슬롯 배열
 	TArray<FInventorySlot> FilteredSlots;
 	TArray<UUK_InvSlot*> SlotWidgets;
+
+	//드래그
+	//카테고리별 드래그 허용
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inv|Drag")
+	bool bAllowSlotDrag = false;
+
+	//무기 루트 태그
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inv")
+	FGameplayTag WeaponRootTag;
 };
