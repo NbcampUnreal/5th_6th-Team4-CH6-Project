@@ -52,6 +52,7 @@ namespace UK_GameplayTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Parrying);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Glide);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Swim);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(StopSwimming);
 	}
 
 	namespace Attack

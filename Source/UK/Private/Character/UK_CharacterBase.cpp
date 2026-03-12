@@ -646,6 +646,7 @@ bool AUK_CharacterBase::StartGliding()
 	{
 		return false;
 	}
+	GetCharacterMovement()->StopMovementImmediately();
 	FVector Vel = GetCharacterMovement()->Velocity;
 	Vel.Z = -GlideFallSpeed;
 	GetCharacterMovement()->GravityScale = 0.f;
