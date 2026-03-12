@@ -40,4 +40,17 @@ struct FUK_MonsterStatRow : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats|Combat")
 	float MaxChaseDistance = 1500.f;
+	
+	// ── 보상 ────────────────────────────────────
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats|Reward")
+	float BaseExp = 50.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats|Reward")
+	float ExpPerLevel = 10.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats|Reward")
+	float BaseGold = 10.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats|Reward")
+	float GoldPerLevel = 5.f;
 };
