@@ -27,9 +27,7 @@ void AUK_BurrowMonster::BeginPlay()
 {
 	Super::BeginPlay();
 
-	bIsBurrowed = true;
-	if (UCharacterMovementComponent* MC = GetCharacterMovement())
-		MC->DisableMovement();
+	SetBurrowed(true);
 }
 #pragma endregion
 
@@ -37,5 +35,18 @@ void AUK_BurrowMonster::BeginPlay()
 void AUK_BurrowMonster::SetBurrowed(bool bBurrow)
 {
 	bIsBurrowed = bBurrow;
+
+	if (UCharacterMovementComponent* MC = GetCharacterMovement())
+	{
+		if (bBurrow)
+		{
+			MC->StopMovementImmediately();
+			MC->DisableMovement(); 
+		}
+		else
+		{
+			MC->SetMovementMode(MOVE_Walking);
+		}
+	}
 }
 #pragma endregion
