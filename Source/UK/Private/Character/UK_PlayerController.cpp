@@ -2,9 +2,8 @@
 
 
 #include "Character/UK_PlayerController.h"
-//#include "ActorComponent/UK_InputComponent.h"
 #include "Character/UK_CharacterBase.h"
-#include "EnhancedInputComponent.h"
+#include "UI/InGame/UK_MainHUD.h"
 #include "Engine/LocalPlayer.h"
 #include "EnhancedInputSubsystems.h"
 #include "UserSettings/EnhancedInputUserSettings.h"
@@ -47,6 +46,11 @@ void AUK_PlayerController::BeginPlay()
 		0.005f,
 		true
 	);
+	if (MainHUDClass)
+	{
+		MainHUD = CreateWidget<UUK_MainHUD>(this, MainHUDClass);
+		MainHUD->AddToViewport();
+	}
 }
 
 void AUK_PlayerController::PostSeamlessTravel()
