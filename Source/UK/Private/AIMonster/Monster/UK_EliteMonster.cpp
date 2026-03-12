@@ -1,7 +1,4 @@
 ﻿#include "AIMonster/Monster/UK_EliteMonster.h"
-#include "AIController.h"
-#include "Components/CapsuleComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "Character/UK_CharacterBase.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/OverlapResult.h"
@@ -86,38 +83,6 @@ void AUK_EliteMonster::PlaySpecialAttackMontage(int32 MontageIndex)
 		EndDelegate.BindUObject(this, &AUK_EliteMonster::OnSpecialAttackMontageEnded);
 		AnimInstance->Montage_SetEndDelegate(EndDelegate, Montage);
 	}
-
-#pragma region Debug
-	if (bShowSpecialAttackDebug && GetWorld())
-	{
-		const float  CapsuleHalfHeight = GetCapsuleComponent()
-			? GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 90.f;
-		const FVector FootLocation = GetActorLocation() - FVector(0.f, 0.f, CapsuleHalfHeight);
-		const FVector Forward      = GetActorForwardVector();
-
-		// 바닥 원형 — 특수 공격 범위
-		DrawDebugCylinder(
-			GetWorld(),
-			FootLocation,
-			FootLocation + FVector(0.f, 0.f, 10.f),
-			SpecialAttackDebugRadius,
-			32, FColor::Orange,
-			false, SpecialAttackDebugDuration, 0, 3.f);
-
-		// 전방 트레이스 캡슐
-		const FVector TraceStart    = FootLocation + FVector(0.f, 0.f, SpecialAttackDebugTraceHeight);
-		const FVector TraceEnd      = TraceStart + Forward * SpecialAttackDebugTraceLength;
-		const FVector CapsuleCenter = (TraceStart + TraceEnd) * 0.5f;
-		const float   HalfHeight    = FVector::Dist(TraceStart, TraceEnd) * 0.5f + SpecialAttackDebugTraceRadius;
-		const FQuat   CapsuleRot    = FRotationMatrix::MakeFromZ(TraceEnd - TraceStart).ToQuat();
-
-		DrawDebugCapsule(
-			GetWorld(),
-			CapsuleCenter, HalfHeight, SpecialAttackDebugTraceRadius,
-			CapsuleRot, FColor::Red,
-			false, SpecialAttackDebugDuration, 0, 3.f);
-	}
-#pragma endregion
 }
 
 void AUK_EliteMonster::ApplySpecialAttackAoE()
@@ -153,12 +118,6 @@ void AUK_EliteMonster::ApplySpecialAttackAoE()
 			*GetName(), *Player->GetName(),
 			SpecialAttackDamage,
 			FVector::Dist(Center, Player->GetActorLocation()));
-	}
-
-	if (bShowSpecialAttackDebug)
-	{
-		DrawDebugSphere(GetWorld(), Center, SpecialAttackAoERadius,
-			24, FColor::Orange, false, 2.f, 0, 3.f);
 	}
 }
 
