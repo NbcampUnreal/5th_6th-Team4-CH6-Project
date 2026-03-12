@@ -1,5 +1,6 @@
 #include "DataAsset/DataTable/UK_CraftingSubsystem.h"
 #include "DataAsset/DataTable/UK_CraftingRecipeRow.h"
+#include "ActorComponent/UK_InventoryComponent.h"
 void UUK_CraftingSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
@@ -19,31 +20,46 @@ const FUK_ItemData* UUK_CraftingSubsystem::GetItemData(FName ItemId) const
 
 bool UUK_CraftingSubsystem::TryCraftItem(FName RecipeRowName)
 {
-	if (!RecipeDataTable || !ItemDataTable) return false;
+	APlayerController* PC = GetGameInstance()->GetFirstLocalPlayerController();
+	if (!PC || !PC->GetPawn()) return false;
+    
+	UUK_InventoryComponent* PlayerInv = PC->GetPawn()->FindComponentByClass<UUK_InventoryComponent>();
+	if (!PlayerInv) return false;
+    
+	// 인벤토리나 레시피 테이블이 없으면 진행 불가
+	if (!PlayerInv || !RecipeDataTable) return false;
 
-	// 1. 레시피 데이터 가져오기
+	// 2. 레시피 데이터 찾기
 	FUK_CraftingRecipeRow* Recipe = RecipeDataTable->FindRow<FUK_CraftingRecipeRow>(RecipeRowName, TEXT("CraftingContext"));
 	if (!Recipe) return false;
 
-	// 2. [골드 체크] (형님의 PlayerState나 CurrencySubsystem에서 가져와야 함)
-	// if (GetCurrentGold() < Recipe->RequiredGold) return false;
-
-	// 3. [재료 체크] 인벤토리에 재료가 충분한지 확인
-	for (const auto& Ingredient : Recipe->RequiredItems)
+	// 3. 골드 체크 (PlayerInv 사용)
+	if (PlayerInv->GetGold() < Recipe->RequiredGold) 
 	{
-		FName IngredientId = Ingredient.Key;
-		int32 RequiredCount = Ingredient.Value;
-
-		// 인벤토리에서 해당 아이템 개수 확인 (형님의 인벤토리 시스템 연결부)
-		// if (GetInventoryCount(IngredientId) < RequiredCount) return false;
+		UE_LOG(LogTemp, Warning, TEXT("골드가 부족합니다!"));
+		return false;
 	}
 
-	// 4. [제작 실행] 재료/골드 차감 및 아이템 지급
-	UE_LOG(LogTemp, Log, TEXT("[Crafting] %s 제작 성공!"), *Recipe->RecipeDisplayName.ToString());
-    
-	// SpendGold(Recipe->RequiredGold);
-	// RemoveItemsFromInventory(Recipe->RequiredItems);
-	// GiveItem(Recipe->TargetItemId, 1);
+	//재료 체크
+	for (const auto& Ingredient : Recipe->RequiredItems)
+	{
+		if (PlayerInv->GetItemTotalQuantity(Ingredient.Key) < Ingredient.Value)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("%s 재료가 부족합니다!"), *Ingredient.Key.ToString());
+			return false;
+		}
+	}
 
+	//재료 소모
+	PlayerInv->subtractionGold(Recipe->RequiredGold);
+	for (const auto& Ingredient : Recipe->RequiredItems)
+	{
+		PlayerInv->RemoveItem(Ingredient.Key, Ingredient.Value);
+	}
+
+	// 6. 결과물 지급
+	PlayerInv->AddItem(Recipe->TargetItemId, 1);
+    
+	UE_LOG(LogTemp, Log, TEXT("%s 제작 완료!"), *Recipe->RecipeDisplayName.ToString());
 	return true;
 }

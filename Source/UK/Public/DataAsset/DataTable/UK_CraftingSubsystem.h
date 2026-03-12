@@ -19,6 +19,8 @@ public:
 
 	//특정아이템의 상세정보 가져오기 - 아이템 데이터 테이블읽어오는용도
 	const FUK_ItemData* GetItemData(FName ItemId) const;
+	
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
 
 protected:
 	//할당해야 하는 데이터 테이블
