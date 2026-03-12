@@ -299,7 +299,7 @@ private:
 	
 	/* 킬 알림 전송 */
 	void NotifyMonsterKilled();
-#pragma region HPBar Widget
+
 public:
 
 	UUK_MonsterHealthBar* GetHPWidget() const;
@@ -414,7 +414,17 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Monster|Data")
 	float CalculateDefense(int32 PlayerLevel) const;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Data")
+	UDataTable* MonsterLootTable;
+
+	UFUNCTION(BlueprintPure, Category = "Monster|Data")
+	float CalculateExp(int32 PlayerLevel) const;
+	
+	UFUNCTION(BlueprintPure, Category = "Monster|Data")
+	float CalculateGold(int32 PlayerLevel) const;
+	
 private:
+	bool bRewardGranted = false;
 	FName GetRowName() const;
 	const FUK_MonsterStatRow* GetStatRow() const;
 	const FUK_MonsterMetaRow* GetMetaRow() const;
@@ -429,5 +439,7 @@ private:
 	UUK_MonsterHealthBar* HPWidget;
 
 	bool bHPVisible = false;
+	
+	void GrantRewardsToKiller();
 #pragma endregion
 };

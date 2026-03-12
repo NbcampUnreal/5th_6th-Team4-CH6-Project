@@ -240,24 +240,24 @@ void UUK_MainHUD::ShowItemNotify(FName ItemID, int32 Amount)
 	{
 		if (Found->Get() && Found->Get()->GetParent() != nullptr) //수정
 		{
-			Found->Get()->AddAmount(Amount); //기존
-			return; //기존
+			Found->Get()->AddAmount(Amount);
+			return;
 		}
 		else
 		{
-			ActiveNotifyMap.Remove(ItemID); //기존(정리)
+			ActiveNotifyMap.Remove(ItemID);
 		}
 	}
 
 	UUK_ItemNotify* Notify = CreateWidget<UUK_ItemNotify>(GetWorld(), ItemNotifyClass);
 	if (!Notify) return;
 
-	Notify->ItemDataTable = ItemDataTable;
+	Notify->ItemDataTables = ItemDataTables;
 	Notify->NotifyItem(ItemID, Amount);
 
 	VB_ItemNotify->AddChild(Notify);
 
-	ActiveNotifyMap.Add(ItemID, Notify); //기존
+	ActiveNotifyMap.Add(ItemID, Notify);
 
 	NotifyChildren();
 }
