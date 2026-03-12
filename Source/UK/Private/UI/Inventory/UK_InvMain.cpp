@@ -4,6 +4,11 @@
 #include "UI/Inventory/UK_InvTapbutton.h"
 #include "Components/WidgetSwitcher.h"
 
+#include "Character/UK_CharacterBase.h"
+#include "ActorComponent/UK_InventoryComponent.h"
+#include "UI/Inventory/UK_MoneyWidget.h"
+
+
 void UUK_InvMain::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -36,6 +41,16 @@ void UUK_InvMain::NativeConstruct()
 	if (TapMap)
 	{
 		TapMap->OnButtonTap.AddDynamic(this, &UUK_InvMain::TapClicked);
+	}
+
+	AUK_CharacterBase* CB = Cast<AUK_CharacterBase>(GetOwningPlayerPawn());
+	if (CB)
+	{
+		UUK_InventoryComponent* InvComp = CB->GetInventoryComponent();
+		if (MoneyWidget && InvComp)
+		{
+			MoneyWidget->BindInventoryComponent(InvComp);
+		}
 	}
 }
 
