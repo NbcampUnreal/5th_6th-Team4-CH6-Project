@@ -12,47 +12,46 @@ UCLASS()
 class UK_API UUK_ItemNotify : public UUserWidget
 {
 	GENERATED_BODY()
-	
+
 public:
 
-	//바인드
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(meta = ( BindWidget ))
 	UTextBlock* ItemName;
 
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(meta = ( BindWidget ))
 	UTextBlock* ItemAmount;
 
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(meta = ( BindWidget ))
 	UImage* ItemIcon;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ItemNotify")
-	UDataTable* ItemDataTable;
+	TArray<TObjectPtr<UDataTable>> ItemDataTables;
 
 	UFUNCTION(BlueprintCallable)
 	void NotifyItem(FName ItemID, int32 Amount);
 
 	FTimerHandle AutoRemoveTimer;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ItemNotify")
 	float AutoRemoveDelay = 2.0f;
 
 	void StartAutoRemove();
-	void PlayCloseAnimation(); 
+	void PlayCloseAnimation();
 
-	UFUNCTION()                  
+	UFUNCTION()
 	void OnCloseAnimFinished();
+
 	bool bClosing = false;
 
 	void AddAmount(int32 DeltaAmount);
 	void UpdateAmountText();
 
-	FName GetItemID() const {return CachedItemID;} 
-	FName CachedItemID;      
-	int32 CachedAmount = 0; 
-
+	FName GetItemID() const { return CachedItemID; }
+	FName CachedItemID;
+	int32 CachedAmount = 0;
 
 protected:
 
-	UPROPERTY(meta = (BindWidgetAnim), Transient)
+	UPROPERTY(meta = ( BindWidgetAnim ), Transient)
 	UWidgetAnimation* SlideOpenAnimation;
- 
 };

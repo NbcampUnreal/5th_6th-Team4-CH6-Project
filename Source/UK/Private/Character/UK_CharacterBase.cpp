@@ -22,6 +22,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Engine/OverlapResult.h"
 #include "Sound/SoundAttenuation.h"
+#include "Systems/UK_GameInstance.h"
 #include "DataAsset/Data/UK_WeaponItemData.h"
 
 #pragma region Defualt
@@ -646,6 +647,7 @@ bool AUK_CharacterBase::StartGliding()
 	{
 		return false;
 	}
+	GetCharacterMovement()->StopMovementImmediately();
 	FVector Vel = GetCharacterMovement()->Velocity;
 	Vel.Z = -GlideFallSpeed;
 	GetCharacterMovement()->GravityScale = 0.f;
@@ -784,7 +786,10 @@ void AUK_CharacterBase::UpdateMonsterDetection()
 	FCollisionShape Sphere = FCollisionShape::MakeSphere(DetectRadius);
 	GetWorld()->OverlapMultiByObjectType(Results, GetActorLocation(), FQuat::Identity,
 	                                     FCollisionObjectQueryParams(ECC_Pawn), Sphere);
-	DrawDebugSphere(GetWorld(), GetActorLocation(), DetectRadius, 32, FColor::Green, false, 0.31f);
+	if ( bDrawDetectRadius )
+	{
+		DrawDebugSphere(GetWorld(), GetActorLocation(), DetectRadius, 32, FColor::Green, false, 0.31f);
+	}
 	TSet<AAIMonsterBase*> NewSet;
 	// overlap이 되는 것들의 data result 결과들
 	for (const FOverlapResult& Result : Results)
