@@ -30,7 +30,7 @@ void AUK_PlayerController_Title::BeginPlay()
 	}
 }
 
-void AUK_PlayerController_Title::StartGame(FString Text)
+void AUK_PlayerController_Title::StartGame_mult(FString Text)
 {
 	if ( HasAuthority() )
 	{
@@ -48,7 +48,20 @@ void AUK_PlayerController_Title::StartGame(FString Text)
 	}
 }
 
+void AUK_PlayerController_Title::StartGame()
+{
+	if ( HasAuthority() )
+	{
+		UWorld* World = GetWorld();
+		if ( World )
+		{
+			World->ServerTravel(TEXT("/Game/Level/Maps/BK_Level?listen"), true);
+			UE_LOG(LogTemp, Error, TEXT("Seamless Travel"));
+		}
+	}
+}
+
 void AUK_PlayerController_Title::Server_StartGame_Implementation()
 {
-	StartGame(TEXT(""));
+	StartGame_mult(TEXT(""));
 }

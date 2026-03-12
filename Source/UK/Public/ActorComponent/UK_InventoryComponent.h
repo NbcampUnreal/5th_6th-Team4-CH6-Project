@@ -61,7 +61,7 @@ public:
 
 	FInventorySlot* FindItemSlot(FName ItemID, const FUK_ItemData* ItemData);
 	FInventorySlot* FindEmptyItemSlot();
-
+	int32 GetItemTotalQuantity(FName ItemID) const;
 	UFUNCTION(BlueprintCallable)
 	bool AddWeapon(FName ItemID, int32 index = -1);
 	
