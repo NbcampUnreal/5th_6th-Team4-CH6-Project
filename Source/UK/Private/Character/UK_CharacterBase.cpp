@@ -6,7 +6,6 @@
 #include "Character/Weapon/UK_WeaponBase.h"
 #include "AIMonster/AIMonsterBase.h"
 #include "InputAction.h"
-#include "AIMonster/Component/AI_MonsterStatComponent.h"
 #include "Tags/UK_GameplayTags.h"
 #include "ActorComponent/UK_InventoryComponent.h"
 #include "NPC/Component/UK_InteractionComponent.h"
@@ -14,20 +13,16 @@
 #include "DataAsset/UK_WeaponData.h"
 #include "DataAsset/UK_StatusAnimData.h"
 #include "DataAsset/UK_InputConfig.h"
-#include "DataAsset/Data/UK_ItemData.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "AbilitySystemComponent.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "Net/UnrealNetwork.h"
 #include "Engine/OverlapResult.h"
-#include "Blueprint/UserWidget.h"
-#include <Kismet/GameplayStatics.h>
 #include "Sound/SoundAttenuation.h"
+#include "DataAsset/Data/UK_WeaponItemData.h"
 
 #pragma region Defualt
 
@@ -98,16 +93,7 @@ AUK_CharacterBase::AUK_CharacterBase() :
 void AUK_CharacterBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-	if (!IsValid(GetAbilitySystemComponent()))
-		return;
 
-	GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
-	GiveStartupAbilities();
-	AUK_PlayerState* PS = Cast<AUK_PlayerState>(GetPlayerState());
-	if (IsValid(PS))
-	{
-		PS->InitializeAttributes();
-	}
 }
 
 void AUK_CharacterBase::Landed(const FHitResult& Hit)
@@ -149,6 +135,16 @@ void AUK_CharacterBase::BeginPlay()
 	);
 	DefualtGravity = GetCharacterMovement()->GravityScale;
 	DefualtAirControl = GetCharacterMovement()->AirControl;
+	if (!IsValid(GetAbilitySystemComponent()))
+		return;
+
+	GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
+	GiveStartupAbilities();
+	AUK_PlayerState* PS = Cast<AUK_PlayerState>(GetPlayerState());
+	if (IsValid(PS))
+	{
+		PS->InitializeAttributes();
+	}
 }
 
 void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -735,13 +731,13 @@ void AUK_CharacterBase::SwapWeapon(int32 Index)
 	{
 		return;
 	}
-	const FUK_ItemData* ItemData = WeaponDataTable->FindRow<FUK_ItemData>(
+	const FUK_WeaponItemData* ItemData = WeaponDataTable->FindRow<FUK_WeaponItemData>(
 		WeaponSlot->ItemID, TEXT("AUK_CharacterBase::SwapWeapon"));
 	if (ItemData == nullptr)
 	{
 		return;
 	}
-	//ChangedAttribute(ItemData->WeaponAttribute);
+	ChangedAttribute(ItemData->WeaponAttribute);
 	EquipWeapon(ItemData->ItemTag);
 }
 

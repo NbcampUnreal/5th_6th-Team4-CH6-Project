@@ -44,7 +44,8 @@ int32 UUK_InventoryComponent::AddItem(FName ItemID, int32 Amount)
 		return false;
 
 	// 데이터 테이블에서 데이터 찾아오기
-	const FUK_ItemData* ItemData = ItemDataTable->FindRow<FUK_ItemData>(ItemID, TEXT("UUK_InventoryComponent::AddItem"));
+	const FUK_ItemData* ItemData = 
+		ItemDataTable->FindRow<FUK_ItemData>(ItemID, TEXT("UUK_InventoryComponent::AddItem"));
 	
 	if ( ItemData == nullptr )
 	{

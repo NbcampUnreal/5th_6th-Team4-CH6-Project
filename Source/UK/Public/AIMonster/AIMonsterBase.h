@@ -215,6 +215,18 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	float AttackCooldown = 0.5f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	float AttackAngle = 150.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Tracking")
+	float AttackTrackingRotSpeed = 8.f;        // 공격 중 회전 속도
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Tracking")
+	float AttackTrackingSpeed = 0.3f;          // 공격 중 추적 이동 강도 
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Tracking")
+	float AttackTrackingRangeMultiplier = 0.8f;
 
 	float LastAttackTime = 0.f;
 

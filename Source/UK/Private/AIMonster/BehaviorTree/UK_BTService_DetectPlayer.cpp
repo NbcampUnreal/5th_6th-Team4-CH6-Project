@@ -76,13 +76,15 @@ void UUK_BTService_DetectPlayer::TickNormalMode(UBehaviorTreeComponent& OwnerCom
 
     if (Memory->bReturning)
     {
+        // 복귀 중엔 타겟 즉시 클리어 + 재감지 완전 차단
+        BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
+        BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
+        AIController->ClearFocus(EAIFocusPriority::Gameplay);
+
         if (DistFromSpawn <= ReturnDistanceThreshold)
         {
             UE_LOG(LogTemp, Warning, TEXT("[Detect] → Arrived at spawn, clearing returning"));
             Memory->bReturning = false;
-            BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
-            BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
-            Memory->bHadTarget = false;
         }
         return;
     }
@@ -90,16 +92,24 @@ void UUK_BTService_DetectPlayer::TickNormalMode(UBehaviorTreeComponent& OwnerCom
     if (DistFromSpawn > ChaseLimit)
     {
         UE_LOG(LogTemp, Warning, TEXT("[Detect] → ChaseLimit exceeded, forcing return"));
+        Memory->bReturning = true;
+        Memory->bHadTarget = false;
         BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
         BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
-        Memory->bHadTarget = false;
-        Memory->bReturning = true;
+        AIController->ClearFocus(EAIFocusPriority::Gameplay);
         return;
     }
 
     AActor* DetectedPlayer = TryGetPerceptionTarget(AIController);
     if (!DetectedPlayer)
         DetectedPlayer = FindClosestPlayer(MonsterLocation, DetectionRadius, ControlledPawn->GetWorld());
+
+    // Perception이 근거리에서 실패하는 경우 보정: AttackRange * 2 이내는 항상 감지
+    if (!DetectedPlayer && Monster)
+    {
+        const float GuaranteedRange = Monster->AttackRange * 2.f;
+        DetectedPlayer = FindClosestPlayer(MonsterLocation, GuaranteedRange, ControlledPawn->GetWorld());
+    }
 
     UE_LOG(LogTemp, Warning, TEXT("[Detect] DetectedPlayer=%s"), DetectedPlayer ? *DetectedPlayer->GetName() : TEXT("NULL"));
 
