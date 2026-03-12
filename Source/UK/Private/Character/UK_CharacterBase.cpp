@@ -638,14 +638,13 @@ bool AUK_CharacterBase::StartGliding()
 {
 	if (GetCharacterMovement()->IsFalling() == false)
 		return true;
+	if (MovementMode == ECustomMovementMode::CMOVE_Glide)
+	{
+		return false;
+	}
 	if ( GetFloorDistance() < 220.f)
 	{
 		return true;
-	}
-	if (MovementMode == ECustomMovementMode::CMOVE_Glide)
-	{
-		EndGliding();
-		return false;
 	}
 	FVector Vel = GetCharacterMovement()->Velocity;
 	Vel.Z = -GlideFallSpeed;

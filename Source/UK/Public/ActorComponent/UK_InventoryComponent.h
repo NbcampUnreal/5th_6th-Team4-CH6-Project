@@ -66,6 +66,13 @@ public:
 	
 	bool RemoveWeapon(FName ItemID, int32 index);
 
+	UFUNCTION(BlueprintCallable)
+	int32 subtractionGold(int32 cost);
+
+	UFUNCTION(BlueprintCallable)
+	bool AddGold(int32 Value);
+	
+	
 	FInventorySlot* FindWeaponSlot(FName ItemID);
 
 	FInventorySlot* FindWeaponSlotbyIndex(int32 index);
@@ -93,5 +100,7 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	int32 WeaponCapacity;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	int32 Gold;
 
 };
