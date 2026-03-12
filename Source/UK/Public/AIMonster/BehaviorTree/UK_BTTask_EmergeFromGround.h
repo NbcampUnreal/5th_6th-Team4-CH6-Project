@@ -27,6 +27,9 @@ protected:
 #pragma region Internal
 private:
 	TWeakObjectPtr<UBehaviorTreeComponent> CachedOwnerComp;
+	
+	UPROPERTY(EditAnywhere, Category = "Blackboard")
+	FBlackboardKeySelector TargetPlayerKey;
 
 	UFUNCTION()
 	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
