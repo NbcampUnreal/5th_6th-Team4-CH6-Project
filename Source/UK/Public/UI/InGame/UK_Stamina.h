@@ -5,12 +5,13 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/Image.h"
-//#include "ActorComponent/StatusComponent.h"
+#include "AbilitySystemComponent.h"
 #include "UK_Stamina.generated.h"
 
 /**
  * 
  */
+class AUK_CharacterBase;
 UCLASS()
 class UK_API UUK_Stamina : public UUserWidget
 {
@@ -25,8 +26,8 @@ public:
 	//void BindStatusComponent(UStatusComponent* NewStatusComp);
 
 	// 스테미나 업데이트
-	UFUNCTION()
-	void UpdateStaminaBar(float CurrentStamina, float MaxStamina);
+	//UFUNCTION()
+	void UpdateStaminaBar(const FOnAttributeChangeData& Data);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "UI", meta = ( DisplayName = "OnUpdateStaminaPercent" ))
 	void K2_OnUpdateStaminaPercent(float NewPercent);
@@ -46,4 +47,9 @@ private:
 	// UPROPERTY()
 	// UStatusComponent* CachedStatusComp;
 	
+	UPROPERTY()
+	AUK_CharacterBase* PlayerPawn;
+	
+	UPROPERTY()
+	UAbilitySystemComponent* ASC;
 };
