@@ -76,27 +76,23 @@ public:
 	void UpdateStaminaTracking();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TrackingUI")
-	FVector Stemina_Location = FVector(0.f, 0.f, 110.f);
+	FVector Stemina_Location = FVector(0.f, 0.f, 50.f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TrackingUI")
-	float SideDistance = 70.f;
+	float SideDistance = 15.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TrackingUI")
-	float DistanceMin = 300.f;
+	float DistanceMin = 20;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TrackingUI")
-	float DistanceMax = 2000.f;
+	float DistanceMax = 100.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TrackingUI")
-	float ScaleNear = 1.2f;
+	float ScaleNear = 0.4f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TrackingUI")
-	float ScaleFar = 0.55f;
+	float ScaleFar = 0.5f;
 
-private:
-
-	void EnableMouseCursorMode();
-	void DisableMouseCursorMode();
 
 private:
 
