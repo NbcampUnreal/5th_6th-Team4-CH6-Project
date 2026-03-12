@@ -30,15 +30,6 @@ bool UUK_DragEquipSlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDro
 		}
 	}
 
-	if (!bIsWeapon && !ItemInfo->ItemClass.IsNull())
-	{
-		UClass* LoadedClass = ItemInfo->ItemClass.LoadSynchronous();
-		if (LoadedClass && LoadedClass->IsChildOf(AUK_WeaponBase::StaticClass()))
-		{
-			bIsWeapon = true;
-		}
-	}
-
 	if (!bIsWeapon)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("INV : Weapon Only EquipSlot"));//지울거

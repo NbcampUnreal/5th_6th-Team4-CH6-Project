@@ -44,7 +44,9 @@ int32 UUK_InventoryComponent::AddItem(FName ItemID, int32 Amount)
 		return false;
 
 	// 데이터 테이블에서 데이터 찾아오기
-	const FUK_ItemData* ItemData = ItemDataTable->FindRow<FUK_ItemData>(ItemID, TEXT("UUK_InventoryComponent::AddItem"));
+	const FUK_ItemData* ItemData = 
+		ItemDataTable->FindRow<FUK_ItemData>(ItemID, TEXT("UUK_InventoryComponent::AddItem"));
+	
 	if ( ItemData == nullptr )
 	{
 		UE_LOG(LogTemp, Display, TEXT("아이템 데이터 테이블에 존재하지 않는 ID가 있습니다 : %s"), *ItemID.ToString());
@@ -198,6 +200,30 @@ bool UUK_InventoryComponent::RemoveWeapon(FName ItemID, int32 index)
 		return false;
 	}
 	WeaponSlot->Clear();
+	return true;
+}
+
+int32 UUK_InventoryComponent::subtractionGold(int32 cost)
+{
+	if (Gold - cost < 0)
+	{
+		return Gold - cost; // 부족한 값을 리턴  
+	}
+	
+	Gold -= cost;
+	OnChangedGold.Broadcast(Gold);
+	return Gold;
+}
+
+bool UUK_InventoryComponent::AddGold(int32 Value)
+{
+	// 오버플로우 방지
+	if (Gold + Value < 0)
+	{
+		return false;
+	}
+	Gold += Value;
+	OnChangedGold.Broadcast(Gold);
 	return true;
 }
 

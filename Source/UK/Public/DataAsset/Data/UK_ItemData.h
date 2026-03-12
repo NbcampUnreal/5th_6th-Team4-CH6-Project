@@ -33,11 +33,6 @@ public:
 	int32 MaxItemStack;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TSoftClassPtr<AActor> ItemClass;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FGameplayTag ItemTag;	
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	ECharacterAttribute WeaponAttribute;
 };
