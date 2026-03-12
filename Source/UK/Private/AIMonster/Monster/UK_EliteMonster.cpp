@@ -48,6 +48,7 @@ bool AUK_EliteMonster::PlaySpecialAttack()
 	if (!Montage) return false;
 
 	bIsAttacking          = true;
+	bIsSpecialAttacking   = true; 
 	LastSpecialAttackTime = GetWorld()->GetTimeSeconds();
 
 	// 몽타주 길이 미리 계산
@@ -130,6 +131,7 @@ void AUK_EliteMonster::OnSpecialAttackMontageEnded(UAnimMontage* Montage, bool b
 	}
 
 	bIsAttacking = false;
+	bIsSpecialAttacking = false; 
 	OnSpecialAttackFinished.ExecuteIfBound(); 
 }
 #pragma endregion

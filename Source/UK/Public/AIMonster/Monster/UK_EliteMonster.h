@@ -34,6 +34,9 @@ public:
 	float SpecialAttackCooldown = 8.0f;
 
 	float LastSpecialAttackTime = 0.f;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Combat")
+	bool bIsSpecialAttacking = false;
 
 	UFUNCTION(BlueprintPure, Category = "Elite|SpecialAttack")
 	bool CanUseSpecialAttack() const;
