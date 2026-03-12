@@ -26,6 +26,7 @@ public:
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryUpdate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemAdded, FName, ItemID, int32, Amount);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnChangedGold, int32, Glod);
 
 UCLASS(ClassGroup = ( Custom ), meta = ( BlueprintSpawnableComponent ))
 class UK_API UUK_InventoryComponent : public UActorComponent
@@ -72,6 +73,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool AddGold(int32 Value);
 	
+	UFUNCTION(BlueprintCallable)
+	int32 GetGold() const {return Gold;}
+	
 	
 	FInventorySlot* FindWeaponSlot(FName ItemID);
 
@@ -85,6 +89,8 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnItemAdded OnItemAdded;
 
+	UPROPERTY(BlueprintAssignable)
+	FOnChangedGold OnChangedGold;
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	TObjectPtr<UDataTable> ItemDataTable;
@@ -100,6 +106,7 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	int32 WeaponCapacity;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	int32 Gold;
 
