@@ -18,7 +18,10 @@ public:
 	virtual void BeginPlay() override;
 
 	UFUNCTION(BlueprintCallable)
-	void StartGame(FString Text);
+	void StartGame_mult(FString Text);
+
+	UFUNCTION(BlueprintCallable)
+	void StartGame();
 
 	// 나중에 멀티용 서버
 	UFUNCTION(Server, Reliable)
