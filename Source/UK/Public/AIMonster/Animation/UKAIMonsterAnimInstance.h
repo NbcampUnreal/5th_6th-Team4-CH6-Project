@@ -38,10 +38,6 @@ public:
 	/** 땅속 대기 상태 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	bool bIsBurrowed = false;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-	bool bShouldEmerge = true;
-	
 #pragma endregion
 
 #pragma region Movement Properties

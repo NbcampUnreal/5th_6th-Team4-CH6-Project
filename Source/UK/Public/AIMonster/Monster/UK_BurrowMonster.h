@@ -22,9 +22,6 @@ public:
 	// 땅속에서 나오는 몽타주 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Burrow")
 	TObjectPtr<UAnimMontage> EmergeMontage;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Burrow")
-	TObjectPtr<UAnimMontage> GetDownMontage;
 
 	// AnimBP가 읽는 상태 플래그
 	UPROPERTY(BlueprintReadOnly, Category="Burrow")

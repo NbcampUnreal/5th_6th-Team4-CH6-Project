@@ -1,8 +1,6 @@
 ﻿#include "AIMonster/BehaviorTree/UK_BTTask_EmergeFromGround.h"
 #include "AIController.h"
 #include "AIMonster/Monster/UK_BurrowMonster.h"
-#include "AIMonster/Animation/UKAIMonsterAnimInstance.h"
-#include "BehaviorTree/BlackboardComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 #pragma region Initialization
@@ -10,8 +8,6 @@ UUK_BTTask_EmergeFromGround::UUK_BTTask_EmergeFromGround()
 {
 	NodeName            = "Emerge From Ground";
 	bCreateNodeInstance = true;
-
-	TargetPlayerKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UUK_BTTask_EmergeFromGround, TargetPlayerKey), AActor::StaticClass());
 }
 #pragma endregion
 
@@ -24,25 +20,24 @@ EBTNodeResult::Type UUK_BTTask_EmergeFromGround::ExecuteTask(UBehaviorTreeCompon
 	AUK_BurrowMonster* Monster = Cast<AUK_BurrowMonster>(AICon->GetPawn());
 	if (!Monster) return EBTNodeResult::Failed;
 
+	// 이동 활성화
 	Monster->SetBurrowed(false);
-    
-	if (UCharacterMovementComponent* MC = Monster->GetCharacterMovement())
-		MC->SetMovementMode(MOVE_Walking);
-
 	AICon->StopMovement();
 
 	UAnimInstance* AnimInst = Monster->GetMesh() ? Monster->GetMesh()->GetAnimInstance() : nullptr;
+	UAnimMontage*  Montage  = Monster->EmergeMontage;
 
-	if (UUKAIMonsterAnimInstance* MonsterAnim = Cast<UUKAIMonsterAnimInstance>(AnimInst))
-		MonsterAnim->bShouldEmerge = true;
-
-	UAnimMontage* Montage = Monster->EmergeMontage;
+	// 몽타주 없으면 즉시 완료
 	if (!AnimInst || !Montage)
+	{
 		return EBTNodeResult::Succeeded;
+	}
 
 	const float Length = AnimInst->Montage_Play(Montage, 1.0f);
 	if (Length <= 0.f)
+	{
 		return EBTNodeResult::Succeeded;
+	}
 
 	FOnMontageEnded EndDelegate;
 	EndDelegate.BindUObject(this, &UUK_BTTask_EmergeFromGround::OnMontageEnded);
@@ -60,21 +55,11 @@ EBTNodeResult::Type UUK_BTTask_EmergeFromGround::AbortTask(UBehaviorTreeComponen
 		{
 			if (UAnimInstance* AnimInst = Monster->GetMesh() ? Monster->GetMesh()->GetAnimInstance() : nullptr)
 			{
-				if (UUKAIMonsterAnimInstance* MonsterAnim = Cast<UUKAIMonsterAnimInstance>(AnimInst))
-					MonsterAnim->bShouldEmerge = false;
-
 				CleanupMontageDelegate(AnimInst, Monster->EmergeMontage);
 				AnimInst->StopAllMontages(0.15f);
 			}
-
-			// TargetPlayer가 있으면 추격으로 전환 → 지상 상태 유지
-			const bool bHasTarget = [&]() -> bool {
-				UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
-				return BB && BB->GetValueAsObject(TargetPlayerKey.SelectedKeyName) != nullptr;
-			}();
-
-			if (!bHasTarget)
-				Monster->SetBurrowed(true);
+			// Abort 시에도 이동은 열어둠 (이미 땅 위에 있는 상태)
+			Monster->SetBurrowed(false);
 		}
 	}
 
@@ -90,7 +75,7 @@ void UUK_BTTask_EmergeFromGround::OnMontageEnded(UAnimMontage* Montage, bool bIn
 
 	UBehaviorTreeComponent& OwnerComp = *CachedOwnerComp.Get();
 	CachedOwnerComp.Reset();
-	
+
 	FinishLatentTask(OwnerComp, bInterrupted ? EBTNodeResult::Failed : EBTNodeResult::Succeeded);
 }
 

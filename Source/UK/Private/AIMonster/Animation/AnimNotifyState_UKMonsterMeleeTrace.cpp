@@ -89,6 +89,17 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 
 		if (bHit) bAnyHit = true;
 
+		// ── 디버그 드로우 ────────────────────────────────────────
+		if (bShowDebug)
+		{
+			const FColor DrawColor = bHit ? FColor::Red : FColor::Green;
+			const FVector Center = (TraceStart + TraceEnd) * 0.5f;
+			const float HalfHeight = FVector::Dist(TraceStart, TraceEnd) * 0.5f + TraceRadius;
+			const FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceEnd - TraceStart).ToQuat();
+			DrawDebugCapsule(World, Center, HalfHeight, TraceRadius,
+				CapsuleRot, DrawColor, false, DebugDrawDuration, 0, 2.f);
+		}
+
 		if (!bHit) continue;
 
 		// ── 히트 처리: 플레이어(UK_CharacterBase)만 대상 ─────────────
@@ -103,6 +114,21 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 			// 중복 히트 방지
 			if (HitActors.Contains(HitActor)) continue;
 			HitActors.Add(HitActor);
+
+			// ── 디버그: 히트 포인트 표시 ─────────────────────────────
+			if (bShowDebug)
+			{
+				DrawDebugSphere(World, Hit.ImpactPoint, 20.f, 12,
+					FColor::Yellow, false, DebugDrawDuration, 0, 3.f);
+			}
+
+			UE_LOG(LogTemp, Warning,
+				TEXT("[MeleeTrace] %s → %s | Damage: %.1f | Height: %.1f | ImpactPoint: %s"),
+				*Monster->GetName(),
+				*Player->GetName(),
+				Monster->AttackDamage,
+				HeightOffset,
+				*Hit.ImpactPoint.ToString());
 
 			// ── GAS 데미지 처리 ──────────────────────────────────────
 			if (IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(Player))

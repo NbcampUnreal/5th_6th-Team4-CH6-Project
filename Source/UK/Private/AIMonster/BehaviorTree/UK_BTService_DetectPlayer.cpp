@@ -38,110 +38,96 @@ void UUK_BTService_DetectPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 }
 #pragma endregion
 
-#pragma region Normal Mode 
+#pragma region Normal Mode (기존 DetectPlayer 로직)
 void UUK_BTService_DetectPlayer::TickNormalMode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-    FDetectPlayerMemory* Memory = reinterpret_cast<FDetectPlayerMemory*>(NodeMemory);
+	FDetectPlayerMemory* Memory = reinterpret_cast<FDetectPlayerMemory*>(NodeMemory);
 
-    AAIController* AIController = OwnerComp.GetAIOwner();
-    if (!AIController) return;
+	AAIController* AIController = OwnerComp.GetAIOwner();
+	if (!AIController) return;
 
-    APawn* ControlledPawn = AIController->GetPawn();
-    if (!ControlledPawn) return;
+	APawn* ControlledPawn = AIController->GetPawn();
+	if (!ControlledPawn) return;
 
-    UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
-    if (!BlackboardComp) return;
+	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
+	if (!BlackboardComp) return;
 
-    AAIMonsterBase* Monster = Cast<AAIMonsterBase>(ControlledPawn);
-    if (Monster) DetectionRadius = Monster->DetectionRadius;
+	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(ControlledPawn);
+	if (Monster) DetectionRadius = Monster->DetectionRadius;
 
-    const FVector MonsterLocation = ControlledPawn->GetActorLocation();
-    const FVector SpawnLocation   = BlackboardComp->GetValueAsVector(SpawnLocationKey.SelectedKeyName);
-    const float   DistFromSpawn   = FVector::Dist(MonsterLocation, SpawnLocation);
-    const float   ChaseLimit      = Monster ? Monster->MaxChaseDistance : 2500.f;
+	const FVector MonsterLocation = ControlledPawn->GetActorLocation();
+	const FVector SpawnLocation   = BlackboardComp->GetValueAsVector(SpawnLocationKey.SelectedKeyName);
+	const float   DistFromSpawn   = FVector::Dist(MonsterLocation, SpawnLocation);
+	const float   ChaseLimit      = Monster ? Monster->MaxChaseDistance : 2500.f;
 
-    const bool bHasTarget  = (BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName)  != nullptr);
-    const bool bHasPending = (BlackboardComp->GetValueAsObject(PendingTargetKey.SelectedKeyName) != nullptr);
+	const bool bHasTarget  = (BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName)  != nullptr);
+	const bool bHasPending = (BlackboardComp->GetValueAsObject(PendingTargetKey.SelectedKeyName) != nullptr);
 
-    UE_LOG(LogTemp, Warning, TEXT("[Detect] bHasTarget=%d bHasPending=%d bReturning=%d bHadTarget=%d DistFromSpawn=%.1f"),
-        bHasTarget, bHasPending, Memory->bReturning, Memory->bHadTarget, DistFromSpawn);
+	// ── 복귀 플래그 관리 ─────────────────────────────────────────────────
+	if (Memory->bHadTarget && !bHasTarget && !bHasPending)
+	{
+		Memory->bReturning = true;
+		Memory->bHadTarget = false;
+	}
 
-    // 복귀 플래그 관리
-    if (Memory->bHadTarget && !bHasTarget && !bHasPending)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[Detect] → bReturning SET"));
-        Memory->bReturning = true;
-        Memory->bHadTarget = false;
-    }
+	// ── 복귀 중: 스폰 도착 전까지 감지 억제 ──────────────────────────────
+	if (Memory->bReturning)
+	{
+		if (DistFromSpawn <= ReturnDistanceThreshold)
+		{
+			Memory->bReturning = false;
+			BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
+			BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
+			Memory->bHadTarget = false;
+		}
+		return;
+	}
 
-    if (Memory->bReturning)
-    {
-        if (DistFromSpawn <= ReturnDistanceThreshold)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("[Detect] → Arrived at spawn, clearing returning"));
-            Memory->bReturning = false;
-            BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
-            BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
-            Memory->bHadTarget = false;
-        }
-        return;
-    }
+	// ── 추격 한계 초과 → 강제 이탈 ───────────────────────────────────────
+	if (DistFromSpawn > ChaseLimit)
+	{
+		BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
+		BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
+		Memory->bHadTarget = false;
+		Memory->bReturning = true;
+		return;
+	}
 
-    if (DistFromSpawn > ChaseLimit)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[Detect] → ChaseLimit exceeded, forcing return"));
-        BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
-        BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
-        Memory->bHadTarget = false;
-        Memory->bReturning = true;
-        return;
-    }
+	// ── 플레이어 감지 ────────────────────────────────────────────────────
+	AActor* DetectedPlayer = TryGetPerceptionTarget(AIController);
+	if (!DetectedPlayer)
+	{
+		DetectedPlayer = FindClosestPlayer(MonsterLocation, DetectionRadius, ControlledPawn->GetWorld());
+	}
 
-    AActor* DetectedPlayer = TryGetPerceptionTarget(AIController);
-    if (!DetectedPlayer)
-        DetectedPlayer = FindClosestPlayer(MonsterLocation, DetectionRadius, ControlledPawn->GetWorld());
+	if (DetectedPlayer)
+	{
+		// 이미 TargetPlayer 있으면 스킵 (AlertStandby 진행 중)
+		if (BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName))
+		{
+			return;
+		}
 
-    UE_LOG(LogTemp, Warning, TEXT("[Detect] DetectedPlayer=%s"), DetectedPlayer ? *DetectedPlayer->GetName() : TEXT("NULL"));
+		// PendingTarget에 설정
+		if (!BlackboardComp->GetValueAsObject(PendingTargetKey.SelectedKeyName))
+		{
+			BlackboardComp->SetValueAsObject(PendingTargetKey.SelectedKeyName, DetectedPlayer);
+			AIController->SetFocus(DetectedPlayer);
+		}
 
-    if (DetectedPlayer)
-    {
-        if (BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName))
-        {
-            UE_LOG(LogTemp, Warning, TEXT("[Detect] → TargetPlayer already set, skip"));
-            return;
-        }
-
-        if (!BlackboardComp->GetValueAsObject(PendingTargetKey.SelectedKeyName))
-        {
-            UE_LOG(LogTemp, Warning, TEXT("[Detect] → SET PendingTarget"));
-            BlackboardComp->SetValueAsObject(PendingTargetKey.SelectedKeyName, DetectedPlayer);
-            AIController->SetFocus(DetectedPlayer);
-        }
-        else
-        {
-            UE_LOG(LogTemp, Warning, TEXT("[Detect] → PendingTarget already set, skip"));
-        }
-
-        Memory->bHadTarget = true;
-    }
-    else
-    {
-        if (BlackboardComp->GetValueAsObject(PendingTargetKey.SelectedKeyName))
-        {
-            UE_LOG(LogTemp, Warning, TEXT("[Detect] → DetectedPlayer NULL but PendingTarget exists, SKIP CLEAR"));
-            return;
-        }
-
-        UE_LOG(LogTemp, Warning, TEXT("[Detect] → CLEAR all"));
-        BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
-        BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
-        Memory->bHadTarget = false;
-        AIController->ClearFocus(EAIFocusPriority::Gameplay);
-    }
+		Memory->bHadTarget = true;
+	}
+	else
+	{
+		BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
+		BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
+		Memory->bHadTarget = false;
+		AIController->ClearFocus(EAIFocusPriority::Gameplay);
+	}
 }
 #pragma endregion
 
-#pragma region Peaceful Mode 
+#pragma region Peaceful Mode (기존 DetectPlayer_Peaceful 로직)
 void UUK_BTService_DetectPlayer::TickPeacefulMode(UBehaviorTreeComponent& OwnerComp)
 {
 	AAIController* AIController = OwnerComp.GetAIOwner();
