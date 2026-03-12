@@ -13,6 +13,7 @@
 #pragma region ForwardDeclaration
 class UInputMappingContext;
 class UInputAction;
+class UUK_MainHUD;
 #pragma endregion
 
 UENUM(BlueprintType)
@@ -110,7 +111,12 @@ private:
 	UUK_Stamina* StaminaWidget;
 
 	void ConnectStaminaWidget();
-
+	
+	UPROPERTY(VisibleAnywhere, Category = "HUD")
+	TObjectPtr<UUK_MainHUD> MainHUD;
+	
+	UPROPERTY(EditAnywhere, Category = "HUD")
+	TSubclassOf<UUK_MainHUD> MainHUDClass;
 	//  ------ Interaction ------ (무현 수정중)
 
 protected:

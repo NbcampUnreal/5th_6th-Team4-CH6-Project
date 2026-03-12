@@ -4,7 +4,7 @@
 #include "Character/GA/UK_TargetActorTrace.h"
 #include "Character/UK_CharacterBase.h"
 #include "Abilities/GameplayAbility.h"
-int32 AUK_TargetActorTrace::ShowAttackDebug = 1;
+int32 AUK_TargetActorTrace::ShowAttackDebug = 0;
 
 //static AUK_TargetActorTrace CVarShowAttackDebug(
 //	TEXT("UK.ShowAttackDebug"),
