@@ -1,11 +1,27 @@
-#include "Server/UKGameMode.h"
+﻿#include "Server/UKGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "Character/UK_CharacterBase.h"
 #include "DataAsset/Data/UK_ItemData.h"
+#include "Systems/UK_GameInstance.h"
 
 AUKGameMode::AUKGameMode()
 {
 	// stub
+}
+
+void AUKGameMode::InitGame(
+	const FString& MapName,
+	const FString& Options,
+	FString& ErrorMessage)
+{
+	Super::InitGame(MapName, Options, ErrorMessage);
+
+	UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
+
+	if ( GI && GI->CharacterSelected )
+	{
+		DefaultPawnClass = GI->CharacterSelected;
+	}
 }
 
 void AUKGameMode::BeginPlay()

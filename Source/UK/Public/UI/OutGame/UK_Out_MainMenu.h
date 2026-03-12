@@ -28,6 +28,9 @@ protected:
 	UFUNCTION()
 	void OnExitButtonClicked();
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UUserWidget> CharacterSelectWidgetClass;
+
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = USTitleWidget, Meta = ( AllowPrivateAccess, BindWidget ))
 	TObjectPtr<UButton> StartButton;
