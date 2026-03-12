@@ -155,7 +155,20 @@ FInventorySlot* UUK_InventoryComponent::FindEmptyItemSlot()
 	}
 	return nullptr;
 }
-
+int32 UUK_InventoryComponent::GetItemTotalQuantity(FName ItemID) const
+{
+	int32 Total = 0;
+    
+	for (const FInventorySlot& Slot : InventorySlots)
+	{
+		if (!Slot.isEmpty() && Slot.ItemID == ItemID)
+		{
+			Total += Slot.Quantity;
+		}
+	}
+    
+	return Total;
+}
 bool UUK_InventoryComponent::AddWeapon(FName ItemID, int32 index)
 {
 	if ( index == -1 ) /*자동 으로 빈자리에 추가*/
