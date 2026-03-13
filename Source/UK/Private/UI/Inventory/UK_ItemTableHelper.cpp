@@ -31,6 +31,7 @@ bool UK_ItemTableHelper::FindItemData(const TArray<TObjectPtr<UDataTable>>& Tabl
 				OutRow.ItemStackCount = Row->ItemStackCount;
 				OutRow.MaxItemStack = Row->MaxItemStack;
 				OutRow.ItemTag = Row->ItemTag;
+
 				OutRow.bIsWeapon = false;
 				return true;
 			}
@@ -46,6 +47,7 @@ bool UK_ItemTableHelper::FindItemData(const TArray<TObjectPtr<UDataTable>>& Tabl
 				OutRow.ItemStackCount = Row->ItemStackCount;
 				OutRow.MaxItemStack = Row->MaxItemStack;
 				OutRow.ItemTag = Row->ItemTag;
+
 				OutRow.bIsWeapon = true;
 				OutRow.WeaponAttribute = Row->WeaponAttribute;
 				return true;
