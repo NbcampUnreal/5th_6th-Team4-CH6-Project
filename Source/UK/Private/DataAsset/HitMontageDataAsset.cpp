@@ -3,8 +3,8 @@
 
 #include "DataAsset/HitMontageDataAsset.h"
 
-UAnimMontage* UHitMontageDataAsset::FindHitMontageByType(EHitType TargetType)
+UAnimMontage* UHitMontageDataAsset::FindHitMontageByType(EHitReactionType HitType)
 {
-	UAnimMontage* HitAnim = *HitMontageMap.Find(TargetType);
+	UAnimMontage* HitAnim = *HitMontageMap.Find(HitType);
 	return HitAnim;
 }
