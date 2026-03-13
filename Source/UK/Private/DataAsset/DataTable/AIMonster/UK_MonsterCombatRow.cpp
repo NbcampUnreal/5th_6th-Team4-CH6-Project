@@ -1,4 +1,4 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "AIMonster/DataTable/UK_MonsterLootRow.h"
+#include "DataAsset/DataTable/AIMonster/UK_MonsterCombatRow.h"
