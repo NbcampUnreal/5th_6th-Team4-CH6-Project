@@ -15,7 +15,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Quest/UKQuestManagerSubsystem.h"
 #include "Tags/UK_GameplayTags.h"
-#include "AIMonster/DataTable/UK_MonsterLootRow.h"
+#include "DataAsset/DataTable/AIMonster/UK_MonsterLootRow.h"
 #include "ActorComponent/UK_InventoryComponent.h"
 
 #pragma region Initialization
