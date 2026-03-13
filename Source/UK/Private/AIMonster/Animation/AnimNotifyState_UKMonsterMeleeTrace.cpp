@@ -11,6 +11,7 @@
 #include "Sound/SoundCue.h"
 #include "Sound/SoundBase.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AIMonster/DataTable/UK_MonsterCombatRow.h"
 #include "Tags/UK_GameplayTags.h"
 
 UAnimNotifyState_UKMonsterMeleeTrace::UAnimNotifyState_UKMonsterMeleeTrace() {}
@@ -22,10 +23,23 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyBegin(
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
 	HitActors.Empty();
+	CachedHitType = EHitReactionType::None;
 
 	if (AttackSound)
-	{
 		UGameplayStatics::PlaySound2D(MeshComp->GetWorld(), AttackSound);
+		AAIMonsterBase* Monster = Cast<AAIMonsterBase>(MeshComp->GetOwner());
+	if (!Monster || !Monster->MonsterCombatTable) return;
+	
+	// "EMonsterType::Wolf" → "Wolf"
+	FString EnumStr = UEnum::GetValueAsString(Monster->MonsterType);
+	FString RowStr;
+	EnumStr.Split(TEXT("::"), nullptr, &RowStr);
+
+	if (FUK_MonsterCombatRow* Row = Monster->MonsterCombatTable->FindRow<FUK_MonsterCombatRow>(FName(*RowStr), TEXT("")))
+	{
+		CachedHitType = (AttackType == EMonsterAttackType::Normal)
+			? Row->NormalAttackHit
+			: Row->SpecialAttackHit;
 	}
 }
 
@@ -146,6 +160,13 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 						PlayerASC->SetNumericAttributeBase(
 							UUK_PlayerStatusAttributeSet::GetDamageAttribute(), FinalDamage);
 					}
+					
+					FGameplayEventData EventData;
+					EventData.EventMagnitude = (float)CachedHitType;
+					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+						Player,
+						UK_GameplayTags::Action::BeAttacked,
+						EventData);
 				}
 			}
 		}
