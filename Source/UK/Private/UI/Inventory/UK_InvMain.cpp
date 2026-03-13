@@ -60,15 +60,15 @@ void UUK_InvMain::TapClicked(UUK_InvTapbutton* ClickTap)
 
 	if (ClickTap == TapInventory)
 	{
-		InvSwitcher->SetActiveWidgetIndex(0);
+		SetMainTab(EMainTab::Inventory);
 	}
 	else if (ClickTap == TapSystem)
 	{
-		InvSwitcher->SetActiveWidgetIndex(1);
+		SetMainTab(EMainTab::System);
 	}
 	else if (ClickTap == TapMap)
 	{
-		InvSwitcher->SetActiveWidgetIndex(2);
+		SetMainTab(EMainTab::Map);
 	}
 }
 
@@ -91,4 +91,10 @@ void UUK_InvMain::OnPreviewCleared()
 {
 	if (!InvInfo) return;
 	InvInfo->HideToolInfo();
+}
+
+void UUK_InvMain::SetMainTab(EMainTab NewTab)
+{
+	if (!InvSwitcher) return;
+	InvSwitcher->SetActiveWidgetIndex(static_cast<int32>(NewTab));
 }
