@@ -4,6 +4,7 @@
 #include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
 #include "GameplayEffectExtension.h"
 #include "Character/UK_CharacterBase.h"
+#include "Tags/UK_GameplayTags.h"
 
 UUK_PlayerStatusAttributeSet::UUK_PlayerStatusAttributeSet()
 {
@@ -21,6 +22,10 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 		float LocalDefense = 1.f / (1.f + GetDefence());
 		LocalDamage *= LocalDefense;
 		NewValue = LocalDamage;
+		if (GetOwningAbilitySystemComponent()->HasMatchingGameplayTag(UK_GameplayTags::Action::invincibility))
+		{
+			NewValue = 0.f;
+		}
 	}
 	// 체력 전처리
 	else if (Attribute == GetHealthAttribute())
