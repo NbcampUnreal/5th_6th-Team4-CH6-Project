@@ -8,6 +8,8 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Character/UK_PlayerController_Title.h"
 #include "UI/OutGame/UK_Out_CharacterSelect.h"
+#include "Systems/Data/UK_SaveGame.h"
+#include "Kismet/GameplayStatics.h"
 
 UUK_Out_MainMenu::UUK_Out_MainMenu(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -30,23 +32,38 @@ void UUK_Out_MainMenu::NativeConstruct()
 
 void UUK_Out_MainMenu::OnPlayButtonClicked()
 {
+
 	AUK_PlayerController_Title* PlayerController = GetOwningPlayer<AUK_PlayerController_Title>();
 
 	UUK_Out_CharacterSelect* CharacterSelect = CreateWidget<UUK_Out_CharacterSelect>(PlayerController, CharacterSelectWidgetClass);
 	if ( !CharacterSelect ) return;
 
-	CharacterSelect->AddToViewport();
+	UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
 
-	PlayerController->bShowMouseCursor = true;
+	if ( UGameplayStatics::DoesSaveGameExist(TEXT("CharacterData"), 0) )
+	{
+		UUK_SaveGame* LoadedGame = Cast<UUK_SaveGame>(UGameplayStatics::LoadGameFromSlot(TEXT("CharacterData"), 0));
+		if ( LoadedGame && LoadedGame->SavedCharacterClass )
+		{
+			GI->CharacterSelected = LoadedGame->SavedCharacterClass;
+			PlayerController->StartGame();
+		}
+	}
+	else 
+	{
+		CharacterSelect->AddToViewport();
 
-	FInputModeGameAndUI InputModeData;
-	InputModeData.SetWidgetToFocus(CharacterSelect->TakeWidget());
-	InputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-	InputModeData.SetHideCursorDuringCapture(false); 
+		PlayerController->bShowMouseCursor = true;
 
-	PlayerController->SetInputMode(InputModeData);
+		FInputModeGameAndUI InputModeData;
+		InputModeData.SetWidgetToFocus(CharacterSelect->TakeWidget());
+		InputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		InputModeData.SetHideCursorDuringCapture(false);
 
-	RemoveFromParent();
+		PlayerController->SetInputMode(InputModeData);
+
+		RemoveFromParent();
+	}
 }
 
 void UUK_Out_MainMenu::OnExitButtonClicked()

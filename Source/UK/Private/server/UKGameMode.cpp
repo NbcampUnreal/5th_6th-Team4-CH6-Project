@@ -7,6 +7,7 @@
 AUKGameMode::AUKGameMode()
 {
 	// stub
+	bUseSeamlessTravel = true;
 }
 
 void AUKGameMode::InitGame(
@@ -52,6 +53,22 @@ void AUKGameMode::BeginPlay()
 			RegisterMonster(Monster);
 			RegisteredCount++;
 		}
+	}
+
+	UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
+	if ( GI && GI->PersistentLoadingWidget )
+	{
+		GI->PersistentLoadingWidget->AddToViewport(999);
+
+		FTimerHandle TimerHandle;
+		GetWorldTimerManager().SetTimer(TimerHandle, [ GI ] ()
+			{
+				if ( GI && GI->PersistentLoadingWidget )
+				{
+					// 5초 뒤에 100%로 설정
+					GI->PersistentLoadingWidget->TargetValue = 1.0f;
+				}
+			}, 5.0f, false);
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("[GameMode] Registered %d monsters from map"), RegisteredCount);
