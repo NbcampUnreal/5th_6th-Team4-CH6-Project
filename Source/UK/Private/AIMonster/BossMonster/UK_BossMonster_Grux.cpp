@@ -115,6 +115,8 @@ bool AUK_BossMonster_Grux::PlayRandomAttackMontage()
 
 bool AUK_BossMonster_Grux::ExecuteRangedAttackAction(float PlayRate)
 {
+	CurrentAttackType = EMonsterAttackType::Special;
+	
 	if (!RangedAttackMontage) return false;
 	bIsAttacking = true;
 	
@@ -140,6 +142,8 @@ bool AUK_BossMonster_Grux::ExecuteRangedAttackAction(float PlayRate)
 
 bool AUK_BossMonster_Grux::ExecuteJumpAttackAction(float PlayRate)
 {
+	CurrentAttackType = EMonsterAttackType::Special;
+	
     if (!JumpAttack) return false;
     bIsAttacking = true;
 	
@@ -193,6 +197,8 @@ bool AUK_BossMonster_Grux::ExecuteJumpAttackAction(float PlayRate)
 
 bool AUK_BossMonster_Grux::ExecuteDashAttackAction(float PlayRate)
 {
+	CurrentAttackType = EMonsterAttackType::Special;
+	
     if (!DashAttack) return false;
     bIsAttacking = true;
 
@@ -318,6 +324,8 @@ void AUK_BossMonster_Grux::LookAtTargetSmooth()
 
 bool AUK_BossMonster_Grux::PlayBaseAttackWithSpeed(float PlayRate)
 {
+	CurrentAttackType = EMonsterAttackType::Normal;
+	
 	bool bSuccess = Super::PlayRandomAttackMontage();
     
 	if (bSuccess)

@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "AIMonster/UK_MonsterTypes.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "AnimNotifyState_UKMonsterMeleeTrace.generated.h"
 
@@ -41,10 +42,17 @@ public:
 	
 #pragma endregion
 
+#pragma region Attack Settings
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack")
+	EMonsterAttackType AttackType = EMonsterAttackType::Normal;
+#pragma endregion
+
 #pragma region Private
 private:
 	UPROPERTY()
 	TArray<AActor*> HitActors;
+
+	EHitReactionType CachedHitType = EHitReactionType::None; // NotifyBegin에서 캐싱
 #pragma endregion
 	
 public:

@@ -6,8 +6,8 @@
 #include "UI/InGame/UK_MonsterHealthBar.h"
 #include "Components/WidgetComponent.h"
 #include "Net/UnrealNetwork.h"
-#include "AIMonster/DataTable/UK_MonsterStatRow.h"
-#include "AIMonster/DataTable/UK_MonsterMetaRow.h"
+#include "DataAsset/DataTable/AIMonster/UK_MonsterStatRow.h"
+#include "DataAsset/DataTable/AIMonster/UK_MonsterMetaRow.h"
 #include "AIMonster/UK_MonsterTypes.h"
 #include "Abilities/GameplayAbilityTypes.h"
 #include "AIMonsterBase.generated.h"
@@ -391,6 +391,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Data")
 	UDataTable* MonsterMetaTable;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Data")
+	UDataTable* MonsterCombatTable;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Data")
+	UDataTable* MonsterLootTable;
+	
 	/** 플레이어 레벨 기반 스탯 초기화 */
 	virtual void InitializeStatsFromPlayerLevel(int32 PlayerLevel);
 
@@ -413,9 +419,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Monster|Data")
 	float CalculateDefense(int32 PlayerLevel) const;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster|Data")
-	UDataTable* MonsterLootTable;
 
 	UFUNCTION(BlueprintPure, Category = "Monster|Data")
 	float CalculateExp(int32 PlayerLevel) const;

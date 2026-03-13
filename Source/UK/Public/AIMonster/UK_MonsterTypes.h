@@ -25,3 +25,19 @@ enum class EMonsterRank : uint8
 	Elite  = 1,
 	Boss   = 2,
 };
+
+UENUM(BlueprintType)
+enum class EHitReactionType : uint8
+{
+	None           = 0,  // 반응 없음
+	Flinch         = 1,  // 움찔
+	KnockbackWalk  = 2,  // 밀림
+	KnockbackFall  = 3,  // 넘어짐
+};
+
+UENUM(BlueprintType)
+enum class EMonsterAttackType : uint8
+{
+	Normal  = 0,
+	Special = 1,
+};

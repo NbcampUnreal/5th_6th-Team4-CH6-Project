@@ -53,18 +53,31 @@ public:
 
 protected:
 
-	// [4] Reward / ItemDataTable (기존 유지)
-	// 에디터에서 할당할 아이템 정보 데이터 테이블
+	// [4] Reward / ItemDataTable
+	// 에디터 또는 경로 로드로 사용할 아이템 정보 데이터 테이블
 	UPROPERTY(EditDefaultsOnly, Category = "UK|Config")
 	class UDataTable* ItemDataTable;
 
-	// 데이터 테이블에서 아이템 정보를 찾아오는 헬퍼 함수
-	const FUK_ItemData* GetItemData(FName ItemRowName) const;
+	// 아이템 데이터 테이블 소프트 경로
+	UPROPERTY(EditDefaultsOnly, Category = "UK|Config")
+	FSoftObjectPath ItemDataTablePath;
+
+	// ItemID(EntityID 컬럼)로 아이템 데이터를 찾는다
+	const FUK_ItemData* GetItemDataByItemID(FName ItemID) const;
+
+	// ItemID(EntityID) -> DataTable RowName 캐시
+	UPROPERTY(Transient)
+	TMap<FName, FName> ItemIDToRowName;
+
+	// 캐시 생성
+	void BuildItemIDCache();
 
 public:
 	// 퀘스트 보상을 실제로 지급하는 함수
 	UFUNCTION(BlueprintCallable, Category = "UK|Quest")
-	void GiveQuestReward(FName ItemRowName, int32 Amount);
+
+	// ItemID(EntityID) 기반으로 보상 지급
+	void GiveQuestReward(FName ItemID, int32 Amount);
 
 protected:
 	// [Reward v2] RewardId -> RewardRow(DataTable)
@@ -110,8 +123,6 @@ public:
 
 protected:
 	// [Quest Definitions] (신규)
-
-protected:
 	UPROPERTY(Transient)
 	TMap<FName, TObjectPtr<const UUKQuestDefinitionAsset>> QuestDefinitions;
 

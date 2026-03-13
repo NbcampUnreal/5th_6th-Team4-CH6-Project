@@ -10,6 +10,15 @@ class UUK_InvTapbutton;
 class UUK_InvUI;
 class UUK_InvInfo;
 class UDataTable;
+class UUK_MoneyWidget;
+
+UENUM(BlueprintType)
+enum class EMainTab : uint8
+{
+	Inventory UMETA(DisplayName = "Inventory"),
+	System UMETA(DisplayName = "System"),
+	Map UMETA(DisplayName = "Map")
+};
 
 UCLASS()
 class UK_API UUK_InvMain : public UUserWidget
@@ -36,6 +45,9 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UUK_InvInfo* InvInfo;
 
+	UPROPERTY(meta = (BindWidgetOptional))
+	UUK_MoneyWidget* MoneyWidget;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inv")
 	TArray<TObjectPtr<UDataTable>> ItemDataTables;
 
@@ -49,4 +61,7 @@ public:
 
 	UFUNCTION()
 	void OnPreviewCleared();
+
+	UFUNCTION(BlueprintCallable)
+	void SetMainTab(EMainTab NewTab);
 };

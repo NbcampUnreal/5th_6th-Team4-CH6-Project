@@ -22,6 +22,7 @@ namespace UK_GameplayTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Interaction);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Setting);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(LockOnToggle);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dash);
 	}
 	namespace Movement
 	{
@@ -52,6 +53,9 @@ namespace UK_GameplayTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Parrying);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Glide);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Swim);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(StopSwimming);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(invincibility);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(BeAttacked);
 	}
 
 	namespace Attack
