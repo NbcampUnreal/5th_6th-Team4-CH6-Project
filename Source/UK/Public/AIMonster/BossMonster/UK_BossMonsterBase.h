@@ -54,6 +54,10 @@ public:
 	virtual void NotifyAttacked(AController* InstigatorController) override;
 	
 protected:
+	// 공격 타입 추적
+	UPROPERTY(BlueprintReadOnly, Category = "Combat")
+	EMonsterAttackType CurrentAttackType = EMonsterAttackType::Normal;
+	
 	UPROPERTY(EditAnywhere, Category = "Boss|Patterns")
 	TArray<UAnimMontage*> Phase1Patterns;
 

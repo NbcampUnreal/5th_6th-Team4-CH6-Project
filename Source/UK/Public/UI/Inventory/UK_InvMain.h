@@ -12,6 +12,14 @@ class UUK_InvInfo;
 class UDataTable;
 class UUK_MoneyWidget;
 
+UENUM(BlueprintType)
+enum class EMainTab : uint8
+{
+	Inventory UMETA(DisplayName = "Inventory"),
+	System UMETA(DisplayName = "System"),
+	Map UMETA(DisplayName = "Map")
+};
+
 UCLASS()
 class UK_API UUK_InvMain : public UUserWidget
 {
@@ -53,4 +61,7 @@ public:
 
 	UFUNCTION()
 	void OnPreviewCleared();
+
+	UFUNCTION(BlueprintCallable)
+	void SetMainTab(EMainTab NewTab);
 };
