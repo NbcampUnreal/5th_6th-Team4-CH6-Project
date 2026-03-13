@@ -11,7 +11,7 @@
 #include "Sound/SoundCue.h"
 #include "Sound/SoundBase.h"
 #include "AbilitySystemBlueprintLibrary.h"
-#include "AIMonster/DataTable/UK_MonsterCombatRow.h"
+#include "DataAsset/DataTable/AIMonster/UK_MonsterCombatRow.h"
 #include "Tags/UK_GameplayTags.h"
 
 UAnimNotifyState_UKMonsterMeleeTrace::UAnimNotifyState_UKMonsterMeleeTrace() {}
