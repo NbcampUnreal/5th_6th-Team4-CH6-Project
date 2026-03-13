@@ -13,7 +13,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "Character/UK_CharacterBase.h"
 #include "AbilitySystemComponent.h"
+#include "AIMonster/DataTable/UK_MonsterCombatRow.h"
 #include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
+#include "Tags/UK_GameplayTags.h"
 
 AUK_BossMonsterBase::AUK_BossMonsterBase()
 {
@@ -179,6 +181,27 @@ void AUK_BossMonsterBase::OnWeaponOverlap(UPrimitiveComponent* OverlappedCompone
 				FVector HitLocation = OtherActor->GetActorLocation();
 				DrawDebugSphere(GetWorld(), HitLocation, 50.f, 12, FColor::Red, false, 2.0f);
 				DrawDebugString(GetWorld(), HitLocation + FVector(0.f, 0.f, 100.f), TEXT("!!! HIT !!!"), nullptr, FColor::Yellow, 1.5f);
+			
+				if (MonsterCombatTable)
+				{
+					FString EnumStr = UEnum::GetValueAsString(MonsterType);
+					FString RowStr;
+					EnumStr.Split(TEXT("::"), nullptr, &RowStr);
+
+					if (FUK_MonsterCombatRow* Row = MonsterCombatTable->FindRow<FUK_MonsterCombatRow>(FName(*RowStr), TEXT("")))
+					{
+						EHitReactionType HitType = (CurrentAttackType == EMonsterAttackType::Normal)
+							? Row->NormalAttackHit
+							: Row->SpecialAttackHit;
+
+						FGameplayEventData EventData;
+						EventData.EventMagnitude = (float)HitType;
+						UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+							TargetPlayer,
+							UK_GameplayTags::Action::BeAttacked,
+							EventData);
+					}
+				}
 			}
 		}
 	}
