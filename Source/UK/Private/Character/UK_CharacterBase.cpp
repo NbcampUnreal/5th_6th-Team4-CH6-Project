@@ -197,9 +197,10 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	                        ETriggerEvent::Started, this, &ThisClass::NomalSkill);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::UltimateSkill),
 	                        ETriggerEvent::Started, this, &ThisClass::UltimateSkill);
-	// 패링 단축기 Y입니다
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::Parry),
 	                        ETriggerEvent::Started, this, &ThisClass::Parry);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Dash),
+	                        ETriggerEvent::Started, this, &ThisClass::Dash);
 }
 
 float AUK_CharacterBase::GetFloorDistance()
@@ -454,6 +455,14 @@ void AUK_CharacterBase::Setting()
 		return;
 
 	PC->Setting_UI();
+}
+
+void AUK_CharacterBase::Dash()
+{
+	InputType = EInputMode::Dash;
+	FGameplayTagContainer Container;
+	Container.AddTag(UK_GameplayTags::Input::Dash);
+	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
 }
 #pragma endregion
 

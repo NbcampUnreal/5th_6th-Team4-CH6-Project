@@ -22,6 +22,7 @@ namespace UK_GameplayTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Interaction);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Setting);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(LockOnToggle);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dash);
 	}
 	namespace Movement
 	{

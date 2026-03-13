@@ -42,7 +42,8 @@ enum class EInputMode : uint8
 	Air,
 	NormalSkill,
 	UltimateSkill,
-	Parry
+	Parry,
+	Dash
 };
 
 UENUM(BlueprintType)
@@ -221,7 +222,9 @@ protected:
 	void Interaction();
 
 	UFUNCTION()
-	void Setting();
+	void Setting();	
+	UFUNCTION()
+	void Dash();
 #pragma endregion
 
 public:
