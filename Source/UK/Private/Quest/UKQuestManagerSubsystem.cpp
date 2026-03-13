@@ -78,6 +78,41 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] RewardDataTable already assigned in editor."));
 	}
 
+	// [ItemDataTable] Load
+	if ( !ItemDataTable ) // 에디터에서 직접 할당했으면 그걸 우선 사용
+	{
+		if ( !ItemDataTablePath.IsValid() )
+		{
+			// 실제 경로는 에셋 우클릭 -> Copy Reference 로 확인
+			ItemDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/ItemData/DT_ItemTableble.DT_ItemTableble'"));
+		}
+
+		if ( ItemDataTablePath.IsValid() )
+		{
+			UObject* LoadedItemDT = ItemDataTablePath.TryLoad();
+			ItemDataTable = Cast<UDataTable>(LoadedItemDT);
+
+			if ( !ItemDataTable )
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[ItemID] ItemDataTable load FAILED. Path=%s"),
+					*ItemDataTablePath.ToString());
+			}
+			else
+			{
+				UE_LOG(LogTemp, Log, TEXT("[ItemID] ItemDataTable loaded OK. Path=%s"),
+					*ItemDataTablePath.ToString());
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[ItemID] ItemDataTablePath invalid."));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ItemID] ItemDataTable already assigned in editor."));
+	}
+
 	// [Quest Definitions] Auto Scan & Register
 	{
 		const FName ScanPath = FName(TEXT("/Game/Quests"));
@@ -217,6 +252,9 @@ bool UUKQuestManagerSubsystem::CompleteQuest(FName QuestId)
 	if ( !P ) return false;
 
 	if ( P->bCompleted ) return true;
+
+	// 진짜 완료 상태 기록
+	P->bCompleted = true;
 
 	// Completed 플래그 세팅 (명명규칙: F.<QuestID>.Completed)
 	SetFlag(*P, MakeFlagKey(QuestId, FName("Completed")));
