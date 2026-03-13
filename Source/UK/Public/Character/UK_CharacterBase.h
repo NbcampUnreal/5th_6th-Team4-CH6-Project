@@ -8,6 +8,7 @@
 #include "GameplayTagContainer.h"
 #include "UK_PlayerController.h"
 #include "AIMonster/AIMonsterBase.h"
+#include "DataAsset/HitMontageDataAsset.h"
 #include "UK_CharacterBase.generated.h"
 
 #define ECC_LockOn ECollisionChannel::ECC_GameTraceChannel2
@@ -152,6 +153,8 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnCharacterAttribute OnChangedAttribute;
 
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UHitMontageDataAsset> HitMontageDataAsset;
 #pragma endregion
 
 #pragma region Interaction And Quest
@@ -351,6 +354,7 @@ public:
 protected:
 	UPROPERTY()
 	bool bIsParry;
+	
 #pragma endregion
 
 #pragma region FindMonsterHPBar

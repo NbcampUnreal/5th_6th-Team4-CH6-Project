@@ -39,4 +39,5 @@ void UUK_HitCheckNotifyState::HitCheck()
 	FGameplayEventData EventData;
 	EventData.EventMagnitude = (float)AttackType;
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(OwnerCharacter, AttackTag, EventData);
+	
 }
