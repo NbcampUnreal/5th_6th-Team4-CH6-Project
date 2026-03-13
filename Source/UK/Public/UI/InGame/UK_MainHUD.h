@@ -71,6 +71,15 @@ public:
 	UPROPERTY(meta = ( BindWidget ))
 	UButton* InventoryButton; 
 
+	//NewText
+	UPROPERTY(meta = (BindWidgetOptional))
+	UTextBlock* NewText;
+
+	UFUNCTION()
+	void HandleItemAdded_ShowNew(FName ItemID, int32 Amount);
+
+	void SetInventoryNewVisible(bool bVisible);
+
 	UPROPERTY(EditAnywhere, Category = "UI")
 	TSubclassOf<UUK_InvMain> InvMainClass; // 에디터에서 인벤토리 블루프린트 할당
 

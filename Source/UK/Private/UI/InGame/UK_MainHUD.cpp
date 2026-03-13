@@ -18,6 +18,8 @@ void UUK_MainHUD::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	SetInventoryNewVisible(false);
+
 	PlayerPawn = Cast<AUK_CharacterBase>(GetOwningPlayerPawn());
 	if (PlayerPawn)
 	{
@@ -89,6 +91,7 @@ void UUK_MainHUD::NativeConstruct()
 		if (InvComp)
 		{
 			InvComp->OnItemAdded.AddDynamic(this, &UUK_MainHUD::ShowItemNotify);
+			InvComp->OnItemAdded.AddDynamic(this, &UUK_MainHUD::HandleItemAdded_ShowNew);
 		}
 	}
 }
@@ -204,7 +207,8 @@ void UUK_MainHUD::OnInventoryButtonClicked()
 		{
 			// 화면에 추가
 			InvMainWidget->AddToViewport();
-
+			//NewText히든으로 숨김
+			SetInventoryNewVisible(false);
 			// 마우스 커서 활성화 및 입력 모드 변경
 			APlayerController* PC = GetOwningPlayer();
 			if (PC)
@@ -228,6 +232,18 @@ void UUK_MainHUD::OnInventoryButtonClicked()
 			}
 		}
 	}
+}
+
+void UUK_MainHUD::HandleItemAdded_ShowNew(FName ItemID, int32 Amount)
+{
+	SetInventoryNewVisible(true);
+}
+
+void UUK_MainHUD::SetInventoryNewVisible(bool bVisible)
+{
+	if (!NewText) return;
+
+	NewText->SetVisibility(bVisible ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
 }
 
 void UUK_MainHUD::ShowItemNotify(FName ItemID, int32 Amount)
