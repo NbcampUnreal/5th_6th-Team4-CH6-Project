@@ -8,6 +8,7 @@
 #include "GameplayTagContainer.h"
 #include "UK_PlayerController.h"
 #include "AIMonster/AIMonsterBase.h"
+#include "DataAsset/HitMontageDataAsset.h"
 #include "UK_CharacterBase.generated.h"
 
 #define ECC_LockOn ECollisionChannel::ECC_GameTraceChannel2
@@ -42,7 +43,8 @@ enum class EInputMode : uint8
 	Air,
 	NormalSkill,
 	UltimateSkill,
-	Parry
+	Parry,
+	Dash
 };
 
 UENUM(BlueprintType)
@@ -151,6 +153,8 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnCharacterAttribute OnChangedAttribute;
 
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UHitMontageDataAsset> HitMontageDataAsset;
 #pragma endregion
 
 #pragma region Interaction And Quest
@@ -221,7 +225,9 @@ protected:
 	void Interaction();
 
 	UFUNCTION()
-	void Setting();
+	void Setting();	
+	UFUNCTION()
+	void Dash();
 #pragma endregion
 
 public:
@@ -348,6 +354,7 @@ public:
 protected:
 	UPROPERTY()
 	bool bIsParry;
+	
 #pragma endregion
 
 #pragma region FindMonsterHPBar
@@ -358,9 +365,11 @@ public:
 	UPROPERTY()
 	TSet<AAIMonsterBase*> NearbyMonsters;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "UI/DetactBoundary")
-	float DetectRadius = 2000.0f;
+		UPROPERTY(BlueprintReadWrite, EditAnywhere,  Category = "UI/DetactBoundary")
+		float DetectRadius = 1500.0f;
 
-	FTimerHandle DetectTimer;
+		FTimerHandle DetectTimer;
+
+		bool bDrawDetectRadius = false;
 #pragma endregion
 };

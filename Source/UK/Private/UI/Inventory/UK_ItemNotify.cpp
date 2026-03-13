@@ -1,29 +1,30 @@
 ﻿#include "UI/Inventory/UK_ItemNotify.h"
-
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
 #include "Engine/DataTable.h"
 #include "Engine/Texture2D.h"
-
-#include "DataAsset/Data/UK_ItemData.h"
-
+#include "UI/Inventory/UK_ItemTableHelper.h"
 
 void UUK_ItemNotify::NotifyItem(FName ItemID, int32 Amount)
 {
-	if (!ItemDataTable || !ItemName || !ItemAmount) return;
+	if (ItemDataTables.Num() == 0 || !ItemName || !ItemAmount) return;
 
-	const FUK_ItemData* Row = ItemDataTable->FindRow<FUK_ItemData>(ItemID, TEXT("ItemNotify"));
-	if (!Row) return;
+	FUK_ItemTableRowView Row;
 
+	if ( !UK_ItemTableHelper::FindItemData(ItemDataTables, ItemID, Row) ) return;
 
-	ItemName->SetText(Row->ItemName);
+	ItemName->SetText(Row.ItemName);
 	ItemAmount->SetText(FText::FromString(FString::Printf(TEXT("x%d"), Amount)));
 
 	if (ItemIcon)
 	{
-		if (UTexture2D* Tex = Row->ItemIcon.LoadSynchronous())
+		if (UTexture2D* Tex = Row.ItemIcon.LoadSynchronous())
 		{
 			ItemIcon->SetBrushFromTexture(Tex, true);
+		}
+		else
+		{
+			ItemIcon->SetBrushFromTexture(nullptr, true);
 		}
 	}
 
@@ -38,6 +39,7 @@ void UUK_ItemNotify::NotifyItem(FName ItemID, int32 Amount)
 	}
 
 	StartAutoRemove();
+
 }
 
 void UUK_ItemNotify::StartAutoRemove()
@@ -69,7 +71,7 @@ void UUK_ItemNotify::PlayCloseAnimation()
 
 void UUK_ItemNotify::OnCloseAnimFinished()
 {
-	if (!bClosing) return;
+	if ( !bClosing ) return;
 	bClosing = false;
 
 	if (SlideOpenAnimation)
@@ -82,13 +84,11 @@ void UUK_ItemNotify::OnCloseAnimFinished()
 
 void UUK_ItemNotify::AddAmount(int32 DeltaAmount)
 {
-	//현재 수량에 델타를 더하고, 0보다 작아지면 0으로 고정
 	CachedAmount += DeltaAmount;
-	if (CachedAmount < 0) CachedAmount = 0;
+	if ( CachedAmount < 0 ) CachedAmount = 0;
 
 	UpdateAmountText();
 
-	//애니메이션이 재생 중이 아니라면 다시 재생
 	bClosing = false;
 	if (SlideOpenAnimation)
 	{

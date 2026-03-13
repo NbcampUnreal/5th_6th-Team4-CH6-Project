@@ -114,7 +114,7 @@ void UUK_MainHUD::UpdateHealthBar(const FOnAttributeChangeData& Data)
 	{
 		float MaxHealth =
 			ASC->GetNumericAttribute(
-				UUK_PlayerStatusAttributeSet::GetHealthAttribute());
+				UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute());
 		if (HealthBar && Data.NewValue > 0.f)
 		{
 			// 0.0 ~ 1.0 사이의 퍼센트 값으로 변환하여 반영
@@ -235,29 +235,28 @@ void UUK_MainHUD::ShowItemNotify(FName ItemID, int32 Amount)
 	if (!VB_ItemNotify) return;
 	if (!ItemNotifyClass) return;
 
-	//수정: IsInViewport() 쓰지 말고, VB에 붙어있는지(Parent 존재)로 체크
-	if (TObjectPtr<UUK_ItemNotify>* Found = ActiveNotifyMap.Find(ItemID)) //기존
+	if (TObjectPtr<UUK_ItemNotify>* Found = ActiveNotifyMap.Find(ItemID))
 	{
-		if (Found->Get() && Found->Get()->GetParent() != nullptr) //수정
+		if (Found->Get() && Found->Get()->GetParent() != nullptr)
 		{
-			Found->Get()->AddAmount(Amount); //기존
-			return; //기존
+			Found->Get()->AddAmount(Amount);
+			return;
 		}
 		else
 		{
-			ActiveNotifyMap.Remove(ItemID); //기존(정리)
+			ActiveNotifyMap.Remove(ItemID);
 		}
 	}
 
 	UUK_ItemNotify* Notify = CreateWidget<UUK_ItemNotify>(GetWorld(), ItemNotifyClass);
 	if (!Notify) return;
 
-	Notify->ItemDataTable = ItemDataTable;
+	Notify->ItemDataTables = ItemDataTables;
 	Notify->NotifyItem(ItemID, Amount);
 
 	VB_ItemNotify->AddChild(Notify);
 
-	ActiveNotifyMap.Add(ItemID, Notify); //기존
+	ActiveNotifyMap.Add(ItemID, Notify);
 
 	NotifyChildren();
 }

@@ -12,7 +12,6 @@ class UTextBlock;
 class UUK_DragEquipSlot;
 class UDataTable;
 
-//info
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInvSlotPreview, const FInventorySlot&, SlotData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInvSlotPreviewCleared);
 
@@ -30,7 +29,6 @@ public:
 	UFUNCTION()
 	void OnInvCompUpdated();
 
-	//info
 	UPROPERTY(BlueprintAssignable, Category = "InvHover")
 	FOnInvSlotPreview OnInvSlotPreview;
 
@@ -43,7 +41,6 @@ public:
 	UFUNCTION()
 	void HandleCategoryUnhovered();
 
-	//스위쳐 바인드
 	UPROPERTY(meta = (BindWidget))
 	UWidgetSwitcher* InvCateSwitcher;
 
@@ -59,7 +56,6 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UUK_CategoryTap* TapMaterial;
 
-	//카데고리 베이스 바인드
 	UPROPERTY(meta = (BindWidget))
 	UUK_InvCategoryBase* CategoryALL;
 
@@ -72,7 +68,6 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UUK_InvCategoryBase* CategoryMaterial;
 
-	//텍스트 바인드
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* TextBlock_ALL;
 
@@ -96,9 +91,9 @@ public:
 
 	UFUNCTION()
 	void CategoryTap(UUK_CategoryTap* CategoryTap);
+
 	void UpdateTabTextOpacity(UUK_CategoryTap* SelectedTap);
 
-	//드래그
 	UPROPERTY(meta = (BindWidgetOptional))
 	UUK_DragEquipSlot* EquipSlot1;
 
@@ -109,5 +104,8 @@ public:
 	UUK_DragEquipSlot* EquipSlot3;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equip")
-	UDataTable* ItemDataTable;
+	TArray<TObjectPtr<UDataTable>> ItemDataTables;
+
+	UFUNCTION(BlueprintCallable)
+	void ApplyItemDataTables();
 };

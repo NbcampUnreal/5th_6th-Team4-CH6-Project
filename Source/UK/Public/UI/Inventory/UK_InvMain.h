@@ -10,6 +10,7 @@ class UUK_InvTapbutton;
 class UUK_InvUI;
 class UUK_InvInfo;
 class UDataTable;
+class UUK_MoneyWidget;
 
 UCLASS()
 class UK_API UUK_InvMain : public UUserWidget
@@ -18,19 +19,17 @@ class UK_API UUK_InvMain : public UUserWidget
 
 public:
 
-	//바인드
 	UPROPERTY(meta = (BindWidget))
 	UWidgetSwitcher* InvSwitcher;
 
-	UPROPERTY(meta = ( BindWidget ))
+	UPROPERTY(meta = (BindWidget))
 	UUK_InvTapbutton* TapSystem;
 
-	UPROPERTY(meta = ( BindWidget ))
+	UPROPERTY(meta = (BindWidget))
 	UUK_InvTapbutton* TapInventory;
 
-	UPROPERTY(meta = ( BindWidget ))
+	UPROPERTY(meta = (BindWidget))
 	UUK_InvTapbutton* TapMap;
-
 
 	UPROPERTY(meta = (BindWidget))
 	UUK_InvUI* InvUI;
@@ -38,18 +37,20 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UUK_InvInfo* InvInfo;
 
+	UPROPERTY(meta = (BindWidgetOptional))
+	UUK_MoneyWidget* MoneyWidget;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inv")
-	UDataTable* ItemDataTable;
+	TArray<TObjectPtr<UDataTable>> ItemDataTables;
 
 	virtual void NativeConstruct() override;
 
 	UFUNCTION()
 	void TapClicked(UUK_InvTapbutton* ClickTap);
 
-	//info
 	UFUNCTION()
 	void OnPreviewSlot(const FInventorySlot& SlotData);
+
 	UFUNCTION()
 	void OnPreviewCleared();
-	
 };

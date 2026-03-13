@@ -22,7 +22,9 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Engine/OverlapResult.h"
 #include "Sound/SoundAttenuation.h"
+#include "Systems/UK_GameInstance.h"
 #include "DataAsset/Data/UK_WeaponItemData.h"
+
 
 #pragma region Defualt
 
@@ -196,9 +198,10 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	                        ETriggerEvent::Started, this, &ThisClass::NomalSkill);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::UltimateSkill),
 	                        ETriggerEvent::Started, this, &ThisClass::UltimateSkill);
-	// 패링 단축기 Y입니다
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::Parry),
 	                        ETriggerEvent::Started, this, &ThisClass::Parry);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Dash),
+	                        ETriggerEvent::Started, this, &ThisClass::Dash);
 }
 
 float AUK_CharacterBase::GetFloorDistance()
@@ -454,6 +457,14 @@ void AUK_CharacterBase::Setting()
 
 	PC->Setting_UI();
 }
+
+void AUK_CharacterBase::Dash()
+{
+	InputType = EInputMode::Dash;
+	FGameplayTagContainer Container;
+	Container.AddTag(UK_GameplayTags::Input::Dash);
+	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
+}
 #pragma endregion
 
 #pragma region LockOn
@@ -637,23 +648,23 @@ void AUK_CharacterBase::AddTarget(const TObjectPtr<AAIMonsterBase> Monster)
 bool AUK_CharacterBase::StartGliding()
 {
 	if (GetCharacterMovement()->IsFalling() == false)
-		return true;
-	if ( GetFloorDistance() < 220.f)
-	{
-		return true;
-	}
+		return false;
 	if (MovementMode == ECustomMovementMode::CMOVE_Glide)
 	{
-		EndGliding();
 		return false;
 	}
+	if ( GetFloorDistance() < 220.f)
+	{
+		return false;
+	}
+	GetCharacterMovement()->StopMovementImmediately();
 	FVector Vel = GetCharacterMovement()->Velocity;
 	Vel.Z = -GlideFallSpeed;
 	GetCharacterMovement()->GravityScale = 0.f;
 	GetCharacterMovement()->AirControl = 0.8;
 	GetCharacterMovement()->Velocity = Vel;
 	MovementMode = ECustomMovementMode::CMOVE_Glide;
-	return false;
+	return true;
 }
 
 void AUK_CharacterBase::EndGliding()
@@ -785,7 +796,10 @@ void AUK_CharacterBase::UpdateMonsterDetection()
 	FCollisionShape Sphere = FCollisionShape::MakeSphere(DetectRadius);
 	GetWorld()->OverlapMultiByObjectType(Results, GetActorLocation(), FQuat::Identity,
 	                                     FCollisionObjectQueryParams(ECC_Pawn), Sphere);
-	DrawDebugSphere(GetWorld(), GetActorLocation(), DetectRadius, 32, FColor::Green, false, 0.31f);
+	if ( bDrawDetectRadius )
+	{
+		DrawDebugSphere(GetWorld(), GetActorLocation(), DetectRadius, 32, FColor::Green, false, 0.31f);
+	}
 	TSet<AAIMonsterBase*> NewSet;
 	// overlap이 되는 것들의 data result 결과들
 	for (const FOverlapResult& Result : Results)
