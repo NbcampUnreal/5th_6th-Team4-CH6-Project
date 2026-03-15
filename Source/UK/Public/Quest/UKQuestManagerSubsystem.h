@@ -7,6 +7,7 @@
 #include "Quest/UKQuestObjectiveTypes.h"
 #include "Engine/DataTable.h"
 #include "DataAsset/Data/UK_ItemData.h"
+#include "DataAsset/NPCData/UK_NPCData.h"
 
 // [Preset] 추가 include
 #include "Quest/UKQuestPresetAsset.h"
@@ -51,19 +52,17 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void EmitQuestEvent(FName EventId);
 
+
+	// [4] Item EntityID / ItemDataTable
+	// 에디터 또는 경로 로드로 사용할 아이템 정보 데이터 테이블
 protected:
 
-	// [4] Reward / ItemDataTable
-	// 에디터 또는 경로 로드로 사용할 아이템 정보 데이터 테이블
 	UPROPERTY(EditDefaultsOnly, Category = "UK|Config")
 	class UDataTable* ItemDataTable;
 
 	// 아이템 데이터 테이블 소프트 경로
 	UPROPERTY(EditDefaultsOnly, Category = "UK|Config")
 	FSoftObjectPath ItemDataTablePath;
-
-	// ItemID(EntityID 컬럼)로 아이템 데이터를 찾는다
-	const FUK_ItemData* GetItemDataByItemID(FName ItemID) const;
 
 	// ItemID(EntityID) -> DataTable RowName 캐시
 	UPROPERTY(Transient)
@@ -73,14 +72,35 @@ protected:
 	void BuildItemIDCache();
 
 public:
-	// 퀘스트 보상을 실제로 지급하는 함수
-	UFUNCTION(BlueprintCallable, Category = "UK|Quest")
 
-	// ItemID(EntityID) 기반으로 보상 지급
-	void GiveQuestReward(FName ItemID, int32 Amount);
+	// ItemID(EntityID 컬럼)로 아이템 데이터를 찾는다
+	const FUK_ItemData* GetItemDataByItemID(FName ItemID) const;
+
+
+	// [5] NPC EntityID / NPCDataTable
+	// 에디터 또는 경로 로드로 사용할 NPC 정보 데이터 테이블
+protected:
+
+	UPROPERTY(EditDefaultsOnly, Category = "UK|Config|NPC")
+	class UDataTable* NPCDataTable;
+
+	// NPC 데이터 테이블 소프트 경로
+	UPROPERTY(EditDefaultsOnly, Category = "UK|Config|NPC")
+	FSoftObjectPath NPCDataTablePath;
+
+	// NPCID(EntityID) -> DataTable RowName 캐시
+	UPROPERTY(Transient)
+	TMap<FName, FName> NPCIDToRowName;
+
+	// 캐시 생성
+	void BuildNPCIDCache();
+
+public:
+	// NPCID(EntityID 컬럼)로 NPC 데이터를 찾는다
+	const FUK_NPCData* GetNPCDataByNPCID(FName NPCID) const;
 
 protected:
-	// [Reward v2] RewardId -> RewardRow(DataTable)
+	// [6] Reward / RewardDataTable
 	UPROPERTY(EditDefaultsOnly, Category = "UK|Quest|Reward")
 	TObjectPtr<UDataTable> RewardDataTable = nullptr;
 
@@ -90,9 +110,15 @@ protected:
 	// RewardId로 DT를 읽어 실제 지급/반영
 	bool ApplyRewardById(FName RewardId, FName QuestId /*로그용*/);
 
+public:
+	// 퀘스트 보상을 실제로 지급하는 함수
+	// ItemID(EntityID) 기반으로 퀘스트 보상 지급
+	UFUNCTION(BlueprintCallable, Category = "UK|Quest")
+	void GiveQuestReward(FName ItemID, int32 Amount);
+
 protected:
 
-	// [5] Preset
+	// [7] Preset
 	// 프리셋 에셋을 런타임에 들고 있기
 	UPROPERTY(Transient)
 	TObjectPtr<UUKQuestPresetAsset> PresetAsset = nullptr;
@@ -107,7 +133,7 @@ protected:
 	bool ParseQuestTagFromQuestId(FName QuestId, EUKQuestTag& OutTag) const;
 
 public:
-	// [6] Save/Load
+	// [8] Save/Load
 	UFUNCTION(BlueprintCallable)
 	bool SaveToSlot(const FString& SlotName = TEXT("UK_Save"), int32 UserIndex = 0);
 
@@ -115,7 +141,7 @@ public:
 	bool LoadFromSlot(const FString& SlotName = TEXT("UK_Save"), int32 UserIndex = 0);
 
 
-	// [7] 조회
+	// [9] 조회
 	UFUNCTION(BlueprintCallable)
 	bool GetProgress(FName QuestId, FQuestProgress& OutProgress) const;
 
