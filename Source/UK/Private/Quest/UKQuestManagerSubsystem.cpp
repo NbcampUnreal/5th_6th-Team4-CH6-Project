@@ -48,8 +48,8 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	{
 		if ( !ItemDataTablePath.IsValid() )
 		{
-			// 실제 경로는 에셋 우클릭 -> Copy Reference 로 확인
-			ItemDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/ItemData/DT_ItemTableble.DT_ItemTableble'"));
+			// 경로 하드코딩
+			ItemDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/DataTable/DT_ItemTable.DT_ItemTable'"));
 		}
 
 		if ( ItemDataTablePath.IsValid() )
@@ -84,11 +84,10 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	{
 		if ( !NPCDataTablePath.IsValid() )
 		{
-			NPCDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/NPCData/DT_NPCData.DT_NPCData'"));
+			// 경로 하드코딩
+			NPCDataTablePath = FSoftObjectPath(TEXT("/Game/DataTable/DT_NPCTable.DT_NPCTable'"));
 		}
 
-		// 실제 에셋 경로로 교체하세요.
-		// 예: DataTable'/Game/NPCData/DT_NPCData.DT_NPCData'
 		if ( NPCDataTablePath.IsValid() )
 		{
 			UObject* LoadedNPCDT = NPCDataTablePath.TryLoad();
@@ -120,9 +119,8 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	{
 		if ( !RewardDataTablePath.IsValid() )
 		{
-			// 예: DataTable'/Game/Rewards/DT_RewardTable.DT_RewardTable'
-			// 실제 경로는 에셋 우클릭 -> Copy Reference로 교체
-			RewardDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/Rewards/DT_RewardTable.DT_RewardTable'"));
+			// 경로 하드코딩
+			RewardDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/DataTable/DT_RewardTable.DT_RewardTable'"));
 		}
 
 		if ( RewardDataTablePath.IsValid() )
