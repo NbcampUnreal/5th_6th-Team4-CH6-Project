@@ -133,6 +133,9 @@ protected:
 	// RewardId로 DT를 읽어 실제 지급/반영
 	bool ApplyRewardById(FName RewardId, FName QuestId /*로그용*/);
 
+	// 플레이어 인벤토리 컴포넌트 찾기
+	class UUK_InventoryComponent* GetPlayerInventoryComponent() const;
+
 public:
 	// 퀘스트 보상을 실제로 지급하는 함수
 	// ItemID(EntityID) 기반으로 퀘스트 보상 지급
