@@ -15,7 +15,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Quest/UKQuestManagerSubsystem.h"
 #include "Tags/UK_GameplayTags.h"
-#include "AIMonster/DataTable/UK_MonsterLootRow.h"
+#include "DataAsset/DataTable/AIMonster/UK_MonsterLootRow.h"
 #include "ActorComponent/UK_InventoryComponent.h"
 
 #pragma region Initialization
@@ -702,8 +702,6 @@ void AAIMonsterBase::Die()
 		&AAIMonsterBase::FinalizeDeath,
 		CorpseLingerTime > 0.f ? 1.0f : 0.1f,
 		false);
-	
-	NotifyMonsterKilled(); 
 }
 
 void AAIMonsterBase::FinalizeDeath()
@@ -776,6 +774,7 @@ void AAIMonsterBase::ResetHealth()
 	);
 	
 	bIsDying = false;
+	bRewardGranted = false;
 	
 	UE_LOG(LogTemp, Log, TEXT("[%s] ResetHealth: HP restored to %.0f"), *GetName(), MaxHP);
 }

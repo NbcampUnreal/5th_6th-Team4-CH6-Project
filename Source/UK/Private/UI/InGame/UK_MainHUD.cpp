@@ -18,6 +18,8 @@ void UUK_MainHUD::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	SetInventoryNewVisible(false);
+
 	PlayerPawn = Cast<AUK_CharacterBase>(GetOwningPlayerPawn());
 	if (PlayerPawn)
 	{
@@ -89,6 +91,7 @@ void UUK_MainHUD::NativeConstruct()
 		if (InvComp)
 		{
 			InvComp->OnItemAdded.AddDynamic(this, &UUK_MainHUD::ShowItemNotify);
+			InvComp->OnItemAdded.AddDynamic(this, &UUK_MainHUD::HandleItemAdded_ShowNew);
 		}
 	}
 }
@@ -114,7 +117,7 @@ void UUK_MainHUD::UpdateHealthBar(const FOnAttributeChangeData& Data)
 	{
 		float MaxHealth =
 			ASC->GetNumericAttribute(
-				UUK_PlayerStatusAttributeSet::GetHealthAttribute());
+				UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute());
 		if (HealthBar && Data.NewValue > 0.f)
 		{
 			// 0.0 ~ 1.0 사이의 퍼센트 값으로 변환하여 반영
@@ -204,7 +207,8 @@ void UUK_MainHUD::OnInventoryButtonClicked()
 		{
 			// 화면에 추가
 			InvMainWidget->AddToViewport();
-
+			//NewText히든으로 숨김
+			SetInventoryNewVisible(false);
 			// 마우스 커서 활성화 및 입력 모드 변경
 			APlayerController* PC = GetOwningPlayer();
 			if (PC)
@@ -230,15 +234,26 @@ void UUK_MainHUD::OnInventoryButtonClicked()
 	}
 }
 
+void UUK_MainHUD::HandleItemAdded_ShowNew(FName ItemID, int32 Amount)
+{
+	SetInventoryNewVisible(true);
+}
+
+void UUK_MainHUD::SetInventoryNewVisible(bool bVisible)
+{
+	if (!NewText) return;
+
+	NewText->SetVisibility(bVisible ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
+}
+
 void UUK_MainHUD::ShowItemNotify(FName ItemID, int32 Amount)
 {
 	if (!VB_ItemNotify) return;
 	if (!ItemNotifyClass) return;
 
-	//수정: IsInViewport() 쓰지 말고, VB에 붙어있는지(Parent 존재)로 체크
-	if (TObjectPtr<UUK_ItemNotify>* Found = ActiveNotifyMap.Find(ItemID)) //기존
+	if (TObjectPtr<UUK_ItemNotify>* Found = ActiveNotifyMap.Find(ItemID))
 	{
-		if (Found->Get() && Found->Get()->GetParent() != nullptr) //수정
+		if (Found->Get() && Found->Get()->GetParent() != nullptr)
 		{
 			Found->Get()->AddAmount(Amount);
 			return;
