@@ -24,6 +24,7 @@ namespace UK_GameplayTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(LockOnToggle);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dash);
 	}
+
 	namespace Movement
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(None);
@@ -69,6 +70,7 @@ namespace UK_GameplayTags
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dead);
 	}
+
 	namespace Data
 	{
 		namespace Damages
@@ -90,10 +92,15 @@ namespace UK_GameplayTags
 				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Drop);
 				UE_DECLARE_GAMEPLAY_TAG_EXTERN(NormalSkill);
 				UE_DECLARE_GAMEPLAY_TAG_EXTERN(UltimateSkill);
-				
 			}
 		}
+
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Damage);
+
+		namespace WeaponStat
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(ExtraAttackPower);
+		}
 	}
 
 	namespace CoolDown
