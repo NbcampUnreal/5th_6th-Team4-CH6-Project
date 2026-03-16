@@ -1,6 +1,7 @@
 ﻿#include "AIMonster/MonsterSpawner/UK_SpawnZoneTrigger.h"
 #include "AIMonster/MonsterSpawner/UK_MonsterSpawner.h"
 #include "AIMonster/AIMonsterBase.h"
+#include "GameFramework/Actor.h"
 #include "Components/SphereComponent.h"
 
 #pragma region Initialization
@@ -34,6 +35,28 @@ void AUK_SpawnZoneTrigger::BeginPlay()
             Spawner->InitializeObjectPool();
         }
     }
+	
+	GetWorld()->GetTimerManager().SetTimerForNextTick([this]()
+	{
+		TArray<AActor*> OverlappedActors;
+		TriggerSphere->GetOverlappingActors(OverlappedActors);
+		
+		for (AActor* Actor : OverlappedActors)
+		{
+			if (Actor && Actor->ActorHasTag(TEXT("SandboxCharacter")))
+			{
+				PlayerRefCount++;
+				if (PlayerRefCount == 1)
+				{
+					for (AUK_MonsterSpawner* Spawner : ManagedSpawners)
+					{
+						if (IsValid(Spawner)) Spawner->StartSpawning();
+					}
+				}
+				break;
+			}
+		}
+	});
 }
 #pragma endregion
 
