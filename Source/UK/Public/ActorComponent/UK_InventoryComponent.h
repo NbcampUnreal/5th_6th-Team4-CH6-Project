@@ -8,6 +8,7 @@
 
 
 struct FUK_ItemData;
+struct FUK_WeaponItemData;
 USTRUCT(BlueprintType)
 struct FInventorySlot
 {
@@ -27,6 +28,7 @@ public:
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryUpdate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemAdded, FName, ItemID, int32, Amount);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnChangedGold, int32, Glod);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnChangedWeapon, int32, WeaponIndex);
 
 UCLASS(ClassGroup = ( Custom ), meta = ( BlueprintSpawnableComponent ))
 class UK_API UUK_InventoryComponent : public UActorComponent
@@ -59,7 +61,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	int32 RemoveItem(FName ItemID, int32 Amount = 1);
 
-	FInventorySlot* FindItemSlot(FName ItemID, const FUK_ItemData* ItemData);
+	FInventorySlot* FindItemSlot(FName ItemID, const FUK_ItemData* ItemData, const FUK_WeaponItemData* WeaponData);
 	FInventorySlot* FindEmptyItemSlot();
 	int32 GetItemTotalQuantity(FName ItemID) const;
 	UFUNCTION(BlueprintCallable)
@@ -90,7 +92,9 @@ public:
 	FOnItemAdded OnItemAdded;
 
 	UPROPERTY(BlueprintAssignable)
-	FOnChangedGold OnChangedGold;
+	FOnChangedGold OnChangedGold;	
+	UPROPERTY(BlueprintAssignable)
+	FOnChangedWeapon OnChangedWeapon;
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	TObjectPtr<UDataTable> ItemDataTable;

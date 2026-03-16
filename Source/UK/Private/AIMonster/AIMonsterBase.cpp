@@ -695,6 +695,20 @@ void AAIMonsterBase::Die()
 	}
 
 	SetState(EMonsterState::Dead);
+	
+	if (const FUK_MonsterMetaRow* Meta = GetMetaRow())
+	{
+		if (!Meta->MobEntityId.IsNone())
+		{
+			if (UUKQuestManagerSubsystem* QM =
+				GetGameInstance()->GetSubsystem<UUKQuestManagerSubsystem>())
+			{
+				const FName EventID(*FString::Printf(
+					TEXT("QuestEvent.Killed.%s"), *Meta->MobEntityId.ToString()));
+				QM->EmitQuestEvent(EventID);
+			}
+		}
+	}
 
 	FTimerHandle DeathTimer;
 	GetWorldTimerManager().SetTimer(
@@ -745,14 +759,6 @@ void AAIMonsterBase::HideAndBroadcastDeath()
 void AAIMonsterBase::NotifyMonsterKilled()
 {
 	OnMonsterKilled.Broadcast(this, MonsterType, LastAttackerController);
-
-	const FString EventId = GetKillEventId();
-	if (EventId.IsEmpty()) return;
-
-	if (UUKQuestManagerSubsystem* QM = GetGameInstance()->GetSubsystem<UUKQuestManagerSubsystem>())
-	{
-		QM->EmitQuestEvent(FName(*EventId));
-	}
 	
 	GrantRewardsToKiller();
 }
@@ -1042,13 +1048,6 @@ float AAIMonsterBase::CalculateExp(int32 PlayerLevel) const
 	return Row->BaseExp + Row->ExpPerLevel * (PlayerLevel - 1);
 }
 
-float AAIMonsterBase::CalculateGold(int32 PlayerLevel) const
-{
-	const FUK_MonsterStatRow* Row = GetStatRow();
-	if (!Row) return 0.f;
-	return Row->BaseGold + Row->GoldPerLevel * (PlayerLevel - 1);
-}
-
 FName AAIMonsterBase::GetRowName() const
 {
     const UEnum* Enum = StaticEnum<EMonsterType>();
@@ -1237,15 +1236,8 @@ void AAIMonsterBase::GrantRewardsToKiller()
         }
     }
 
-    // ── Gold ────────────────────────────────────────────
-    UUK_InventoryComponent* Inventory = KillerPawn->FindComponentByClass<UUK_InventoryComponent>();
-    if (Inventory)
-    {
-        GoldGain = FMath::RoundToInt(CalculateGold(PlayerLevel));
-        Inventory->AddGold(GoldGain);
-    }
-
     // ── 아이템 드롭 ──────────────────────────────────────
+    UUK_InventoryComponent* Inventory = KillerPawn->FindComponentByClass<UUK_InventoryComponent>();
     TArray<FString> DroppedItems;
 
     if (MonsterLootTable && Inventory)
@@ -1271,7 +1263,6 @@ void AAIMonsterBase::GrantRewardsToKiller()
     UE_LOG(LogTemp, Warning, TEXT("========= [Monster Killed: %s] ========="), *GetName());
     UE_LOG(LogTemp, Warning, TEXT("  Player Level : %d"), PlayerLevel);
     UE_LOG(LogTemp, Warning, TEXT("  EXP Gained   : %.1f"), ExpGain);
-    UE_LOG(LogTemp, Warning, TEXT("  Gold Gained  : %d"), GoldGain);
 
     if (DroppedItems.Num() == 0)
     {

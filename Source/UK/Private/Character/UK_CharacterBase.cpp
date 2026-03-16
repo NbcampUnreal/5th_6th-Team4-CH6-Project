@@ -22,7 +22,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Engine/OverlapResult.h"
 #include "Sound/SoundAttenuation.h"
-#include "Systems/UK_GameInstance.h"
+#include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
 #include "DataAsset/Data/UK_WeaponItemData.h"
 
 
@@ -36,7 +36,8 @@ AUK_CharacterBase::AUK_CharacterBase() :
 	bIsCrouched(false),
 	SprintSpeed(800.f),
 	GlideFallSpeed(200.f),
-	NowWeapon(nullptr)
+	NowWeapon(nullptr),
+	WeaponSlotIndex(0)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -95,7 +96,6 @@ AUK_CharacterBase::AUK_CharacterBase() :
 void AUK_CharacterBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-
 }
 
 void AUK_CharacterBase::Landed(const FHitResult& Hit)
@@ -126,6 +126,7 @@ void AUK_CharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
 
+	InventoryComponent->OnChangedWeapon.AddDynamic(this, &ThisClass::SwapWeapon);
 	PC = Cast<AUK_PlayerController>(GetController());
 
 	GetWorldTimerManager().SetTimer(
@@ -653,7 +654,7 @@ bool AUK_CharacterBase::StartGliding()
 	{
 		return false;
 	}
-	if ( GetFloorDistance() < 220.f)
+	if (GetFloorDistance() < 220.f)
 	{
 		return false;
 	}
@@ -681,8 +682,41 @@ void AUK_CharacterBase::EndGliding()
 
 #pragma region Weapon
 
+void AUK_CharacterBase::ChangeWeaponStat(const FUK_WeaponItemData* WeaponStat)
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (IsValid(ASC) == false)
+		return;
+
+	// 기존 무기 효과 제거
+	if (WeaponEffectHandle.IsValid())
+	{
+		ASC->RemoveActiveGameplayEffect(WeaponEffectHandle);
+		WeaponEffectHandle.Invalidate();
+	}
+
+	if (WeaponStat == nullptr)
+		return;
+	
+	FGameplayEffectSpecHandle SpecHandle =
+		ASC->MakeOutgoingSpec(WeaponStatEffect, 1.f, ASC->MakeEffectContext());
+
+	SpecHandle.Data->SetSetByCallerMagnitude(
+		UK_GameplayTags::Data::WeaponStat::ExtraAttackPower,
+		WeaponStat->ExtraAttackPower
+	);
+	
+	WeaponEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+}
+
 void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 {
+	if (NewWeapon == UK_GameplayTags::Weapon::WeaponRoot)
+	{
+		RightHandWeaponComponent->SetSkeletalMesh(nullptr);
+		LeftHandWeaponComponent->SetSkeletalMesh(nullptr);
+		return;
+	}
 	UUK_StatusAnimData* Weapon = WeaponList->FindAnimsDataAssetByTag(NewWeapon);
 	NowWeapon = Weapon;
 	if (IsValid(Weapon->GetRightHandWeapon()))
@@ -711,6 +745,14 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 
 void AUK_CharacterBase::SlotWeaponOne()
 {
+	if (WeaponSlotIndex == 1)
+	{
+		WeaponSlotIndex = 0;
+		ChangeWeaponStat(nullptr);
+		ChangedAttribute(ECharacterAttribute::None);
+		EquipWeapon(UK_GameplayTags::Weapon::WeaponRoot);
+	}
+	WeaponSlotIndex = 1;
 	FGameplayTagContainer Container;
 	Container.AddTag(UK_GameplayTags::Action::Swap1);
 	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
@@ -718,6 +760,14 @@ void AUK_CharacterBase::SlotWeaponOne()
 
 void AUK_CharacterBase::SlotWeaponTwo()
 {
+	if (WeaponSlotIndex == 2)
+	{
+		WeaponSlotIndex = 0;
+		ChangeWeaponStat(nullptr);
+		ChangedAttribute(ECharacterAttribute::None);
+		EquipWeapon(UK_GameplayTags::Weapon::WeaponRoot);
+	}
+	WeaponSlotIndex = 2;
 	FGameplayTagContainer Container;
 	Container.AddTag(UK_GameplayTags::Action::Swap2);
 	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
@@ -725,6 +775,15 @@ void AUK_CharacterBase::SlotWeaponTwo()
 
 void AUK_CharacterBase::SlotWeaponThree()
 {
+	if (WeaponSlotIndex == 3)
+	{
+		WeaponSlotIndex = 0;
+		ChangeWeaponStat(nullptr);
+		ChangedAttribute(ECharacterAttribute::None);
+		EquipWeapon(UK_GameplayTags::Weapon::WeaponRoot);
+	}
+	WeaponSlotIndex = 3;
+
 	FGameplayTagContainer Container;
 	Container.AddTag(UK_GameplayTags::Action::Swap3);
 	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
@@ -732,6 +791,8 @@ void AUK_CharacterBase::SlotWeaponThree()
 
 void AUK_CharacterBase::SwapWeapon(int32 Index)
 {
+	if (WeaponSlotIndex != index)
+		return;
 	if (IsValid(WeaponDataTable) == false)
 	{
 		UE_LOG(LogTemp, Display, TEXT("ItmeDataTable is Nullptr"));
@@ -740,6 +801,10 @@ void AUK_CharacterBase::SwapWeapon(int32 Index)
 	FInventorySlot* WeaponSlot = InventoryComponent->FindWeaponSlotbyIndex(Index);
 	if (WeaponSlot->isEmpty())
 	{
+		WeaponSlotIndex = 0;
+		ChangeWeaponStat(nullptr);
+		ChangedAttribute(ECharacterAttribute::None);
+		EquipWeapon(UK_GameplayTags::Weapon::WeaponRoot);
 		return;
 	}
 	const FUK_WeaponItemData* ItemData = WeaponDataTable->FindRow<FUK_WeaponItemData>(
@@ -748,6 +813,7 @@ void AUK_CharacterBase::SwapWeapon(int32 Index)
 	{
 		return;
 	}
+	ChangeWeaponStat(ItemData);
 	ChangedAttribute(ItemData->WeaponAttribute);
 	EquipWeapon(ItemData->ItemTag);
 }
@@ -796,7 +862,7 @@ void AUK_CharacterBase::UpdateMonsterDetection()
 	FCollisionShape Sphere = FCollisionShape::MakeSphere(DetectRadius);
 	GetWorld()->OverlapMultiByObjectType(Results, GetActorLocation(), FQuat::Identity,
 	                                     FCollisionObjectQueryParams(ECC_Pawn), Sphere);
-	if ( bDrawDetectRadius )
+	if (bDrawDetectRadius)
 	{
 		DrawDebugSphere(GetWorld(), GetActorLocation(), DetectRadius, 32, FColor::Green, false, 0.31f);
 	}

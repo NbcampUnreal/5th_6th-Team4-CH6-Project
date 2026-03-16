@@ -9,11 +9,14 @@ UAnimMontage* UUK_GetHitAbility::GetHitMontage()
 	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(GetAvatarActorFromActorInfo());
 	if (IsValid(Player) == false)
 		return nullptr;
-		
+
 	if (IsValid(Player->HitMontageDataAsset))
 	{
-		return Player->HitMontageDataAsset->FindHitMontageByType(HitType);
-		
+		UAnimMontage* HitAnim = Player->HitMontageDataAsset->FindHitMontageByType(HitType);
+		if (IsValid(HitAnim))
+		{
+			return HitAnim;
+		}
 	}
 	return nullptr;
 }
