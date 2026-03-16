@@ -8,6 +8,7 @@
 #include "Engine/DataTable.h"
 #include "DataAsset/Data/UK_ItemData.h"
 #include "DataAsset/NPCData/UK_NPCData.h"
+#include "DataAsset/DataTable/AIMonster/UK_MonsterMetaRow.h"
 
 // [Preset] 추가 include
 #include "Quest/UKQuestPresetAsset.h"
@@ -99,8 +100,30 @@ public:
 	// NPCID(EntityID 컬럼)로 NPC 데이터를 찾는다
 	const FUK_NPCData* GetNPCDataByNPCID(FName NPCID) const;
 
+
+	// [6] Monster EntityID / MonsterDataTable
 protected:
-	// [6] Reward / RewardDataTable
+
+	UPROPERTY(EditDefaultsOnly, Category = "UK|Config|Monster")
+	class UDataTable* MonsterDataTable;
+
+	// 몬스터 데이터 테이블 소프트 경로
+	UPROPERTY(EditDefaultsOnly, Category = "UK|Config|Monster")
+	FSoftObjectPath MonsterDataTablePath;
+
+	// MobEntityId(EntityID) -> DataTable RowName 캐시
+	UPROPERTY(Transient)
+	TMap<FName, FName> MonsterIDToRowName;
+
+	// 캐시 생성
+	void BuildMonsterIDCache();
+
+public:
+	// MobEntityId(EntityID 컬럼)로 몬스터 데이터를 찾는다
+	const FUK_MonsterMetaRow* GetMonsterDataByMonsterID(FName MonsterID) const;
+
+protected:
+	// [7] Reward / RewardDataTable
 	UPROPERTY(EditDefaultsOnly, Category = "UK|Quest|Reward")
 	TObjectPtr<UDataTable> RewardDataTable = nullptr;
 
@@ -118,7 +141,7 @@ public:
 
 protected:
 
-	// [7] Preset
+	// [8] Preset
 	// 프리셋 에셋을 런타임에 들고 있기
 	UPROPERTY(Transient)
 	TObjectPtr<UUKQuestPresetAsset> PresetAsset = nullptr;
@@ -133,7 +156,7 @@ protected:
 	bool ParseQuestTagFromQuestId(FName QuestId, EUKQuestTag& OutTag) const;
 
 public:
-	// [8] Save/Load
+	// [9] Save/Load
 	UFUNCTION(BlueprintCallable)
 	bool SaveToSlot(const FString& SlotName = TEXT("UK_Save"), int32 UserIndex = 0);
 
@@ -141,14 +164,14 @@ public:
 	bool LoadFromSlot(const FString& SlotName = TEXT("UK_Save"), int32 UserIndex = 0);
 
 
-	// [9] 조회
+	// [10] 조회
 	UFUNCTION(BlueprintCallable)
 	bool GetProgress(FName QuestId, FQuestProgress& OutProgress) const;
 
 	//----------------------------------------------------------------------------------------
 
 protected:
-	// [Quest Definitions] (신규)
+	// [11] [Quest Definitions]
 	UPROPERTY(Transient)
 	TMap<FName, TObjectPtr<const UUKQuestDefinitionAsset>> QuestDefinitions;
 
@@ -161,7 +184,7 @@ public:
 	const UUKQuestDefinitionAsset* GetQuestDefinition(FName QuestId) const;
 
 protected:
-	// [Progress Helpers] (신규)
+	// [12] [Progress Helpers]
 
 	FName MakeCounterKey(FName QuestId, FName CounterName) const; // C.<QuestID>.<Name>
 	FName MakeFlagKey(FName QuestId, FName Category) const;       // F.<QuestID>.<Category>

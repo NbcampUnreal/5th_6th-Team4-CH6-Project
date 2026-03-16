@@ -695,6 +695,20 @@ void AAIMonsterBase::Die()
 	}
 
 	SetState(EMonsterState::Dead);
+	
+	if (const FUK_MonsterMetaRow* Meta = GetMetaRow())
+	{
+		if (!Meta->MobEntityId.IsNone())
+		{
+			if (UUKQuestManagerSubsystem* QM =
+				GetGameInstance()->GetSubsystem<UUKQuestManagerSubsystem>())
+			{
+				const FName EventID(*FString::Printf(
+					TEXT("QuestEvent.Killed.%s"), *Meta->MobEntityId.ToString()));
+				QM->EmitQuestEvent(EventID);
+			}
+		}
+	}
 
 	FTimerHandle DeathTimer;
 	GetWorldTimerManager().SetTimer(
@@ -745,14 +759,6 @@ void AAIMonsterBase::HideAndBroadcastDeath()
 void AAIMonsterBase::NotifyMonsterKilled()
 {
 	OnMonsterKilled.Broadcast(this, MonsterType, LastAttackerController);
-
-	const FString EventId = GetKillEventId();
-	if (EventId.IsEmpty()) return;
-
-	if (UUKQuestManagerSubsystem* QM = GetGameInstance()->GetSubsystem<UUKQuestManagerSubsystem>())
-	{
-		QM->EmitQuestEvent(FName(*EventId));
-	}
 	
 	GrantRewardsToKiller();
 }
