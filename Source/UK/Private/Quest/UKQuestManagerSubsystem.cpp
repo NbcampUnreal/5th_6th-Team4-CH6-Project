@@ -36,6 +36,11 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 			UE_LOG(LogTemp, Warning, TEXT("[Quest][Preset] PresetAsset load FAILED. Path=%s"),
 				*PresetAssetPath.ToString());
 		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("[Quest][Preset] PresetAsset loaded OK. Path=%s"),
+				*PresetAssetPath.ToString());
+		}
 	}
 	else
 	{
@@ -85,7 +90,7 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		if ( !NPCDataTablePath.IsValid() )
 		{
 			// 경로 하드코딩
-			NPCDataTablePath = FSoftObjectPath(TEXT("/Game/DataTable/DT_NPCTable.DT_NPCTable'"));
+			NPCDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/DataTable/DT_NPCTable.DT_NPCTable'"));
 		}
 
 		if ( NPCDataTablePath.IsValid() )
@@ -114,6 +119,42 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		UE_LOG(LogTemp, Log, TEXT("[NPCID] NPCDataTable already assigned in editor."));
 	}
 
+	// [MonsterDataTable] Load
+	if ( !MonsterDataTable ) // 에디터에서 직접 할당했으면 그걸 우선 사용
+	{
+		if ( !MonsterDataTablePath.IsValid() )
+		{
+			// 실제 에셋 우클릭 -> Copy Reference 값으로 교체
+			// 예: DataTable'/Game/AIMonster/DT_MonsterMetaTable.DT_MonsterMetaTable'
+			MonsterDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/AIMonster/DT_MonsterMetaTable.DT_MonsterMetaTable'"));
+		}
+
+		if ( MonsterDataTablePath.IsValid() )
+		{
+			UObject* LoadedMonsterDT = MonsterDataTablePath.TryLoad();
+			MonsterDataTable = Cast<UDataTable>(LoadedMonsterDT);
+
+			if ( !MonsterDataTable )
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[MonsterID] MonsterDataTable load FAILED. Path=%s"),
+					*MonsterDataTablePath.ToString());
+			}
+			else
+			{
+				UE_LOG(LogTemp, Log, TEXT("[MonsterID] MonsterDataTable loaded OK. Path=%s"),
+					*MonsterDataTablePath.ToString());
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[MonsterID] MonsterDataTablePath invalid."));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("[MonsterID] MonsterDataTable already assigned in editor."));
+	}
+
 	// [Reward] Load 
 	if ( !RewardDataTable ) // 에디터에서 직접 할당했으면 그걸 우선 사용
 	{
@@ -130,23 +171,23 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 			if ( !RewardDataTable )
 			{
-				UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] RewardDataTable load FAILED. Path=%s"),
+				UE_LOG(LogTemp, Warning, TEXT("[RewardID] RewardDataTable load FAILED. Path=%s"),
 					*RewardDataTablePath.ToString());
 			}
 			else
 			{
-				UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] RewardDataTable loaded OK. Path=%s"),
+				UE_LOG(LogTemp, Log, TEXT("[RewardID] RewardDataTable loaded OK. Path=%s"),
 					*RewardDataTablePath.ToString());
 			}
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] RewardDataTablePath invalid."));
+			UE_LOG(LogTemp, Warning, TEXT("[RewardID] RewardDataTablePath invalid."));
 		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] RewardDataTable already assigned in editor."));
+		UE_LOG(LogTemp, Log, TEXT("[RewardID] RewardDataTable already assigned in editor."));
 	}
 
 	// [Quest Definitions] Auto Scan & Register
@@ -187,6 +228,7 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	}
 	BuildItemIDCache();
 	BuildNPCIDCache();
+	BuildMonsterIDCache();
 }
 
 
@@ -639,7 +681,62 @@ const FUK_NPCData* UUKQuestManagerSubsystem::GetNPCDataByNPCID(FName NPCID) cons
 	return NPCDataTable->FindRow<FUK_NPCData>(*RowName, TEXT("GetNPCDataByNPCID"));
 }
 
-// [9] Reward / RewardDataTable / 보상적용
+// [9] Monster EntityID / MonsterDataTable
+
+void UUKQuestManagerSubsystem::BuildMonsterIDCache()
+{
+	MonsterIDToRowName.Empty();
+
+	if ( !MonsterDataTable )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[MonsterID] MonsterDataTable is null. Cache build skipped."));
+		return;
+	}
+
+	const TArray<FName> RowNames = MonsterDataTable->GetRowNames();
+
+	for ( const FName RowName : RowNames )
+	{
+		const FUK_MonsterMetaRow* Row = MonsterDataTable->FindRow<FUK_MonsterMetaRow>(RowName, TEXT("BuildMonsterIDCache"));
+		if ( !Row ) continue;
+
+		// MobEntityId 컬럼이 비어있으면 스킵
+		if ( Row->MobEntityId.IsNone() )
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[MonsterID] Row has None MobEntityId. RowName=%s"), *RowName.ToString());
+			continue;
+		}
+
+		// 중복 MonsterID 방지
+		if ( MonsterIDToRowName.Contains(Row->MobEntityId) )
+		{
+			UE_LOG(LogTemp, Error, TEXT("[MonsterID] Duplicate MobEntityId=%s (RowName=%s)"),
+				*Row->MobEntityId.ToString(), *RowName.ToString());
+			continue;
+		}
+
+		MonsterIDToRowName.Add(Row->MobEntityId, RowName);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[MonsterID] Cache built. Count=%d"), MonsterIDToRowName.Num());
+}
+
+const FUK_MonsterMetaRow* UUKQuestManagerSubsystem::GetMonsterDataByMonsterID(FName MonsterID) const
+{
+	if ( !MonsterDataTable ) return nullptr;
+	if ( MonsterID.IsNone() ) return nullptr;
+
+	const FName* RowName = MonsterIDToRowName.Find(MonsterID);
+	if ( !RowName )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[MonsterID] Not found in cache: %s"), *MonsterID.ToString());
+		return nullptr;
+	}
+
+	return MonsterDataTable->FindRow<FUK_MonsterMetaRow>(*RowName, TEXT("GetMonsterDataByMonsterID"));
+}
+
+// [10] Reward / RewardDataTable / 보상적용
 
 // ApplyRewardById 구현
 bool UUKQuestManagerSubsystem::ApplyRewardById(FName RewardId, FName QuestId)
@@ -769,7 +866,7 @@ void UUKQuestManagerSubsystem::GiveQuestReward(FName ItemID, int32 Amount)
 		Amount);
 }
 
-// [10] Quest Definition 등록/조회
+// [11] Quest Definition 등록/조회
 bool UUKQuestManagerSubsystem::RegisterQuestDefinition(const UUKQuestDefinitionAsset* Definition)
 {
 	if ( !Definition ) return false;
@@ -789,7 +886,7 @@ const UUKQuestDefinitionAsset* UUKQuestManagerSubsystem::GetQuestDefinition(FNam
 }
 
 
-// [11] Progress Helpers (명명규칙 키 생성)
+// [12] Progress Helpers (명명규칙 키 생성)
 FName UUKQuestManagerSubsystem::MakeCounterKey(FName QuestId, FName CounterName) const
 {
 	// C.<QuestID>.<Name>
@@ -849,7 +946,7 @@ bool UUKQuestManagerSubsystem::IsObjectiveComplete(const FQuestProgress& P, cons
 	return false;
 }
 
-// [12] Auto Complete
+// [13] Auto Complete
 void UUKQuestManagerSubsystem::TryAutoCompleteQuest(FName QuestId)
 {
 	FQuestProgress* Prog = RuntimeProgress.Find(QuestId);
@@ -878,11 +975,14 @@ void UUKQuestManagerSubsystem::Deinitialize()
 {
 	ItemIDToRowName.Empty();
 	NPCIDToRowName.Empty();
+	MonsterIDToRowName.Empty();
 	RuntimeProgress.Empty();
 	QuestDefinitions.Empty();
+
 	PresetAsset = nullptr;
 	ItemDataTable = nullptr;
 	NPCDataTable = nullptr;
+	MonsterDataTable = nullptr;
 	RewardDataTable = nullptr;
 	Super::Deinitialize();
 }
