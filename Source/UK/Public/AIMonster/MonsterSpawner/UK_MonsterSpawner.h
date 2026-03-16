@@ -62,11 +62,13 @@ public:
 #pragma endregion
 
 #pragma region Object Pool
-private:
+public:                                    
 	void InitializeObjectPool();
+	TArray<AAIMonsterBase*> GetActiveMonsters() const { return ActiveMonsters; }
 	AAIMonsterBase* GetMonsterFromPool();
 	void ReturnMonsterToPool(AAIMonsterBase* Monster);
-
+    
+private:
 	UPROPERTY()
 	TArray<AAIMonsterBase*> ObjectPool;
 

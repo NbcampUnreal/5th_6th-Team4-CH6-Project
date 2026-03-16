@@ -3,6 +3,7 @@
 
 #include "ActorComponent/UK_InventoryComponent.h"
 #include "DataAsset/Data/UK_ItemData.h"
+#include "DataAsset/Data/UK_WeaponItemData.h"
 #include "UI/Inventory/UK_InvUI.h"
 
 // Sets default values for this component's properties
@@ -13,8 +14,6 @@ UUK_InventoryComponent::UUK_InventoryComponent() :
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
-
-
 }
 
 // Called every frame
@@ -24,13 +23,12 @@ UUK_InventoryComponent::UUK_InventoryComponent() :
 //}
 
 
- //Called when the game starts
+//Called when the game starts
 void UUK_InventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	InventorySlots.SetNum(InventoryCapacity);
 	WeaponSlots.SetNum(WeaponCapacity);
-
 }
 
 void UUK_InventoryComponent::BroadcastInventoryUpdate() const
@@ -40,42 +38,66 @@ void UUK_InventoryComponent::BroadcastInventoryUpdate() const
 int32 UUK_InventoryComponent::AddItem(FName ItemID, int32 Amount)
 {
 	// 유효성 검사
-	if ( !IsValid(ItemDataTable) || Amount <= 0 )
+	if (!IsValid(ItemDataTable) || Amount <= 0)
 		return false;
 
 	// 데이터 테이블에서 데이터 찾아오기
-	const FUK_ItemData* ItemData = 
+	const FUK_ItemData* ItemData =
 		ItemDataTable->FindRow<FUK_ItemData>(ItemID, TEXT("UUK_InventoryComponent::AddItem"));
-	
-	if ( ItemData == nullptr )
+	const FUK_WeaponItemData* WeaponData =
+		ItemDataTable->FindRow<FUK_WeaponItemData>(ItemID, TEXT("UUK_InventoryComponent::AddItem"));
+
+
+	if (ItemData == nullptr && WeaponData == nullptr)
 	{
 		UE_LOG(LogTemp, Display, TEXT("아이템 데이터 테이블에 존재하지 않는 ID가 있습니다 : %s"), *ItemID.ToString());
 		return false;
 	}
-
 	//추가될 아이템의 수
 	int32 AmountToAdd = Amount;
 
-	// 아이템이 중복으로 중접될수 있다면
-	if ( ItemData->MaxItemStack > 1 )
+	if (ItemData)
 	{
-		// 동일 아이템 슬롯 확인
-		FInventorySlot* ExistingSlot = FindItemSlot(ItemID, ItemData);
-		if ( ExistingSlot != nullptr )
+		// 아이템이 중복으로 중접될수 있다면
+		if (ItemData->MaxItemStack > 1)
 		{
-			// 슬롯에 합칠수 있는 남은 공간
-			int32 SpaceLeft = ItemData->MaxItemStack - ExistingSlot->Quantity;
+			// 동일 아이템 슬롯 확인
+			FInventorySlot* ExistingSlot = FindItemSlot(ItemID, ItemData, nullptr);
+			if (ExistingSlot != nullptr)
+			{
+				// 슬롯에 합칠수 있는 남은 공간
+				int32 SpaceLeft = ItemData->MaxItemStack - ExistingSlot->Quantity;
 
-			// 슬롯에 추가할 수 있는 아이템의 수 계산
-			int32 AmountToFill = FMath::Min(AmountToAdd, SpaceLeft);
-			ExistingSlot->Quantity += AmountToFill; /*아이템 추가*/
-			AmountToAdd -= AmountToFill; /*추가 되지 못한 아이템의 갯수*/
+				// 슬롯에 추가할 수 있는 아이템의 수 계산
+				int32 AmountToFill = FMath::Min(AmountToAdd, SpaceLeft);
+				ExistingSlot->Quantity += AmountToFill; /*아이템 추가*/
+				AmountToAdd -= AmountToFill; /*추가 되지 못한 아이템의 갯수*/
+			}
 		}
 	}
-	while ( AmountToAdd > 0 )
+	else if (WeaponData)
+	{
+		// 아이템이 중복으로 중접될수 있다면
+		if (WeaponData->MaxItemStack > 1)
+		{
+			// 동일 아이템 슬롯 확인
+			FInventorySlot* ExistingSlot = FindItemSlot(ItemID, nullptr, WeaponData);
+			if (ExistingSlot != nullptr)
+			{
+				// 슬롯에 합칠수 있는 남은 공간
+				int32 SpaceLeft = WeaponData->MaxItemStack - ExistingSlot->Quantity;
+
+				// 슬롯에 추가할 수 있는 아이템의 수 계산
+				int32 AmountToFill = FMath::Min(AmountToAdd, SpaceLeft);
+				ExistingSlot->Quantity += AmountToFill; /*아이템 추가*/
+				AmountToAdd -= AmountToFill; /*추가 되지 못한 아이템의 갯수*/
+			}
+		}
+	}
+	while (AmountToAdd > 0)
 	{
 		FInventorySlot* EmptySlot = FindEmptyItemSlot();
-		if ( EmptySlot == nullptr )
+		if (EmptySlot == nullptr)
 		{
 			UE_LOG(LogTemp, Display, TEXT("인벤토리 공간이 부족합니다."));
 
@@ -96,12 +118,16 @@ int32 UUK_InventoryComponent::AddItem(FName ItemID, int32 Amount)
 int32 UUK_InventoryComponent::RemoveItem(FName ItemID, int32 Amount)
 {
 	// 유효성 검사
-	if ( IsValid(ItemDataTable) == false || Amount <= 0 )
+	if (IsValid(ItemDataTable) == false || Amount <= 0)
 		return false;
 
 	/*추가와 로직이 비슷함 이하 생략*/
-	const FUK_ItemData* ItemData = ItemDataTable->FindRow<FUK_ItemData>(ItemID, TEXT("UUK_InventoryComponent::AddItem"));
-	if ( ItemData == nullptr )
+	const FUK_ItemData* ItemData =
+		ItemDataTable->FindRow<FUK_ItemData>(ItemID, TEXT("UUK_InventoryComponent::AddItem"));
+	const FUK_WeaponItemData* WeaponData =
+		ItemDataTable->FindRow<FUK_WeaponItemData>(ItemID, TEXT("UUK_InventoryComponent::AddItem"));
+
+	if (ItemData == nullptr && WeaponData == nullptr)
 	{
 		UE_LOG(LogTemp, Display, TEXT("아이템 데이터 테이블에 존재하지 않는 ID가 있습니다 : %s"), *ItemID.ToString());
 		return false;
@@ -109,11 +135,11 @@ int32 UUK_InventoryComponent::RemoveItem(FName ItemID, int32 Amount)
 
 	int32 AmountToRemove = Amount;
 
-	while ( AmountToRemove > 0 )
+	while (AmountToRemove > 0)
 	{
-		FInventorySlot* ExistingSlot = FindItemSlot(ItemID, ItemData);
+		FInventorySlot* ExistingSlot = FindItemSlot(ItemID, ItemData, WeaponData);
 
-		if ( ExistingSlot == nullptr )
+		if (ExistingSlot == nullptr)
 		{
 			UE_LOG(LogTemp, Display, TEXT("제거될 아이템이 없습니다"));
 			return AmountToRemove;
@@ -123,7 +149,7 @@ int32 UUK_InventoryComponent::RemoveItem(FName ItemID, int32 Amount)
 		ExistingSlot->Quantity -= AmountToTake;
 		AmountToRemove -= AmountToTake;
 
-		if ( ExistingSlot->Quantity == 0 )
+		if (ExistingSlot->Quantity == 0)
 		{
 			ExistingSlot->Clear();
 		}
@@ -132,11 +158,38 @@ int32 UUK_InventoryComponent::RemoveItem(FName ItemID, int32 Amount)
 	return true;
 }
 
-FInventorySlot* UUK_InventoryComponent::FindItemSlot(FName ItemID, const FUK_ItemData* ItemData)
+FInventorySlot* UUK_InventoryComponent::FindItemSlot(FName ItemID, const FUK_ItemData* ItemData,
+                                                     const FUK_WeaponItemData* WeaponData)
 {
-	for ( FInventorySlot& Slot : InventorySlots )
+	if (ItemData)
 	{
-		if ( !Slot.isEmpty() && Slot.ItemID == ItemID && Slot.Quantity < ItemData->MaxItemStack )
+		for (FInventorySlot& Slot : InventorySlots)
+		{
+			if (!Slot.isEmpty() && Slot.ItemID == ItemID && Slot.Quantity < ItemData->MaxItemStack)
+			{
+				return &Slot;
+			}
+		}
+	}
+	else if (WeaponData)
+	{
+		for (FInventorySlot& Slot : InventorySlots)
+		{
+			if (!Slot.isEmpty() && Slot.ItemID == ItemID && Slot.Quantity < WeaponData->MaxItemStack)
+			{
+				return &Slot;
+			}
+		}
+		
+	}
+	return nullptr;
+}
+
+FInventorySlot* UUK_InventoryComponent::FindEmptyItemSlot()
+{
+	for (FInventorySlot& Slot : InventorySlots)
+	{
+		if (Slot.isEmpty() == true)
 		{
 			return &Slot;
 		}
@@ -144,21 +197,10 @@ FInventorySlot* UUK_InventoryComponent::FindItemSlot(FName ItemID, const FUK_Ite
 	return nullptr;
 }
 
-FInventorySlot* UUK_InventoryComponent::FindEmptyItemSlot()
-{
-	for ( FInventorySlot& Slot : InventorySlots )
-	{
-		if ( Slot.isEmpty()  == true)
-		{
-			return &Slot;
-		}
-	}
-	return nullptr;
-}
 int32 UUK_InventoryComponent::GetItemTotalQuantity(FName ItemID) const
 {
 	int32 Total = 0;
-    
+
 	for (const FInventorySlot& Slot : InventorySlots)
 	{
 		if (!Slot.isEmpty() && Slot.ItemID == ItemID)
@@ -166,15 +208,16 @@ int32 UUK_InventoryComponent::GetItemTotalQuantity(FName ItemID) const
 			Total += Slot.Quantity;
 		}
 	}
-    
+
 	return Total;
 }
+
 bool UUK_InventoryComponent::AddWeapon(FName ItemID, int32 index)
 {
-	if ( index == -1 ) /*자동 으로 빈자리에 추가*/
+	if (index == -1) /*자동 으로 빈자리에 추가*/
 	{
 		FInventorySlot* EmptySlot = FindEmptyWeaponSlot();
-		if ( EmptySlot == nullptr )
+		if (EmptySlot == nullptr)
 		{
 			UE_LOG(LogTemp, Display, TEXT("남은 슬롯이 없습니다."));
 			return false;
@@ -188,7 +231,7 @@ bool UUK_InventoryComponent::AddWeapon(FName ItemID, int32 index)
 	// 기존에 있던 슬롯
 	FInventorySlot* Slot = FindWeaponSlotbyIndex(index);
 
-	if ( Slot->isEmpty() == true) /*지정시 자리에 있던 무기와 교환 or 지정된 자리에 추가*/
+	if (Slot->isEmpty() == true) /*지정시 자리에 있던 무기와 교환 or 지정된 자리에 추가*/
 	{
 		Slot->ItemID = ItemID;
 		Slot->Quantity = 1;
@@ -201,17 +244,19 @@ bool UUK_InventoryComponent::AddWeapon(FName ItemID, int32 index)
 		Slot->ItemID = ItemID;
 		Slot->Quantity = 1;
 	}
+	OnChangedWeapon.Broadcast(index);
 	return true;
 }
 
 bool UUK_InventoryComponent::RemoveWeapon(FName ItemID, int32 index)
 {
-	FInventorySlot* WeaponSlot = &WeaponSlots[ index ];
-	
-	if ( AddItem(WeaponSlot->ItemID) == false )
+	FInventorySlot* WeaponSlot = &WeaponSlots[index];
+
+	if (AddItem(WeaponSlot->ItemID) == false)
 	{
 		return false;
 	}
+	OnChangedWeapon.Broadcast(index);
 	WeaponSlot->Clear();
 	return true;
 }
@@ -222,7 +267,7 @@ int32 UUK_InventoryComponent::subtractionGold(int32 cost)
 	{
 		return Gold - cost; // 부족한 값을 리턴  
 	}
-	
+
 	Gold -= cost;
 	OnChangedGold.Broadcast(Gold);
 	return Gold;
@@ -243,9 +288,9 @@ bool UUK_InventoryComponent::AddGold(int32 Value)
 
 FInventorySlot* UUK_InventoryComponent::FindWeaponSlot(FName ItemID)
 {
-	for ( FInventorySlot& Slot : WeaponSlots )
+	for (FInventorySlot& Slot : WeaponSlots)
 	{
-		if ( Slot.isEmpty() == false && Slot.ItemID == ItemID )
+		if (Slot.isEmpty() == false && Slot.ItemID == ItemID)
 		{
 			return &Slot;
 		}
@@ -256,19 +301,17 @@ FInventorySlot* UUK_InventoryComponent::FindWeaponSlot(FName ItemID)
 
 FInventorySlot* UUK_InventoryComponent::FindWeaponSlotbyIndex(int32 index)
 {
-	return &WeaponSlots[ index ];
+	return &WeaponSlots[index];
 }
 
 FInventorySlot* UUK_InventoryComponent::FindEmptyWeaponSlot()
 {
-	for ( FInventorySlot& Slot : WeaponSlots )
+	for (FInventorySlot& Slot : WeaponSlots)
 	{
-		if ( Slot.isEmpty() == true)
+		if (Slot.isEmpty() == true)
 		{
 			return &Slot;
 		}
 	}
 	return nullptr;
 }
-
-

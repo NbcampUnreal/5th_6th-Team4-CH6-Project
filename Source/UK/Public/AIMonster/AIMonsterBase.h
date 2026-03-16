@@ -297,9 +297,6 @@ private:
 	FTimerHandle CorpseTimerHandle;
 	void HideAndBroadcastDeath();
 	
-	/* 킬 알림 전송 */
-	void NotifyMonsterKilled();
-
 public:
 
 	UUK_MonsterHealthBar* GetHPWidget() const;
@@ -422,9 +419,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Monster|Data")
 	float CalculateExp(int32 PlayerLevel) const;
-	
-	UFUNCTION(BlueprintPure, Category = "Monster|Data")
-	float CalculateGold(int32 PlayerLevel) const;
 	
 private:
 	bool bRewardGranted = false;
