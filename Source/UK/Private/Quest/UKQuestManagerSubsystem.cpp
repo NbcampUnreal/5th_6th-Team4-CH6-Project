@@ -11,7 +11,6 @@
 #include "GameFramework/Pawn.h"
 
 // 캐릭터 xp 부여관련
-
 #include "AbilitySystemInterface.h"
 #include "AbilitySystemComponent.h"
 #include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
@@ -64,7 +63,7 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		if ( !ItemDataTablePath.IsValid() )
 		{
 			// 경로 하드코딩
-			ItemDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/DataTable/DT_ItemTable.DT_ItemTable'"));
+			ItemDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/ItemData/DT_ItemTableble.DT_ItemTableble'"));
 		}
 
 		if ( ItemDataTablePath.IsValid() )
@@ -100,7 +99,7 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		if ( !NPCDataTablePath.IsValid() )
 		{
 			// 경로 하드코딩
-			NPCDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/DataTable/DT_NPCTable.DT_NPCTable'"));
+			NPCDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/ItemData/DT_NPCTable.DT_NPCTable'"));
 		}
 
 		if ( NPCDataTablePath.IsValid() )
@@ -171,7 +170,7 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		if ( !RewardDataTablePath.IsValid() )
 		{
 			// 경로 하드코딩
-			RewardDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/DataTable/DT_RewardTable.DT_RewardTable'"));
+			RewardDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/ItemData/DT_RewardTable.DT_RewardTable'"));
 		}
 
 		if ( RewardDataTablePath.IsValid() )
