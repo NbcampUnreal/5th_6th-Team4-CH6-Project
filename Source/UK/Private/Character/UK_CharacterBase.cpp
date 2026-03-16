@@ -705,7 +705,7 @@ void AUK_CharacterBase::ChangeWeaponStat(const FUK_WeaponItemData* WeaponStat)
 		UK_GameplayTags::Data::WeaponStat::ExtraAttackPower,
 		WeaponStat->ExtraAttackPower
 	);
-
+	
 	WeaponEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 }
 
@@ -751,6 +751,7 @@ void AUK_CharacterBase::SlotWeaponOne()
 		ChangeWeaponStat(nullptr);
 		ChangedAttribute(ECharacterAttribute::None);
 		EquipWeapon(UK_GameplayTags::Weapon::WeaponRoot);
+		return;
 	}
 	WeaponSlotIndex = 1;
 	FGameplayTagContainer Container;
@@ -766,6 +767,7 @@ void AUK_CharacterBase::SlotWeaponTwo()
 		ChangeWeaponStat(nullptr);
 		ChangedAttribute(ECharacterAttribute::None);
 		EquipWeapon(UK_GameplayTags::Weapon::WeaponRoot);
+		return;
 	}
 	WeaponSlotIndex = 2;
 	FGameplayTagContainer Container;
@@ -781,6 +783,7 @@ void AUK_CharacterBase::SlotWeaponThree()
 		ChangeWeaponStat(nullptr);
 		ChangedAttribute(ECharacterAttribute::None);
 		EquipWeapon(UK_GameplayTags::Weapon::WeaponRoot);
+		return;
 	}
 	WeaponSlotIndex = 3;
 
@@ -791,7 +794,7 @@ void AUK_CharacterBase::SlotWeaponThree()
 
 void AUK_CharacterBase::SwapWeapon(int32 Index)
 {
-	if (WeaponSlotIndex != index)
+	if (WeaponSlotIndex != index+1)
 		return;
 	if (IsValid(WeaponDataTable) == false)
 	{
@@ -811,6 +814,10 @@ void AUK_CharacterBase::SwapWeapon(int32 Index)
 		WeaponSlot->ItemID, TEXT("AUK_CharacterBase::SwapWeapon"));
 	if (ItemData == nullptr)
 	{
+		WeaponSlotIndex = 0;
+		ChangeWeaponStat(nullptr);
+		ChangedAttribute(ECharacterAttribute::None);
+		EquipWeapon(UK_GameplayTags::Weapon::WeaponRoot);
 		return;
 	}
 	ChangeWeaponStat(ItemData);
