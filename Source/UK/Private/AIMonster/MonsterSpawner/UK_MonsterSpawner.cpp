@@ -21,12 +21,6 @@ AUK_MonsterSpawner::AUK_MonsterSpawner()
 void AUK_MonsterSpawner::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (MonsterClass)
-	{
-		InitializeObjectPool();
-		StartSpawning();
-	}
 }
 
 void AUK_MonsterSpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
