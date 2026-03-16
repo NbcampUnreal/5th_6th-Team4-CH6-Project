@@ -705,7 +705,7 @@ void AUK_CharacterBase::ChangeWeaponStat(const FUK_WeaponItemData* WeaponStat)
 		UK_GameplayTags::Data::WeaponStat::ExtraAttackPower,
 		WeaponStat->ExtraAttackPower
 	);
-
+	
 	WeaponEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 }
 

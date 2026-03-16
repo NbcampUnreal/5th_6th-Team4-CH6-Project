@@ -20,5 +20,5 @@ public:
 	UAnimMontage* FindHitMontageByType(EHitReactionType TargetType);
 protected:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
-	TMap<EHitReactionType,UAnimMontage*> HitMontageMap;
+	TMap<EHitReactionType,TObjectPtr<UAnimMontage>> HitMontageMap;
 };
