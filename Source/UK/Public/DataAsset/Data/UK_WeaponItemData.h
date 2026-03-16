@@ -13,7 +13,7 @@ USTRUCT(BlueprintType)
 
 struct FUK_WeaponItemData : public FTableRowBase
 {
-GENERATED_BODY()
+	GENERATED_BODY()
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	FName ItemID;
@@ -38,4 +38,7 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	ECharacterAttribute WeaponAttribute;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float ExtraAttackPower;
 };

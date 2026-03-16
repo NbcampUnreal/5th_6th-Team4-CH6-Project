@@ -92,7 +92,10 @@ namespace UK_GameplayTags
 			}
 		}
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Damage, "Data.Damage", "Damage Data")
-		
+		namespace WeaponStat
+		{
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(ExtraAttackPower, "Data.WeaponStat.ExtraAttackPower", "WeaponStat")
+		}
 	}
 
 	namespace CoolDown
