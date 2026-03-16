@@ -6,6 +6,15 @@
 #include "UObject/SoftObjectPath.h"
 #include "server/UKSaveGame.h"
 
+// 인벤토리 관련
+#include "ActorComponent/UK_InventoryComponent.h"
+#include "GameFramework/Pawn.h"
+
+// 캐릭터 xp 부여관련
+#include "AbilitySystemInterface.h"
+#include "AbilitySystemComponent.h"
+#include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
+
 // Preset
 #include "Quest/UKQuestPresetLibrary.h" // ApplyPresetToProgress
 
@@ -54,7 +63,7 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		if ( !ItemDataTablePath.IsValid() )
 		{
 			// 경로 하드코딩
-			ItemDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/DataTable/DT_ItemTable.DT_ItemTable'"));
+			ItemDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/ItemData/DT_ItemTableble.DT_ItemTableble'"));
 		}
 
 		if ( ItemDataTablePath.IsValid() )
@@ -90,7 +99,7 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		if ( !NPCDataTablePath.IsValid() )
 		{
 			// 경로 하드코딩
-			NPCDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/DataTable/DT_NPCTable.DT_NPCTable'"));
+			NPCDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/ItemData/DT_NPCTable.DT_NPCTable'"));
 		}
 
 		if ( NPCDataTablePath.IsValid() )
@@ -161,7 +170,7 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		if ( !RewardDataTablePath.IsValid() )
 		{
 			// 경로 하드코딩
-			RewardDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/DataTable/DT_RewardTable.DT_RewardTable'"));
+			RewardDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/ItemData/DT_RewardTable.DT_RewardTable'"));
 		}
 
 		if ( RewardDataTablePath.IsValid() )
@@ -738,6 +747,52 @@ const FUK_MonsterMetaRow* UUKQuestManagerSubsystem::GetMonsterDataByMonsterID(FN
 
 // [10] Reward / RewardDataTable / 보상적용
 
+
+// 인벤토리 컴포넌트 찾는 함수
+UUK_InventoryComponent* UUKQuestManagerSubsystem::GetPlayerInventoryComponent() const
+{
+	UWorld* World = GetWorld();
+	if ( !World ) return nullptr;
+
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(World, 0);
+	if ( !PlayerPawn ) return nullptr;
+
+	return PlayerPawn->FindComponentByClass<UUK_InventoryComponent>();
+}
+
+// 아이템 지급
+void UUKQuestManagerSubsystem::GiveQuestReward(FName ItemID, int32 Amount)
+{
+	if ( ItemID.IsNone() )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Reward] GiveQuestReward failed: ItemID is None"));
+		return;
+	}
+
+	if ( Amount <= 0 )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Reward] GiveQuestReward failed: invalid Amount=%d, ItemID=%s"),
+			Amount, *ItemID.ToString());
+		return;
+	}
+
+	const FUK_ItemData* Data = GetItemDataByItemID(ItemID);
+	if ( !Data )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Reward] GiveQuestReward failed: Item data not found for ItemID=%s"),
+			*ItemID.ToString());
+		return;
+	}
+
+	// TODO: 실제 인벤토리 지급 연결
+	// 예: InventoryComponent->AddItem(ItemID, Amount);
+
+	UE_LOG(LogTemp, Log, TEXT("[Reward] Item Given: ItemID=%s Name=%s x%d"),
+		*ItemID.ToString(),
+		*Data->ItemName.ToString(),
+		Amount);
+}
+
 // ApplyRewardById 구현
 bool UUKQuestManagerSubsystem::ApplyRewardById(FName RewardId, FName QuestId)
 {
@@ -763,23 +818,72 @@ bool UUKQuestManagerSubsystem::ApplyRewardById(FName RewardId, FName QuestId)
 		return false;
 	}
 
-	// 1) Gold / XP (지금은 로그만. 나중에 PlayerState/Inventory로 연결)
+	// 1) Gold / XP
 	if ( Row->Gold != 0 )
 	{
-		UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] Gold +%d (Quest=%s RewardId=%s)"),
-			Row->Gold, *QuestId.ToString(), *RewardId.ToString());
-
-		// TODO: 실제 골드 지급 연결
-		// 예: UKCurrencySubsystem->AddGold(Row->Gold);
+		UUK_InventoryComponent* InventoryComp = GetPlayerInventoryComponent();
+		if ( !InventoryComp )
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] InventoryComponent not found. Gold reward failed. Quest=%s RewardId=%s"),
+				*QuestId.ToString(), *RewardId.ToString());
+		}
+		else
+		{
+			const bool bGoldAdded = InventoryComp->AddGold(Row->Gold);
+			if ( bGoldAdded )
+			{
+				UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] Gold +%d applied. CurrentGold=%d (Quest=%s RewardId=%s)"),
+					Row->Gold,
+					InventoryComp->GetGold(),
+					*QuestId.ToString(),
+					*RewardId.ToString());
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] AddGold failed. Value=%d Quest=%s RewardId=%s"),
+					Row->Gold,
+					*QuestId.ToString(),
+					*RewardId.ToString());
+			}
+		}
 	}
 
 	if ( Row->XP != 0 )
 	{
-		UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] XP +%d (Quest=%s RewardId=%s)"),
-			Row->XP, *QuestId.ToString(), *RewardId.ToString());
+		APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+		if ( !PlayerPawn )
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] PlayerPawn not found. XP reward failed. Quest=%s RewardId=%s"),
+				*QuestId.ToString(), *RewardId.ToString());
+		}
+		else if ( IAbilitySystemInterface* ASIPlayer = Cast<IAbilitySystemInterface>(PlayerPawn) )
+		{
+			if ( UAbilitySystemComponent* PlayerASC = ASIPlayer->GetAbilitySystemComponent() )
+			{
+				const float CurrentExp = PlayerASC->GetNumericAttribute(
+					UUK_PlayerStatusAttributeSet::GetEXPAttribute());
 
-		// TODO: 실제 XP 지급 연결
-		// 예: UKExpSubsystem->AddXP(Row->XP);
+				PlayerASC->SetNumericAttributeBase(
+					UUK_PlayerStatusAttributeSet::GetEXPAttribute(),
+					CurrentExp + Row->XP);
+
+				UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] XP +%d applied. CurrentEXP=%.1f (Quest=%s RewardId=%s)"),
+					Row->XP,
+					CurrentExp + Row->XP,
+					*QuestId.ToString(),
+					*RewardId.ToString());
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] Player ASC not found. XP reward failed. Quest=%s RewardId=%s"),
+					*QuestId.ToString(), *RewardId.ToString());
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] PlayerPawn has no AbilitySystemInterface. XP reward failed. Quest=%s RewardId=%s"),
+				*QuestId.ToString(), *RewardId.ToString());
+		}
 	}
 
 	// 2) Items 지급
@@ -834,37 +938,6 @@ bool UUKQuestManagerSubsystem::ApplyRewardById(FName RewardId, FName QuestId)
 	return true;
 }
 
-void UUKQuestManagerSubsystem::GiveQuestReward(FName ItemID, int32 Amount)
-{
-	if ( ItemID.IsNone() )
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Reward] GiveQuestReward failed: ItemID is None"));
-		return;
-	}
-
-	if ( Amount <= 0 )
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Reward] GiveQuestReward failed: invalid Amount=%d, ItemID=%s"),
-			Amount, *ItemID.ToString());
-		return;
-	}
-
-	const FUK_ItemData* Data = GetItemDataByItemID(ItemID);
-	if ( !Data )
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Reward] GiveQuestReward failed: Item data not found for ItemID=%s"),
-			*ItemID.ToString());
-		return;
-	}
-
-	// TODO: 실제 인벤토리 지급 연결
-	// 예: InventoryComponent->AddItem(ItemID, Amount);
-
-	UE_LOG(LogTemp, Log, TEXT("[Reward] Item Given: ItemID=%s Name=%s x%d"),
-		*ItemID.ToString(),
-		*Data->ItemName.ToString(),
-		Amount);
-}
 
 // [11] Quest Definition 등록/조회
 bool UUKQuestManagerSubsystem::RegisterQuestDefinition(const UUKQuestDefinitionAsset* Definition)
