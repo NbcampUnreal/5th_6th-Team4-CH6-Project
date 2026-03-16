@@ -33,10 +33,53 @@ void AUK_QuestNPC::BeginPlay()
 	Super::BeginPlay();
 
 	bPlayerInRange = false;
+
+	// NPCID는 BP 기본값 또는 배치된 액터에서 미리 지정되어 있어야 함
+	if ( NPCID.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[NPC] NPCID is None."));
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if ( !World )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[NPC] World is null."));
+		return;
+	}
+
+	UGameInstance* GI = World->GetGameInstance();
+	if ( !GI )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[NPC] GameInstance is null."));
+		return;
+	}
+
+	UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>();
+	if ( !QuestSys )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[NPC] QuestManagerSubsystem is null."));
+		return;
+	}
+
+	// NPCID로 서브시스템에서 NPC 데이터 조회
+	const FUK_NPCData* Row = QuestSys->GetNPCDataByNPCID(NPCID);
+	if ( !Row )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[NPC] NPC data not found for NPCID=%s"), *NPCID.ToString());
+		return;
+	}
+
+	// DT에서 읽어온 값 복사
+	NPCDisplayName = Row->NPCName;
+	NPCDescription = Row->NPCDescription;
+
+	UE_LOG(LogTemp, Log, TEXT("[NPC] Loaded from DT. NPCID=%s"), 
+		*NPCID.ToString());
 }
 
 
-void AUK_QuestNPC::OnPlayerEnter(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,bool bFromSweep, const FHitResult& SweepResult)
+void AUK_QuestNPC::OnPlayerEnter(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(OtherActor);
 
@@ -96,45 +139,43 @@ void AUK_QuestNPC::UpdateMarkerRotation()
 void AUK_QuestNPC::Interact_Implementation(AActor* Interactor)
 {
 	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(Interactor);
-	if (!Player) return;
+	if ( !Player ) return;
 
-	if (HasAuthority())
-	{
-		Server_Interact(Player);
-	}
-	else
-	{
-		Server_Interact(Player);
-	}
+	HandleQuestInteract(Player);
 }
 
-void AUK_QuestNPC::Server_Interact_Implementation(AUK_CharacterBase* Player)
+void AUK_QuestNPC::HandleQuestInteract(AUK_CharacterBase* Player)
 {
 	if ( !Player || !bPlayerInRange ) return;
 
-	auto* QuestSys = GetGameInstance()->GetSubsystem<UUKQuestManagerSubsystem>();
+	UWorld* World = GetWorld();
+	if ( !World ) return;
 
-	if (!QuestSys) return;
+	UGameInstance* GI = World->GetGameInstance();
+	if ( !GI ) return;
 
-	const UUKQuestDefinitionAsset* Def = QuestSys->GetQuestDefinition(QuestID);
+	UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>();
+	if ( !QuestSys ) return;
 
-	if (!Def)
+	if ( !NPCID.IsNone() )
 	{
-		UE_LOG(LogTemp, Warning,
-			TEXT("[QuestNPC] No Definition for %s"),
-			*QuestID.ToString());
-		return;
+		const FName EventID(*FString::Printf(TEXT("QuestEvent.TalkedTo.%s"), *NPCID.ToString()));
+		QuestSys->EmitQuestEvent(EventID);
+
+		UE_LOG(LogTemp, Log, TEXT("[NPC] Emit TalkedTo Event: %s"), *EventID.ToString());
 	}
 
-	AUK_PlayerController* PlayerCtl = Cast<AUK_PlayerController>(Player->GetController());
+	const UUKQuestDefinitionAsset* Def = QuestSys->GetQuestDefinition(QuestID);
+	if ( !Def ) return;
 
-	if (!PlayerCtl) return;
+	AUK_PlayerController* PlayerCtl = Cast<AUK_PlayerController>(Player->GetController());
+	if ( !PlayerCtl ) return;
 
 	PlayerCtl->Client_ShowQuestUI(
 		QuestID,
-		Def->QuestTitle,       
-		Def->NPCDialogue,      
-		Def->QuestDescription  
+		Def->QuestTitle,
+		Def->NPCDialogue,
+		Def->QuestDescription
 	);
 }
 

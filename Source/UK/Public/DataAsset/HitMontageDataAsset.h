@@ -4,15 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "AIMonster/UK_MonsterTypes.h"
 #include "HitMontageDataAsset.generated.h"
 
 
-UENUM()
-enum class EHitType : uint8
-{
-	None,
-	Normal
-};
 /**
  * 
  */
@@ -22,8 +17,8 @@ class UK_API UHitMontageDataAsset : public UDataAsset
 	GENERATED_BODY()
 public:
 	UFUNCTION()
-	UAnimMontage* FindHitMontageByType(EHitType TargetType);
+	UAnimMontage* FindHitMontageByType(EHitReactionType TargetType);
 protected:
-	UPROPERTY()
-	TMap<EHitType,UAnimMontage*> HitMontageMap;
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	TMap<EHitReactionType,UAnimMontage*> HitMontageMap;
 };

@@ -5,7 +5,10 @@
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "UI/InGame/UK_Quest.h"
+#include "DataAsset/NPCData/UK_NPCData.h"
+#include "Engine/DataTable.h"
 #include "UK_QuestNPC.generated.h"
+
 
 class AUK_CharacterBase;
 
@@ -45,12 +48,24 @@ public:
 
 	void UpdateMarkerRotation();
 
-	UPROPERTY(EditAnywhere, Category = "Quest")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
 	FName QuestID;
 
-	UPROPERTY(EditAnywhere, Category = "Quest")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
 	TSubclassOf<UUK_Quest> QuestUIClass;
 
-	UFUNCTION(Server, Reliable)
-	void Server_Interact(AUK_CharacterBase* Player);
+	void HandleQuestInteract(AUK_CharacterBase* Player);
+
+
+	// DT에서 읽어온 공식 NPC EntityID
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Data")
+	FName NPCID;
+
+	// DT에서 읽어온 표시용 이름
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Data")
+	FText NPCDisplayName;
+
+	// DT에서 읽어온 NPC 설명
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Data")
+	FText NPCDescription;
 };
