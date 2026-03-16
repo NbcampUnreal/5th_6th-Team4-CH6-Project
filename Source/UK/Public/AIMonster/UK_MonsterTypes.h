@@ -10,12 +10,14 @@ enum class EMonsterType : uint8
 	EliteGolem       = 2,
 	EliteWolf        = 3,
 	EliteInsectBeast = 4,
-	Golem            = 5,
-	Wolf             = 6,
-	Fox              = 7,
-	Reindeer         = 8,
-	InsectBeast      = 9,
-	Centipede		 =10,
+	SandGolem        = 5,
+	BlueGolem        = 6,
+	GreenGolem       = 7,
+	Wolf             = 8,
+	Fox              = 9,
+	Reindeer         =10,
+	InsectBeast      =11,
+	Centipede		 =12,
 };
 
 UENUM(BlueprintType)

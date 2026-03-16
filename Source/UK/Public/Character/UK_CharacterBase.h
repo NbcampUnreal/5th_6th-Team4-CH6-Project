@@ -154,7 +154,7 @@ public:
 	FOnCharacterAttribute OnChangedAttribute;
 
 	UPROPERTY(EditAnywhere)
-	TObjectPtr<UHitMontageDataAsset> HitMontageDataAsset;
+	UHitMontageDataAsset* HitMontageDataAsset;
 #pragma endregion
 
 #pragma region Interaction And Quest

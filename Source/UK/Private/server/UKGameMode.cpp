@@ -117,8 +117,8 @@ FName AUKGameMode::GetRowNameFromMonsterType(EMonsterType MonsterType)
 	// EMonsterType → Row Name 변환
 	switch (MonsterType)
 	{
-	case EMonsterType::Golem:    
-		return FName("Golem");
+	case EMonsterType::SandGolem:    
+		return FName("SandGolem");
 	default:                     
 		UE_LOG(LogTemp, Error, TEXT("[GameMode] Unknown MonsterType: %d"), (int32)MonsterType);
 		return FName("None");

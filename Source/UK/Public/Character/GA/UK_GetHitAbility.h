@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
-#include "DataAsset/HitMontageDataAsset.h"
+#include "AIMonster/UK_MonsterTypes.h"
 #include "UK_GetHitAbility.generated.h"
 
 /**
@@ -20,5 +20,5 @@ public:
 	
 protected:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
-	EHitType HitType;
+	EHitReactionType HitType;
 };
