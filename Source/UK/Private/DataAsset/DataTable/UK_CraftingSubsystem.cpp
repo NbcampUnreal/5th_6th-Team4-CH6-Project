@@ -6,7 +6,7 @@
 void UUK_CraftingSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	RecipeDataTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Game/ItemData/DT_WeaponRecipes")));
+	RecipeDataTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Game/ItemData/CraftingWeaponRecipe/CraftWeapon_Recipe")));
     
 	if (RecipeDataTable)
 	{
