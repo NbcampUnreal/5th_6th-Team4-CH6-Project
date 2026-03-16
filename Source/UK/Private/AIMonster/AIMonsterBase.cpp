@@ -710,6 +710,8 @@ void AAIMonsterBase::Die()
 		}
 	}
 
+	GrantRewardsToKiller();
+
 	FTimerHandle DeathTimer;
 	GetWorldTimerManager().SetTimer(
 		DeathTimer, this,
@@ -752,16 +754,10 @@ void AAIMonsterBase::HideAndBroadcastDeath()
 {
 	HideCorpse();
 
-	NotifyMonsterKilled();
+	OnMonsterKilled.Broadcast(this, MonsterType, LastAttackerController);
 	OnDeath.Broadcast(this);
 }
 
-void AAIMonsterBase::NotifyMonsterKilled()
-{
-	OnMonsterKilled.Broadcast(this, MonsterType, LastAttackerController);
-	
-	GrantRewardsToKiller();
-}
 
 void AAIMonsterBase::HideCorpse()
 {
