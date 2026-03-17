@@ -17,6 +17,7 @@
 #include "Tags/UK_GameplayTags.h"
 #include "DataAsset/DataTable/AIMonster/UK_MonsterLootRow.h"
 #include "ActorComponent/UK_InventoryComponent.h"
+#include "UI/InGame/UK_FloatingDamageActor.h" // 추가
 
 #pragma region Initialization
 AAIMonsterBase::AAIMonsterBase()
@@ -563,8 +564,6 @@ void AAIMonsterBase::PlayAttackMontage(int32 MontageIndex)
 
 void AAIMonsterBase::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	if (!AttackMontages.Contains(Montage)) return;
-
 	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
 	if (AnimInstance)
 	{
@@ -1289,3 +1288,66 @@ void AAIMonsterBase::GrantRewardsToKiller()
     UE_LOG(LogTemp, Warning, TEXT("========================================="));
 }
 #pragma endregion
+
+void AAIMonsterBase::PlayHitEffect(FVector ImpactPoint)
+{
+	if (HitEffect)
+	{
+		FVector SpawnLoc = (ImpactPoint.IsNearlyZero()) ? GetActorLocation() + FVector(0.f, 0.f, 100.f) : ImpactPoint;
+		
+		FVector EffectScale = FVector(2.5f, 2.5f, 2.5f); 
+
+		UGameplayStatics::SpawnEmitterAtLocation(
+			GetWorld(), 
+			HitEffect, 
+			SpawnLoc, 
+			FRotator::ZeroRotator,
+			EffectScale,          
+			true                 
+		);
+	}
+void AAIMonsterBase::SpawnFloatingDamage(float InDamage)
+{
+	if ( InDamage <= 0.f )
+	{
+		return;
+	}
+
+	if ( !FloatingDamageActorClass )
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if ( !World )
+	{
+		return;
+	}
+
+	float SpawnZ = FloatingDamageZOffset;
+
+	if ( UCapsuleComponent* Capsule = GetCapsuleComponent() )
+	{
+		SpawnZ = Capsule->GetScaledCapsuleHalfHeight() + 20.f;
+	}
+
+	const FVector DamageActorLocation = GetActorLocation() + FVector(0.f, 0.f, SpawnZ);
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AUK_FloatingDamageActor* DamageActor =
+		World->SpawnActor<AUK_FloatingDamageActor>(
+			FloatingDamageActorClass,
+			DamageActorLocation,
+			FRotator::ZeroRotator,
+			SpawnParams);
+
+	if ( !DamageActor )
+	{
+		return;
+	}
+
+	DamageActor->SetDamageAmount(InDamage);
+}

@@ -746,7 +746,6 @@ const FUK_MonsterMetaRow* UUKQuestManagerSubsystem::GetMonsterDataByMobID(FName 
 
 // [10] Reward / RewardDataTable / 보상적용
 
-
 // 인벤토리 컴포넌트 찾는 함수
 UUK_InventoryComponent* UUKQuestManagerSubsystem::GetPlayerInventoryComponent() const
 {
@@ -783,11 +782,40 @@ void UUKQuestManagerSubsystem::GiveQuestReward(FName ItemID, int32 Amount)
 		return;
 	}
 
-	// TODO: 실제 인벤토리 지급 연결
-	// 예: InventoryComponent->AddItem(ItemID, Amount);
+	// 인벤토리 컴포넌트 찾기
+	UUK_InventoryComponent* InventoryComp = GetPlayerInventoryComponent();
+	if ( !InventoryComp )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Reward] GiveQuestReward failed: InventoryComponent not found. ItemID=%s"),
+			*ItemID.ToString());
+		return;
+	}
 
-	UE_LOG(LogTemp, Log, TEXT("[Reward] Item Given: ItemID=%s Name=%s x%d"),
+	// ItemID -> RowName 변환
+	const FName* FoundRowName = ItemIDToRowName.Find(ItemID);
+	if ( !FoundRowName )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Reward] GiveQuestReward failed: RowName not found for ItemID=%s"),
+			*ItemID.ToString());
+		return;
+	}
+
+	// 인벤토리는 RowName 기준으로 동작하므로 RowName 전달
+	// 반환값 해석이 애매한 상태
+	const int32 AddResult = InventoryComp->AddItem(*FoundRowName, Amount);
+	if ( AddResult != 0 )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Reward] AddItem partial/failed. ItemID=%s RowName=%s Requested=%d Result=%d"),
+			*ItemID.ToString(),
+			*FoundRowName->ToString(),
+			Amount,
+			AddResult);
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[Reward] Item Given: ItemID=%s RowName=%s Name=%s x%d"),
 		*ItemID.ToString(),
+		*FoundRowName->ToString(),
 		*Data->ItemName.ToString(),
 		Amount);
 }

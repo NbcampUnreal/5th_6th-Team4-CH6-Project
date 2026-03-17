@@ -3,6 +3,7 @@
 #include "Character/UK_CharacterBase.h"
 #include "Character/UK_PlayerController.h"
 #include "Character/UK_PlayerState.h"
+#include "ActorComponent/CustomCharacterMovementComponent.h"
 #include "Character/Weapon/UK_WeaponBase.h"
 #include "AIMonster/AIMonsterBase.h"
 #include "InputAction.h"
@@ -31,7 +32,9 @@
 
 // 무현님 대머리 ㅋㅋ
 // Sets default values
-AUK_CharacterBase::AUK_CharacterBase() :
+AUK_CharacterBase::AUK_CharacterBase(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer.SetDefaultSubobjectClass<UCustomCharacterMovementComponent>(
+		ACharacter::CharacterMovementComponentName)),
 	bIsLock(false),
 	bIsCrouched(false),
 	SprintSpeed(800.f),
@@ -86,12 +89,18 @@ AUK_CharacterBase::AUK_CharacterBase() :
 	QuestComp = CreateDefaultSubobject<UUK_QuestComponent>(TEXT("QuestComponent"));
 }
 
-//// Called every frame
-//void AUK_CharacterBase::Tick(float DeltaTime)
-//{
-//	Super::Tick(DeltaTime);
-//
-//}
+// Called every frame
+void AUK_CharacterBase::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	//UpdateMovementState();
+	UE_LOG(LogTemp, Warning, TEXT("Mode: %d / Custom: %d / VelZ: %f"),
+	       (int)GetCharacterMovement()->MovementMode,
+	       (int)GetCharacterMovement()->CustomMovementMode,
+	       GetCharacterMovement()->Velocity.Z);
+	UE_LOG(LogTemp, Warning, TEXT("JumpZ: %f"), GetCharacterMovement()->JumpZVelocity);
+	UE_LOG(LogTemp, Warning, TEXT("OnGround: %d"), GetCharacterMovement()->IsMovingOnGround());
+}
 
 void AUK_CharacterBase::PossessedBy(AController* NewController)
 {
@@ -101,7 +110,7 @@ void AUK_CharacterBase::PossessedBy(AController* NewController)
 void AUK_CharacterBase::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
-	if (MovementMode == ECustomMovementMode::CMOVE_Glide)
+	if (GetCharacterMovement()->MovementMode == MOVE_Custom )
 	{
 		EndGliding();
 	}
@@ -121,6 +130,43 @@ void AUK_CharacterBase::ChangedAttribute(ECharacterAttribute NewAttribute)
 	OnChangedAttribute.Broadcast(NewAttribute);
 }
 
+void AUK_CharacterBase::UpdateMovementState()
+{
+	ActorTrace();
+	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+
+	// if (bInWater)
+	// {
+	// 	if (MoveComp->MovementMode != MOVE_Swimming)
+	// 	{
+	// 		MoveComp->SetMovementMode(MOVE_Swimming);
+	// 	}
+	// 	return;
+	// }
+	//
+	// if (bWallDetected)
+	// {
+	// 	if (MoveComp->MovementMode != MOVE_Custom && MoveComp->CustomMovementMode != (uint8)
+	// 		ECustomMovementMode::CMOVE_Climb)
+	// 	{
+	// 		MoveComp->SetMovementMode(MOVE_Custom, (uint8)ECustomMovementMode::CMOVE_Climb);
+	// 	}
+	// 	return;
+	// }
+
+	// if (MoveComp->IsMovingOnGround() == false)
+	// {
+	// 	if (MoveComp->MovementMode != MOVE_Falling)
+	// 	{
+	// 		MoveComp->SetMovementMode(MOVE_Falling);
+	// 	}
+	// 	return;
+	// }
+
+	//MoveComp->SetMovementMode(MOVE_Walking);
+}
+
+
 // Called when the game starts or when spawned
 void AUK_CharacterBase::BeginPlay()
 {
@@ -129,6 +175,18 @@ void AUK_CharacterBase::BeginPlay()
 	InventoryComponent->OnChangedWeapon.AddDynamic(this, &ThisClass::SwapWeapon);
 	PC = Cast<AUK_PlayerController>(GetController());
 
+	DefualtGravity = GetCharacterMovement()->GravityScale;
+	DefualtAirControl = GetCharacterMovement()->AirControl;
+	if (IsValid(GetAbilitySystemComponent()))
+	{
+		GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
+		GiveStartupAbilities();
+		AUK_PlayerState* PS = Cast<AUK_PlayerState>(GetPlayerState());
+		if (IsValid(PS))
+		{
+			PS->InitializeAttributes();
+		}
+	}
 	GetWorldTimerManager().SetTimer(
 		DetectTimer,
 		this,
@@ -136,18 +194,13 @@ void AUK_CharacterBase::BeginPlay()
 		0.3f,
 		true
 	);
-	DefualtGravity = GetCharacterMovement()->GravityScale;
-	DefualtAirControl = GetCharacterMovement()->AirControl;
-	if (!IsValid(GetAbilitySystemComponent()))
-		return;
-
-	GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
-	GiveStartupAbilities();
-	AUK_PlayerState* PS = Cast<AUK_PlayerState>(GetPlayerState());
-	if (IsValid(PS))
-	{
-		PS->InitializeAttributes();
-	}
+	// GetWorldTimerManager().SetTimer(
+	// 	WallTraceTimerHandler,
+	// 	this,
+	// 	&AUK_CharacterBase::UpdateMovementState,
+	// 	0.5f,
+	// 	true
+	// );
 }
 
 void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -272,12 +325,22 @@ void AUK_CharacterBase::Move(const FInputActionValue& InputActionValue)
 
 	FVector ForwardDirection;
 	FVector RightDirection;
-	switch (MovementMode)
+	GetCharacterMovement()->MovementMode;
+	switch (GetCharacterMovement()->MovementMode)
 	{
-	case ECustomMovementMode::CMOVE_Glide:
+	case MOVE_Custom:
+		switch ((ECustomMovementMode)GetCharacterMovement()->CustomMovementMode)
+		{
+		case ECustomMovementMode::CMOVE_Glide:
+			ForwardDirection = Controller->GetControlRotation().Vector();
+			RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
+			break;
 
-		ForwardDirection = Controller->GetControlRotation().Vector();
-		RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
+		case ECustomMovementMode::CMOVE_Climb:
+			ForwardDirection = FVector::UpVector;
+			RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
+			break;
+		}
 		break;
 	default:
 		ForwardDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::X);
@@ -569,6 +632,7 @@ void AUK_CharacterBase::LockONToggle()
 		GetCharacterMovement()->bOrientRotationToMovement = true;
 		GetWorld()->GetTimerManager().ClearTimer(LockOnTimer);
 		LockOnList.Reset();
+
 		LockOnTimer.Invalidate();
 	}
 }
@@ -650,10 +714,8 @@ bool AUK_CharacterBase::StartGliding()
 {
 	if (GetCharacterMovement()->IsFalling() == false)
 		return false;
-	if (MovementMode == ECustomMovementMode::CMOVE_Glide)
-	{
+	if ( bIsGliding == true)
 		return false;
-	}
 	if (GetFloorDistance() < 220.f)
 	{
 		return false;
@@ -664,16 +726,41 @@ bool AUK_CharacterBase::StartGliding()
 	GetCharacterMovement()->GravityScale = 0.f;
 	GetCharacterMovement()->AirControl = 0.8;
 	GetCharacterMovement()->Velocity = Vel;
-	MovementMode = ECustomMovementMode::CMOVE_Glide;
+	bIsGliding = true;
+	//GetCharacterMovement()->SetMovementMode(MOVE_Custom, (uint8)ECustomMovementMode::CMOVE_Glide);
 	return true;
 }
 
 void AUK_CharacterBase::EndGliding()
 {
-	MovementMode = ECustomMovementMode::CMOVE_None;
-
+	bIsGliding = false;
 	GetCharacterMovement()->GravityScale = DefualtGravity;
 	GetCharacterMovement()->AirControl = DefualtAirControl;
+}
+
+#pragma endregion
+#pragma region Climb
+
+void AUK_CharacterBase::ActorTrace()
+{
+	FVector Start = SkeletalMeshComp->GetSocketLocation("LookAt");
+	FVector End = Start + (GetActorForwardVector() * TraceDist);
+
+	bWallDetected = GetWorld()->LineTraceSingleByChannel(
+		HitResult,
+		Start,
+		End,
+		ECC_Visibility);
+	DrawDebugLine(
+		GetWorld(),
+		Start,
+		End,
+		FColor::Red,
+		false,
+		1.0f,
+		0,
+		2.0f
+	);
 }
 
 #pragma endregion
@@ -697,7 +784,7 @@ void AUK_CharacterBase::ChangeWeaponStat(const FUK_WeaponItemData* WeaponStat)
 
 	if (WeaponStat == nullptr)
 		return;
-	
+
 	FGameplayEffectSpecHandle SpecHandle =
 		ASC->MakeOutgoingSpec(WeaponStatEffect, 1.f, ASC->MakeEffectContext());
 
@@ -705,7 +792,7 @@ void AUK_CharacterBase::ChangeWeaponStat(const FUK_WeaponItemData* WeaponStat)
 		UK_GameplayTags::Data::WeaponStat::ExtraAttackPower,
 		WeaponStat->ExtraAttackPower
 	);
-	
+
 	WeaponEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 }
 
@@ -794,7 +881,7 @@ void AUK_CharacterBase::SlotWeaponThree()
 
 void AUK_CharacterBase::SwapWeapon(int32 Index)
 {
-	if (WeaponSlotIndex != index+1)
+	if (WeaponSlotIndex != Index + 1)
 		return;
 	if (IsValid(WeaponDataTable) == false)
 	{

@@ -96,7 +96,7 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 
 
 		UE_LOG(LogTemp, Log, TEXT("   Mp: %.1f → %.1f (Max: %.1f)"),
-		       OldValue, NewValue, GetMaxMp());
+		       OldValue, NewValue, GetMaxStamina());
 	}
 	// 최대 경험치 전처리
 	else if (Attribute == GetMaxEXPAttribute())
@@ -114,7 +114,7 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 		const float OldValue = GetEXP();
 
 		UE_LOG(LogTemp, Log, TEXT("   Mp: %.1f → %.1f (Max: %.1f)"),
-		       OldValue, NewValue, GetMaxMp());
+		       OldValue, NewValue, GetMaxEXP());
 	}
 	// 최대 레벨 전처리
 	else if (Attribute == GetMaxLevelAttribute())
