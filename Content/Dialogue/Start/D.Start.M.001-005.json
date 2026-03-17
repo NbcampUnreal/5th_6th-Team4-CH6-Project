@@ -1,0 +1,282 @@
+﻿{
+  "packId": "D.Start.M.001-005",
+  "dialogues": [
+    {
+      "dialogueId": "D_Q_Start_M_DIA_001_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "앗, 오셨네요! 저는 이 마을 안내를 맡고 있는 안내역이에요. 처음 오신 거라면, 제가 이것저것 알려드릴게요!",
+          "choices": [
+            {
+              "text": "좋아요. 안내 부탁할게요.",
+              "next": "N_002",
+              "emit": [
+                "QuestEvent.Accepted.Q_Start_M_DIA_001"
+              ]
+            },
+            {
+              "text": "음... 일단 무슨 일인지부터 들어볼게요.",
+              "next": "N_003",
+              "emit": [
+                "QuestEvent.Accepted.Q_Start_M_DIA_001"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "N_002",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "헤헤, 좋아요! 너무 어렵게 생각하실 건 없어요. 일단 저랑 끝까지 이야기해 주시면, 첫 준비는 끝나는 거예요!",
+          "choices": [
+            {
+              "text": "그 정도라면 괜찮겠네요.",
+              "next": "N_END"
+            }
+          ]
+        },
+        {
+          "id": "N_003",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "앗, 네! 사실 그렇게 대단한 건 아니에요. 그냥 저와 대화를 끝까지 나누면, 마을에서 첫걸음을 뗀 걸로 보는 거예요!",
+          "choices": [
+            {
+              "text": "알겠어요. 계속 말해 주세요.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_Start_M_DIA_001_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "우와, 첫 안내를 끝까지 받아주셨네요! 이제 정말 본격적으로 일을 맡겨도 되겠어요.",
+          "choices": [
+            {
+              "text": "다음 일도 해볼게요.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_Start_M_DIA_001"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_Start_M_HNT_002_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "저기요, 마을 근처에 몬스터A가 자꾸 나타나고 있어요. 위험하진 않지만, 그냥 두면 곤란하거든요. 5마리만 정리해 주실 수 있을까요?",
+          "choices": [
+            {
+              "text": "몬스터A 5마리를 처리하고 올게요.",
+              "next": "N_002",
+              "emit": [
+                "QuestEvent.Accepted.Q_Start_M_HNT_002"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "N_002",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "감사해요! 다섯 마리만 처리하면 돼요. 너무 무리하진 마시고, 끝나면 꼭 돌아와 주세요!",
+          "choices": [
+            {
+              "text": "알겠어요.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_Start_M_HNT_002_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "정말 해내셨네요! 몬스터A 5마리가 전부 정리됐어요. 덕분에 마을 주변이 훨씬 안전해졌어요!",
+          "choices": [
+            {
+              "text": "보고를 마칠게요.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_Start_M_HNT_002"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_Start_M_DLV_003_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "이번엔 사냥 말고 전달 부탁이에요! 제가 필요한 아이템이 있는데, 3개만 가져다주시면 돼요.",
+          "choices": [
+            {
+              "text": "아이템 3개를 가져다줄게요.",
+              "next": "N_002",
+              "emit": [
+                "QuestEvent.Accepted.Q_Start_M_DLV_003"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "N_002",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "수량이 중요해요! 꼭 3개예요. 모자라도 곤란하고, 확인은 제가 직접 할 거예요!",
+          "choices": [
+            {
+              "text": "정확히 챙겨서 올게요.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_Start_M_DLV_003_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "와, 딱 3개네요! 완벽해요. 이렇게 정확하게 가져와 주시면 저도 정말 안심이 돼요.",
+          "choices": [
+            {
+              "text": "전달 완료예요.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_Start_M_DLV_003"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_Start_M_HNT_004_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "이번엔 몬스터B예요. 몬스터A보다 조금 더 성가신 녀석들이라서, 조심해서 상대하셔야 해요. 5마리만 부탁드릴게요!",
+          "choices": [
+            {
+              "text": "몬스터B 5마리를 처리하고 올게요.",
+              "next": "N_002",
+              "emit": [
+                "QuestEvent.Accepted.Q_Start_M_HNT_004"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "N_002",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "괜찮으시죠...? 너무 위험하면 바로 물러나셔도 돼요. 그래도 돌아와서 보고는 꼭 해주셔야 해요!",
+          "choices": [
+            {
+              "text": "조심해서 다녀올게요.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_Start_M_HNT_004_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "해내셨군요! 몬스터B까지 정리됐다면, 이제 남은 건 정말 중요한 마지막 일뿐이에요.",
+          "choices": [
+            {
+              "text": "다음도 맡겨 주세요.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_Start_M_HNT_004"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_Start_M_BOS_005_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "이제 마지막이에요. 보스 몬스터를 쓰러뜨려야 해요. 솔직히 말하면... 저도 조금 걱정돼요. 하지만 지금까지 해오신 걸 보면, 분명 해내실 수 있을 거예요!",
+          "choices": [
+            {
+              "text": "보스를 처치하고 돌아올게요.",
+              "next": "N_002",
+              "emit": [
+                "QuestEvent.Accepted.Q_Start_M_BOS_005"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "N_002",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "꼭 무사히 돌아오셔야 해요. 승리도 중요하지만, 다치지 않는 게 더 중요하니까요...!",
+          "choices": [
+            {
+              "text": "걱정하지 마세요.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_Start_M_BOS_005_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "정말로... 정말로 해내셨네요! 보스 몬스터까지 쓰러뜨리시다니, 역시 제가 처음부터 사람을 잘 본 게 맞았어요!",
+          "choices": [
+            {
+              "text": "이제 끝난 건가요?",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_Start_M_BOS_005"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
