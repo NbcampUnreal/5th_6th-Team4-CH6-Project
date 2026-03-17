@@ -1293,28 +1293,25 @@ void AAIMonsterBase::GrantRewardsToKiller()
 
 void AAIMonsterBase::SpawnFloatingDamage(float InDamage)
 {
-	UE_LOG(LogTemp, Warning, TEXT("[%s] SpawnFloatingDamage Called: %.1f"), *GetName(), InDamage);
-
-	if (InDamage <= 0.f)
+	if ( InDamage <= 0.f )
 	{
 		return;
 	}
 
-	if (!FloatingDamageActorClass)
+	if ( !FloatingDamageActorClass )
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] FloatingDamageActorClass is not set"), *GetName());
 		return;
 	}
 
 	UWorld* World = GetWorld();
-	if (!World)
+	if ( !World )
 	{
 		return;
 	}
 
 	float SpawnZ = FloatingDamageZOffset;
 
-	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	if ( UCapsuleComponent* Capsule = GetCapsuleComponent() )
 	{
 		SpawnZ = Capsule->GetScaledCapsuleHalfHeight() + 20.f;
 	}
@@ -1332,13 +1329,10 @@ void AAIMonsterBase::SpawnFloatingDamage(float InDamage)
 			FRotator::ZeroRotator,
 			SpawnParams);
 
-	if (!DamageActor)
+	if ( !DamageActor )
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Failed to spawn floating damage actor"), *GetName());
 		return;
 	}
 
 	DamageActor->SetDamageAmount(InDamage);
-
-	UE_LOG(LogTemp, Warning, TEXT("[%s] FloatingDamageActor Spawn Success"), *GetName());
 }
