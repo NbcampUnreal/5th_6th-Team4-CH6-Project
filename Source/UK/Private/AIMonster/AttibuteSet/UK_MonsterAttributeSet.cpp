@@ -62,6 +62,8 @@ void UUK_MonsterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectMod
 					}
 				}
 				Monster->NotifyAttacked(InstigatorController);  
+				// 최종 데미지 확정 후 플로팅 데미지 표시
+				Monster->SpawnFloatingDamage(FinalDamage);
 			}
 			
 			UE_LOG(LogTemp, Warning, TEXT(" Health Updated: %.1f → %.1f (Damage: %.1f)"), 
