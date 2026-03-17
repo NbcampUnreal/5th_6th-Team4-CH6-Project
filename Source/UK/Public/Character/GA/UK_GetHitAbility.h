@@ -17,7 +17,8 @@ class UK_API UUK_GetHitAbility : public UGameplayAbility
 public:
 	UFUNCTION(BlueprintCallable)
 	UAnimMontage* GetHitMontage();
-	
+	UFUNCTION(BlueprintCallable, Category = "Ability")
+	void CancelAbilitiesWithTags(const FGameplayTagContainer& Tags);
 protected:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	EHitReactionType HitType;

@@ -20,3 +20,22 @@ UAnimMontage* UUK_GetHitAbility::GetHitMontage()
 	}
 	return nullptr;
 }
+
+void UUK_GetHitAbility::CancelAbilitiesWithTags(const FGameplayTagContainer& Tags)
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	if (!ASC) return;
+
+	for (const FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
+	{
+		if (!Spec.IsActive() || !Spec.Ability) 
+			continue;
+		if (&Spec == GetCurrentAbilitySpec()) 
+			continue; // 자기 자신 제외
+
+		if (Spec.Ability->AbilityTags.HasAny(Tags))
+		{
+			ASC->CancelAbilityHandle(Spec.Handle);
+		}
+	}
+}
