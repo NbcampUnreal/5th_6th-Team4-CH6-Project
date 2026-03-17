@@ -2,6 +2,7 @@
 #include "AIController.h"
 #include "AIMonster/BossMonster/UK_BossMonsterBase.h"
 #include "AIMonster/BossMonster/UK_BossAnimInstance.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 UUK_BTTaskNode_BossAttack::UUK_BTTaskNode_BossAttack()
 {
@@ -14,42 +15,34 @@ UUK_BTTaskNode_BossAttack::UUK_BTTaskNode_BossAttack()
 EBTNodeResult::Type UUK_BTTaskNode_BossAttack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	AAIController* AICtl = OwnerComp.GetAIOwner();
-	if (!AICtl) return EBTNodeResult::Failed;
-
 	AUK_BossMonsterBase* Boss = Cast<AUK_BossMonsterBase>(AICtl->GetPawn());
-	if (!Boss) return EBTNodeResult::Failed;
 
-	CurrentTime = 0.f;
-	Boss->bIsAttacking = false; 
+	if (!Boss || Boss->bIsAttacking) return EBTNodeResult::Failed;
 	
+	AICtl->StopMovement();
 	bool bAttackStarted = Boss->PlayRandomAttackMontage();
     
-	if (!bAttackStarted)
+	if (bAttackStarted)
 	{
-		return EBTNodeResult::Failed;
+		return EBTNodeResult::InProgress;
 	}
 	
-	return EBTNodeResult::InProgress;
+	return EBTNodeResult::Failed;
 }
 
 void UUK_BTTaskNode_BossAttack::TickTask(UBehaviorTreeComponent& OwnerComp,uint8* NodeMemory,float DeltaSeconds)
 {
-	CurrentTime += DeltaSeconds;
+	auto* AICtl = OwnerComp.GetAIOwner();
+	if (!AICtl) return;
+	
+	AUK_BossMonsterBase* Boss = Cast<AUK_BossMonsterBase>(OwnerComp.GetAIOwner()->GetPawn());
 
-	if (CurrentTime >= AttackDuration)
+	if (Boss && Boss->bIsAttacking)
 	{
-		auto* AICtl = OwnerComp.GetAIOwner();
-		if (!AICtl) return;
-
-		auto* Boss = Cast<AUK_BossMonsterBase>(AICtl->GetPawn());
-		if (!Boss) return;
-		
-		auto* Anim = Cast<UUK_BossAnimInstance>(Boss->GetMesh()->GetAnimInstance());
-		if (Anim)
-		{
-			Anim->bIsAttacking = false;
-		}
-
+		AICtl->StopMovement();
+	}
+	else if (Boss && Boss->bIsAttacking == false)
+	{
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 	}
 }

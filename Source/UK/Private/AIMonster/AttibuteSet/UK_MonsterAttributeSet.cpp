@@ -61,7 +61,13 @@ void UUK_MonsterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectMod
 						InstigatorController = InstigatorPawn->GetController();
 					}
 				}
-				Monster->NotifyAttacked(InstigatorController);  
+				FVector HitLocation = FVector::ZeroVector;
+				if (const FHitResult* HitResult = Data.EffectSpec.GetContext().GetHitResult())
+				{
+					HitLocation = HitResult->ImpactPoint;
+				}
+				Monster->PlayHitEffect(HitLocation); 
+				Monster->NotifyAttacked(InstigatorController);
 			}
 			
 			UE_LOG(LogTemp, Warning, TEXT(" Health Updated: %.1f → %.1f (Damage: %.1f)"), 
