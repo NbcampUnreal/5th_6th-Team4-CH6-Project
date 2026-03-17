@@ -61,7 +61,29 @@ void UUK_MonsterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectMod
 						InstigatorController = InstigatorPawn->GetController();
 					}
 				}
-				Monster->NotifyAttacked(InstigatorController);  
+				Monster->NotifyAttacked(InstigatorController); 
+				
+				if (Data.EffectSpec.GetContext().GetInstigator())
+				{
+					APawn* InstigatorPawn = Cast<APawn>(Data.EffectSpec.GetContext().GetInstigator());
+					if (InstigatorPawn)
+					{
+						InstigatorController = InstigatorPawn->GetController();
+					}
+				}
+
+				// 3. 피격 이펙트 재생 (타격 위치 추출)
+				FVector HitLocation = FVector::ZeroVector;
+				if (const FHitResult* HitResult = Data.EffectSpec.GetContext().GetHitResult())
+				{
+					HitLocation = HitResult->ImpactPoint;
+				}
+            
+				// MonsterBase에 정의한 이펙트 함수 호출
+				Monster->PlayHitEffect(HitLocation); 
+
+				// 4. 이제 여기서 호출하면 빨간 줄이 안 뜹니다!
+				Monster->NotifyAttacked(InstigatorController);
 			}
 			
 			UE_LOG(LogTemp, Warning, TEXT(" Health Updated: %.1f → %.1f (Damage: %.1f)"), 

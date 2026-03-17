@@ -2,7 +2,13 @@
 
 #include "CoreMinimal.h"
 #include "AIMonster/BossMonster/UK_BossMonsterBase.h"
+#include "NiagaraSystem.h"
+#include "NiagaraComponent.h"
 #include "UK_BossMonster_Grux.generated.h"
+
+class UNiagaraSystem;
+class UNiagaraComponent;
+class UDecalComponent;
 
 UCLASS()
 class UK_API AUK_BossMonster_Grux : public AUK_BossMonsterBase
@@ -11,10 +17,9 @@ class UK_API AUK_BossMonster_Grux : public AUK_BossMonsterBase
 	
 public:
 	AUK_BossMonster_Grux();
-
+	virtual void UpdatePhase() override;
 protected:
 	virtual void BeginPlay() override;
-	virtual void UpdatePhase() override;
 	virtual bool PlayRandomAttackMontage() override;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Grux|Patterns")
@@ -42,6 +47,14 @@ protected:
 	UAnimMontage* Berserk;
 	float BerserkPlayRate = 1.0f;
 	
+	UPROPERTY(EditAnywhere, Category = "Combat | Effects")
+	TObjectPtr<UNiagaraSystem> BerserkLoopEffect;
+	
+	UPROPERTY()
+	TObjectPtr<UNiagaraComponent> BerserkComponent;
+	
+	UPROPERTY(EditAnywhere, Category = "Combat | Effects")
+	FName BerserkSocketName = TEXT("SmashPoint");
 	
 	UFUNCTION(BlueprintCallable, Category = "Grux|Patterns")
 	void ExecuteJumpSmashDamage();

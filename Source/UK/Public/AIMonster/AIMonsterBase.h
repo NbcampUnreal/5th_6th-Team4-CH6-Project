@@ -197,6 +197,10 @@ public:
 	virtual void HandleParryReaction();
 	void OnStaggerMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	virtual void OnParryGameplayEvent(const FGameplayEventData* Payload);
+	void PlayHitEffect(FVector ImpactPoint);
+	
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	UParticleSystem* HitEffect;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Animation")
 	float CorpseLingerTime = 5.0f;
