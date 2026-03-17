@@ -113,14 +113,14 @@ protected:
 
 	// MobEntityId(EntityID) -> DataTable RowName 캐시
 	UPROPERTY(Transient)
-	TMap<FName, FName> MonsterIDToRowName;
+	TMap<FName, FName> MobIDToRowName;
 
 	// 캐시 생성
-	void BuildMonsterIDCache();
+	void BuildMobIDCache();
 
 public:
 	// MobEntityId(EntityID 컬럼)로 몬스터 데이터를 찾는다
-	const FUK_MonsterMetaRow* GetMonsterDataByMonsterID(FName MonsterID) const;
+	const FUK_MonsterMetaRow* GetMonsterDataByMobID(FName MobID) const;
 
 protected:
 	// [7] Reward / RewardDataTable

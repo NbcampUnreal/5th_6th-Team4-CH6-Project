@@ -1044,6 +1044,13 @@ float AAIMonsterBase::CalculateExp(int32 PlayerLevel) const
 	return Row->BaseExp + Row->ExpPerLevel * (PlayerLevel - 1);
 }
 
+float AAIMonsterBase::CalculateGold(int32 PlayerLevel) const
+{
+	const FUK_MonsterStatRow* Row = GetStatRow();
+	if (!Row) return 0.f;
+	return Row->BaseGold + Row->GoldPerLevel * (PlayerLevel - 1);
+}
+
 FName AAIMonsterBase::GetRowName() const
 {
     const UEnum* Enum = StaticEnum<EMonsterType>();
@@ -1254,10 +1261,18 @@ void AAIMonsterBase::GrantRewardsToKiller()
             }
         }
     }
+	
+	// ── Gold ────────────────────────────────────────────
+	if (Inventory)
+	{
+		GoldGain = FMath::RoundToInt(CalculateGold(PlayerLevel));
+		Inventory->AddGold(GoldGain);
+	}
 
     // ── 로그 ─────────────────────────────────────────────
     UE_LOG(LogTemp, Warning, TEXT("========= [Monster Killed: %s] ========="), *GetName());
     UE_LOG(LogTemp, Warning, TEXT("  Player Level : %d"), PlayerLevel);
+	UE_LOG(LogTemp, Warning, TEXT("  Gold Gained  : %d"), GoldGain);
     UE_LOG(LogTemp, Warning, TEXT("  EXP Gained   : %.1f"), ExpGain);
 
     if (DroppedItems.Num() == 0)
