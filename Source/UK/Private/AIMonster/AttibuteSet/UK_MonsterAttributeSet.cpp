@@ -71,18 +71,13 @@ void UUK_MonsterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectMod
 						InstigatorController = InstigatorPawn->GetController();
 					}
 				}
-
-				// 3. 피격 이펙트 재생 (타격 위치 추출)
+				
 				FVector HitLocation = FVector::ZeroVector;
 				if (const FHitResult* HitResult = Data.EffectSpec.GetContext().GetHitResult())
 				{
 					HitLocation = HitResult->ImpactPoint;
 				}
-            
-				// MonsterBase에 정의한 이펙트 함수 호출
 				Monster->PlayHitEffect(HitLocation); 
-
-				// 4. 이제 여기서 호출하면 빨간 줄이 안 뜹니다!
 				Monster->NotifyAttacked(InstigatorController);
 			}
 			
