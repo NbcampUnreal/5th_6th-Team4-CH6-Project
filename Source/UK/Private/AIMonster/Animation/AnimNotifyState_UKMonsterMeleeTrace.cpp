@@ -124,9 +124,15 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
 				if (UAbilitySystemComponent* PlayerASC = ASCInterface->GetAbilitySystemComponent())
 				{
 					bool bIsPlayerParrying = PlayerASC->HasMatchingGameplayTag(UK_GameplayTags::Action::Parrying);
-					bool bIsEliteOrBoss = (Monster->MonsterType == EMonsterType::Grux || Monster->MonsterType == EMonsterType::EliteGolem || Monster->MonsterType == EMonsterType::EliteWolf);
+					
+					bool bIsBoss = (Monster->MonsterType == EMonsterType::Grux);
+					bool bIsElite = (Monster->MonsterType == EMonsterType::EliteGolem
+								  || Monster->MonsterType == EMonsterType::EliteWolf
+								  || Monster->MonsterType == EMonsterType::EliteInsectBeast);
+					bool bCanParry = bIsBoss || (bIsElite && AttackType == EMonsterAttackType::Special);
+					
 					// 패리 체크
-					if (bIsPlayerParrying && bIsEliteOrBoss)
+					if (bIsPlayerParrying && bCanParry)
 					{
 						UE_LOG(LogTemp, Warning,
 							TEXT("[MeleeTrace] %s → %s : PARRIED! Attack cancelled."),

@@ -20,11 +20,15 @@ public:
 	//특정아이템의 상세정보 가져오기 - 아이템 데이터 테이블읽어오는용도
 	const FUK_ItemData* GetItemData(FName ItemId) const;
 	
-protected:
-	//할당해야 하는 데이터 테이블
-	UPROPERTY()
+	UFUNCTION(BlueprintCallable, Category = "UK|Crafting")
+	TArray<FName> GetAllRecipeRowNames() const;
+	
+	UFUNCTION(BlueprintCallable, Category = "UK|Crafting")
+	TMap<FName, FText> GetAllRecipeDisplayNames() const;
+	
+	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<UDataTable> RecipeDataTable;
-
-	UPROPERTY()
+	
+	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<UDataTable> ItemDataTable;
 };
