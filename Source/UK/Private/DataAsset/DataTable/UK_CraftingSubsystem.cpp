@@ -72,3 +72,28 @@ bool UUK_CraftingSubsystem::TryCraftItem(FName RecipeRowName)
 	UE_LOG(LogTemp, Log, TEXT("%s 제작 완료!"), *Recipe->RecipeDisplayName.ToString());
 	return true;
 }
+
+TArray<FName> UUK_CraftingSubsystem::GetAllRecipeRowNames() const
+{
+	if (!RecipeDataTable) return TArray<FName>();
+
+	return RecipeDataTable->GetRowNames();
+}
+
+TMap<FName, FText> UUK_CraftingSubsystem::GetAllRecipeDisplayNames() const
+{
+	TMap<FName, FText> RecipeMap;
+	if (!RecipeDataTable) return RecipeMap;
+	
+	TArray<FName> RowNames = RecipeDataTable->GetRowNames();
+	for (const FName& RowName : RowNames)
+	{
+		FUK_CraftingRecipeRow* Row = RecipeDataTable->FindRow<FUK_CraftingRecipeRow>(RowName, TEXT(""));
+		if (Row)
+		{
+			RecipeMap.Add(RowName, Row->RecipeDisplayName);
+		}
+	}
+
+	return RecipeMap;
+}
