@@ -11,7 +11,6 @@
 #include "GameFramework/Pawn.h"
 
 // 캐릭터 xp 부여관련
-
 #include "AbilitySystemInterface.h"
 #include "AbilitySystemComponent.h"
 #include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
@@ -64,7 +63,7 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		if ( !ItemDataTablePath.IsValid() )
 		{
 			// 경로 하드코딩
-			ItemDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/DataTable/DT_ItemTable.DT_ItemTable'"));
+			ItemDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/ItemData/DT_ItemTableble.DT_ItemTableble'"));
 		}
 
 		if ( ItemDataTablePath.IsValid() )
@@ -100,7 +99,7 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		if ( !NPCDataTablePath.IsValid() )
 		{
 			// 경로 하드코딩
-			NPCDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/DataTable/DT_NPCTable.DT_NPCTable'"));
+			NPCDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/ItemData/DT_NPCTable.DT_NPCTable'"));
 		}
 
 		if ( NPCDataTablePath.IsValid() )
@@ -134,9 +133,8 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	{
 		if ( !MonsterDataTablePath.IsValid() )
 		{
-			// 실제 에셋 우클릭 -> Copy Reference 값으로 교체
-			// 예: DataTable'/Game/AIMonster/DT_MonsterMetaTable.DT_MonsterMetaTable'
-			MonsterDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/AIMonster/DT_MonsterMetaTable.DT_MonsterMetaTable'"));
+			// 경로 하드코딩
+			MonsterDataTablePath = FSoftObjectPath(TEXT("/Game/ItemData/AIMonsterDT/DT_UKMonsterMeta.DT_UKMonsterMeta'"));
 		}
 
 		if ( MonsterDataTablePath.IsValid() )
@@ -146,23 +144,23 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 			if ( !MonsterDataTable )
 			{
-				UE_LOG(LogTemp, Warning, TEXT("[MonsterID] MonsterDataTable load FAILED. Path=%s"),
+				UE_LOG(LogTemp, Warning, TEXT("MobID MonsterDataTable load FAILED. Path=%s"),
 					*MonsterDataTablePath.ToString());
 			}
 			else
 			{
-				UE_LOG(LogTemp, Log, TEXT("[MonsterID] MonsterDataTable loaded OK. Path=%s"),
+				UE_LOG(LogTemp, Log, TEXT("MobID MonsterDataTable loaded OK. Path=%s"),
 					*MonsterDataTablePath.ToString());
 			}
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[MonsterID] MonsterDataTablePath invalid."));
+			UE_LOG(LogTemp, Warning, TEXT("MobID MonsterDataTablePath invalid."));
 		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Log, TEXT("[MonsterID] MonsterDataTable already assigned in editor."));
+		UE_LOG(LogTemp, Log, TEXT("MobID MonsterDataTable already assigned in editor."));
 	}
 
 	// [Reward] Load 
@@ -171,7 +169,7 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		if ( !RewardDataTablePath.IsValid() )
 		{
 			// 경로 하드코딩
-			RewardDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/DataTable/DT_RewardTable.DT_RewardTable'"));
+			RewardDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/ItemData/DT_RewardTable.DT_RewardTable'"));
 		}
 
 		if ( RewardDataTablePath.IsValid() )
@@ -238,7 +236,7 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	}
 	BuildItemIDCache();
 	BuildNPCIDCache();
-	BuildMonsterIDCache();
+	BuildMobIDCache();
 }
 
 
@@ -693,13 +691,13 @@ const FUK_NPCData* UUKQuestManagerSubsystem::GetNPCDataByNPCID(FName NPCID) cons
 
 // [9] Monster EntityID / MonsterDataTable
 
-void UUKQuestManagerSubsystem::BuildMonsterIDCache()
+void UUKQuestManagerSubsystem::BuildMobIDCache()
 {
-	MonsterIDToRowName.Empty();
+	MobIDToRowName.Empty();
 
 	if ( !MonsterDataTable )
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[MonsterID] MonsterDataTable is null. Cache build skipped."));
+		UE_LOG(LogTemp, Warning, TEXT("MobID MonsterDataTable is null. Cache build skipped."));
 		return;
 	}
 
@@ -707,43 +705,43 @@ void UUKQuestManagerSubsystem::BuildMonsterIDCache()
 
 	for ( const FName RowName : RowNames )
 	{
-		const FUK_MonsterMetaRow* Row = MonsterDataTable->FindRow<FUK_MonsterMetaRow>(RowName, TEXT("BuildMonsterIDCache"));
+		const FUK_MonsterMetaRow* Row = MonsterDataTable->FindRow<FUK_MonsterMetaRow>(RowName, TEXT("BuildMobIDCache"));
 		if ( !Row ) continue;
 
 		// MobEntityId 컬럼이 비어있으면 스킵
 		if ( Row->MobEntityId.IsNone() )
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[MonsterID] Row has None MobEntityId. RowName=%s"), *RowName.ToString());
+			UE_LOG(LogTemp, Warning, TEXT("MobID Row has None MobEntityId. RowName=%s"), *RowName.ToString());
 			continue;
 		}
 
-		// 중복 MonsterID 방지
-		if ( MonsterIDToRowName.Contains(Row->MobEntityId) )
+		// 중복 MobID 방지
+		if ( MobIDToRowName.Contains(Row->MobEntityId) )
 		{
-			UE_LOG(LogTemp, Error, TEXT("[MonsterID] Duplicate MobEntityId=%s (RowName=%s)"),
+			UE_LOG(LogTemp, Error, TEXT("MobID Duplicate MobEntityId=%s (RowName=%s)"),
 				*Row->MobEntityId.ToString(), *RowName.ToString());
 			continue;
 		}
 
-		MonsterIDToRowName.Add(Row->MobEntityId, RowName);
+		MobIDToRowName.Add(Row->MobEntityId, RowName);
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[MonsterID] Cache built. Count=%d"), MonsterIDToRowName.Num());
+	UE_LOG(LogTemp, Log, TEXT("MobID Cache built. Count=%d"), MobIDToRowName.Num());
 }
 
-const FUK_MonsterMetaRow* UUKQuestManagerSubsystem::GetMonsterDataByMonsterID(FName MonsterID) const
+const FUK_MonsterMetaRow* UUKQuestManagerSubsystem::GetMonsterDataByMobID(FName MobID) const
 {
 	if ( !MonsterDataTable ) return nullptr;
-	if ( MonsterID.IsNone() ) return nullptr;
+	if ( MobID.IsNone() ) return nullptr;
 
-	const FName* RowName = MonsterIDToRowName.Find(MonsterID);
+	const FName* RowName = MobIDToRowName.Find(MobID);
 	if ( !RowName )
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[MonsterID] Not found in cache: %s"), *MonsterID.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("MobID Not found in cache: %s"), *MobID.ToString());
 		return nullptr;
 	}
 
-	return MonsterDataTable->FindRow<FUK_MonsterMetaRow>(*RowName, TEXT("GetMonsterDataByMonsterID"));
+	return MonsterDataTable->FindRow<FUK_MonsterMetaRow>(*RowName, TEXT("GetMonsterDataByMobID"));
 }
 
 // [10] Reward / RewardDataTable / 보상적용
@@ -1049,7 +1047,7 @@ void UUKQuestManagerSubsystem::Deinitialize()
 {
 	ItemIDToRowName.Empty();
 	NPCIDToRowName.Empty();
-	MonsterIDToRowName.Empty();
+	MobIDToRowName.Empty();
 	RuntimeProgress.Empty();
 	QuestDefinitions.Empty();
 
