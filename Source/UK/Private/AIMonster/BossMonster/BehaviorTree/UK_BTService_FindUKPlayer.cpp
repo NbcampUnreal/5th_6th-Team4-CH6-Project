@@ -5,24 +5,32 @@
 #include "Character/UK_CharacterBase.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "AIMonster/BossMonster/UK_BossMonsterBase.h"
+#include "AIMonster/AttibuteSet/UK_MonsterAttributeSet.h"
+#include "AIMonster/BossMonster/UK_BossMonster_Grux.h"
+#include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
+#include "AbilitySystemComponent.h"
 
 UUK_BTService_FindUKPlayer::UUK_BTService_FindUKPlayer()
 {
 	NodeName = TEXT("Find UK Player");
 	bNotifyTick = true;
-	Interval = 0.3f;
 }
 
 void UUK_BTService_FindUKPlayer::TickNode(UBehaviorTreeComponent& OwnerComp,uint8* NodeMemory,float DeltaSeconds)
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 
-	auto* BB = OwnerComp.GetBlackboardComponent();
-	if (!BB) return;
-
 	auto* AI = OwnerComp.GetAIOwner();
-	if (!AI) return;
+	auto* BB = OwnerComp.GetBlackboardComponent();
+	if (!AI || !BB) return;
 
+	AUK_BossMonsterBase* Boss = Cast<AUK_BossMonsterBase>(AI->GetPawn());
+	if (Boss && Boss->bIsAttacking|| Boss->bIsHit) 
+	{
+		return; 
+	}
+	
 	APawn* SelfPawn = AI->GetPawn();
 	if (!SelfPawn) return;
 
@@ -49,6 +57,16 @@ void UUK_BTService_FindUKPlayer::TickNode(UBehaviorTreeComponent& OwnerComp,uint
 
 		if (!IsValid(Player)) continue;
 
+		if (UAbilitySystemComponent* PlayerASC = Player->GetAbilitySystemComponent())
+		{
+			const UUK_PlayerStatusAttributeSet* PlayerAS = Cast<UUK_PlayerStatusAttributeSet>(PlayerASC->GetAttributeSet(UUK_PlayerStatusAttributeSet::StaticClass()));
+           
+			if (PlayerAS && PlayerAS->GetHealth() <= 0.f)
+			{
+				continue;
+			}
+		}
+		
 		float Dist = FVector::Dist(Player->GetActorLocation(),SelfPawn->GetActorLocation());
 		if (Dist <= MinDist)
 		{
@@ -67,6 +85,24 @@ void UUK_BTService_FindUKPlayer::TickNode(UBehaviorTreeComponent& OwnerComp,uint
 	{
 		BB->ClearValue(TEXT("TargetActor"));
 		BB->ClearValue(TEXT("DistanceToTarget"));
+		
+		if (Boss)
+		{
+			AUK_BossMonster_Grux* Grux = Cast<AUK_BossMonster_Grux>(Boss);
+			if (Grux)
+			{
+				Grux->CurrentPhase = 1;
+				Grux->UpdatePhase(); 
+			}
+			
+			auto* MonsterAS = Boss->GetMonsterAttributeSet();
+           
+			if (MonsterAS)
+			{
+				float MaxHP = MonsterAS->GetMaxHealth();
+				MonsterAS->SetHealth(MaxHP);
+			}
+		}
 	}
 	
 }
