@@ -23,4 +23,10 @@ public:
 	// 제작법 화면 표시 이름
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crafting")
 	FText RecipeDisplayName;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crafting")
+	FText Description;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crafting")
+	UTexture2D* RecipeIcon;
 };
