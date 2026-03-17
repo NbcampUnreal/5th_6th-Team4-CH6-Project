@@ -18,6 +18,7 @@ class UAbilitySystemComponent;
 class UUK_MonsterAttributeSet;
 class UGameplayEffect;
 class USoundCue;
+class AUK_FloatingDamageActor;   // 추가
 
 /* ───────────────────── Enums & Delegates ───────────────────── */
 
@@ -256,6 +257,10 @@ public:
 	void ReceiveDamageFrom(float Damage, AController* InstigatorController);
 	
 	virtual void NotifyAttacked(AController* InstigatorController);
+
+	// 추가
+	UFUNCTION(BlueprintCallable, Category = "FloatingDamage")
+	void SpawnFloatingDamage(float InDamage);
 #pragma endregion
 
 #pragma region Idle Animation
@@ -445,5 +450,12 @@ private:
 	bool bHPVisible = false;
 	
 	void GrantRewardsToKiller();
+
+	// 추가
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "FloatingDamage", meta = ( AllowPrivateAccess = "true" ))
+	TSubclassOf<AUK_FloatingDamageActor> FloatingDamageActorClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FloatingDamage", meta = ( AllowPrivateAccess = "true" ))
+	float FloatingDamageZOffset = 120.f;
 #pragma endregion
 };

@@ -17,6 +17,7 @@
 #include "Tags/UK_GameplayTags.h"
 #include "DataAsset/DataTable/AIMonster/UK_MonsterLootRow.h"
 #include "ActorComponent/UK_InventoryComponent.h"
+#include "UI/InGame/UK_FloatingDamageActor.h" // 추가
 
 #pragma region Initialization
 AAIMonsterBase::AAIMonsterBase()
@@ -1305,4 +1306,48 @@ void AAIMonsterBase::PlayHitEffect(FVector ImpactPoint)
 			true                 
 		);
 	}
+void AAIMonsterBase::SpawnFloatingDamage(float InDamage)
+{
+	if ( InDamage <= 0.f )
+	{
+		return;
+	}
+
+	if ( !FloatingDamageActorClass )
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if ( !World )
+	{
+		return;
+	}
+
+	float SpawnZ = FloatingDamageZOffset;
+
+	if ( UCapsuleComponent* Capsule = GetCapsuleComponent() )
+	{
+		SpawnZ = Capsule->GetScaledCapsuleHalfHeight() + 20.f;
+	}
+
+	const FVector DamageActorLocation = GetActorLocation() + FVector(0.f, 0.f, SpawnZ);
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AUK_FloatingDamageActor* DamageActor =
+		World->SpawnActor<AUK_FloatingDamageActor>(
+			FloatingDamageActorClass,
+			DamageActorLocation,
+			FRotator::ZeroRotator,
+			SpawnParams);
+
+	if ( !DamageActor )
+	{
+		return;
+	}
+
+	DamageActor->SetDamageAmount(InDamage);
 }

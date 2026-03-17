@@ -28,17 +28,17 @@ public:
 	TSoftObjectPtr<UTexture2D> ItemIcon;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	int32 ItemStackCount;
+	int32 ItemStackCount = 0;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	int32 MaxItemStack;
+	int32 MaxItemStack = 1;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FGameplayTag ItemTag;	
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	ECharacterAttribute WeaponAttribute;
+	ECharacterAttribute WeaponAttribute = ECharacterAttribute::None;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	float ExtraAttackPower;
+	float ExtraAttackPower = 0.f;
 };

@@ -48,12 +48,14 @@ enum class EInputMode : uint8
 	Dash
 };
 
-UENUM(BlueprintType)
-enum class ECustomMovementMode : uint8
-{
-	CMOVE_None UMETA(DisplayName="None"),
-	CMOVE_Glide UMETA(DisplayName="Glide")
-};
+// UENUM(BlueprintType)
+// enum class ECustomMovementMode : uint8
+// {
+// 	CMOVE_None UMETA(DisplayName="None"),
+// 	CMOVE_Glide UMETA(DisplayName="Glide"),
+// 	CMOVE_Climb UMETA(DisplayName="Climb"),
+// 	CMOVE_Swim UMETA(DisplayName="Swim")
+// };
 
 UENUM(BlueprintType)
 enum class ECharacterAttribute : uint8
@@ -78,10 +80,10 @@ class UK_API AUK_CharacterBase : public ACharacter, public IAbilitySystemInterfa
 	// 함수
 public:
 	// Sets default values for this character's properties
-	AUK_CharacterBase();
+	AUK_CharacterBase(const FObjectInitializer& ObjectInitializer);
 
 	// Called every frame
-	//virtual void Tick(float DeltaTime) override;
+	virtual void Tick(float DeltaTime) override;
 
 	virtual void PossessedBy(AController* NewController) override;
 
@@ -89,7 +91,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ChangedAttribute(ECharacterAttribute NewAttribute);
-
+	void UpdateMovementState();
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -148,14 +150,22 @@ public:
 	UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
 	ECharacterAttribute Attribute;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	ECustomMovementMode MovementMode;
+	// UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	// ECustomMovementMode MovementMode;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnCharacterAttribute OnChangedAttribute;
 
 	UPROPERTY(EditAnywhere)
 	UHitMontageDataAsset* HitMontageDataAsset;
+	
+	UPROPERTY(BlueprintReadWrite)
+	bool bInWater = false;	
+	UPROPERTY(BlueprintReadWrite)
+	bool bWallDetected = false;
+	UPROPERTY(BlueprintReadWrite)
+	bool bIsGliding = false;
+	
 #pragma endregion
 
 #pragma region Interaction And Quest
@@ -226,9 +236,11 @@ protected:
 	void Interaction();
 
 	UFUNCTION()
-	void Setting();	
+	void Setting();
+
 	UFUNCTION()
 	void Dash();
+
 #pragma endregion
 
 public:
@@ -276,6 +288,23 @@ protected:
 	void EndGliding();
 #pragma endregion
 
+#pragma region Climb
+
+public:
+	UFUNCTION()
+	void ActorTrace();
+
+protected:
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	float TraceDist;
+	
+	UPROPERTY()
+	FHitResult HitResult;
+	
+	FTimerHandle WallTraceTimerHandler;
+
+#pragma endregion
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UUK_InputConfig* InputMappingConfig;
@@ -301,9 +330,8 @@ protected:
 #pragma region Weapon
 
 public:
-	
 	void ChangeWeaponStat(const FUK_WeaponItemData* WeaponStat);
-	
+
 	UFUNCTION(BlueprintCallable)
 	void EquipWeapon(FGameplayTag NewWeapon);
 
@@ -322,7 +350,7 @@ public:
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<UGameplayEffect> WeaponStatEffect;
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<UUK_WeaponData> WeaponList;
 
@@ -334,7 +362,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	int32 WeaponSlotIndex;
-	
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	FActiveGameplayEffectHandle WeaponEffectHandle;
 #pragma endregion
@@ -366,7 +394,7 @@ public:
 protected:
 	UPROPERTY()
 	bool bIsParry;
-	
+
 #pragma endregion
 
 #pragma region FindMonsterHPBar
@@ -377,11 +405,11 @@ public:
 	UPROPERTY()
 	TSet<AAIMonsterBase*> NearbyMonsters;
 
-		UPROPERTY(BlueprintReadWrite, EditAnywhere,  Category = "UI/DetactBoundary")
-		float DetectRadius = 1500.0f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "UI/DetactBoundary")
+	float DetectRadius = 1500.0f;
 
-		FTimerHandle DetectTimer;
+	FTimerHandle DetectTimer;
 
-		bool bDrawDetectRadius = false;
+	bool bDrawDetectRadius = false;
 #pragma endregion
 };

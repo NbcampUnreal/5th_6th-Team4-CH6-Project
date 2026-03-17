@@ -27,10 +27,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	TSoftObjectPtr<UTexture2D> ItemIcon;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	int32 ItemStackCount;
+	int32 ItemStackCount = 0;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	int32 MaxItemStack;
+	int32 MaxItemStack = 1;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FGameplayTag ItemTag;	
