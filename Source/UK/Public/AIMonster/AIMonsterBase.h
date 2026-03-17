@@ -297,9 +297,6 @@ private:
 	FTimerHandle CorpseTimerHandle;
 	void HideAndBroadcastDeath();
 	
-	/* 킬 알림 전송 */
-	void NotifyMonsterKilled();
-
 public:
 
 	UUK_MonsterHealthBar* GetHPWidget() const;

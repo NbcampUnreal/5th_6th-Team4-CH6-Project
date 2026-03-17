@@ -6,7 +6,7 @@
 void UUK_CraftingSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	RecipeDataTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Game/ItemData/DT_WeaponRecipes")));
+	RecipeDataTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Game/ItemData/CraftingWeaponRecipe/CraftWeapon_Recipe")));
     
 	if (RecipeDataTable)
 	{
@@ -38,11 +38,11 @@ bool UUK_CraftingSubsystem::TryCraftItem(FName RecipeRowName)
 	// 인벤토리나 레시피 테이블이 없으면 진행 불가
 	if (!PlayerInv || !RecipeDataTable) return false;
 
-	// 2. 레시피 데이터 찾기
+	//레시피 데이터 찾기
 	FUK_CraftingRecipeRow* Recipe = RecipeDataTable->FindRow<FUK_CraftingRecipeRow>(RecipeRowName, TEXT("CraftingContext"));
 	if (!Recipe) return false;
 
-	// 3. 골드 체크 (PlayerInv 사용)
+	//골드 체크
 	if (PlayerInv->GetGold() < Recipe->RequiredGold) 
 	{
 		UE_LOG(LogTemp, Warning, TEXT("골드가 부족합니다!"));
@@ -66,7 +66,7 @@ bool UUK_CraftingSubsystem::TryCraftItem(FName RecipeRowName)
 		PlayerInv->RemoveItem(Ingredient.Key, Ingredient.Value);
 	}
 
-	// 6. 결과물 지급
+	//결과물 지급
 	PlayerInv->AddItem(Recipe->TargetItemId, 1);
     
 	UE_LOG(LogTemp, Log, TEXT("%s 제작 완료!"), *Recipe->RecipeDisplayName.ToString());

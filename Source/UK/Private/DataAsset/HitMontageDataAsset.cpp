@@ -5,6 +5,12 @@
 
 UAnimMontage* UHitMontageDataAsset::FindHitMontageByType(EHitReactionType HitType)
 {
-	UAnimMontage* HitAnim = *HitMontageMap.Find(HitType);
-	return HitAnim;
+	const TObjectPtr<UAnimMontage>* HitAnim = HitMontageMap.Find(HitType);
+
+	if (HitAnim && *HitAnim)
+	{
+		return HitAnim->Get();
+	}
+
+	return nullptr;
 }

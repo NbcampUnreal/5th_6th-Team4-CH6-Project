@@ -32,6 +32,7 @@ class UUK_InteractionComponent;
 class UUK_QuestComponent;
 class USoundAttenuation;
 struct FInputActionValue;
+struct FUK_WeaponItemData;
 #pragma endregion
 
 UENUM(BlueprintType)
@@ -300,6 +301,9 @@ protected:
 #pragma region Weapon
 
 public:
+	
+	void ChangeWeaponStat(const FUK_WeaponItemData* WeaponStat);
+	
 	UFUNCTION(BlueprintCallable)
 	void EquipWeapon(FGameplayTag NewWeapon);
 
@@ -317,6 +321,9 @@ public:
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<UGameplayEffect> WeaponStatEffect;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<UUK_WeaponData> WeaponList;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -325,6 +332,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	TObjectPtr<UDataTable> WeaponDataTable;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	int32 WeaponSlotIndex;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FActiveGameplayEffectHandle WeaponEffectHandle;
 #pragma endregion
 
 #pragma region Battle

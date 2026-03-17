@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
 #include "Character/UK_CharacterBase.h"
+#include "UI/OutGame/UK_Out_Loading.h"
 #include "UK_GameInstance.generated.h"
 
 /**
@@ -16,9 +17,10 @@ class UK_API UUK_GameInstance : public UGameInstance
 	GENERATED_BODY()
 
 public:
-
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TSubclassOf<class AUK_CharacterBase> CharacterSelected;
 
+	UPROPERTY(BlueprintReadWrite, Category = "UI")
+	class UUK_Out_Loading* PersistentLoadingWidget;
 
 };
