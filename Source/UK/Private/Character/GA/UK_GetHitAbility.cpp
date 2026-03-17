@@ -32,8 +32,7 @@ void UUK_GetHitAbility::CancelAbilitiesWithTags(const FGameplayTagContainer& Tag
 			continue;
 		if (&Spec == GetCurrentAbilitySpec()) 
 			continue; // 자기 자신 제외
-
-		if (Spec.Ability->AbilityTags.HasAny(Tags))
+		if (Spec.Ability->GetAssetTags().HasAny(Tags))
 		{
 			ASC->CancelAbilityHandle(Spec.Handle);
 		}
