@@ -564,8 +564,6 @@ void AAIMonsterBase::PlayAttackMontage(int32 MontageIndex)
 
 void AAIMonsterBase::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	if (!AttackMontages.Contains(Montage)) return;
-
 	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
 	if (AnimInstance)
 	{
@@ -1291,6 +1289,24 @@ void AAIMonsterBase::GrantRewardsToKiller()
 }
 #pragma endregion
 
+void AAIMonsterBase::PlayHitEffect(FVector ImpactPoint)
+{
+	if ( HitEffect )
+	{
+		FVector SpawnLoc = ( ImpactPoint.IsNearlyZero() ) ? GetActorLocation() + FVector(0.f, 0.f, 100.f) : ImpactPoint;
+
+		FVector EffectScale = FVector(2.5f, 2.5f, 2.5f);
+
+		UGameplayStatics::SpawnEmitterAtLocation(
+			GetWorld(),
+			HitEffect,
+			SpawnLoc,
+			FRotator::ZeroRotator,
+			EffectScale,
+			true
+		);
+	}
+}
 void AAIMonsterBase::SpawnFloatingDamage(float InDamage)
 {
 	if ( InDamage <= 0.f )
