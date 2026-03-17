@@ -6,6 +6,15 @@
 #include "UObject/SoftObjectPath.h"
 #include "server/UKSaveGame.h"
 
+// 인벤토리 관련
+#include "ActorComponent/UK_InventoryComponent.h"
+#include "GameFramework/Pawn.h"
+
+// 캐릭터 xp 부여관련
+#include "AbilitySystemInterface.h"
+#include "AbilitySystemComponent.h"
+#include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
+
 // Preset
 #include "Quest/UKQuestPresetLibrary.h" // ApplyPresetToProgress
 
@@ -36,54 +45,24 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 			UE_LOG(LogTemp, Warning, TEXT("[Quest][Preset] PresetAsset load FAILED. Path=%s"),
 				*PresetAssetPath.ToString());
 		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("[Quest][Preset] PresetAsset loaded OK. Path=%s"),
+				*PresetAssetPath.ToString());
+		}
 	}
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[Quest][Preset] PresetAssetPath invalid."));
 	}
 
-	// [Reward] Load 
-	if ( !RewardDataTable ) // 에디터에서 직접 할당했으면 그걸 우선 사용
-	{
-		if ( !RewardDataTablePath.IsValid() )
-		{
-			// 예: DataTable'/Game/Rewards/DT_RewardTable.DT_RewardTable'
-			// 실제 경로는 에셋 우클릭 -> Copy Reference로 교체
-			RewardDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/Rewards/DT_RewardTable.DT_RewardTable'"));
-		}
-
-		if ( RewardDataTablePath.IsValid() )
-		{
-			UObject* LoadedDT = RewardDataTablePath.TryLoad();
-			RewardDataTable = Cast<UDataTable>(LoadedDT);
-
-			if ( !RewardDataTable )
-			{
-				UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] RewardDataTable load FAILED. Path=%s"),
-					*RewardDataTablePath.ToString());
-			}
-			else
-			{
-				UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] RewardDataTable loaded OK. Path=%s"),
-					*RewardDataTablePath.ToString());
-			}
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] RewardDataTablePath invalid."));
-		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] RewardDataTable already assigned in editor."));
-	}
 
 	// [ItemDataTable] Load
 	if ( !ItemDataTable ) // 에디터에서 직접 할당했으면 그걸 우선 사용
 	{
 		if ( !ItemDataTablePath.IsValid() )
 		{
-			// 실제 경로는 에셋 우클릭 -> Copy Reference 로 확인
+			// 경로 하드코딩
 			ItemDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/ItemData/DT_ItemTableble.DT_ItemTableble'"));
 		}
 
@@ -111,6 +90,112 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	else
 	{
 		UE_LOG(LogTemp, Log, TEXT("[ItemID] ItemDataTable already assigned in editor."));
+	}
+
+
+	// [NPCDataTable] Load
+	if ( !NPCDataTable ) // 에디터에서 직접 할당했으면 그걸 우선 사용
+	{
+		if ( !NPCDataTablePath.IsValid() )
+		{
+			// 경로 하드코딩
+			NPCDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/ItemData/DT_NPCTable.DT_NPCTable'"));
+		}
+
+		if ( NPCDataTablePath.IsValid() )
+		{
+			UObject* LoadedNPCDT = NPCDataTablePath.TryLoad();
+			NPCDataTable = Cast<UDataTable>(LoadedNPCDT);
+
+			if ( !NPCDataTable )
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[NPCID] NPCDataTable load FAILED. Path=%s"),
+					*NPCDataTablePath.ToString());
+			}
+			else
+			{
+				UE_LOG(LogTemp, Log, TEXT("[NPCID] NPCDataTable loaded OK. Path=%s"),
+					*NPCDataTablePath.ToString());
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[NPCID] NPCDataTablePath invalid."));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("[NPCID] NPCDataTable already assigned in editor."));
+	}
+
+	// [MonsterDataTable] Load
+	if ( !MonsterDataTable ) // 에디터에서 직접 할당했으면 그걸 우선 사용
+	{
+		if ( !MonsterDataTablePath.IsValid() )
+		{
+			// 경로 하드코딩
+			MonsterDataTablePath = FSoftObjectPath(TEXT("/Game/ItemData/AIMonsterDT/DT_UKMonsterMeta.DT_UKMonsterMeta'"));
+		}
+
+		if ( MonsterDataTablePath.IsValid() )
+		{
+			UObject* LoadedMonsterDT = MonsterDataTablePath.TryLoad();
+			MonsterDataTable = Cast<UDataTable>(LoadedMonsterDT);
+
+			if ( !MonsterDataTable )
+			{
+				UE_LOG(LogTemp, Warning, TEXT("MobID MonsterDataTable load FAILED. Path=%s"),
+					*MonsterDataTablePath.ToString());
+			}
+			else
+			{
+				UE_LOG(LogTemp, Log, TEXT("MobID MonsterDataTable loaded OK. Path=%s"),
+					*MonsterDataTablePath.ToString());
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("MobID MonsterDataTablePath invalid."));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("MobID MonsterDataTable already assigned in editor."));
+	}
+
+	// [Reward] Load 
+	if ( !RewardDataTable ) // 에디터에서 직접 할당했으면 그걸 우선 사용
+	{
+		if ( !RewardDataTablePath.IsValid() )
+		{
+			// 경로 하드코딩
+			RewardDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/ItemData/DT_RewardTable.DT_RewardTable'"));
+		}
+
+		if ( RewardDataTablePath.IsValid() )
+		{
+			UObject* LoadedDT = RewardDataTablePath.TryLoad();
+			RewardDataTable = Cast<UDataTable>(LoadedDT);
+
+			if ( !RewardDataTable )
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[RewardID] RewardDataTable load FAILED. Path=%s"),
+					*RewardDataTablePath.ToString());
+			}
+			else
+			{
+				UE_LOG(LogTemp, Log, TEXT("[RewardID] RewardDataTable loaded OK. Path=%s"),
+					*RewardDataTablePath.ToString());
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[RewardID] RewardDataTablePath invalid."));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("[RewardID] RewardDataTable already assigned in editor."));
 	}
 
 	// [Quest Definitions] Auto Scan & Register
@@ -150,6 +235,8 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 			Assets.Num(), RegisteredCount, *ScanPath.ToString());
 	}
 	BuildItemIDCache();
+	BuildNPCIDCache();
+	BuildMobIDCache();
 }
 
 
@@ -494,8 +581,7 @@ bool UUKQuestManagerSubsystem::GetProgress(FName QuestId, FQuestProgress& OutPro
 	return false;
 }
 
-// [7] Reward / ItemDataTable (기존 유지)
-
+// [7] Item EntityID / ItemDataTable
 void UUKQuestManagerSubsystem::BuildItemIDCache()
 {
 	ItemIDToRowName.Empty();
@@ -549,19 +635,310 @@ const FUK_ItemData* UUKQuestManagerSubsystem::GetItemDataByItemID(FName ItemID) 
 	return ItemDataTable->FindRow<FUK_ItemData>(*RowName, TEXT("GetItemDataByItemID"));
 }
 
+// [8] NPC EntityID / NPCDataTable
+void UUKQuestManagerSubsystem::BuildNPCIDCache()
+{
+	NPCIDToRowName.Empty();
+
+	if ( !NPCDataTable )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[NPCID] NPCDataTable is null. Cache build skipped."));
+		return;
+	}
+
+	const TArray<FName> RowNames = NPCDataTable->GetRowNames();
+
+	for ( const FName RowName : RowNames )
+	{
+		const FUK_NPCData* Row = NPCDataTable->FindRow<FUK_NPCData>(RowName, TEXT("BuildNPCIDCache"));
+		if ( !Row ) continue;
+
+		// NPCID 컬럼이 비어있으면 스킵
+		if ( Row->NPCID.IsNone() )
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[NPCID] Row has None NPCID. RowName=%s"), *RowName.ToString());
+			continue;
+		}
+
+		// 중복 NPCID 방지
+		if ( NPCIDToRowName.Contains(Row->NPCID) )
+		{
+			UE_LOG(LogTemp, Error, TEXT("[NPCID] Duplicate NPCID=%s (RowName=%s)"),
+				*Row->NPCID.ToString(), *RowName.ToString());
+			continue;
+		}
+
+		NPCIDToRowName.Add(Row->NPCID, RowName);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[NPCID] Cache built. Count=%d"), NPCIDToRowName.Num());
+}
+
+const FUK_NPCData* UUKQuestManagerSubsystem::GetNPCDataByNPCID(FName NPCID) const
+{
+	if ( !NPCDataTable ) return nullptr;
+	if ( NPCID.IsNone() ) return nullptr;
+
+	const FName* RowName = NPCIDToRowName.Find(NPCID);
+	if ( !RowName )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[NPCID] Not found in cache: %s"), *NPCID.ToString());
+		return nullptr;
+	}
+
+	return NPCDataTable->FindRow<FUK_NPCData>(*RowName, TEXT("GetNPCDataByNPCID"));
+}
+
+// [9] Monster EntityID / MonsterDataTable
+
+void UUKQuestManagerSubsystem::BuildMobIDCache()
+{
+	MobIDToRowName.Empty();
+
+	if ( !MonsterDataTable )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("MobID MonsterDataTable is null. Cache build skipped."));
+		return;
+	}
+
+	const TArray<FName> RowNames = MonsterDataTable->GetRowNames();
+
+	for ( const FName RowName : RowNames )
+	{
+		const FUK_MonsterMetaRow* Row = MonsterDataTable->FindRow<FUK_MonsterMetaRow>(RowName, TEXT("BuildMobIDCache"));
+		if ( !Row ) continue;
+
+		// MobEntityId 컬럼이 비어있으면 스킵
+		if ( Row->MobEntityId.IsNone() )
+		{
+			UE_LOG(LogTemp, Warning, TEXT("MobID Row has None MobEntityId. RowName=%s"), *RowName.ToString());
+			continue;
+		}
+
+		// 중복 MobID 방지
+		if ( MobIDToRowName.Contains(Row->MobEntityId) )
+		{
+			UE_LOG(LogTemp, Error, TEXT("MobID Duplicate MobEntityId=%s (RowName=%s)"),
+				*Row->MobEntityId.ToString(), *RowName.ToString());
+			continue;
+		}
+
+		MobIDToRowName.Add(Row->MobEntityId, RowName);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("MobID Cache built. Count=%d"), MobIDToRowName.Num());
+}
+
+const FUK_MonsterMetaRow* UUKQuestManagerSubsystem::GetMonsterDataByMobID(FName MobID) const
+{
+	if ( !MonsterDataTable ) return nullptr;
+	if ( MobID.IsNone() ) return nullptr;
+
+	const FName* RowName = MobIDToRowName.Find(MobID);
+	if ( !RowName )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("MobID Not found in cache: %s"), *MobID.ToString());
+		return nullptr;
+	}
+
+	return MonsterDataTable->FindRow<FUK_MonsterMetaRow>(*RowName, TEXT("GetMonsterDataByMobID"));
+}
+
+// [10] Reward / RewardDataTable / 보상적용
+
+
+// 인벤토리 컴포넌트 찾는 함수
+UUK_InventoryComponent* UUKQuestManagerSubsystem::GetPlayerInventoryComponent() const
+{
+	UWorld* World = GetWorld();
+	if ( !World ) return nullptr;
+
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(World, 0);
+	if ( !PlayerPawn ) return nullptr;
+
+	return PlayerPawn->FindComponentByClass<UUK_InventoryComponent>();
+}
+
+// 아이템 지급
 void UUKQuestManagerSubsystem::GiveQuestReward(FName ItemID, int32 Amount)
 {
+	if ( ItemID.IsNone() )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Reward] GiveQuestReward failed: ItemID is None"));
+		return;
+	}
+
+	if ( Amount <= 0 )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Reward] GiveQuestReward failed: invalid Amount=%d, ItemID=%s"),
+			Amount, *ItemID.ToString());
+		return;
+	}
+
 	const FUK_ItemData* Data = GetItemDataByItemID(ItemID);
-	if ( !Data ) return;
+	if ( !Data )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Reward] GiveQuestReward failed: Item data not found for ItemID=%s"),
+			*ItemID.ToString());
+		return;
+	}
 
 	// TODO: 실제 인벤토리 지급 연결
 	// 예: InventoryComponent->AddItem(ItemID, Amount);
 
-	UE_LOG(LogTemp, Log, TEXT("[Reward] Item Given: %s x%d"), *ItemID.ToString(), Amount);
+	UE_LOG(LogTemp, Log, TEXT("[Reward] Item Given: ItemID=%s Name=%s x%d"),
+		*ItemID.ToString(),
+		*Data->ItemName.ToString(),
+		Amount);
+}
+
+// ApplyRewardById 구현
+bool UUKQuestManagerSubsystem::ApplyRewardById(FName RewardId, FName QuestId)
+{
+	if ( RewardId.IsNone() )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] RewardId is None. Quest=%s"), *QuestId.ToString());
+		return false;
+	}
+
+	if ( !RewardDataTable )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] RewardDataTable is null. Quest=%s RewardId=%s"),
+			*QuestId.ToString(), *RewardId.ToString());
+		return false;
+	}
+
+	// RowName == RewardId 규칙
+	const FUKRewardRow* Row = RewardDataTable->FindRow<FUKRewardRow>(RewardId, TEXT("QuestRewardLookup"));
+	if ( !Row )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] Row NOT found. Quest=%s RewardId=%s"),
+			*QuestId.ToString(), *RewardId.ToString());
+		return false;
+	}
+
+	// 1) Gold / XP
+	if ( Row->Gold != 0 )
+	{
+		UUK_InventoryComponent* InventoryComp = GetPlayerInventoryComponent();
+		if ( !InventoryComp )
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] InventoryComponent not found. Gold reward failed. Quest=%s RewardId=%s"),
+				*QuestId.ToString(), *RewardId.ToString());
+		}
+		else
+		{
+			const bool bGoldAdded = InventoryComp->AddGold(Row->Gold);
+			if ( bGoldAdded )
+			{
+				UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] Gold +%d applied. CurrentGold=%d (Quest=%s RewardId=%s)"),
+					Row->Gold,
+					InventoryComp->GetGold(),
+					*QuestId.ToString(),
+					*RewardId.ToString());
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] AddGold failed. Value=%d Quest=%s RewardId=%s"),
+					Row->Gold,
+					*QuestId.ToString(),
+					*RewardId.ToString());
+			}
+		}
+	}
+
+	if ( Row->XP != 0 )
+	{
+		APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+		if ( !PlayerPawn )
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] PlayerPawn not found. XP reward failed. Quest=%s RewardId=%s"),
+				*QuestId.ToString(), *RewardId.ToString());
+		}
+		else if ( IAbilitySystemInterface* ASIPlayer = Cast<IAbilitySystemInterface>(PlayerPawn) )
+		{
+			if ( UAbilitySystemComponent* PlayerASC = ASIPlayer->GetAbilitySystemComponent() )
+			{
+				const float CurrentExp = PlayerASC->GetNumericAttribute(
+					UUK_PlayerStatusAttributeSet::GetEXPAttribute());
+
+				PlayerASC->SetNumericAttributeBase(
+					UUK_PlayerStatusAttributeSet::GetEXPAttribute(),
+					CurrentExp + Row->XP);
+
+				UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] XP +%d applied. CurrentEXP=%.1f (Quest=%s RewardId=%s)"),
+					Row->XP,
+					CurrentExp + Row->XP,
+					*QuestId.ToString(),
+					*RewardId.ToString());
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] Player ASC not found. XP reward failed. Quest=%s RewardId=%s"),
+					*QuestId.ToString(), *RewardId.ToString());
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] PlayerPawn has no AbilitySystemInterface. XP reward failed. Quest=%s RewardId=%s"),
+				*QuestId.ToString(), *RewardId.ToString());
+		}
+	}
+
+	// 2) Items 지급
+	for ( const FUKRewardItemGrant& Grant : Row->Items )
+	{
+		if ( Grant.ItemID.IsNone() || Grant.Amount <= 0 )
+			continue;
+
+		GiveQuestReward(Grant.ItemID, Grant.Amount);
+
+		UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] Item %s x%d (Quest=%s RewardId=%s)"),
+			*Grant.ItemID.ToString(), Grant.Amount,
+			*QuestId.ToString(), *RewardId.ToString());
+	}
+
+	// 3) SetFlags 반영 (전역/퀘스트 둘 다 가능)
+	// - 현재는 QuestProgress 내부 Flags(TSet<FName>)에 넣는 방식으로만 처리(뼈대)
+	// - 전역 플래그(F.Common.*)는 SaveGame의 별도 GlobalFlags로 확장 예정
+	if ( FQuestProgress* Prog = RuntimeProgress.Find(QuestId) )
+	{
+		for ( const FName FlagKey : Row->SetFlags )
+		{
+			if ( !FlagKey.IsNone() )
+			{
+				Prog->Flags.Add(FlagKey);
+				UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] SetFlag %s"), *FlagKey.ToString());
+			}
+		}
+
+		// 4) AddCounters 반영
+		for ( const auto& Pair : Row->AddCounters )
+		{
+			const FName CounterKey = Pair.Key;
+			const int32 Delta = Pair.Value;
+
+			if ( CounterKey.IsNone() || Delta == 0 )
+				continue;
+
+			const int32 Cur = Prog->Counters.FindRef(CounterKey);
+			Prog->Counters.Add(CounterKey, Cur + Delta);
+
+			UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] AddCounter %s %+d => %d"),
+				*CounterKey.ToString(), Delta, Cur + Delta);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] Quest progress not found when applying flags/counters. Quest=%s"),
+			*QuestId.ToString());
+	}
+
+	return true;
 }
 
 
-// [8] Quest Definition 등록/조회
+// [11] Quest Definition 등록/조회
 bool UUKQuestManagerSubsystem::RegisterQuestDefinition(const UUKQuestDefinitionAsset* Definition)
 {
 	if ( !Definition ) return false;
@@ -581,7 +958,7 @@ const UUKQuestDefinitionAsset* UUKQuestManagerSubsystem::GetQuestDefinition(FNam
 }
 
 
-// [9] Progress Helpers (명명규칙 키 생성)
+// [12] Progress Helpers (명명규칙 키 생성)
 FName UUKQuestManagerSubsystem::MakeCounterKey(FName QuestId, FName CounterName) const
 {
 	// C.<QuestID>.<Name>
@@ -641,7 +1018,7 @@ bool UUKQuestManagerSubsystem::IsObjectiveComplete(const FQuestProgress& P, cons
 	return false;
 }
 
-// [10] Auto Complete
+// [13] Auto Complete
 void UUKQuestManagerSubsystem::TryAutoCompleteQuest(FName QuestId)
 {
 	FQuestProgress* Prog = RuntimeProgress.Find(QuestId);
@@ -666,109 +1043,18 @@ void UUKQuestManagerSubsystem::TryAutoCompleteQuest(FName QuestId)
 }
 
 
-// [11] 보상적용
-// ApplyRewardById 구현
-bool UUKQuestManagerSubsystem::ApplyRewardById(FName RewardId, FName QuestId)
-{
-	if ( RewardId.IsNone() )
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] RewardId is None. Quest=%s"), *QuestId.ToString());
-		return false;
-	}
-
-	if ( !RewardDataTable )
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] RewardDataTable is null. Quest=%s RewardId=%s"),
-			*QuestId.ToString(), *RewardId.ToString());
-		return false;
-	}
-
-	// RowName == RewardId 규칙
-	const FUKRewardRow* Row = RewardDataTable->FindRow<FUKRewardRow>(RewardId, TEXT("QuestRewardLookup"));
-	if ( !Row )
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] Row NOT found. Quest=%s RewardId=%s"),
-			*QuestId.ToString(), *RewardId.ToString());
-		return false;
-	}
-
-	// 1) Gold / XP (지금은 로그만. 나중에 PlayerState/Inventory로 연결)
-	if ( Row->Gold != 0 )
-	{
-		UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] Gold +%d (Quest=%s RewardId=%s)"),
-			Row->Gold, *QuestId.ToString(), *RewardId.ToString());
-
-		// TODO: 실제 골드 지급 연결
-		// 예: UKCurrencySubsystem->AddGold(Row->Gold);
-	}
-
-	if ( Row->XP != 0 )
-	{
-		UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] XP +%d (Quest=%s RewardId=%s)"),
-			Row->XP, *QuestId.ToString(), *RewardId.ToString());
-
-		// TODO: 실제 XP 지급 연결
-		// 예: UKExpSubsystem->AddXP(Row->XP);
-	}
-
-	// 2) Items 지급
-	for ( const FUKRewardItemGrant& Grant : Row->Items )
-	{
-		if ( Grant.ItemID.IsNone() || Grant.Amount <= 0 )
-			continue;
-
-		GiveQuestReward(Grant.ItemID, Grant.Amount);
-
-		UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] Item %s x%d (Quest=%s RewardId=%s)"),
-			*Grant.ItemID.ToString(), Grant.Amount,
-			*QuestId.ToString(), *RewardId.ToString());
-	}
-
-	// 3) SetFlags 반영 (전역/퀘스트 둘 다 가능)
-	// - 현재는 QuestProgress 내부 Flags(TSet<FName>)에 넣는 방식으로만 처리(뼈대)
-	// - 전역 플래그(F.Common.*)는 SaveGame의 별도 GlobalFlags로 확장 예정
-	if ( FQuestProgress* Prog = RuntimeProgress.Find(QuestId) )
-	{
-		for ( const FName FlagKey : Row->SetFlags )
-		{
-			if ( !FlagKey.IsNone() )
-			{
-				Prog->Flags.Add(FlagKey);
-				UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] SetFlag %s"), *FlagKey.ToString());
-			}
-		}
-
-		// 4) AddCounters 반영
-		for ( const auto& Pair : Row->AddCounters )
-		{
-			const FName CounterKey = Pair.Key;
-			const int32 Delta = Pair.Value;
-
-			if ( CounterKey.IsNone() || Delta == 0 )
-				continue;
-
-			const int32 Cur = Prog->Counters.FindRef(CounterKey);
-			Prog->Counters.Add(CounterKey, Cur + Delta);
-
-			UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] AddCounter %s %+d => %d"),
-				*CounterKey.ToString(), Delta, Cur + Delta);
-		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Quest][Reward] Quest progress not found when applying flags/counters. Quest=%s"),
-			*QuestId.ToString());
-	}
-
-	return true;
-}
-
 void UUKQuestManagerSubsystem::Deinitialize()
 {
 	ItemIDToRowName.Empty();
+	NPCIDToRowName.Empty();
+	MobIDToRowName.Empty();
 	RuntimeProgress.Empty();
 	QuestDefinitions.Empty();
+
 	PresetAsset = nullptr;
+	ItemDataTable = nullptr;
+	NPCDataTable = nullptr;
+	MonsterDataTable = nullptr;
 	RewardDataTable = nullptr;
 	Super::Deinitialize();
 }

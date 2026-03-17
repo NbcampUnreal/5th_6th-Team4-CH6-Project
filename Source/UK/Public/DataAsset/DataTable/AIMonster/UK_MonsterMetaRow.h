@@ -16,7 +16,10 @@ struct FUK_MonsterMetaRow : public FTableRowBase
 	EMonsterRank Rank = EMonsterRank::Normal;
 
 	/**
-	 * 퀘스트 명명규칙: Mob_<Zone>_<Name>
+	 * 퀘스트 명명규칙: 
+	 Mob_<Zone>_<Name>
+	 Elite_<Zone>_<Name>
+	 Boss_<Zone>_<Name>
 	 * ex) Mob_Common_Wolf
 	 * → QuestEvent.Killed.Mob_Common_Wolf 자동 생성에 사용
 	 */
