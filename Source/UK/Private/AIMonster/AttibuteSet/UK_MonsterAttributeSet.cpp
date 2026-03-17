@@ -61,17 +61,6 @@ void UUK_MonsterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectMod
 						InstigatorController = InstigatorPawn->GetController();
 					}
 				}
-				Monster->NotifyAttacked(InstigatorController); 
-				
-				if (Data.EffectSpec.GetContext().GetInstigator())
-				{
-					APawn* InstigatorPawn = Cast<APawn>(Data.EffectSpec.GetContext().GetInstigator());
-					if (InstigatorPawn)
-					{
-						InstigatorController = InstigatorPawn->GetController();
-					}
-				}
-				
 				FVector HitLocation = FVector::ZeroVector;
 				if (const FHitResult* HitResult = Data.EffectSpec.GetContext().GetHitResult())
 				{
