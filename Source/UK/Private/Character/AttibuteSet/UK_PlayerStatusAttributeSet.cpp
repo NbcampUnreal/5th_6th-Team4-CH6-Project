@@ -217,8 +217,9 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 	{
 		if (GetMaxEXP() != 0 && GetMaxEXP() <= GetEXP())
 		{
-			SetEXP(GetEXP() - GetMaxEXP());
+			float RequiredEXP = GetMaxEXP();
 			SetLevel(FMath::Min(GetLevel() + 1, GetMaxLevel()));
+			SetEXP(GetEXP() - RequiredEXP);
 			EXPChanged.Broadcast(OldValue, NewValue);
 		}
 	}
@@ -232,6 +233,7 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 	{
 		if (GetMaxLevel() != NewValue)
 		{
+			SetMaxEXP((NewValue*2) * 10 + 100);
 			SetAttackPower(GetAttackPower() + (GetLevel() * 10));
 			LevelChanged.Broadcast(OldValue, NewValue);
 		}
