@@ -43,10 +43,7 @@ struct FUK_MonsterStatRow : public FTableRowBase
 	
 	// ── 보상 ────────────────────────────────────
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats|Reward")
-	float BaseExp = 50.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats|Reward")
-	float ExpPerLevel = 10.f;
+	float ExpPercent = 0.05f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats|Reward")
 	float BaseGold = 10.f;
