@@ -1291,21 +1291,22 @@ void AAIMonsterBase::GrantRewardsToKiller()
 
 void AAIMonsterBase::PlayHitEffect(FVector ImpactPoint)
 {
-	if (HitEffect)
+	if ( HitEffect )
 	{
-		FVector SpawnLoc = (ImpactPoint.IsNearlyZero()) ? GetActorLocation() + FVector(0.f, 0.f, 100.f) : ImpactPoint;
-		
-		FVector EffectScale = FVector(2.5f, 2.5f, 2.5f); 
+		FVector SpawnLoc = ( ImpactPoint.IsNearlyZero() ) ? GetActorLocation() + FVector(0.f, 0.f, 100.f) : ImpactPoint;
+
+		FVector EffectScale = FVector(2.5f, 2.5f, 2.5f);
 
 		UGameplayStatics::SpawnEmitterAtLocation(
-			GetWorld(), 
-			HitEffect, 
-			SpawnLoc, 
+			GetWorld(),
+			HitEffect,
+			SpawnLoc,
 			FRotator::ZeroRotator,
-			EffectScale,          
-			true                 
+			EffectScale,
+			true
 		);
 	}
+}
 void AAIMonsterBase::SpawnFloatingDamage(float InDamage)
 {
 	if ( InDamage <= 0.f )

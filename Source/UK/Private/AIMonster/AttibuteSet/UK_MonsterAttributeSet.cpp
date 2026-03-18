@@ -68,6 +68,7 @@ void UUK_MonsterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectMod
 				}
 				Monster->PlayHitEffect(HitLocation); 
 				Monster->NotifyAttacked(InstigatorController);
+				Monster->SpawnFloatingDamage(FinalDamage);
 			}
 			
 			UE_LOG(LogTemp, Warning, TEXT(" Health Updated: %.1f → %.1f (Damage: %.1f)"), 

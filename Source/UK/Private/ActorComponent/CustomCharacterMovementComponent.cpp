@@ -8,10 +8,6 @@ void UCustomCharacterMovementComponent::PhysCustom(float deltaTime, int32 Iterat
 {
 	switch ((ECustomMovementMode)CustomMovementMode)
 	{
-	case ECustomMovementMode::CMOVE_Glide:
-		PhysGlide(deltaTime, Iterations);
-		break;
-
 	case ECustomMovementMode::CMOVE_Climb:
 		PhysClimb(deltaTime, Iterations);
 		break;
@@ -21,23 +17,47 @@ void UCustomCharacterMovementComponent::PhysCustom(float deltaTime, int32 Iterat
 	}
 }
 
-void UCustomCharacterMovementComponent::PhysGlide(float deltaTime, int32 Iterations)
-{
-	
-	FVector Forward = CharacterOwner->GetActorForwardVector();
-
-	Velocity += Forward * 500.f * deltaTime;
-	Velocity.Z -= 300.f * deltaTime;
-
-	MoveUpdatedComponent(Velocity * deltaTime, UpdatedComponent->GetComponentQuat(), true);
-}
-
 void UCustomCharacterMovementComponent::PhysClimb(float deltaTime, int32 Iterations)
 {
+	if (deltaTime < MIN_TICK_TIME)
+		return;
+
+	// 1. 입력 가져오기
 	FVector Input = ConsumeInputVector();
 
-	FVector MoveDelta = Input * /*ClimbSpeed*/100 * deltaTime;
+	// 2. 벽 체크
+	if (!bIsClimbingSurface)
+	{
+		SetMovementMode(MOVE_Falling);
+		return;
+	}
+
+	// 3. 벽 기준 좌표계 생성
+	FVector WallNormal = CurrentClimbNormal;
+
+	FVector Up = FVector::UpVector;
+	FVector Right = FVector::CrossProduct(Up, WallNormal);
+	FVector ClimbUp = FVector::CrossProduct(WallNormal, Right);
+
+	// 4. 입력 → 이동 방향 변환
+	FVector MoveDir =
+		(ClimbUp * Input.X) +
+		(Right * Input.Y);
+
+	MoveDir = MoveDir.GetSafeNormal();
+
+	// 5. 이동 속도 적용
+	float Speed = 200.f;
+	FVector Delta = MoveDir * Speed * deltaTime;
 
 	FHitResult Hit;
-	SafeMoveUpdatedComponent(MoveDelta, UpdatedComponent->GetComponentQuat(), true, Hit);
+	SafeMoveUpdatedComponent(Delta, UpdatedComponent->GetComponentQuat(), true, Hit);
+
+	// 6. 벽에 붙이기 (핵심)
+	FVector Snap = -WallNormal * 50.f * deltaTime;
+	SafeMoveUpdatedComponent(Snap, UpdatedComponent->GetComponentQuat(), true, Hit);
+
+	// 7. 캐릭터 회전
+	FRotator TargetRot = (-WallNormal).Rotation();
+	UpdatedComponent->SetWorldRotation(TargetRot);
 }
