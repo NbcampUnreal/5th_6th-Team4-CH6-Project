@@ -174,12 +174,12 @@ void AUK_MonsterSpawner::ActivateMonster(AAIMonsterBase* Monster)
 {
     if (!Monster || !IsValid(Monster)) return;
 
-    const FVector NewLocation = GetRandomSpawnLocation();
-    Monster->SetActorLocation(NewLocation);
-    Monster->SpawnLocation = NewLocation;
-    Monster->SetActorHiddenInGame(false);
-    Monster->SetActorEnableCollision(true);
-    Monster->SetActorTickEnabled(true);
+	const FVector NewLocation = GetRandomSpawnLocation();
+	Monster->SetActorLocation(NewLocation);
+	Monster->SpawnLocation = NewLocation;
+	Monster->SetActorHiddenInGame(false);
+	Monster->SetActorEnableCollision(true);
+	Monster->SetActorTickEnabled(true);
 
     if (UCapsuleComponent* Capsule = Monster->GetCapsuleComponent())
         Capsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
@@ -197,11 +197,12 @@ void AUK_MonsterSpawner::ActivateMonster(AAIMonsterBase* Monster)
         Movement->Velocity = FVector::ZeroVector;
     }
 	
-    Monster->ResetHealth();
-    Monster->bIsAttacking = false;
-    Monster->bIsHit = false;
-    Monster->bIsAggressive = false;
-    Monster->Aggressor = nullptr;
+	Monster->ResetAppearance();  
+	Monster->ResetHealth();
+	Monster->bIsAttacking = false;
+	Monster->bIsHit = false;
+	Monster->bIsAggressive = false;
+	Monster->Aggressor = nullptr;
 
     if (Monster->Personality == EMonsterPersonality::Peaceful)
         Monster->RequestState(EMonsterState::Passive);
@@ -249,8 +250,6 @@ void AUK_MonsterSpawner::ActivateMonster(AAIMonsterBase* Monster)
 		}
 	}
 	
-	Monster->ResetAppearance();
-
     ActiveMonsters.Add(Monster);
     RegisterMonsterToGameMode(Monster);
 }
@@ -258,6 +257,8 @@ void AUK_MonsterSpawner::ActivateMonster(AAIMonsterBase* Monster)
 void AUK_MonsterSpawner::DeactivateMonster(AAIMonsterBase* Monster)
 {
 	if (!Monster || !IsValid(Monster)) return;
+	
+	Monster->HideHPBar();
 
 	if (UWorld* World = Monster->GetWorld())
 	{

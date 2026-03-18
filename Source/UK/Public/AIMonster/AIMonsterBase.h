@@ -427,7 +427,7 @@ public:
 	float CalculateDefense(int32 PlayerLevel) const;
 
 	UFUNCTION(BlueprintPure, Category = "Monster|Data")
-	float CalculateExp(int32 PlayerLevel) const;
+	float CalculateExp(int32 PlayerLevel, float PlayerMaxExp) const;
 	
 	UFUNCTION(BlueprintPure, Category = "Monster|Data")
 	float CalculateGold(int32 PlayerLevel) const;
