@@ -12,6 +12,7 @@ enum class EUKQuestEventCategory : uint8
 	GotItem,
 	Killed,
 	Custom,
+	Delivered,
 
 	Accepted,
 	Completed,
@@ -26,6 +27,7 @@ enum class EUKQuestObjectiveType : uint8
 	TalkedTo,
 	GotItem,
 	Killed,
+	Delivered,
 	Custom,
 };
 
