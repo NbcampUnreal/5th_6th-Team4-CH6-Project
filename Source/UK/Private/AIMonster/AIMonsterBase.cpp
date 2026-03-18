@@ -1093,11 +1093,11 @@ void AAIMonsterBase::UpdateRotation()
 #pragma endregion
 
 #pragma region DataTable
-float AAIMonsterBase::CalculateExp(int32 PlayerLevel) const
+float AAIMonsterBase::CalculateExp(int32 PlayerLevel, float PlayerMaxExp) const
 {
 	const FUK_MonsterStatRow* Row = GetStatRow();
 	if (!Row) return 0.f;
-	return Row->BaseExp + Row->ExpPerLevel * (PlayerLevel - 1);
+	return PlayerMaxExp * Row->ExpPercent;
 }
 
 float AAIMonsterBase::CalculateGold(int32 PlayerLevel) const
@@ -1284,14 +1284,16 @@ void AAIMonsterBase::GrantRewardsToKiller()
     {
         if (UAbilitySystemComponent* PlayerASC = ASIPlayer->GetAbilitySystemComponent())
         {
-            PlayerLevel = FMath::Max(1, FMath::RoundToInt(
-                PlayerASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetLevelAttribute())));
+        	PlayerLevel = FMath::Max(1, FMath::RoundToInt(
+			PlayerASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetLevelAttribute())));
 
-            const float CurrentExp = PlayerASC->GetNumericAttribute(
-                UUK_PlayerStatusAttributeSet::GetEXPAttribute());
-            ExpGain = CalculateExp(PlayerLevel);
-            PlayerASC->SetNumericAttributeBase(
-                UUK_PlayerStatusAttributeSet::GetEXPAttribute(), CurrentExp + ExpGain);
+        	const float CurrentExp = PlayerASC->GetNumericAttribute(
+				UUK_PlayerStatusAttributeSet::GetEXPAttribute());
+        	const float PlayerMaxExp = PlayerASC->GetNumericAttribute(
+				UUK_PlayerStatusAttributeSet::GetMaxEXPAttribute());
+        	ExpGain = CalculateExp(PlayerLevel, PlayerMaxExp);
+        	PlayerASC->SetNumericAttributeBase(
+				UUK_PlayerStatusAttributeSet::GetEXPAttribute(), CurrentExp + ExpGain);
         }
     }
 
