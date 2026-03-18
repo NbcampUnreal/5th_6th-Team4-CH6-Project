@@ -122,7 +122,11 @@ protected:
 
 	UPROPERTY()
 	UUK_Quest* QuestWidget;
-
+ 
+	UPROPERTY()
+	class UUserWidget* ShopWidget;
+	
+	
 public:
 
 	UFUNCTION(Client, Reliable)
@@ -130,4 +134,7 @@ public:
 
 	UFUNCTION(Client, Reliable)
 	void Client_HideQuestUI();
+	
+	void ShowShopUI(TSubclassOf<UUserWidget>ShopWidgetClass);
+	void HideShopUI();
 };
