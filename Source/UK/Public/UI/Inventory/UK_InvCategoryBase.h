@@ -83,4 +83,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "InvDrag")
 	FGameplayTag WeaponRootTag;
+
+	TArray<int32> FilteredSourceIndices;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Inventory")
+	TObjectPtr<UUK_InventoryComponent> InventoryComp;
 };

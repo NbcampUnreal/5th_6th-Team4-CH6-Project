@@ -95,7 +95,7 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxStamina());
 
 
-		UE_LOG(LogTemp, Log, TEXT("   Mp: %.1f → %.1f (Max: %.1f)"),
+		UE_LOG(LogTemp, Log, TEXT("   Stamina: %.1f → %.1f (Max: %.1f)"),
 		       OldValue, NewValue, GetMaxStamina());
 	}
 	// 최대 경험치 전처리
@@ -112,8 +112,11 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 	else if (Attribute == GetEXPAttribute())
 	{
 		const float OldValue = GetEXP();
-
-		UE_LOG(LogTemp, Log, TEXT("   Mp: %.1f → %.1f (Max: %.1f)"),
+		if (GetMaxLevel() == GetLevel())
+		{
+			NewValue = 0.f;
+		}
+		UE_LOG(LogTemp, Log, TEXT("   EXP: %.1f → %.1f (Max: %.1f)"),
 		       OldValue, NewValue, GetMaxEXP());
 	}
 	// 최대 레벨 전처리
@@ -123,7 +126,7 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 
 		if (OldValue != NewValue)
 		{
-			UE_LOG(LogTemp, Log, TEXT("   Max EXP: %.1f → %.1f"), OldValue, NewValue);
+			UE_LOG(LogTemp, Log, TEXT("   Max Level: %.1f → %.1f"), OldValue, NewValue);
 		}
 	}
 	// 레벨 전 처리 
@@ -133,12 +136,22 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 
 		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxLevel());
 
-		UE_LOG(LogTemp, Log, TEXT("   Mp: %.1f → %.1f (Max: %.1f)"),
+		UE_LOG(LogTemp, Log, TEXT("   Level: %.1f → %.1f (Max: %.1f)"),
 		       OldValue, NewValue, GetMaxLevel());
 	}
 	// 방어력 전 처리 
-	else if (Attribute == GetLevelAttribute())
+	else if (Attribute == GetDefenceAttribute())
 	{
+	}
+	else if (Attribute == GetAttackPowerAttribute())
+	{
+		UE_LOG(LogTemp, Log, TEXT("   AttackPower: %.1f → %.1f"),
+		       GetAttackPower(), NewValue);
+	}
+	else if (Attribute == GetCurrentPowerAttribute())
+	{
+		UE_LOG(LogTemp, Log, TEXT("   CurrentPower: %.1f → %.1f"),
+		       GetCurrentPower(), NewValue);
 	}
 }
 
@@ -205,8 +218,9 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 		if (GetMaxEXP() != 0 && GetMaxEXP() <= GetEXP())
 		{
 			SetEXP(GetEXP() - GetMaxEXP());
+			SetLevel(FMath::Min(GetLevel() + 1, GetMaxLevel()));
+			EXPChanged.Broadcast(OldValue, NewValue);
 		}
-		EXPChanged.Broadcast(OldValue, NewValue);
 	}
 	// 최대 레벨 후처리
 	else if (Attribute == GetMaxLevelAttribute())
@@ -216,7 +230,11 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 	// 레벨 후 처리 
 	else if (Attribute == GetLevelAttribute())
 	{
-		LevelChanged.Broadcast(OldValue, NewValue);
+		if (GetMaxLevel() != NewValue)
+		{
+			SetAttackPower(GetAttackPower() + (GetLevel() * 10));
+			LevelChanged.Broadcast(OldValue, NewValue);
+		}
 	}
 	// 방어력 후처리
 	else if (Attribute == GetLevelAttribute())
