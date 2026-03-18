@@ -160,12 +160,12 @@ void AUK_AiMonsterCtl::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 		{
 			CurrentTarget = nullptr;
 
-			if (BB)
+			if (!ControlledMonster->bIsAggressive)
 			{
-				BB->ClearValue(TEXT("TargetPlayer"));
+				if (BB) BB->ClearValue(TEXT("TargetPlayer"));
 			}
 
-			if (!ControlledMonster->BehaviorTree)
+			if (!ControlledMonster->BehaviorTree && !ControlledMonster->bIsAggressive)
 			{
 				ControlledMonster->RequestState(EMonsterState::Patrol);
 			}

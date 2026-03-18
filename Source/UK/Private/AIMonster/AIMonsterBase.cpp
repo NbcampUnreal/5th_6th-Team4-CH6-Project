@@ -17,6 +17,7 @@
 #include "Tags/UK_GameplayTags.h"
 #include "DataAsset/DataTable/AIMonster/UK_MonsterLootRow.h"
 #include "ActorComponent/UK_InventoryComponent.h"
+#include "AIMonster/UK_AiMonsterCtl.h"
 #include "UI/InGame/UK_FloatingDamageActor.h" // 추가
 
 #pragma region Initialization
@@ -843,14 +844,14 @@ void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
 		Ally->Aggressor     = Enemy;
 		Ally->RequestState(EMonsterState::Aggressive);
 
-		if (AAIController* AllyAIC = Cast<AAIController>(Ally->GetController()))
+		if (AUK_AiMonsterCtl* AllyCtl = Cast<AUK_AiMonsterCtl>(Ally->GetController()))
 		{
-			if (UBlackboardComponent* BB = AllyAIC->GetBlackboardComponent())
+			AllyCtl->SetCurrentTarget(Enemy);
+			if (UBlackboardComponent* BB = AllyCtl->GetBlackboardComponent())
 			{
-				if (!BB->GetValueAsObject(TEXT("TargetPlayer")))
-					BB->SetValueAsObject(TEXT("TargetPlayer"), Enemy);
+				BB->SetValueAsObject(TEXT("TargetPlayer"), Enemy);
 			}
-			if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AllyAIC->GetBrainComponent()))
+			if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AllyCtl->GetBrainComponent()))
 			{
 				BTComp->RestartTree();
 			}
