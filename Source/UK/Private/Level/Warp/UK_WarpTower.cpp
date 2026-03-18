@@ -4,6 +4,7 @@
 #include "AbilitySystemComponent.h"
 #include "GameplayEffect.h"
 #include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
+#include "Level/Warp/UK_WarpSubsystem.h"
 
 AUK_WarpTower::AUK_WarpTower()
 {
@@ -39,12 +40,17 @@ void AUK_WarpTower::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* 
 	if ( !bIsActivated )
 	{
 		bIsActivated = true;
-
-		// 블루프린트에서 이펙트나 사운드를 처리할 수 있게 호출
 		OnTowerActivated();
 
-		UE_LOG(LogTemp, Warning, TEXT("Warp Tower Activated!"));
+		if ( UWorld* World = GetWorld() )
+		{
+			if ( UUK_WarpSubsystem* WarpSubsystem = World->GetSubsystem<UUK_WarpSubsystem>() )
+			{
+				WarpSubsystem->RegisterWarpPoint(WarpPointID, GetActorLocation());
+			}
+		}
 
+		UE_LOG(LogTemp, Warning, TEXT("Warp Tower Activated & Registered: %s"), *WarpPointID.ToString());
 	}
 
 	// 체력/마나 회복 로직 
