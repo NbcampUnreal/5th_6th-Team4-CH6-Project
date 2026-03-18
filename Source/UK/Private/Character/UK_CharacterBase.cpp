@@ -1024,6 +1024,18 @@ void AUK_CharacterBase::Dead()
 	OnDead.Broadcast();
 }
 
+// void AUK_CharacterBase::StartBattle()
+// {
+// 	bInBattle = true;
+// }
+//
+// void AUK_CharacterBase::EndBattle()
+// {
+// 	bInBattle = false;
+// 	
+// 	
+// }
+
 void AUK_CharacterBase::UpdateMonsterDetection()
 {
 	if (!IsLocallyControlled())
@@ -1050,6 +1062,20 @@ void AUK_CharacterBase::UpdateMonsterDetection()
 			}
 		}
 	}
+	// if (NewSet.Num() > 0)
+	// {
+	// 	StartBattle();
+	// }
+	// else
+	// {
+	// 	GetWorldTimerManager().SetTimer(
+	// 		EndBattleTimerHandle,
+	// 		this,
+	// 		&AUK_CharacterBase::EndBattle,
+	// 		3.f,
+	// 		false
+	// 	);
+	// }
 	// 범위가 벗어났는지 확인 
 	for (AAIMonsterBase* OldMonster : NearbyMonsters)
 	{
