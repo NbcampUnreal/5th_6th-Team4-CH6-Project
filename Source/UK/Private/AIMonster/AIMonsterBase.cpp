@@ -17,7 +17,9 @@
 #include "Tags/UK_GameplayTags.h"
 #include "DataAsset/DataTable/AIMonster/UK_MonsterLootRow.h"
 #include "ActorComponent/UK_InventoryComponent.h"
-#include "UI/InGame/UK_FloatingDamageActor.h" // 추가
+#include "AIMonster/UK_AiMonsterCtl.h"
+#include "UI/InGame/UK_FloatingDamageActor.h" 
+#include "DataAsset/DataTable/AIMonster/UK_MonsterMetaRow.h"
 
 #pragma region Initialization
 AAIMonsterBase::AAIMonsterBase()
@@ -166,6 +168,15 @@ void AAIMonsterBase::PostInitializeComponents()
 		if (!AlertWidgetClass)
 			UE_LOG(LogTemp, Warning, TEXT("[Alert] %s: AlertWidgetClass not set in BP"), *GetName());
 	}
+	
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	MeshComp->SetCollisionObjectType(ECC_GameTraceChannel2);
+	MeshComp->SetCollisionResponseToAllChannels(ECR_Ignore);
+	MeshComp->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Block);
+	
+	UCapsuleComponent* Cap = GetCapsuleComponent();
+	Cap->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Ignore);
 }
 
 UAbilitySystemComponent* AAIMonsterBase::GetAbilitySystemComponent() const
@@ -757,6 +768,12 @@ void AAIMonsterBase::HideAndBroadcastDeath()
 	OnDeath.Broadcast(this);
 }
 
+UUK_MonsterHealthBar* AAIMonsterBase::GetHPWidget() const
+{
+	if (!HPWidgetComponent)	return nullptr;
+	return Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
+}
+
 
 void AAIMonsterBase::HideCorpse()
 {
@@ -843,14 +860,14 @@ void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
 		Ally->Aggressor     = Enemy;
 		Ally->RequestState(EMonsterState::Aggressive);
 
-		if (AAIController* AllyAIC = Cast<AAIController>(Ally->GetController()))
+		if (AUK_AiMonsterCtl* AllyCtl = Cast<AUK_AiMonsterCtl>(Ally->GetController()))
 		{
-			if (UBlackboardComponent* BB = AllyAIC->GetBlackboardComponent())
+			AllyCtl->SetCurrentTarget(Enemy);
+			if (UBlackboardComponent* BB = AllyCtl->GetBlackboardComponent())
 			{
-				if (!BB->GetValueAsObject(TEXT("TargetPlayer")))
-					BB->SetValueAsObject(TEXT("TargetPlayer"), Enemy);
+				BB->SetValueAsObject(TEXT("TargetPlayer"), Enemy);
 			}
-			if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AllyAIC->GetBrainComponent()))
+			if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AllyCtl->GetBrainComponent()))
 			{
 				BTComp->RestartTree();
 			}
@@ -902,31 +919,38 @@ void AAIMonsterBase::HideHPBar()
 
 void AAIMonsterBase::UpdateHPBarWidget()
 {
-	if ( !HPWidgetComponent )
-		return;
-
+	if ( !HPWidgetComponent )	return;
+	
 	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	if ( !PC )
-		return;
+	if ( !PC )	return;
 
 	FVector CameraLocation;
 	FRotator CameraRotation;
 	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
 	const FVector WidgetLocation = HPWidgetComponent->GetComponentLocation();
-
-	// 카메라 방향 계산
 	FVector Direction = CameraLocation - WidgetLocation;
-
-	// HP바가 기울어지지 않게 Z 제거
 	Direction.Z = 0.f;
-
 	FRotator LookAtRotation = Direction.Rotation();
-
 	HPWidgetComponent->SetWorldRotation(LookAtRotation);
-
-	// 크기 고정
 	HPWidgetComponent->SetWorldScale3D(FVector(0.5f));
+	
+	// 이름 세팅
+	UUK_MonsterHealthBar* Widget = GetHPWidget();
+	if (!Widget) return;
+	
+	FText MonsterName;
+	if (const FUK_MonsterMetaRow* Meta = GetMetaRow())
+	{
+		MonsterName = Meta->DisplayName;
+	}
+	else
+	{
+		const UEnum* EnumPtr = StaticEnum<EMonsterType>();
+		if (EnumPtr)
+			MonsterName = EnumPtr->GetDisplayValueAsText(MonsterType);
+	}
+	Widget->SetMonsterName(MonsterName);
 }
 
 #pragma endregion
@@ -1307,23 +1331,17 @@ void AAIMonsterBase::PlayHitEffect(FVector ImpactPoint)
 		);
 	}
 }
+
 void AAIMonsterBase::SpawnFloatingDamage(float InDamage)
 {
-	if ( InDamage <= 0.f )
-	{
-		return;
-	}
+	if (bIsDying || IsDead()) return;
+	
+	if ( InDamage <= 0.f )	return;
 
-	if ( !FloatingDamageActorClass )
-	{
-		return;
-	}
+	if ( !FloatingDamageActorClass )	return;
 
 	UWorld* World = GetWorld();
-	if ( !World )
-	{
-		return;
-	}
+	if ( !World )	return;
 
 	float SpawnZ = FloatingDamageZOffset;
 
