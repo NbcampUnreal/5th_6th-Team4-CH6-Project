@@ -25,6 +25,7 @@ void UUK_Out_MainMenu::NativeConstruct()
 	if (StartButton)
 	{
 		StartButton->OnClicked.AddDynamic(this, &ThisClass::OnPlayButtonClicked);
+		UE_LOG(LogTemp, Warning, TEXT("StartButton Bound"));
 	}
 	if (ExitButton)
 	{
@@ -49,15 +50,20 @@ void UUK_Out_MainMenu::OnPlayButtonClicked()
 		{
 			GI->CharacterSelected = LoadedGame->SavedCharacterClass;
 
-			UUK_Out_Loading* Loading = CreateWidget<UUK_Out_Loading>(GetWorld(), LoadingWidgetClass);
-			if ( Loading )
+			if ( UUK_Out_Loading* Loading = CreateWidget<UUK_Out_Loading>(GetWorld(), LoadingWidgetClass) )
 			{
 				Loading->TargetValue = 0.7f; // 70% 목표 설정
-				Loading->AddToViewport(999); // 가장 앞에 출력
-
-				if ( GI )
+				if ( GEngine && GEngine->GameViewport )
 				{
-					GI->PersistentLoadingWidget = Loading;
+					// AddViewportWidgetContent는 레벨 전환 중에도 위젯을 유지시킵니다.
+					GEngine->GameViewport->AddViewportWidgetContent(Loading->TakeWidget(), 999);
+
+					if ( GI )
+					{
+						GI->PersistentLoadingWidget = Loading;
+						// 가비지 컬렉션 방지를 위해 Root에 추가 (선택사항이나 권장)
+						Loading->AddToRoot();
+					}
 				}
 			}
 

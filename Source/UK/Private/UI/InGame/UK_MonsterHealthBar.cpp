@@ -1,5 +1,6 @@
 ﻿#include "UI/InGame/UK_MonsterHealthBar.h"
 #include "Components/ProgressBar.h"
+#include "Components/TextBlock.h"
 
 /*
  *void UUK_MonsterHealthBar::UpdateHPBar(float NewHP) 
@@ -62,6 +63,14 @@ void UUK_MonsterHealthBar::BindMonsterAttributes(UAbilitySystemComponent* ASC, U
 
 	// 초기 값으로 UI 업데이트
 	UpdateHealthDisplay();
+}
+
+void UUK_MonsterHealthBar::SetMonsterName(const FText& InName)
+{
+	if (MonsterNameText)
+	{
+		MonsterNameText->SetText(InName);
+	}
 }
 
 void UUK_MonsterHealthBar::OnHealthChanged(const FOnAttributeChangeData& Data)

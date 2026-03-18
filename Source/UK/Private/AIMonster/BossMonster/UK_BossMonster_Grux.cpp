@@ -11,6 +11,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
+#include "AIMonster/BossMonster/UK_BossProjectileBase.h"
 #include "Animation/AnimInstance.h"
 
 AUK_BossMonster_Grux::AUK_BossMonster_Grux()
@@ -18,7 +19,7 @@ AUK_BossMonster_Grux::AUK_BossMonster_Grux()
 	
 	DetectionRadius = 2500.f;
 	AttackRange = 350.f;
-	AttackCooldown = 1.2f;
+	AttackCooldown = 3.0f;
 	MonsterType = EMonsterType::Grux;
 	SmashRadius = 600.f;
 	CurrentPhase = 1;
@@ -67,8 +68,9 @@ void AUK_BossMonster_Grux::UpdatePhase()
 
 bool AUK_BossMonster_Grux::PlayRandomAttackMontage()
 {
-	if (bIsHit || bIsAttacking || bIsDying) return false;
-
+	if (bIsAttacking || bIsDying) return false;
+	if (bIsHit) return false;
+	
 	AActor* Target = GetTargetActor();
 	AAIController* AICtl = Cast<AAIController>(GetController());
 	if (Target)
@@ -87,7 +89,7 @@ bool AUK_BossMonster_Grux::PlayRandomAttackMontage()
 	
 	if (CurrentPhase == 3)
 	{
-		AttackCooldown = 0.2f;
+		AttackCooldown = 2.0f;
 		if (Distance > 350.f && Distance < 1500.f)
 		{
 			if (RandomValue <= 20) return ExecuteRangedAttackAction(CurrentPlayRate);
@@ -112,7 +114,7 @@ bool AUK_BossMonster_Grux::PlayRandomAttackMontage()
 	{
 		return PlayBaseAttackWithSpeed(CurrentPlayRate);
 	}
-
+	
 	return false;
 }
 
@@ -383,15 +385,12 @@ void AUK_BossMonster_Grux::LaunchSwordWave()
 	SpawnParams.Owner = this;
 	SpawnParams.Instigator = GetInstigator();
 	
-	AActor* Projectile = GetWorld()->SpawnActor<AActor>(
-		SwordWaveClass, 
-		MuzzleLocation, 
-		SpawnRotation, 
-		SpawnParams
+	AUK_BossProjectileBase* Projectile = GetWorld()->SpawnActor<AUK_BossProjectileBase>(
+	   SwordWaveClass, MuzzleLocation, SpawnRotation, SpawnParams
 	);
 
 	if (Projectile)
 	{
-		
+		Projectile->DamageAmount = CalculateAoEDamage(1);
 	}
 }

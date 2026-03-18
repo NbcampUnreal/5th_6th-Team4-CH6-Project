@@ -9,6 +9,12 @@
 #include "UserSettings/EnhancedInputUserSettings.h"
 #include "DataAsset/UK_InputConfig.h"
 #include "UI/InGame/UK_Quest.h"
+#include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
+#include "Kismet/GameplayStatics.h"
+#include "Blueprint/UserWidget.h"
+#include "UI/InGame/UK_GameOver.h"
+#include "AbilitySystemComponent.h"
+#include "GameplayEffectTypes.h"
 
 
 AUK_PlayerController::AUK_PlayerController()
@@ -51,6 +57,40 @@ void AUK_PlayerController::BeginPlay()
 		MainHUD = CreateWidget<UUK_MainHUD>(this, MainHUDClass);
 		MainHUD->AddToViewport();
 	}
+
+	//FOnAttributeChangeData Data;
+	//// 		//UpdateStaminaBar(StatusPtr->CurrentStamina, StatusPtr->MaxStamina); 
+	//// HP 초기값 세팅 및 바인딩
+	//Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute());
+	//OnHealthChanged(Data);
+	//Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetHealthAttribute());
+	//OnHealthChanged(Data);
+
+	//ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute()).
+	//	AddUObject(this, &AUK_PlayerController::OnHealthChanged);
+	//ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetHealthAttribute()).
+	//	AddUObject(this, &AUK_PlayerController::OnHealthChanged);
+
+	//FOnAttributeChangeData Data;
+	//if ( ASC )
+	//{
+	//	// 현재 체력 값 가져와서 초기 체크
+
+	//	/*Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetHealthAttribute());
+	//	OnHealthChanged(Data);
+
+	//	ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetHealthAttribute()).
+	//		AddUObject(this, &AUK_PlayerController::OnHealthChanged);*/
+
+	//}
+
+	//if ( UUK_PlayerStatusAttributeSet* AttributeSet = ASC->GetSet<UUK_PlayerStatusAttributeSet>() )
+	//{
+	//	// Health 변화 바인딩
+	//	ASC->GetGameplayAttributeValueChangeDelegate(
+	//		UUK_PlayerStatusAttributeSet::GetHealthAttribute()
+	//	).AddUObject(this, &AUK_PlayerController::OnHealthChanged);
+	//}
 }
 
 void AUK_PlayerController::PostSeamlessTravel()
@@ -106,6 +146,12 @@ void AUK_PlayerController::OnPossess(APawn* pawn)
 		}
 	}
 
+	if ( MyCharacter )
+	{
+		// 이전에 연결된 게 있다면 정리하고 새로 연결 (중복 방지)
+		MyCharacter->OnDead.RemoveAll(this);
+		MyCharacter->OnDead.AddDynamic(this, &ThisClass::ShowGameOverUI);
+	}
 	//UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 
 	//if ( Subsystem )
@@ -360,3 +406,64 @@ void AUK_PlayerController::Client_HideQuestUI_Implementation()
 	ApplyInputState(EInputState::Game);
 	SetCursorVisible(false);
 }
+
+void AUK_PlayerController::OnHealthChanged(const FOnAttributeChangeData& Data)
+{
+	float CurrentHealth = Data.NewValue;
+	UE_LOG(LogTemp, Log, TEXT("Health Changed: %f"), CurrentHealth);
+
+	if ( CurrentHealth <= 190.f )
+	{
+		ShowGameOverUI();
+	}
+}
+
+void AUK_PlayerController::ShowGameOverUI()
+{
+	if ( !GameOverWidgetClass ) return;
+
+	if ( !GameOverWidget )
+	{
+		GameOverWidget = CreateWidget<UUK_GameOver>(this, GameOverWidgetClass);
+	}
+
+	if ( GameOverWidget && !GameOverWidget->IsInViewport() )
+	{
+		GameOverWidget->AddToViewport();
+
+		// 게임 오버 UI가 떴으니 마우스 커서와 입력 모드 설정
+		bShowMouseCursor = true;
+		FInputModeUIOnly InputModeData;
+		InputModeData.SetWidgetToFocus(GameOverWidget->TakeWidget());
+		SetInputMode(InputModeData);
+	}
+}
+
+void AUK_PlayerController::ShowShopUI(TSubclassOf<UUserWidget> ShopWidgetClass)
+{
+	if (!ShopWidgetClass) return;
+	
+	ShopWidget = CreateWidget<UUserWidget>(this, ShopWidgetClass);
+	if (ShopWidget)
+	{
+		ShopWidget->AddToViewport();
+		bShowMouseCursor = true;
+		FInputModeGameAndUI InputMode;
+		InputMode.SetWidgetToFocus(ShopWidget->TakeWidget());
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		SetInputMode(InputMode);
+	}
+}
+
+void AUK_PlayerController::HideShopUI()
+{
+	if (ShopWidget)
+	{
+		ShopWidget->RemoveFromParent();
+		ShopWidget = nullptr;
+		
+		bShowMouseCursor = false;
+		SetInputMode(FInputModeGameOnly());
+	}
+}
+
