@@ -393,15 +393,22 @@ public:
 	UFUNCTION()
 	bool GetParry(const bool CheckParry) const { return CheckParry; }
 
-	// void StartBattle();
-	// void EndBattle();
+	void StartBattle();
+	
+	void EndBattle();
 protected:
 	UPROPERTY()
 	bool bIsParry;
 	
-	// bool bInBattle = false;
-	//
-	// FTimerHandle EndBattleTimerHandle;
+	bool bInBattle = false;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<UGameplayEffect> EndBattleEffect;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FActiveGameplayEffectHandle EndBattleEffectHandle;
+	
+	FTimerHandle EndBattleTimerHandle;
 
 #pragma endregion
 

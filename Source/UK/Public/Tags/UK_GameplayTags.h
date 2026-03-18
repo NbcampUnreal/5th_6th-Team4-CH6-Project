@@ -37,7 +37,19 @@ namespace UK_GameplayTags
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(WeaponRoot);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DefaultWeapon);
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dagger);
+
+		namespace OndHandSword
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(BaseSword);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(CanineSword);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(ClawSword);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(BlueStoneSword);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(WolfSword);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(StoneSword);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(ScorpionSword);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(PoisonSword);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(GruxSword);
+		}
 	}
 
 	namespace Action
@@ -100,6 +112,11 @@ namespace UK_GameplayTags
 		namespace WeaponStat
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(ExtraAttackPower);
+		}
+
+		namespace EndBattle
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Heal);
 		}
 	}
 

@@ -13,3 +13,12 @@ UUK_AnimData* UUK_StatusAnimData::FindAnimsDataAssetByType(const EComboAttackTyp
 	return nullptr;
 }
 
+FWeaponStatus UUK_StatusAnimData::FindAnimsDataAssetByType(const FGameplayTag& WeaponTag)
+{
+	if (FWeaponStatus* Found = WeaponStatusMap.Find(WeaponTag))
+	{
+		return *Found;
+	}
+	return FWeaponStatus();
+}
+

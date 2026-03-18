@@ -30,13 +30,29 @@ namespace UK_GameplayTags
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Walking, "Movement.Walking", "Movement")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Swimming, "Movement.Swimming", "Movement")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Gliding, "Movement.Gliding", "Movement")
-		
 	}
+
 	namespace Weapon
 	{
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(WeaponRoot, "Weapon", "Root Weapon Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(DefaultWeapon, "Weapon.Default", "Default Weapon Ability")
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Dagger, "Weapon.Dagger", "Dagger Weapon Ability")
+
+		namespace OndHandSword
+		{
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(BaseSword, "Weapon.OndHandSword.BaseSword", "OndHandSword Weapon Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(CanineSword, "Weapon.OndHandSword.CanineSword",
+			                               "OndHandSword Weapon Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(ClawSword, "Weapon.OndHandSword.ClawSword", "OndHandSword Weapon Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(BlueStoneSword, "Weapon.OndHandSword.BlueStoneSword",
+			                               "OndHandSword Weapon Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(WolfSword, "Weapon.OndHandSword.WolfSword", "OndHandSword Weapon Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(StoneSword, "Weapon.OndHandSword.StoneSword", "OndHandSword Weapon Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(ScorpionSword, "Weapon.OndHandSword.ScorpionSword",
+			                               "OndHandSword Weapon Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(PoisonSword, "Weapon.OndHandSword.PoisonSword",
+			                               "OndHandSword Weapon Ability")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(GruxSword, "Weapon.OndHandSword.GruxSword", "OndHandSword Weapon Ability")
+		}
 	}
 
 	namespace Action
@@ -64,10 +80,12 @@ namespace UK_GameplayTags
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Next, "Attack.Next", "Next Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(HitCheck, "Attack.HitCheck", "HitCheck Ability")
 	}
+
 	namespace Status
 	{
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Dead, "Status.Dead", "PlayerStatus")
 	}
+
 	namespace Data
 	{
 		namespace Damages
@@ -88,13 +106,21 @@ namespace UK_GameplayTags
 				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Air4, "Data.Damages.OneHandSword.Air4", "DamageTag")
 				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Drop, "Data.Damages.OneHandSword.Drop", "DamageTag")
 				UE_DEFINE_GAMEPLAY_TAG_COMMENT(NormalSkill, "Data.Damages.OneHandSword.NormalSkill", "DamageTag")
-				UE_DEFINE_GAMEPLAY_TAG_COMMENT(UltimateSkill, "Data.Damages.OneHandSword.UltimateSkill", "DamageTag")
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(UltimateSkill, "Data.Damages.OneHandSword.UltimateSkill",
+				                               "DamageTag")
 			}
 		}
+
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Damage, "Data.Damage", "Damage Data")
+
 		namespace WeaponStat
 		{
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(ExtraAttackPower, "Data.WeaponStat.ExtraAttackPower", "WeaponStat")
+		}
+
+		namespace EndBattle
+		{
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Heal, "Data.EndBattle.Heal", "EndBattle")
 		}
 	}
 
@@ -115,3 +141,4 @@ namespace UK_GameplayTags
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(MaterialRoot, "Material", "Root Material Tag")
 	}
 }
+
