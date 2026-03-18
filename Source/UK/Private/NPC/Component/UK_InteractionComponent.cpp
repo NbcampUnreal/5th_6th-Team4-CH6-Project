@@ -1,6 +1,7 @@
 ﻿#include "NPC/Component/UK_InteractionComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "NPC/UK_QuestNPC.h"
+#include "NPC/UK_Shop_NPC.h"
 #include "GameFramework/Actor.h"
 #include "Character/UK_CharacterBase.h"
 #include "Character/UK_PlayerController.h"
@@ -40,6 +41,7 @@ void UUK_InteractionComponent::ClearNearActor()
 		if (PlayerCtl)
 		{
 			PlayerCtl->Client_HideQuestUI();
+			PlayerCtl->HideShopUI();
 		}
 	}
 
@@ -53,16 +55,14 @@ void UUK_InteractionComponent::TryInteract()
 	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(GetOwner());
 	if (!Player) return;
 
-	if (!Player->HasAuthority())
-	{
-		Server_TryInteract(NearActor);
-		return;
-	}
-
 	AUK_QuestNPC* NPC = Cast<AUK_QuestNPC>(NearActor);
 	if (NPC)
 	{
 		NPC->Interact(Player);
+	}
+	else if (AUK_Shop_NPC* ShopNPC = Cast<AUK_Shop_NPC>(NearActor))
+	{
+		ShopNPC->Interact(Player);
 	}
 }
 

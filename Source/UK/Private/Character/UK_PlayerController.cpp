@@ -360,3 +360,31 @@ void AUK_PlayerController::Client_HideQuestUI_Implementation()
 	ApplyInputState(EInputState::Game);
 	SetCursorVisible(false);
 }
+
+void AUK_PlayerController::ShowShopUI(TSubclassOf<UUserWidget> ShopWidgetClass)
+{
+	if (!ShopWidgetClass) return;
+	
+	ShopWidget = CreateWidget<UUserWidget>(this, ShopWidgetClass);
+	if (ShopWidget)
+	{
+		ShopWidget->AddToViewport();
+		bShowMouseCursor = true;
+		FInputModeGameAndUI InputMode;
+		InputMode.SetWidgetToFocus(ShopWidget->TakeWidget());
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		SetInputMode(InputMode);
+	}
+}
+
+void AUK_PlayerController::HideShopUI()
+{
+	if (ShopWidget)
+	{
+		ShopWidget->RemoveFromParent();
+		ShopWidget = nullptr;
+		
+		bShowMouseCursor = false;
+		SetInputMode(FInputModeGameOnly());
+	}
+}
