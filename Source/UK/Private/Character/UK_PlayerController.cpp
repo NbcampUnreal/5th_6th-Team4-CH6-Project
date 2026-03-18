@@ -71,25 +71,18 @@ void AUK_PlayerController::BeginPlay()
 	//ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetHealthAttribute()).
 	//	AddUObject(this, &AUK_PlayerController::OnHealthChanged);
 
-	FOnAttributeChangeData Data;
-	if ( ASC )
-	{
-		// 현재 체력 값 가져와서 초기 체크
+	//FOnAttributeChangeData Data;
+	//if ( ASC )
+	//{
+	//	// 현재 체력 값 가져와서 초기 체크
 
-		/*Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetHealthAttribute());
-		OnHealthChanged(Data);
+	//	/*Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetHealthAttribute());
+	//	OnHealthChanged(Data);
 
-		ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetHealthAttribute()).
-			AddUObject(this, &AUK_PlayerController::OnHealthChanged);*/
+	//	ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetHealthAttribute()).
+	//		AddUObject(this, &AUK_PlayerController::OnHealthChanged);*/
 
-		float CurrentHealth = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetHealthAttribute());
-
-		if ( CurrentHealth < 190.f )
-		{
-			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetHealthAttribute())
-				.AddUObject(this, &AUK_PlayerController::OnHealthChanged);
-		}
-	}
+	//}
 
 	//if ( UUK_PlayerStatusAttributeSet* AttributeSet = ASC->GetSet<UUK_PlayerStatusAttributeSet>() )
 	//{
@@ -153,6 +146,12 @@ void AUK_PlayerController::OnPossess(APawn* pawn)
 		}
 	}
 
+	if ( MyCharacter )
+	{
+		// 이전에 연결된 게 있다면 정리하고 새로 연결 (중복 방지)
+		MyCharacter->OnDead.RemoveAll(this);
+		MyCharacter->OnDead.AddDynamic(this, &ThisClass::ShowGameOverUI);
+	}
 	//UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 
 	//if ( Subsystem )
@@ -431,6 +430,12 @@ void AUK_PlayerController::ShowGameOverUI()
 	if ( GameOverWidget && !GameOverWidget->IsInViewport() )
 	{
 		GameOverWidget->AddToViewport();
+
+		// 게임 오버 UI가 떴으니 마우스 커서와 입력 모드 설정
+		bShowMouseCursor = true;
+		FInputModeUIOnly InputModeData;
+		InputModeData.SetWidgetToFocus(GameOverWidget->TakeWidget());
+		SetInputMode(InputModeData);
 	}
 }
 
