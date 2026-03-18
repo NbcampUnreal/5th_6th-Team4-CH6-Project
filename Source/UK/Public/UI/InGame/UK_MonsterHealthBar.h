@@ -8,6 +8,7 @@
 // 전방 선언
 //class UAI_MonsterStatComponent;
 class UProgressBar;
+class UTextBlock;
 
 UCLASS()
 class UK_API UUK_MonsterHealthBar : public UUserWidget
@@ -25,6 +26,9 @@ protected:
 	// 현재 감시 중인 스탯 컴포넌트 저장용
 	//UPROPERTY()
 	//UAI_MonsterStatComponent* TargetStatComp;
+	
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* MonsterNameText;
 
 	UPROPERTY()
 	UAbilitySystemComponent* AbilitySystemComponent;
@@ -44,6 +48,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void BindMonsterAttributes(UAbilitySystemComponent* ASC, UUK_MonsterAttributeSet* Attributes);
+	
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void SetMonsterName(const FText& InName);
 	
 	void SetHPBarActive(bool bActive);
 };

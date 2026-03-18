@@ -18,7 +18,8 @@
 #include "DataAsset/DataTable/AIMonster/UK_MonsterLootRow.h"
 #include "ActorComponent/UK_InventoryComponent.h"
 #include "AIMonster/UK_AiMonsterCtl.h"
-#include "UI/InGame/UK_FloatingDamageActor.h" // 추가
+#include "UI/InGame/UK_FloatingDamageActor.h" 
+#include "DataAsset/DataTable/AIMonster/UK_MonsterMetaRow.h"
 
 #pragma region Initialization
 AAIMonsterBase::AAIMonsterBase()
@@ -767,6 +768,12 @@ void AAIMonsterBase::HideAndBroadcastDeath()
 	OnDeath.Broadcast(this);
 }
 
+UUK_MonsterHealthBar* AAIMonsterBase::GetHPWidget() const
+{
+	if (!HPWidgetComponent)	return nullptr;
+	return Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
+}
+
 
 void AAIMonsterBase::HideCorpse()
 {
@@ -912,31 +919,38 @@ void AAIMonsterBase::HideHPBar()
 
 void AAIMonsterBase::UpdateHPBarWidget()
 {
-	if ( !HPWidgetComponent )
-		return;
-
+	if ( !HPWidgetComponent )	return;
+	
 	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	if ( !PC )
-		return;
+	if ( !PC )	return;
 
 	FVector CameraLocation;
 	FRotator CameraRotation;
 	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
 	const FVector WidgetLocation = HPWidgetComponent->GetComponentLocation();
-
-	// 카메라 방향 계산
 	FVector Direction = CameraLocation - WidgetLocation;
-
-	// HP바가 기울어지지 않게 Z 제거
 	Direction.Z = 0.f;
-
 	FRotator LookAtRotation = Direction.Rotation();
-
 	HPWidgetComponent->SetWorldRotation(LookAtRotation);
-
-	// 크기 고정
 	HPWidgetComponent->SetWorldScale3D(FVector(0.5f));
+	
+	// 이름 세팅
+	UUK_MonsterHealthBar* Widget = GetHPWidget();
+	if (!Widget) return;
+	
+	FText MonsterName;
+	if (const FUK_MonsterMetaRow* Meta = GetMetaRow())
+	{
+		MonsterName = Meta->DisplayName;
+	}
+	else
+	{
+		const UEnum* EnumPtr = StaticEnum<EMonsterType>();
+		if (EnumPtr)
+			MonsterName = EnumPtr->GetDisplayValueAsText(MonsterType);
+	}
+	Widget->SetMonsterName(MonsterName);
 }
 
 #pragma endregion
