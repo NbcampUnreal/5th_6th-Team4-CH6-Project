@@ -197,7 +197,12 @@ void AAIMonsterBase::PossessedBy(AController* NewController)
 	
 	if (AbilitySystemComponent)
 	{
-		AbilitySystemComponent->GenericGameplayEventCallbacks.FindOrAdd(UK_GameplayTags::Action::Parry)
+		AbilitySystemComponent->GenericGameplayEventCallbacks
+			.FindOrAdd(UK_GameplayTags::Action::Parry)
+			.RemoveAll(this);
+		
+		AbilitySystemComponent->GenericGameplayEventCallbacks
+			.FindOrAdd(UK_GameplayTags::Action::Parry)
 			.AddUObject(this, &AAIMonsterBase::OnParryGameplayEvent);
 	}
 
