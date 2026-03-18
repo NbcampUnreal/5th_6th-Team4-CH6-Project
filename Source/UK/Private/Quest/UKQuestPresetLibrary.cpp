@@ -1,32 +1,78 @@
 ﻿#include "Quest/UKQuestPresetLibrary.h"
 
+namespace
+{
+	static FName MakePresetCounterKey(FName QuestId, FName CounterName)
+	{
+		// C.<QuestID>.<Name>
+		return FName(*FString::Printf(TEXT("C.%s.%s"),
+			*QuestId.ToString(),
+			*CounterName.ToString()));
+	}
+
+	static FName MakePresetFlagKey(FName QuestId, FName Category)
+	{
+		// F.<QuestID>.<Category>
+		return FName(*FString::Printf(TEXT("F.%s.%s"),
+			*QuestId.ToString(),
+			*Category.ToString()));
+	}
+
+	static void AddCommonFlags(FQuestProgress& InOutProgress, FName QuestId)
+	{
+		InOutProgress.Flags.Add(MakePresetFlagKey(QuestId, FName("Accepted")));
+		InOutProgress.Flags.Add(MakePresetFlagKey(QuestId, FName("Completed")));
+		InOutProgress.Flags.Add(MakePresetFlagKey(QuestId, FName("Failed")));
+	}
+}
+
 bool UUKQuestPresetLibrary::ApplyPresetToProgress(
 	const UUKQuestPresetAsset* PresetAsset,
+	FName QuestId,
 	EUKQuestTag Tag,
 	FQuestProgress& InOutProgress
 )
 {
 	if ( !PresetAsset ) return false;
+	if ( QuestId.IsNone() ) return false;
 
 	const FUKQuestPresetData* Preset = PresetAsset->Presets.Find(Tag);
 	if ( !Preset ) return false;
 
-	// Step 기본값
+	// 1) 기본 시작 Step
 	InOutProgress.Step = Preset->DefaultStartStep;
 
-	// 기본 Flag/Counters 초기화(“이름만” 넣고, 실제 키 규칙은 별도 시스템에서 확장 가능)
-	// 여기서는 Progress 내부의 컨테이너에 “기본 요소”를 만들어주는 수준만.
-	for ( const FName& CName : Preset->DefaultCounterNames )
+	// 2) 공통 상태 플래그 자동 생성
+	if ( Preset->bAutoInitCommonFlags )
 	{
-		InOutProgress.Counters.FindOrAdd(CName) = 0;
+		AddCommonFlags(InOutProgress, QuestId);
 	}
 
-	for ( const FName& FCategory : Preset->DefaultFlagCategories )
+	// 3) 태그별 기본 Counter 자동 생성
+	for ( const FName& CounterName : Preset->DefaultCounterNames )
 	{
-		InOutProgress.Flags.Add(FCategory);
+		if ( CounterName.IsNone() )
+		{
+			continue;
+		}
+
+		const FName CounterKey = MakePresetCounterKey(QuestId, CounterName);
+		InOutProgress.Counters.FindOrAdd(CounterKey) = 0;
 	}
 
-	// Completed는 기본 false 유지
+	// 4) 태그별 기본 Flag 자동 생성
+	for ( const FName& FlagCategory : Preset->DefaultFlagCategories )
+	{
+		if ( FlagCategory.IsNone() )
+		{
+			continue;
+		}
+
+		const FName FlagKey = MakePresetFlagKey(QuestId, FlagCategory);
+		InOutProgress.Flags.Add(FlagKey);
+	}
+
+	// 5) 시작 시점 완료 상태는 false
 	InOutProgress.bCompleted = false;
 
 	return true;
