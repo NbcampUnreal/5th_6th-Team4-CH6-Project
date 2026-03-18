@@ -1307,23 +1307,17 @@ void AAIMonsterBase::PlayHitEffect(FVector ImpactPoint)
 		);
 	}
 }
+
 void AAIMonsterBase::SpawnFloatingDamage(float InDamage)
 {
-	if ( InDamage <= 0.f )
-	{
-		return;
-	}
+	if (bIsDying || IsDead()) return;
+	
+	if ( InDamage <= 0.f )	return;
 
-	if ( !FloatingDamageActorClass )
-	{
-		return;
-	}
+	if ( !FloatingDamageActorClass )	return;
 
 	UWorld* World = GetWorld();
-	if ( !World )
-	{
-		return;
-	}
+	if ( !World )	return;
 
 	float SpawnZ = FloatingDamageZOffset;
 

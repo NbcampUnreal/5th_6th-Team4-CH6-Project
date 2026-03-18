@@ -812,6 +812,7 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 	{
 		RightHandWeaponComponent->SetSkeletalMesh(nullptr);
 		LeftHandWeaponComponent->SetSkeletalMesh(nullptr);
+		NowWeapon = nullptr;
 		return;
 	}
 	UUK_StatusAnimData* Weapon = WeaponList->FindAnimsDataAssetByTag(NewWeapon);
