@@ -29,7 +29,10 @@ bool UUK_DragEquipSlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDro
 			bIsWeapon = true;
 		}
 	}
-	const bool bSuccess = InventoryComponent->AddWeapon(DragOp->DraggedSlotData.ItemID, EquipIndex);
+	const bool bSuccess = InventoryComponent->AddWeaponFromInventoryIndex(
+		DragOp->DraggedSlotData.ItemID,
+		EquipIndex,
+		DragOp->SourceInventoryIndex);
 
 	UpdateEquipSlotVisual();
 	return true;
