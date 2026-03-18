@@ -35,36 +35,12 @@ void UUK_InvUI::NativeConstruct()
 
 	UpdateTabTextOpacity(TapALL);
 
-	if (CategoryALL)
-	{
-		CategoryALL->ItemDataTables = ItemDataTables;
-		CategoryALL->CreateSlots();
-	}
-
-	if (CategoryWeapon)
-	{
-		CategoryWeapon->ItemDataTables = ItemDataTables;
-		CategoryWeapon->CreateSlots();
-	}
-
-	if (CategoryFood)
-	{
-		CategoryFood->ItemDataTables = ItemDataTables;
-		CategoryFood->CreateSlots();
-	}
-
-	if (CategoryMaterial)
-	{
-		CategoryMaterial->ItemDataTables = ItemDataTables;
-		CategoryMaterial->CreateSlots();
-	}
-
 	AUK_CharacterBase* CB = Cast<AUK_CharacterBase>(GetOwningPlayerPawn());
-	if (IsValid(CB))
+	if ( IsValid(CB) )
 	{
 		BindInventoryComponent(CB->GetInventoryComponent());
 
-		if (EquipSlot1)
+		if ( EquipSlot1 )
 		{
 			EquipSlot1->EquipIndex = 0;
 			EquipSlot1->ItemDataTables = ItemDataTables;
@@ -72,7 +48,7 @@ void UUK_InvUI::NativeConstruct()
 			EquipSlot1->BindInventory(CB->GetInventoryComponent());
 		}
 
-		if (EquipSlot2)
+		if ( EquipSlot2 )
 		{
 			EquipSlot2->EquipIndex = 1;
 			EquipSlot2->ItemDataTables = ItemDataTables;
@@ -80,13 +56,41 @@ void UUK_InvUI::NativeConstruct()
 			EquipSlot2->BindInventory(CB->GetInventoryComponent());
 		}
 
-		if (EquipSlot3)
+		if ( EquipSlot3 )
 		{
 			EquipSlot3->EquipIndex = 2;
 			EquipSlot3->ItemDataTables = ItemDataTables;
 			EquipSlot3->WeaponRootTag = UK_GameplayTags::Weapon::WeaponRoot;
 			EquipSlot3->BindInventory(CB->GetInventoryComponent());
 		}
+	}
+
+	if ( CategoryALL )
+	{
+		CategoryALL->ItemDataTables = ItemDataTables;
+		CategoryALL->InventoryComp = InvComp;
+		CategoryALL->CreateSlots();
+	}
+
+	if ( CategoryWeapon )
+	{
+		CategoryWeapon->ItemDataTables = ItemDataTables;
+		CategoryWeapon->InventoryComp = InvComp;
+		CategoryWeapon->CreateSlots();
+	}
+
+	if ( CategoryFood )
+	{
+		CategoryFood->ItemDataTables = ItemDataTables;
+		CategoryFood->InventoryComp = InvComp;
+		CategoryFood->CreateSlots();
+	}
+
+	if ( CategoryMaterial )
+	{
+		CategoryMaterial->ItemDataTables = ItemDataTables;
+		CategoryMaterial->InventoryComp = InvComp;
+		CategoryMaterial->CreateSlots();
 	}
 
 	auto BindCategory = [this] (UUK_InvCategoryBase* Cat)
@@ -108,6 +112,11 @@ void UUK_InvUI::BindInventoryComponent(UUK_InventoryComponent* InInvComp)
 
 	InvComp = InInvComp;
 	InvComp->OnInventoryUpdate.AddDynamic(this, &UUK_InvUI::OnInvCompUpdated);
+
+	if ( CategoryALL ) CategoryALL->InventoryComp = InvComp;
+	if ( CategoryWeapon ) CategoryWeapon->InventoryComp = InvComp;
+	if ( CategoryFood ) CategoryFood->InventoryComp = InvComp;
+	if ( CategoryMaterial ) CategoryMaterial->InventoryComp = InvComp;
 
 	OnInvCompUpdated();
 }
@@ -131,6 +140,7 @@ void UUK_InvUI::OnInvCompUpdated()
 		if ( CategoryALL->CurrentSlot != NewAllSlotCount )
 		{
 			CategoryALL->CurrentSlot = NewAllSlotCount;
+			CategoryALL->InventoryComp = InvComp;
 			CategoryALL->CreateSlots();
 		}
 	}
@@ -209,24 +219,28 @@ void UUK_InvUI::ApplyItemDataTables()
 	if (CategoryALL)
 	{
 		CategoryALL->ItemDataTables = ItemDataTables;
+		CategoryALL->InventoryComp = InvComp;
 		CategoryALL->CreateSlots();
 	}
 
 	if (CategoryWeapon)
 	{
 		CategoryWeapon->ItemDataTables = ItemDataTables;
+		CategoryWeapon->InventoryComp = InvComp;
 		CategoryWeapon->CreateSlots();
 	}
 
 	if (CategoryFood)
 	{
 		CategoryFood->ItemDataTables = ItemDataTables;
+		CategoryFood->InventoryComp = InvComp;
 		CategoryFood->CreateSlots();
 	}
 
 	if (CategoryMaterial)
 	{
 		CategoryMaterial->ItemDataTables = ItemDataTables;
+		CategoryMaterial->InventoryComp = InvComp;
 		CategoryMaterial->CreateSlots();
 	}
 

@@ -20,10 +20,13 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "AbilitySystemComponent.h"
+#include "FrameTypes.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Engine/OverlapResult.h"
 #include "Sound/SoundAttenuation.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
+#include "Components/CapsuleComponent.h"
 #include "DataAsset/Data/UK_WeaponItemData.h"
 
 
@@ -45,7 +48,7 @@ AUK_CharacterBase::AUK_CharacterBase(const FObjectInitializer& ObjectInitializer
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = false;
-
+	bIsClimb = false;
 	GetMesh()->SetRelativeLocationAndRotation(
 		FVector(0.f, 0.f, -90.f),
 		FRotator(0.f, -90.f, 0.f));
@@ -127,35 +130,35 @@ void AUK_CharacterBase::ChangedAttribute(ECharacterAttribute NewAttribute)
 void AUK_CharacterBase::UpdateMovementState()
 {
 	ActorTrace();
-	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
-
-	if (bInWater)
-	{
-		if (MoveComp->MovementMode != MOVE_Swimming)
-		{
-			MoveComp->SetMovementMode(MOVE_Swimming);
-		}
-		return;
-	}
-
-	if (bWallDetected)
-	{
-		if (MoveComp->MovementMode != MOVE_Custom && MoveComp->CustomMovementMode != (uint8)
-			ECustomMovementMode::CMOVE_Climb)
-		{
-			MoveComp->SetMovementMode(MOVE_Custom, (uint8)ECustomMovementMode::CMOVE_Climb);
-		}
-		return;
-	}
-
-	if (MoveComp->IsMovingOnGround() == false)
-	{
-		if (MoveComp->MovementMode != MOVE_Falling)
-		{
-			MoveComp->SetMovementMode(MOVE_Falling);
-		}
-		return;
-	}
+	// UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+	//
+	// if (bInWater)
+	// {
+	// 	if (MoveComp->MovementMode != MOVE_Swimming)
+	// 	{
+	// 		MoveComp->SetMovementMode(MOVE_Swimming);
+	// 	}
+	// 	return;
+	// }
+	//
+	// if (bWallDetected)
+	// {
+	// 	if (MoveComp->MovementMode != MOVE_Custom && MoveComp->CustomMovementMode != (uint8)
+	// 		ECustomMovementMode::CMOVE_Climb)
+	// 	{
+	// 		MoveComp->SetMovementMode(MOVE_Custom, (uint8)ECustomMovementMode::CMOVE_Climb);
+	// 	}
+	// 	return;
+	// }
+	//
+	// if (MoveComp->IsMovingOnGround() == false)
+	// {
+	// 	if (MoveComp->MovementMode != MOVE_Falling)
+	// 	{
+	// 		MoveComp->SetMovementMode(MOVE_Falling);
+	// 	}
+	// 	return;
+	// }
 }
 
 
@@ -312,13 +315,41 @@ void AUK_CharacterBase::GiveStartupAbilities()
 
 void AUK_CharacterBase::Move(const FInputActionValue& InputActionValue)
 {
+	// bool bIsClimbTrace = ActorTrace();
+	// if (bIsClimbTrace == true)
+	// {
+	// 	if (bIsClimb == false)
+	// 	{
+	// 		bIsClimb = true;
+	// 		Climb(HitResult);
+	// 	}
+	// 	//const float DeltaTime = GetWorld()->GetDeltaSeconds();
+	// 	FVector Normal = HitResult.Normal * -1;
+	// 	//FRotator ActorRot = GetActorRotation();
+	// 	FRotator TargetRot = FRotationMatrix::MakeFromX(Normal).Rotator();
+	//
+	// 	// FRotator CurrentRot = FMath::FInterpTo(
+	// 	// 	ActorRot,
+	// 	// 	TargetRot,
+	// 	// 	DeltaTime,
+	// 	// 	0.25f
+	// 	// );
+	// 	SetActorRotation(TargetRot);
+	// }
+	// if (bIsClimbTrace == false)
+	// {
+	// 	bIsClimb = false;
+	// }
+
 	const FVector2D MovementVector = InputActionValue.Get<FVector2D>();
 	const FRotator MovementRotation(0.f, Controller->GetControlRotation().Yaw, 0.f);
 
+	FVector ForwardDirection;
+	FVector RightDirection;
 
-	//GetCharacterMovement()->MovementMode;
-	//switch (GetCharacterMovement()->MovementMode)
-	//{
+	// GetCharacterMovement()->MovementMode;
+	// switch (GetCharacterMovement()->MovementMode)
+	// {
 	// case MOVE_Custom:
 	// 	switch ((ECustomMovementMode)GetCharacterMovement()->CustomMovementMode)
 	// 	{
@@ -333,13 +364,18 @@ void AUK_CharacterBase::Move(const FInputActionValue& InputActionValue)
 	// 		break;
 	// 	}
 	// 	break;
-	//default:
+	// default:
 	//}
-	// FVector ForwardDirection;
-	// FVector RightDirection;
-	FVector ForwardDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::X);
-	FVector RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
-	//break;
+	// if (bIsClimbTrace == true)
+	// {
+	// 	ForwardDirection = FVector::UpVector;
+	// 	RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
+	// }
+	// else
+	// {
+	// }
+	ForwardDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::X);
+	RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
 	if (FMath::IsNearlyZero(MovementVector.X) == false)
 	{
 		if (bIsGliding == true && MovementVector.X > 0.f)
@@ -742,35 +778,64 @@ void AUK_CharacterBase::EndGliding()
 
 #pragma region Climb
 
-void AUK_CharacterBase::ActorTrace()
+bool AUK_CharacterBase::ActorTrace()
 {
 	FVector Start = SkeletalMeshComp->GetSocketLocation("LookAt");
 	FVector End = Start + (GetActorForwardVector() * TraceDist);
 
-	bWallDetected = GetWorld()->LineTraceSingleByChannel(
+	bool Hit = GetWorld()->LineTraceSingleByChannel(
 		HitResult,
 		Start,
 		End,
 		ECC_Visibility);
-	DrawDebugLine(
-		GetWorld(),
-		Start,
-		End,
-		FColor::Red,
+
+	return Hit;
+	// DrawDebugLine(
+	// 	GetWorld(),
+	// 	Start,
+	// 	End,
+	// 	FColor::Red,
+	// 	false,
+	// 	1.0f,
+	// 	0,
+	// 	2.0f
+	// );
+	// UCustomCharacterMovementComponent* Movement = Cast<UCustomCharacterMovementComponent>(GetCharacterMovement());
+	// Movement->bIsClimbingSurface = bWallDetected;
+	// if (bWallDetected)
+	// {
+	// 	if (IsValid(Movement))
+	// 	{
+	// 		Movement->CurrentClimbNormal = HitResult.ImpactNormal;
+	// 	}
+	// }
+}
+
+void AUK_CharacterBase::Climb(FHitResult& Hit)
+{
+	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+	MoveComp->SetMovementMode(MOVE_Flying);
+	MoveComp->bOrientRotationToMovement = false;
+
+	FVector Normal = Hit.Normal * -1.f;
+	FVector Location = Hit.ImpactPoint + Hit.Normal * GetCapsuleComponent()->GetUnscaledCapsuleRadius();
+	//(GetCapsuleComponent()->GetUnscaledCapsuleRadius()) * Hit.Normal;
+	FRotator Rot = FRotationMatrix::MakeFromX(Normal).Rotator();
+
+	FLatentActionInfo LatentInfo;
+	LatentInfo.CallbackTarget = this;
+
+	UKismetSystemLibrary::MoveComponentTo(
+		GetCapsuleComponent(),
+		Location,
+		Rot,
 		false,
-		1.0f,
-		0,
-		2.0f
+		false,
+		0.2f,
+		false,
+		EMoveComponentAction::Move,
+		LatentInfo
 	);
-	UCustomCharacterMovementComponent* Movement = Cast<UCustomCharacterMovementComponent>(GetCharacterMovement());
-	Movement->bIsClimbingSurface = bWallDetected;
-	if (bWallDetected)
-	{
-		if (IsValid(Movement))
-		{
-			Movement->CurrentClimbNormal = HitResult.ImpactNormal;
-		}
-	}
 }
 
 #pragma endregion
@@ -785,6 +850,8 @@ void AUK_CharacterBase::ChangeWeaponStat(const FUK_WeaponItemData* WeaponStat)
 	if (IsValid(ASC) == false)
 		return;
 
+	FGameplayEffectSpecHandle SpecHandle =
+		ASC->MakeOutgoingSpec(WeaponStatEffect, 1.f, ASC->MakeEffectContext());
 	// 기존 무기 효과 제거
 	if (WeaponEffectHandle.IsValid())
 	{
@@ -795,8 +862,6 @@ void AUK_CharacterBase::ChangeWeaponStat(const FUK_WeaponItemData* WeaponStat)
 	if (WeaponStat == nullptr)
 		return;
 
-	FGameplayEffectSpecHandle SpecHandle =
-		ASC->MakeOutgoingSpec(WeaponStatEffect, 1.f, ASC->MakeEffectContext());
 
 	SpecHandle.Data->SetSetByCallerMagnitude(
 		UK_GameplayTags::Data::WeaponStat::ExtraAttackPower,

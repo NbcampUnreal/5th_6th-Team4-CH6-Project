@@ -292,8 +292,10 @@ protected:
 
 public:
 	UFUNCTION()
-	void ActorTrace();
-
+	bool ActorTrace();
+	
+	UFUNCTION()
+	void Climb(FHitResult& Hit);
 protected:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	float TraceDist;
@@ -301,8 +303,8 @@ protected:
 	UPROPERTY()
 	FHitResult HitResult;
 	
-	FTimerHandle WallTraceTimerHandler;
-
+	bool bIsClimb = false;
+	
 #pragma endregion
 
 public:

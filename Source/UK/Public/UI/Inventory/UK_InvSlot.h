@@ -66,6 +66,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Drag")
 	bool IsWeaponItem() const;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ItemSlot", meta = ( ExposeOnSpawn = "true" ))
+	int32 SourceInventoryIndex = INDEX_NONE;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ItemSlot", meta = ( ExposeOnSpawn = "true" ))
+	TObjectPtr<UUK_InventoryComponent> InventoryComp;
+
 protected:
 	virtual void NativePreConstruct() override;
 	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
