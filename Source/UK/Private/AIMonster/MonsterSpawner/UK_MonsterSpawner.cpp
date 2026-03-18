@@ -182,9 +182,8 @@ void AUK_MonsterSpawner::ActivateMonster(AAIMonsterBase* Monster)
     Monster->SetActorTickEnabled(true);
 
     if (UCapsuleComponent* Capsule = Monster->GetCapsuleComponent())
-    {
         Capsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-    }
+    
 
     if (USkeletalMeshComponent* Mesh = Monster->GetMesh())
     {
@@ -197,79 +196,60 @@ void AUK_MonsterSpawner::ActivateMonster(AAIMonsterBase* Monster)
         Movement->SetMovementMode(MOVE_Walking);
         Movement->Velocity = FVector::ZeroVector;
     }
-
-    AAIController* AICon = Cast<AAIController>(Monster->GetController());
-    if (AICon)
-    {
-        AICon->StopMovement();
-        if (UBrainComponent* Brain = AICon->GetBrainComponent())
-        {
-            Brain->StopLogic(TEXT("Re-pooling"));
-        }
-        AICon->UnPossess();
-        if (!PooledControllers.Contains(AICon))
-        {
-            PooledControllers.Add(AICon);
-        }
-        AICon = nullptr;
-    }
-
-    if (PooledControllers.Num() > 0)
-    {
-        AICon = PooledControllers.Pop();
-    }
-    else if (Monster->AIControllerClass)
-    {
-        FActorSpawnParameters SpawnInfo;
-        SpawnInfo.SpawnCollisionHandlingOverride =
-            ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-        SpawnInfo.ObjectFlags |= RF_Transient;
-
-        AICon = GetWorld()->SpawnActor<AAIController>(
-            Monster->AIControllerClass,
-            NewLocation, FRotator::ZeroRotator, SpawnInfo);
-    }
-
-    if (AICon) 
-    {
-        AICon->Possess(Monster);
-    }
-
-    if (AICon)
-    {
-        if (UBrainComponent* Brain = AICon->GetBrainComponent())
-        {
-            Brain->RestartLogic();
-        }
-        else if (Monster->BehaviorTree)
-        {
-            AICon->RunBehaviorTree(Monster->BehaviorTree);
-        }
-
-        if (UBlackboardComponent* BB = AICon->GetBlackboardComponent())
-        {
-            BB->SetValueAsVector(TEXT("SpawnLocation"), NewLocation);
-            BB->SetValueAsVector(TEXT("PatrolLocation"), NewLocation);
-            BB->ClearValue(TEXT("TargetPlayer"));
-        }
-    }
-
+	
     Monster->ResetHealth();
-	Monster->ResetAppearance();
-    
     Monster->bIsAttacking = false;
     Monster->bIsHit = false;
     Monster->bIsAggressive = false;
     Monster->Aggressor = nullptr;
 
     if (Monster->Personality == EMonsterPersonality::Peaceful)
-    {
         Monster->RequestState(EMonsterState::Passive);
-    }
     else
-    {
         Monster->RequestState(EMonsterState::Idle);
-    }
+    
+    AAIController* AICon = Cast<AAIController>(Monster->GetController());
+	if (AICon)
+	{
+		AICon->StopMovement();
+		if (UBrainComponent* Brain = AICon->GetBrainComponent())
+			Brain->StopLogic(TEXT("Re-pooling"));
+		AICon->UnPossess();
+		if (!PooledControllers.Contains(AICon))
+			PooledControllers.Add(AICon);
+		AICon = nullptr;
+	}
+	
+	if (PooledControllers.Num() > 0)
+		AICon = PooledControllers.Pop();
+	else if (Monster->AIControllerClass)
+	{
+		FActorSpawnParameters SpawnInfo;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		SpawnInfo.ObjectFlags |= RF_Transient;
+		AICon = GetWorld()->SpawnActor<AAIController>(
+			Monster->AIControllerClass, NewLocation, FRotator::ZeroRotator, SpawnInfo);
+	}
+	
+	if (AICon)
+		AICon->Possess(Monster);
+	
+	if (AICon)
+	{
+		if (UBrainComponent* Brain = AICon->GetBrainComponent())
+			Brain->RestartLogic();
+		else if (Monster->BehaviorTree)
+			AICon->RunBehaviorTree(Monster->BehaviorTree);
+		
+		if (UBlackboardComponent* BB = AICon->GetBlackboardComponent())
+		{
+			BB->SetValueAsVector(TEXT("SpawnLocation"), NewLocation);
+			BB->SetValueAsVector(TEXT("PatrolLocation"), NewLocation);
+			BB->ClearValue(TEXT("TargetPlayer"));
+		}
+	}
+	
+	Monster->ResetAppearance();
 
     ActiveMonsters.Add(Monster);
     RegisterMonsterToGameMode(Monster);
