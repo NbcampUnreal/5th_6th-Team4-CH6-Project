@@ -12,8 +12,8 @@ class UK_API AUK_NPCAIBase : public ACharacter
 public:
 	AUK_NPCAIBase();
 
-	UFUNCTION(BlueprintNativeEvent)
-	void Interact(AActor* Interactor);
+	UFUNCTION()
+	virtual void Interact(AActor* Interactor);
 	virtual void Interact_Implementation(AActor* Interactor);
 
 
