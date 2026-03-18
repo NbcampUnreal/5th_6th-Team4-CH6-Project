@@ -94,12 +94,6 @@ void AUK_CharacterBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	//UpdateMovementState();
-	UE_LOG(LogTemp, Warning, TEXT("Mode: %d / Custom: %d / VelZ: %f"),
-	       (int)GetCharacterMovement()->MovementMode,
-	       (int)GetCharacterMovement()->CustomMovementMode,
-	       GetCharacterMovement()->Velocity.Z);
-	UE_LOG(LogTemp, Warning, TEXT("JumpZ: %f"), GetCharacterMovement()->JumpZVelocity);
-	UE_LOG(LogTemp, Warning, TEXT("OnGround: %d"), GetCharacterMovement()->IsMovingOnGround());
 }
 
 void AUK_CharacterBase::PossessedBy(AController* NewController)
@@ -110,10 +104,10 @@ void AUK_CharacterBase::PossessedBy(AController* NewController)
 void AUK_CharacterBase::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
-	if (GetCharacterMovement()->MovementMode == MOVE_Custom )
-	{
-		EndGliding();
-	}
+	// if (GetCharacterMovement()->MovementMode == MOVE_Custom)
+	// {
+	// 	EndGliding();
+	// }
 	if (OnFloor.IsBound() == true)
 	{
 		OnFloor.Execute();
@@ -135,35 +129,33 @@ void AUK_CharacterBase::UpdateMovementState()
 	ActorTrace();
 	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
 
-	// if (bInWater)
-	// {
-	// 	if (MoveComp->MovementMode != MOVE_Swimming)
-	// 	{
-	// 		MoveComp->SetMovementMode(MOVE_Swimming);
-	// 	}
-	// 	return;
-	// }
-	//
-	// if (bWallDetected)
-	// {
-	// 	if (MoveComp->MovementMode != MOVE_Custom && MoveComp->CustomMovementMode != (uint8)
-	// 		ECustomMovementMode::CMOVE_Climb)
-	// 	{
-	// 		MoveComp->SetMovementMode(MOVE_Custom, (uint8)ECustomMovementMode::CMOVE_Climb);
-	// 	}
-	// 	return;
-	// }
+	if (bInWater)
+	{
+		if (MoveComp->MovementMode != MOVE_Swimming)
+		{
+			MoveComp->SetMovementMode(MOVE_Swimming);
+		}
+		return;
+	}
 
-	// if (MoveComp->IsMovingOnGround() == false)
-	// {
-	// 	if (MoveComp->MovementMode != MOVE_Falling)
-	// 	{
-	// 		MoveComp->SetMovementMode(MOVE_Falling);
-	// 	}
-	// 	return;
-	// }
+	if (bWallDetected)
+	{
+		if (MoveComp->MovementMode != MOVE_Custom && MoveComp->CustomMovementMode != (uint8)
+			ECustomMovementMode::CMOVE_Climb)
+		{
+			MoveComp->SetMovementMode(MOVE_Custom, (uint8)ECustomMovementMode::CMOVE_Climb);
+		}
+		return;
+	}
 
-	//MoveComp->SetMovementMode(MOVE_Walking);
+	if (MoveComp->IsMovingOnGround() == false)
+	{
+		if (MoveComp->MovementMode != MOVE_Falling)
+		{
+			MoveComp->SetMovementMode(MOVE_Falling);
+		}
+		return;
+	}
 }
 
 
@@ -323,33 +315,41 @@ void AUK_CharacterBase::Move(const FInputActionValue& InputActionValue)
 	const FVector2D MovementVector = InputActionValue.Get<FVector2D>();
 	const FRotator MovementRotation(0.f, Controller->GetControlRotation().Yaw, 0.f);
 
-	FVector ForwardDirection;
-	FVector RightDirection;
-	GetCharacterMovement()->MovementMode;
-	switch (GetCharacterMovement()->MovementMode)
-	{
-	case MOVE_Custom:
-		switch ((ECustomMovementMode)GetCharacterMovement()->CustomMovementMode)
-		{
-		case ECustomMovementMode::CMOVE_Glide:
-			ForwardDirection = Controller->GetControlRotation().Vector();
-			RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
-			break;
 
-		case ECustomMovementMode::CMOVE_Climb:
-			ForwardDirection = FVector::UpVector;
-			RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
-			break;
-		}
-		break;
-	default:
-		ForwardDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::X);
-		RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
-		break;
-	}
+	//GetCharacterMovement()->MovementMode;
+	//switch (GetCharacterMovement()->MovementMode)
+	//{
+	// case MOVE_Custom:
+	// 	switch ((ECustomMovementMode)GetCharacterMovement()->CustomMovementMode)
+	// 	{
+	// 	// case ECustomMovementMode::CMOVE_Glide:
+	// 	// 	ForwardDirection = Controller->GetControlRotation().Vector();
+	// 	// 	RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
+	// 	// 	break;
+	//
+	// 	case ECustomMovementMode::CMOVE_Climb:
+	// 		ForwardDirection = FVector::UpVector;
+	// 		RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
+	// 		break;
+	// 	}
+	// 	break;
+	//default:
+	//}
+	// FVector ForwardDirection;
+	// FVector RightDirection;
+	FVector ForwardDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::X);
+	FVector RightDirection = FRotationMatrix(MovementRotation).GetUnitAxis(EAxis::Y);
+	//break;
 	if (FMath::IsNearlyZero(MovementVector.X) == false)
 	{
-		AddMovementInput(ForwardDirection, MovementVector.X);
+		if (bIsGliding == true && MovementVector.X > 0.f)
+		{
+			AddMovementInput(ForwardDirection, MovementVector.X);
+		}
+		else if (bIsGliding == false)
+		{
+			AddMovementInput(ForwardDirection, MovementVector.X);
+		}
 	}
 
 	if (FMath::IsNearlyZero(MovementVector.Y) == false)
@@ -714,7 +714,7 @@ bool AUK_CharacterBase::StartGliding()
 {
 	if (GetCharacterMovement()->IsFalling() == false)
 		return false;
-	if ( bIsGliding == true)
+	if (bIsGliding == true)
 		return false;
 	if (GetFloorDistance() < 220.f)
 	{
@@ -739,6 +739,7 @@ void AUK_CharacterBase::EndGliding()
 }
 
 #pragma endregion
+
 #pragma region Climb
 
 void AUK_CharacterBase::ActorTrace()
@@ -761,6 +762,15 @@ void AUK_CharacterBase::ActorTrace()
 		0,
 		2.0f
 	);
+	UCustomCharacterMovementComponent* Movement = Cast<UCustomCharacterMovementComponent>(GetCharacterMovement());
+	Movement->bIsClimbingSurface = bWallDetected;
+	if (bWallDetected)
+	{
+		if (IsValid(Movement))
+		{
+			Movement->CurrentClimbNormal = HitResult.ImpactNormal;
+		}
+	}
 }
 
 #pragma endregion
@@ -802,6 +812,7 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 	{
 		RightHandWeaponComponent->SetSkeletalMesh(nullptr);
 		LeftHandWeaponComponent->SetSkeletalMesh(nullptr);
+		NowWeapon = nullptr;
 		return;
 	}
 	UUK_StatusAnimData* Weapon = WeaponList->FindAnimsDataAssetByTag(NewWeapon);
