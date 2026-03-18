@@ -31,33 +31,23 @@ void UUK_Out_CharacterSelect::OnStartButtonClicked()
 {
 	AUK_PlayerController_Title* PlayerController = GetOwningPlayer<AUK_PlayerController_Title>();
 
-	UUK_Out_Loading* Loading = CreateWidget<UUK_Out_Loading>(GetWorld(), LoadingWidgetClass);
-	if ( Loading )
+	if ( UUK_Out_Loading* Loading = CreateWidget<UUK_Out_Loading>(GetWorld(), LoadingWidgetClass) )
 	{
 		Loading->TargetValue = 0.7f; // 70% 목표 설정
-		Loading->AddToViewport(999); // 가장 앞에 출력
-
-		UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
-		if ( GI )
+		if ( GEngine && GEngine->GameViewport )
 		{
-			GI->PersistentLoadingWidget = Loading;
+			// 중요 : AddViewportWidgetContent는 레벨 전환 중에도 위젯을 유지시킵니다.
+			GEngine->GameViewport->AddViewportWidgetContent(Loading->TakeWidget(), 999);
+
+			UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
+			if ( GI )
+			{
+				GI->PersistentLoadingWidget = Loading;
+				// 가비지 컬렉션 방지를 위해 Root에 추가 (선택사항이나 권장)
+				Loading->AddToRoot();
+			}
 		}
 	}
-
-	//UUK_Out_Loading* Loading = CreateWidget<UUK_Out_Loading>(GetWorld(), LoadingWidgetClass);
-	//if ( Loading )
-	//{
-	//	Loading->TargetValue = 0.7f;
-	//	Loading->AddToViewport(999);
-
-	//	// GameInstance에 포인터 저장 (파괴 방지 및 참조 유지)
-	//	UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
-	//	if ( GI )
-	//	{
-	//		GI->PersistentLoadingWidget = Loading;
-	//	}
-	//}
-
 
 	RemoveFromParent();
 

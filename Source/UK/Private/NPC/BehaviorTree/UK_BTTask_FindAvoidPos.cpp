@@ -2,6 +2,7 @@
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "NavigationSystem.h"
 #include "GameFramework/Character.h"
 
 UUK_BTTask_FindAvoidPos::UUK_BTTask_FindAvoidPos()
@@ -17,19 +18,28 @@ EBTNodeResult::Type UUK_BTTask_FindAvoidPos::ExecuteTask(UBehaviorTreeComponent&
 	APawn* NPC = AI->GetPawn();
 	if ( !NPC ) return EBTNodeResult::Failed;
 
-	ACharacter* Player =
-		UGameplayStatics::GetPlayerCharacter(NPC->GetWorld(), 0);
-
+	ACharacter* Player = UGameplayStatics::GetPlayerCharacter(NPC->GetWorld(), 0);
+	UNavigationSystemV1* Nav = UNavigationSystemV1::GetCurrent(NPC->GetWorld());
+	
+	if (!Nav) return EBTNodeResult::Failed;
 	if ( !Player ) return EBTNodeResult::Failed;
 
-	FVector Dir =
-		( NPC->GetActorLocation() - Player->GetActorLocation() ).GetSafeNormal();
-
-	FVector AvoidPos =
-		NPC->GetActorLocation() + Dir * AvoidDistance;
-
-	OwnerComp.GetBlackboardComponent()->
-		SetValueAsVector(AvoidLocationKey.SelectedKeyName, AvoidPos);
+	FVector Dir = (NPC->GetActorLocation() - Player->GetActorLocation()).GetSafeNormal();
+	FVector AvoidPos = NPC->GetActorLocation() + Dir * AvoidDistance;
+	
+	FNavLocation ResultPos;
+	if (Nav->GetRandomReachablePointInRadius(AvoidPos, 200.0f, ResultPos))
+	{
+		OwnerComp.GetBlackboardComponent()->SetValueAsVector(AvoidLocationKey.SelectedKeyName, ResultPos.Location);
+		return EBTNodeResult::Succeeded;
+	}
+	
+	if (Nav->GetRandomReachablePointInRadius(NPC->GetActorLocation(), AvoidDistance, ResultPos))
+	{
+		OwnerComp.GetBlackboardComponent()->SetValueAsVector(AvoidLocationKey.SelectedKeyName, ResultPos.Location);
+		return EBTNodeResult::Succeeded;
+	}
+	OwnerComp.GetBlackboardComponent()->SetValueAsVector(AvoidLocationKey.SelectedKeyName, AvoidPos);
 
 	return EBTNodeResult::Succeeded;
 }

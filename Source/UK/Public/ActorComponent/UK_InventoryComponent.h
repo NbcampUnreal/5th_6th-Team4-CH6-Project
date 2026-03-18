@@ -14,7 +14,7 @@ struct FInventorySlot
 {
 	GENERATED_BODY()
 public:
-	FInventorySlot() : ItemID(EName::None), Quantity(0) {  }
+	FInventorySlot() : ItemID(NAME_None), Quantity(0) {} //수정
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName ItemID;
 
@@ -38,9 +38,6 @@ class UK_API UUK_InventoryComponent : public UActorComponent
 public:
 	// Sets default values for this component's properties
 	UUK_InventoryComponent();
-
-	// Called every frame
-	//virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 protected:
 	// Called when the game starts
@@ -66,7 +63,7 @@ public:
 	int32 GetItemTotalQuantity(FName ItemID) const;
 	UFUNCTION(BlueprintCallable)
 	bool AddWeapon(FName ItemID, int32 index = -1);
-	
+
 	bool RemoveWeapon(FName ItemID, int32 index);
 
 	UFUNCTION(BlueprintCallable)
@@ -74,11 +71,11 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	bool AddGold(int32 Value);
-	
+
 	UFUNCTION(BlueprintCallable)
-	int32 GetGold() const {return Gold;}
-	
-	
+	int32 GetGold() const { return Gold; }
+
+
 	FInventorySlot* FindWeaponSlot(FName ItemID);
 
 	FInventorySlot* FindWeaponSlotbyIndex(int32 index);
@@ -87,18 +84,19 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnInventoryUpdate OnInventoryUpdate;
-	
+
 	UPROPERTY(BlueprintAssignable)
 	FOnItemAdded OnItemAdded;
 
 	UPROPERTY(BlueprintAssignable)
-	FOnChangedGold OnChangedGold;	
+	FOnChangedGold OnChangedGold;
 	UPROPERTY(BlueprintAssignable)
 	FOnChangedWeapon OnChangedWeapon;
+
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	TObjectPtr<UDataTable> ItemDataTable;
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	TObjectPtr<UDataTable> WeaponDataTable;
 
@@ -117,4 +115,13 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	int32 Gold;
 
+	//추가
+public:
+	int32 AddItem(FName ItemID, int32 Amount, bool bBroadcastItemAdded, bool bBroadcastInventoryUpdate);
+	int32 RemoveItem(FName ItemID, int32 Amount, bool bBroadcastInventoryUpdate);
+	FInventorySlot* FindAnyItemSlot(FName ItemID);
+	UFUNCTION(BlueprintCallable)
+	bool RemoveItemByInventoryIndex(int32 InventoryIndex, int32 Amount = 1, bool bBroadcastInventoryUpdate = true);
+	UFUNCTION(BlueprintCallable)
+	bool AddWeaponFromInventoryIndex(FName ItemID, int32 EquipIndex, int32 SourceInventoryIndex);
 };
