@@ -42,4 +42,9 @@ protected:
 	// 활성화 시 발생할 이펙트/사운드 
 	UFUNCTION(BlueprintImplementableEvent, Category = "WarpTower")
 	void OnTowerActivated();
+
+protected:
+	// 타워 고유 식별자 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WarpTower")
+	FName WarpPointID;
 };
