@@ -98,6 +98,9 @@ public:
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	TObjectPtr<UDataTable> ItemDataTable;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	TObjectPtr<UDataTable> WeaponDataTable;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	TArray<FInventorySlot> InventorySlots;

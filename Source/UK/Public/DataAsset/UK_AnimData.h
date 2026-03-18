@@ -16,6 +16,9 @@ class UK_API UUK_AnimData : public UDataAsset
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation | Montage")
 	TObjectPtr<UAnimMontage> ComboMantage;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation | Data")
+	TObjectPtr<UBlendSpace> BlendSpace;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation | Data")
 	FString MontageSectionName;

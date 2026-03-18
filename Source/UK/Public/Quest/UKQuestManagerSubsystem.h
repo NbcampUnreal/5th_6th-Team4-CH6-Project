@@ -113,14 +113,14 @@ protected:
 
 	// MobEntityId(EntityID) -> DataTable RowName 캐시
 	UPROPERTY(Transient)
-	TMap<FName, FName> MonsterIDToRowName;
+	TMap<FName, FName> MobIDToRowName;
 
 	// 캐시 생성
-	void BuildMonsterIDCache();
+	void BuildMobIDCache();
 
 public:
 	// MobEntityId(EntityID 컬럼)로 몬스터 데이터를 찾는다
-	const FUK_MonsterMetaRow* GetMonsterDataByMonsterID(FName MonsterID) const;
+	const FUK_MonsterMetaRow* GetMonsterDataByMobID(FName MobID) const;
 
 protected:
 	// [7] Reward / RewardDataTable
@@ -132,6 +132,9 @@ protected:
 
 	// RewardId로 DT를 읽어 실제 지급/반영
 	bool ApplyRewardById(FName RewardId, FName QuestId /*로그용*/);
+
+	// 플레이어 인벤토리 컴포넌트 찾기
+	class UUK_InventoryComponent* GetPlayerInventoryComponent() const;
 
 public:
 	// 퀘스트 보상을 실제로 지급하는 함수

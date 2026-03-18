@@ -17,6 +17,9 @@
 #include "Tags/UK_GameplayTags.h"
 #include "DataAsset/DataTable/AIMonster/UK_MonsterLootRow.h"
 #include "ActorComponent/UK_InventoryComponent.h"
+#include "AIMonster/UK_AiMonsterCtl.h"
+#include "UI/InGame/UK_FloatingDamageActor.h" 
+#include "DataAsset/DataTable/AIMonster/UK_MonsterMetaRow.h"
 
 #pragma region Initialization
 AAIMonsterBase::AAIMonsterBase()
@@ -165,6 +168,15 @@ void AAIMonsterBase::PostInitializeComponents()
 		if (!AlertWidgetClass)
 			UE_LOG(LogTemp, Warning, TEXT("[Alert] %s: AlertWidgetClass not set in BP"), *GetName());
 	}
+	
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	MeshComp->SetCollisionObjectType(ECC_GameTraceChannel2);
+	MeshComp->SetCollisionResponseToAllChannels(ECR_Ignore);
+	MeshComp->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Block);
+	
+	UCapsuleComponent* Cap = GetCapsuleComponent();
+	Cap->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Ignore);
 }
 
 UAbilitySystemComponent* AAIMonsterBase::GetAbilitySystemComponent() const
@@ -563,8 +575,6 @@ void AAIMonsterBase::PlayAttackMontage(int32 MontageIndex)
 
 void AAIMonsterBase::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	if (!AttackMontages.Contains(Montage)) return;
-
 	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
 	if (AnimInstance)
 	{
@@ -758,6 +768,12 @@ void AAIMonsterBase::HideAndBroadcastDeath()
 	OnDeath.Broadcast(this);
 }
 
+UUK_MonsterHealthBar* AAIMonsterBase::GetHPWidget() const
+{
+	if (!HPWidgetComponent)	return nullptr;
+	return Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
+}
+
 
 void AAIMonsterBase::HideCorpse()
 {
@@ -844,14 +860,14 @@ void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
 		Ally->Aggressor     = Enemy;
 		Ally->RequestState(EMonsterState::Aggressive);
 
-		if (AAIController* AllyAIC = Cast<AAIController>(Ally->GetController()))
+		if (AUK_AiMonsterCtl* AllyCtl = Cast<AUK_AiMonsterCtl>(Ally->GetController()))
 		{
-			if (UBlackboardComponent* BB = AllyAIC->GetBlackboardComponent())
+			AllyCtl->SetCurrentTarget(Enemy);
+			if (UBlackboardComponent* BB = AllyCtl->GetBlackboardComponent())
 			{
-				if (!BB->GetValueAsObject(TEXT("TargetPlayer")))
-					BB->SetValueAsObject(TEXT("TargetPlayer"), Enemy);
+				BB->SetValueAsObject(TEXT("TargetPlayer"), Enemy);
 			}
-			if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AllyAIC->GetBrainComponent()))
+			if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AllyCtl->GetBrainComponent()))
 			{
 				BTComp->RestartTree();
 			}
@@ -903,31 +919,38 @@ void AAIMonsterBase::HideHPBar()
 
 void AAIMonsterBase::UpdateHPBarWidget()
 {
-	if ( !HPWidgetComponent )
-		return;
-
+	if ( !HPWidgetComponent )	return;
+	
 	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	if ( !PC )
-		return;
+	if ( !PC )	return;
 
 	FVector CameraLocation;
 	FRotator CameraRotation;
 	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
 	const FVector WidgetLocation = HPWidgetComponent->GetComponentLocation();
-
-	// 카메라 방향 계산
 	FVector Direction = CameraLocation - WidgetLocation;
-
-	// HP바가 기울어지지 않게 Z 제거
 	Direction.Z = 0.f;
-
 	FRotator LookAtRotation = Direction.Rotation();
-
 	HPWidgetComponent->SetWorldRotation(LookAtRotation);
-
-	// 크기 고정
 	HPWidgetComponent->SetWorldScale3D(FVector(0.5f));
+	
+	// 이름 세팅
+	UUK_MonsterHealthBar* Widget = GetHPWidget();
+	if (!Widget) return;
+	
+	FText MonsterName;
+	if (const FUK_MonsterMetaRow* Meta = GetMetaRow())
+	{
+		MonsterName = Meta->DisplayName;
+	}
+	else
+	{
+		const UEnum* EnumPtr = StaticEnum<EMonsterType>();
+		if (EnumPtr)
+			MonsterName = EnumPtr->GetDisplayValueAsText(MonsterType);
+	}
+	Widget->SetMonsterName(MonsterName);
 }
 
 #pragma endregion
@@ -1042,6 +1065,13 @@ float AAIMonsterBase::CalculateExp(int32 PlayerLevel) const
 	const FUK_MonsterStatRow* Row = GetStatRow();
 	if (!Row) return 0.f;
 	return Row->BaseExp + Row->ExpPerLevel * (PlayerLevel - 1);
+}
+
+float AAIMonsterBase::CalculateGold(int32 PlayerLevel) const
+{
+	const FUK_MonsterStatRow* Row = GetStatRow();
+	if (!Row) return 0.f;
+	return Row->BaseGold + Row->GoldPerLevel * (PlayerLevel - 1);
 }
 
 FName AAIMonsterBase::GetRowName() const
@@ -1254,10 +1284,18 @@ void AAIMonsterBase::GrantRewardsToKiller()
             }
         }
     }
+	
+	// ── Gold ────────────────────────────────────────────
+	if (Inventory)
+	{
+		GoldGain = FMath::RoundToInt(CalculateGold(PlayerLevel));
+		Inventory->AddGold(GoldGain);
+	}
 
     // ── 로그 ─────────────────────────────────────────────
     UE_LOG(LogTemp, Warning, TEXT("========= [Monster Killed: %s] ========="), *GetName());
     UE_LOG(LogTemp, Warning, TEXT("  Player Level : %d"), PlayerLevel);
+	UE_LOG(LogTemp, Warning, TEXT("  Gold Gained  : %d"), GoldGain);
     UE_LOG(LogTemp, Warning, TEXT("  EXP Gained   : %.1f"), ExpGain);
 
     if (DroppedItems.Num() == 0)
@@ -1274,3 +1312,61 @@ void AAIMonsterBase::GrantRewardsToKiller()
     UE_LOG(LogTemp, Warning, TEXT("========================================="));
 }
 #pragma endregion
+
+void AAIMonsterBase::PlayHitEffect(FVector ImpactPoint)
+{
+	if ( HitEffect )
+	{
+		FVector SpawnLoc = ( ImpactPoint.IsNearlyZero() ) ? GetActorLocation() + FVector(0.f, 0.f, 100.f) : ImpactPoint;
+
+		FVector EffectScale = FVector(2.5f, 2.5f, 2.5f);
+
+		UGameplayStatics::SpawnEmitterAtLocation(
+			GetWorld(),
+			HitEffect,
+			SpawnLoc,
+			FRotator::ZeroRotator,
+			EffectScale,
+			true
+		);
+	}
+}
+
+void AAIMonsterBase::SpawnFloatingDamage(float InDamage)
+{
+	if (bIsDying || IsDead()) return;
+	
+	if ( InDamage <= 0.f )	return;
+
+	if ( !FloatingDamageActorClass )	return;
+
+	UWorld* World = GetWorld();
+	if ( !World )	return;
+
+	float SpawnZ = FloatingDamageZOffset;
+
+	if ( UCapsuleComponent* Capsule = GetCapsuleComponent() )
+	{
+		SpawnZ = Capsule->GetScaledCapsuleHalfHeight() + 20.f;
+	}
+
+	const FVector DamageActorLocation = GetActorLocation() + FVector(0.f, 0.f, SpawnZ);
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AUK_FloatingDamageActor* DamageActor =
+		World->SpawnActor<AUK_FloatingDamageActor>(
+			FloatingDamageActorClass,
+			DamageActorLocation,
+			FRotator::ZeroRotator,
+			SpawnParams);
+
+	if ( !DamageActor )
+	{
+		return;
+	}
+
+	DamageActor->SetDamageAmount(InDamage);
+}

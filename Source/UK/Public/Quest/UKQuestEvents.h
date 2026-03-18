@@ -64,7 +64,7 @@ EventId = “퀘스트를 진행시키는 사건의 ID”
 Quest Event ID Naming Rule (FName):
 - QuestEvent.TalkedTo.<NpcId>
 - QuestEvent.GotItem.<ItemId>
-- QuestEvent.Killed.<MonsterId>
+- QuestEvent.Killed.<MobID>
 - QuestEvent.EnteredZone.<ZoneName>
 - QuestEvent.Custom.<Something>
 

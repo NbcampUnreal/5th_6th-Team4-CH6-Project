@@ -38,16 +38,25 @@ void UUK_InventoryComponent::BroadcastInventoryUpdate() const
 int32 UUK_InventoryComponent::AddItem(FName ItemID, int32 Amount)
 {
 	// 유효성 검사
-	if (!IsValid(ItemDataTable) || Amount <= 0)
+
+	if ((!IsValid(ItemDataTable) && !IsValid(WeaponDataTable)) || Amount <= 0)
 		return false;
-
 	// 데이터 테이블에서 데이터 찾아오기
-	const FUK_ItemData* ItemData =
-		ItemDataTable->FindRow<FUK_ItemData>(ItemID, TEXT("UUK_InventoryComponent::AddItem"));
-	const FUK_WeaponItemData* WeaponData =
-		ItemDataTable->FindRow<FUK_WeaponItemData>(ItemID, TEXT("UUK_InventoryComponent::AddItem"));
+	// const FUK_ItemData* ItemData =
+	// 	ItemDataTable->FindRow<FUK_ItemData>(ItemID, TEXT("UUK_InventoryComponent::AddItem"));
+	// const FUK_WeaponItemData* WeaponData =
+	// 	ItemDataTable->FindRow<FUK_WeaponItemData>(ItemID, TEXT("UUK_InventoryComponent::AddItem"));
 
-
+	const FUK_ItemData* ItemData = nullptr;
+	if (IsValid(ItemDataTable))
+	{
+		ItemData = ItemDataTable->FindRow<FUK_ItemData>(ItemID, TEXT("AddItem"));
+	}
+	const FUK_WeaponItemData* WeaponData = nullptr;
+	if (IsValid(WeaponDataTable))
+	{
+		WeaponData = WeaponDataTable->FindRow<FUK_WeaponItemData>(ItemID, TEXT("AddItem"));
+	}
 	if (ItemData == nullptr && WeaponData == nullptr)
 	{
 		UE_LOG(LogTemp, Display, TEXT("아이템 데이터 테이블에 존재하지 않는 ID가 있습니다 : %s"), *ItemID.ToString());
@@ -103,8 +112,8 @@ int32 UUK_InventoryComponent::AddItem(FName ItemID, int32 Amount)
 
 			return AmountToAdd; /*추가하지 못하고 남은 아이템의 갯수를 반환해 줌*/
 		}
-
-		int32 AmountToFill = FMath::Min(ItemData->MaxItemStack, AmountToAdd);
+		int32 CurrentMaxStack = ItemData ? ItemData->MaxItemStack : (WeaponData ? WeaponData->MaxItemStack : 1);
+		int32 AmountToFill = FMath::Min(CurrentMaxStack, AmountToAdd);
 		EmptySlot->ItemID = ItemID;
 		EmptySlot->Quantity = AmountToFill;
 		AmountToAdd -= AmountToFill;
@@ -118,15 +127,20 @@ int32 UUK_InventoryComponent::AddItem(FName ItemID, int32 Amount)
 int32 UUK_InventoryComponent::RemoveItem(FName ItemID, int32 Amount)
 {
 	// 유효성 검사
-	if (IsValid(ItemDataTable) == false || Amount <= 0)
+	if ((!IsValid(ItemDataTable) && !IsValid(WeaponDataTable)) || Amount <= 0)
 		return false;
-
+	
 	/*추가와 로직이 비슷함 이하 생략*/
-	const FUK_ItemData* ItemData =
-		ItemDataTable->FindRow<FUK_ItemData>(ItemID, TEXT("UUK_InventoryComponent::AddItem"));
-	const FUK_WeaponItemData* WeaponData =
-		ItemDataTable->FindRow<FUK_WeaponItemData>(ItemID, TEXT("UUK_InventoryComponent::AddItem"));
-
+	const FUK_ItemData* ItemData = nullptr;
+	if (IsValid(ItemDataTable))
+	{
+		ItemData = ItemDataTable->FindRow<FUK_ItemData>(ItemID, TEXT("AddItem"));
+	}
+	const FUK_WeaponItemData* WeaponData = nullptr;
+	if (IsValid(WeaponDataTable))
+	{
+		WeaponData = WeaponDataTable->FindRow<FUK_WeaponItemData>(ItemID, TEXT("AddItem"));
+	}
 	if (ItemData == nullptr && WeaponData == nullptr)
 	{
 		UE_LOG(LogTemp, Display, TEXT("아이템 데이터 테이블에 존재하지 않는 ID가 있습니다 : %s"), *ItemID.ToString());
@@ -155,7 +169,7 @@ int32 UUK_InventoryComponent::RemoveItem(FName ItemID, int32 Amount)
 		}
 	}
 	OnInventoryUpdate.Broadcast();
-	return true;
+	return -1;
 }
 
 FInventorySlot* UUK_InventoryComponent::FindItemSlot(FName ItemID, const FUK_ItemData* ItemData,

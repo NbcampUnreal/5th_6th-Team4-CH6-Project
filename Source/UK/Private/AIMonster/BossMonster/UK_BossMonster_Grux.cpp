@@ -9,6 +9,10 @@
 #include "Components/DecalComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
+#include "AIMonster/BossMonster/UK_BossProjectileBase.h"
+#include "Animation/AnimInstance.h"
 
 AUK_BossMonster_Grux::AUK_BossMonster_Grux()
 {
@@ -53,7 +57,7 @@ void AUK_BossMonster_Grux::UpdatePhase()
 	else if (CurrentPhase == 2 && HPRatio <= 0.3f)
 	{
 		CurrentPhase = 3;
-		SmashRadius = 1000.f;
+		SmashRadius = 750.f;
 		if (JumpTargetDecal)
 		{
 			JumpTargetDecal->DecalSize = FVector(50.f, SmashRadius, SmashRadius);
@@ -165,8 +169,8 @@ bool AUK_BossMonster_Grux::ExecuteJumpAttackAction(float PlayRate)
 	FVector Dir = TargetLoc - StartLoc;
 	float Dist = Dir.Size2D();
 	
-	float BonusHeight = (CurrentPhase == 3) ? 700.f : 500.f;
-	float FlightTime = (CurrentPhase == 3) ? 1.1f : 1.4f;
+	float BonusHeight = (CurrentPhase == 3) ? 600.f : 500.f;
+	float FlightTime = (CurrentPhase == 3) ? 1.2f : 1.4f;
 	float OverShootCorrection = 0.75f;
 	
 	FVector HorizontalDir = Dir;
@@ -228,6 +232,25 @@ void AUK_BossMonster_Grux::ApplyBerserkBuff()
 	AttackCooldown = 0.4f;
 	GetCharacterMovement()->MaxWalkSpeed = 600.f;
 	BerserkPlayRate = 1.3f;
+	
+	if (BerserkLoopEffect && !BerserkComponent)
+	{
+		BerserkComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			BerserkLoopEffect,
+			GetMesh(),
+			BerserkSocketName,
+			FVector::ZeroVector,
+			FRotator::ZeroRotator,
+			EAttachLocation::SnapToTarget,
+			true 
+		);
+
+		if (BerserkComponent)
+		{
+			BerserkComponent->SetRelativeScale3D(FVector(1.5f));
+			UE_LOG(LogTemp, Warning, TEXT("[Grux] Berserk Effect Activated!"));
+		}
+	}
 	
 	if (Berserk)
 	{
@@ -336,7 +359,12 @@ bool AUK_BossMonster_Grux::PlayBaseAttackWithSpeed(float PlayRate)
 			UAnimMontage* CurrentMontage = AnimInstance->GetCurrentActiveMontage();
 			if (CurrentMontage)
 			{
+				FOnMontageEnded EndDelegate;
+				EndDelegate.BindUObject(this, &AAIMonsterBase::OnAttackMontageEnded);
+				AnimInstance->Montage_SetEndDelegate(EndDelegate, CurrentMontage);
+				
 				AnimInstance->Montage_SetPlayRate(CurrentMontage, PlayRate);
+				bIsAttacking = true;
 			}
 		}
 	}
@@ -345,10 +373,8 @@ bool AUK_BossMonster_Grux::PlayBaseAttackWithSpeed(float PlayRate)
 
 void AUK_BossMonster_Grux::LaunchSwordWave()
 {
-	UE_LOG(LogTemp, Warning, TEXT("LaunchSwordWave 호출됨!"));
 	if (!SwordWaveClass)
 	{
-		UE_LOG(LogTemp, Error, TEXT("SwordWaveClass가 비어있습니다!"));
 		return;
 	}
 	FVector MuzzleLocation = GetMesh()->GetSocketLocation(MuzzleSocketName);
@@ -358,15 +384,12 @@ void AUK_BossMonster_Grux::LaunchSwordWave()
 	SpawnParams.Owner = this;
 	SpawnParams.Instigator = GetInstigator();
 	
-	AActor* Projectile = GetWorld()->SpawnActor<AActor>(
-		SwordWaveClass, 
-		MuzzleLocation, 
-		SpawnRotation, 
-		SpawnParams
+	AUK_BossProjectileBase* Projectile = GetWorld()->SpawnActor<AUK_BossProjectileBase>(
+	   SwordWaveClass, MuzzleLocation, SpawnRotation, SpawnParams
 	);
 
 	if (Projectile)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[Grux] 검기 발사!"));
+		Projectile->DamageAmount = CalculateAoEDamage(1);
 	}
 }
