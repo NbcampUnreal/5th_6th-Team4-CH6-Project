@@ -92,14 +92,6 @@ void AAIMonsterBase::BeginPlay()
 		CurrentState = EMonsterState::Passive;
 	}
 
-	if (HPWidgetComponent && GetWorld())
-	{
-		GetWorldTimerManager().SetTimer(
-			HPBarUpdateTimer, this,
-			&AAIMonsterBase::UpdateHPBarWidget,
-			0.05f, true);
-	}
-
 	if (HPWidgetComponent)
 	{
 		HPWidget = Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
@@ -144,6 +136,7 @@ void AAIMonsterBase::PostInitializeComponents()
 	if (HPWidgetComponent && HPWidgetClass)
 	{
 		HPWidgetComponent->SetWidgetClass(HPWidgetClass);
+		HPWidgetComponent->InitWidget();
 	}
 	
 	if (AlertWidgetComponent && AlertWidgetClass)
@@ -684,6 +677,17 @@ void AAIMonsterBase::Die()
 	bIsDying     = true;
 	bIsAttacking = false;
 	
+	bHPVisible = false;
+	GetWorldTimerManager().ClearTimer(HPBarUpdateTimer);
+	if (HPWidgetComponent)
+	{
+		HPWidgetComponent->SetVisibility(false);
+		if (UUserWidget* Widget = HPWidgetComponent->GetUserWidgetObject())
+		{
+			Widget->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+	
 	if (GetCapsuleComponent())
 	{
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -709,6 +713,7 @@ void AAIMonsterBase::Die()
 		AnimInstance->StopAllMontages(0.1f); 
 	}
 
+	HideHPBar();
 	SetState(EMonsterState::Dead);
 	
 	if (const FUK_MonsterMetaRow* Meta = GetMetaRow())
@@ -798,6 +803,16 @@ void AAIMonsterBase::ResetHealth()
 	
 	bIsDying = false;
 	bRewardGranted = false;
+	bHPVisible    = false;
+	
+	if (HPWidgetComponent)
+	{
+		HPWidget = Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
+		if (HPWidget)
+		{
+			HPWidget->BindMonsterAttributes(AbilitySystemComponent, AttributeSet);
+		}
+	}
 	
 	UE_LOG(LogTemp, Log, TEXT("[%s] ResetHealth: HP restored to %.0f"), *GetName(), MaxHP);
 }
@@ -902,24 +917,54 @@ void AAIMonsterBase::ResetToPassive()
 #pragma region HP Bar Widget
 void AAIMonsterBase::ShowHPBar()
 {
-	if (!HPWidgetComponent) return;
-
-	HPWidgetComponent->SetVisibility(true);
-	if (UUserWidget* Widget = HPWidgetComponent->GetUserWidgetObject())
+	if (bHPVisible || !HPWidgetComponent) return;
+	if (bIsDying || IsDead()) return;
+	
+	if (!HPWidget)
 	{
-		Widget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		HPWidget = Cast<UUK_MonsterHealthBar>(HPWidgetComponent->GetUserWidgetObject());
+		if (HPWidget)
+		{
+			HPWidget->BindMonsterAttributes(AbilitySystemComponent, AttributeSet);
+		}
+	}
+	
+	bHPVisible = true;
+	HPWidgetComponent->SetVisibility(true);
+	
+	if (HPWidget)
+	{
+		HPWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+		FText MonsterName;
+		if (const FUK_MonsterMetaRow* Meta = GetMetaRow())
+			MonsterName = Meta->DisplayName;
+		else if (const UEnum* EnumPtr = StaticEnum<EMonsterType>())
+			MonsterName = EnumPtr->GetDisplayValueAsText(MonsterType);
+		HPWidget->SetMonsterName(MonsterName);
+	}
+
+	if (GetWorld())
+	{
+		GetWorldTimerManager().SetTimer(
+			HPBarUpdateTimer, this,
+			&AAIMonsterBase::UpdateHPBarWidget,
+			0.05f, true);
 	}
 }
 
 void AAIMonsterBase::HideHPBar()
 {
-	if (!HPWidgetComponent) return;
+	if (bHPVisible || !HPWidgetComponent) return;
+	bHPVisible = false;
 
 	if (UUserWidget* Widget = HPWidgetComponent->GetUserWidgetObject())
 	{
 		Widget->SetVisibility(ESlateVisibility::Collapsed);
 	}
 	HPWidgetComponent->SetVisibility(false);
+	
+	GetWorldTimerManager().ClearTimer(HPBarUpdateTimer);
 }
 
 void AAIMonsterBase::UpdateHPBarWidget()
@@ -939,23 +984,6 @@ void AAIMonsterBase::UpdateHPBarWidget()
 	FRotator LookAtRotation = Direction.Rotation();
 	HPWidgetComponent->SetWorldRotation(LookAtRotation);
 	HPWidgetComponent->SetWorldScale3D(FVector(0.5f));
-	
-	// 이름 세팅
-	UUK_MonsterHealthBar* Widget = GetHPWidget();
-	if (!Widget) return;
-	
-	FText MonsterName;
-	if (const FUK_MonsterMetaRow* Meta = GetMetaRow())
-	{
-		MonsterName = Meta->DisplayName;
-	}
-	else
-	{
-		const UEnum* EnumPtr = StaticEnum<EMonsterType>();
-		if (EnumPtr)
-			MonsterName = EnumPtr->GetDisplayValueAsText(MonsterType);
-	}
-	Widget->SetMonsterName(MonsterName);
 }
 
 #pragma endregion

@@ -53,6 +53,13 @@ void UUK_MonsterHealthBar::BindMonsterAttributes(UAbilitySystemComponent* ASC, U
 {
 	if (!ASC || !Attributes) return;
 
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
+			Attributes->GetHealthAttribute()
+		).RemoveAll(this);  
+	}
+	
 	AbilitySystemComponent = ASC;
 	AttributeSet = Attributes;
 
