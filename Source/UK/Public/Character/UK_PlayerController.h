@@ -3,6 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AbilitySystemComponent.h" 
+#include "GameplayEffectTypes.h"
 #include "GameFramework/PlayerController.h"
 #include "UI/InGame/UK_Stamina.h"
 #include "UI/InGame/UK_Setting.h"
@@ -14,6 +16,8 @@
 class UInputMappingContext;
 class UInputAction;
 class UUK_MainHUD;
+class UUK_GameOver;
+class UAbilitySystemComponent;
 #pragma endregion
 
 UENUM(BlueprintType)
@@ -37,6 +41,9 @@ public:
 	virtual void BeginPlay() override;
 	virtual void PostSeamlessTravel() override;
 	virtual void OnPossess(APawn* pawn) override;
+
+	//UFUNCTION()
+	void OnHealthChanged(const FOnAttributeChangeData& Data);
 
 private:
 	UFUNCTION(Client, Reliable)
@@ -94,40 +101,62 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TrackingUI")
 	float ScaleFar = 0.5f;
 
+	UPROPERTY(BlueprintReadWrite, Category = "HUD")
+	TObjectPtr<UUK_MainHUD> MainHUD;
 
-private:
+	UPROPERTY(BlueprintReadWrite, Category = "HUD")
+	TSubclassOf<UUK_MainHUD> MainHUDClass;
+
+public:
 
 	UPROPERTY(EditAnywhere)
 	UInputMappingContext* IMC;
 
-	UPROPERTY(EditAnywhere, Category = "UI")
+	UPROPERTY(BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UUK_Stamina> StaminaWidgetClass;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category = "UI")
 	UUK_Stamina* StaminaWidget;
 
 	void ConnectStaminaWidget();
+
+public:
+	// ----- GameOver ----- 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UUK_GameOver> GameOverWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	UUK_GameOver* GameOverWidget;
+
+	UPROPERTY()
+	UAbilitySystemComponent* ASC;
+
+	UFUNCTION()
+	void ShowGameOverUI();
+
+	//UFUNCTION()
 	
-	UPROPERTY(VisibleAnywhere, Category = "HUD")
-	TObjectPtr<UUK_MainHUD> MainHUD;
-	
-	UPROPERTY(EditAnywhere, Category = "HUD")
-	TSubclassOf<UUK_MainHUD> MainHUDClass;
 	//  ------ Interaction ------ (무현 수정중)
 
 protected:
 
-	UPROPERTY(EditDefaultsOnly, Category = "UI|Interaction")
+	UPROPERTY(BlueprintReadWrite, Category = "UI|Interaction")
 	TSubclassOf<UUK_Quest> QuestWidgetClass;
 
 	UPROPERTY()
 	UUK_Quest* QuestWidget;
-
+ 
+	UPROPERTY()
+	class UUserWidget* ShopWidget;
+	
+	
 public:
-
 	UFUNCTION(Client, Reliable)
 	void Client_ShowQuestUI(const FName& QuestID,const FText& NPCName,const FText& Dialogue,const FText& QuestDesc);
 
 	UFUNCTION(Client, Reliable)
 	void Client_HideQuestUI();
+	
+	void ShowShopUI(TSubclassOf<UUserWidget>ShopWidgetClass);
+	void HideShopUI();
 };

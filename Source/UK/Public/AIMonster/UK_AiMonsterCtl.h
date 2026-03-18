@@ -28,6 +28,7 @@ protected:
 #pragma region Player Detection
 public:
 	AActor* GetCurrentTarget() const { return CurrentTarget; }
+	void SetCurrentTarget(AActor* NewTarget) { CurrentTarget = NewTarget; }
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = "AI|Perception")
