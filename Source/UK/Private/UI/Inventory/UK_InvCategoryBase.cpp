@@ -3,6 +3,7 @@
 #include "UI/Inventory/UK_InvSlot.h"
 #include "Tags/UK_GameplayTags.h"
 #include "UI/Inventory/UK_ItemTableHelper.h"
+#include "UI/Inventory/UK_InvDragDropOperation.h"
 
 void UUK_InvCategoryBase::NativeConstruct()
 {
@@ -34,6 +35,9 @@ void UUK_InvCategoryBase::CreateSlots()
 		SlotWidget->bAllowDrag = bAllowSlotDrag;
 		SlotWidget->WeaponRootTag = WeaponRootTag;
 
+		SlotWidget->InventoryComp = InventoryComp;
+		SlotWidget->SourceInventoryIndex = INDEX_NONE;
+
 		SlotWidget->OnSlotHovered.AddDynamic(this, &UUK_InvCategoryBase::HandleSlotHovered);
 		SlotWidget->OnSlotUnhovered.AddDynamic(this, &UUK_InvCategoryBase::HandleSlotUnhovered);
 
@@ -45,19 +49,19 @@ void UUK_InvCategoryBase::CreateSlots()
 void UUK_InvCategoryBase::SetInvArraySlots(const TArray<FInventorySlot>& InAllSlots)
 {
 	FilteredSlots.Empty();
+	FilteredSourceIndices.Empty();
 
-	for (const FInventorySlot& InvSlot : InAllSlots)
+	for ( int32 SourceIndex = 0; SourceIndex < InAllSlots.Num(); ++SourceIndex )
 	{
-		if (InvSlot.isEmpty())
-			continue;
+		const FInventorySlot& InvSlot = InAllSlots[SourceIndex];
 
-		if (!IsItemAllowed(InvSlot))
-			continue;
+		if (InvSlot.isEmpty()) continue;
+		if (!IsItemAllowed(InvSlot)) continue;
 
 		FilteredSlots.Add(InvSlot);
+		FilteredSourceIndices.Add(SourceIndex);
 
-		if (FilteredSlots.Num() >= CurrentSlot)
-			break;
+		if (FilteredSlots.Num() >= CurrentSlot) break;
 	}
 
 	UpdateSlots();
@@ -69,13 +73,25 @@ void UUK_InvCategoryBase::UpdateSlots()
 	{
 		if (!SlotWidgets[i]) continue;
 
-		if (FilteredSlots.IsValidIndex(i))
+		SlotWidgets[i]->InventoryComp = InventoryComp;
+
+		if ( FilteredSlots.IsValidIndex(i) )
 		{
 			SlotWidgets[i]->SlotData = FilteredSlots[i];
+
+			if (FilteredSourceIndices.IsValidIndex(i))
+			{
+				SlotWidgets[i]->SourceInventoryIndex = FilteredSourceIndices[i];
+			}
+			else
+			{
+				SlotWidgets[i]->SourceInventoryIndex = INDEX_NONE;
+			}
 		}
 		else
 		{
 			SlotWidgets[i]->SlotData.Clear();
+			SlotWidgets[i]->SourceInventoryIndex = INDEX_NONE;
 		}
 
 		SlotWidgets[i]->UpdateSlot();

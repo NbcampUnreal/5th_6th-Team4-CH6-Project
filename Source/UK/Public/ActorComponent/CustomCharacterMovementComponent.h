@@ -24,7 +24,7 @@ class UK_API UCustomCharacterMovementComponent : public UCharacterMovementCompon
 public:
 	virtual void PhysCustom(float deltaTime, int32 Iterations) override;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere)
 	bool bIsClimbingSurface;
 	UPROPERTY()
 	FVector CurrentClimbNormal;
