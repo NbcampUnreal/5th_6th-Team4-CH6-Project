@@ -17,6 +17,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest|Preset")
 	static bool ApplyPresetToProgress(
 		const UUKQuestPresetAsset* PresetAsset,
+		FName QuestId,
 		EUKQuestTag Tag,
 		FQuestProgress& InOutProgress
 	);
