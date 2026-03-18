@@ -9,6 +9,7 @@
 struct FDamageCapture
 {
 	DECLARE_ATTRIBUTE_CAPTUREDEF(AttackPower)
+	DECLARE_ATTRIBUTE_CAPTUREDEF(CurrentPower)
 	DECLARE_ATTRIBUTE_CAPTUREDEF(CriticalChance)
 	DECLARE_ATTRIBUTE_CAPTUREDEF(CriticalDamage)
 	
@@ -17,6 +18,11 @@ struct FDamageCapture
 	{
 		AttackPowerDef = FGameplayEffectAttributeCaptureDefinition(
 			UUK_PlayerStatusAttributeSet::GetAttackPowerAttribute(),
+			EGameplayEffectAttributeCaptureSource::Source,
+			true
+			);					
+		CurrentPowerDef = FGameplayEffectAttributeCaptureDefinition(
+			UUK_PlayerStatusAttributeSet::GetCurrentPowerAttribute(),
 			EGameplayEffectAttributeCaptureSource::Source,
 			true
 			);				
@@ -58,8 +64,11 @@ void UUK_DamageExecutionCalculation::Execute_Implementation(
 	//캐릭터의 기본 공격력
 	float AttackPower = 0.f;
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(
-		FDamageCapture().AttackPowerDef, EvalParams, AttackPower);	
-	
+		FDamageCapture().AttackPowerDef, EvalParams, AttackPower);		
+	float CurrentPower = 0.f;
+	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(
+		FDamageCapture().CurrentPowerDef, EvalParams, CurrentPower);	
+	float FinalAttack = AttackPower + CurrentPower;
 	float CriticalChance = 0.f;
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(
 		FDamageCapture().CriticalChanceDef, EvalParams, CriticalChance);
@@ -85,7 +94,7 @@ void UUK_DamageExecutionCalculation::Execute_Implementation(
 	/*최종 피해량 =(캐릭터 공격력) X (스킬 계수) X (치명타 피해량) */
 	/*FinalDamage = AttackPower * SkillDamagePercent * CriticalDamage */
 	//방어력 계산 전 최종데미지
-	float FinalDamage = FMath::Max(AttackPower * SkillDamagePercent, 0.0f);
+	float FinalDamage = FMath::Max(FinalAttack * SkillDamagePercent, 0.0f);
 	if (RandomValue <= CriticalChance)
 	{
 		FinalDamage = FMath::Max(FinalDamage * CriticalDamage, 0.f);
