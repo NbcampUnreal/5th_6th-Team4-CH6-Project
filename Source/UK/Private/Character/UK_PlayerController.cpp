@@ -9,6 +9,12 @@
 #include "UserSettings/EnhancedInputUserSettings.h"
 #include "DataAsset/UK_InputConfig.h"
 #include "UI/InGame/UK_Quest.h"
+#include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
+#include "Kismet/GameplayStatics.h"
+#include "Blueprint/UserWidget.h"
+#include "UI/InGame/UK_GameOver.h"
+#include "AbilitySystemComponent.h"
+#include "GameplayEffectTypes.h"
 
 
 AUK_PlayerController::AUK_PlayerController()
@@ -51,6 +57,47 @@ void AUK_PlayerController::BeginPlay()
 		MainHUD = CreateWidget<UUK_MainHUD>(this, MainHUDClass);
 		MainHUD->AddToViewport();
 	}
+
+	//FOnAttributeChangeData Data;
+	//// 		//UpdateStaminaBar(StatusPtr->CurrentStamina, StatusPtr->MaxStamina); 
+	//// HP 초기값 세팅 및 바인딩
+	//Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute());
+	//OnHealthChanged(Data);
+	//Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetHealthAttribute());
+	//OnHealthChanged(Data);
+
+	//ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute()).
+	//	AddUObject(this, &AUK_PlayerController::OnHealthChanged);
+	//ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetHealthAttribute()).
+	//	AddUObject(this, &AUK_PlayerController::OnHealthChanged);
+
+	FOnAttributeChangeData Data;
+	if ( ASC )
+	{
+		// 현재 체력 값 가져와서 초기 체크
+
+		/*Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetHealthAttribute());
+		OnHealthChanged(Data);
+
+		ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetHealthAttribute()).
+			AddUObject(this, &AUK_PlayerController::OnHealthChanged);*/
+
+		float CurrentHealth = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetHealthAttribute());
+
+		if ( CurrentHealth < 190.f )
+		{
+			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetHealthAttribute())
+				.AddUObject(this, &AUK_PlayerController::OnHealthChanged);
+		}
+	}
+
+	//if ( UUK_PlayerStatusAttributeSet* AttributeSet = ASC->GetSet<UUK_PlayerStatusAttributeSet>() )
+	//{
+	//	// Health 변화 바인딩
+	//	ASC->GetGameplayAttributeValueChangeDelegate(
+	//		UUK_PlayerStatusAttributeSet::GetHealthAttribute()
+	//	).AddUObject(this, &AUK_PlayerController::OnHealthChanged);
+	//}
 }
 
 void AUK_PlayerController::PostSeamlessTravel()
@@ -359,4 +406,30 @@ void AUK_PlayerController::Client_HideQuestUI_Implementation()
 
 	ApplyInputState(EInputState::Game);
 	SetCursorVisible(false);
+}
+
+void AUK_PlayerController::OnHealthChanged(const FOnAttributeChangeData& Data)
+{
+	float CurrentHealth = Data.NewValue;
+	UE_LOG(LogTemp, Log, TEXT("Health Changed: %f"), CurrentHealth);
+
+	if ( CurrentHealth <= 190.f )
+	{
+		ShowGameOverUI();
+	}
+}
+
+void AUK_PlayerController::ShowGameOverUI()
+{
+	if ( !GameOverWidgetClass ) return;
+
+	if ( !GameOverWidget )
+	{
+		GameOverWidget = CreateWidget<UUK_GameOver>(this, GameOverWidgetClass);
+	}
+
+	if ( GameOverWidget && !GameOverWidget->IsInViewport() )
+	{
+		GameOverWidget->AddToViewport();
+	}
 }
