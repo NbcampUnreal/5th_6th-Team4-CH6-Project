@@ -167,6 +167,15 @@ void AAIMonsterBase::PostInitializeComponents()
 		if (!AlertWidgetClass)
 			UE_LOG(LogTemp, Warning, TEXT("[Alert] %s: AlertWidgetClass not set in BP"), *GetName());
 	}
+	
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	MeshComp->SetCollisionObjectType(ECC_GameTraceChannel2);
+	MeshComp->SetCollisionResponseToAllChannels(ECR_Ignore);
+	MeshComp->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Block);
+	
+	UCapsuleComponent* Cap = GetCapsuleComponent();
+	Cap->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Ignore);
 }
 
 UAbilitySystemComponent* AAIMonsterBase::GetAbilitySystemComponent() const
