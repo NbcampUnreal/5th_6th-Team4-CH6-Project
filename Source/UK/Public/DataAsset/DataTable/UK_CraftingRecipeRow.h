@@ -28,5 +28,5 @@ public:
 	FText Description;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Crafting")
-	UTexture2D* RecipeIcon;
+	UTexture2D* RecipeIcon = nullptr;
 };

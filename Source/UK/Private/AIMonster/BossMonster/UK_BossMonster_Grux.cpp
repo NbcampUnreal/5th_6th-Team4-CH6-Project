@@ -11,6 +11,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
+#include "AIMonster/BossMonster/UK_BossProjectileBase.h"
 #include "Animation/AnimInstance.h"
 
 AUK_BossMonster_Grux::AUK_BossMonster_Grux()
@@ -383,15 +384,12 @@ void AUK_BossMonster_Grux::LaunchSwordWave()
 	SpawnParams.Owner = this;
 	SpawnParams.Instigator = GetInstigator();
 	
-	AActor* Projectile = GetWorld()->SpawnActor<AActor>(
-		SwordWaveClass, 
-		MuzzleLocation, 
-		SpawnRotation, 
-		SpawnParams
+	AUK_BossProjectileBase* Projectile = GetWorld()->SpawnActor<AUK_BossProjectileBase>(
+	   SwordWaveClass, MuzzleLocation, SpawnRotation, SpawnParams
 	);
 
 	if (Projectile)
 	{
-		
+		Projectile->DamageAmount = CalculateAoEDamage(1);
 	}
 }
