@@ -94,6 +94,7 @@ void UUK_InvSlot::NativeOnDragDetected(const FGeometry& InGeometry, const FPoint
 
 	DragOp->DraggedSlotData = SlotData;
 	DragOp->SourceIndex = SlotIndex;
+	DragOp->SourceInventoryIndex = SourceInventoryIndex;
 
 	if (DraggedItemClass)
 	{
