@@ -8,7 +8,7 @@ UUK_BTTaskNode_BossAttack::UUK_BTTaskNode_BossAttack()
 {
 	NodeName = TEXT("Boss Attack");
 	bNotifyTick = true;
-	AttackDuration = 2.0f;
+	AttackDuration = 5.0f;
 	CurrentTime = 0.f;
 }
 
