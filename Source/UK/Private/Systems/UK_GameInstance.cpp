@@ -10,7 +10,7 @@
 
 void UUK_GameInstance::ShowLoading(float Target)
 {
-	if ( PersistentLoadingWidget )
+	if ( PersistentLoadingWidget && PersistentLoadingWidget->IsInViewport() )
 	{
 		PersistentLoadingWidget->TargetValue = Target;
 		return;
@@ -20,14 +20,11 @@ void UUK_GameInstance::ShowLoading(float Target)
 	{
 		PersistentLoadingWidget = CreateWidget<UUK_Out_Loading>(GetWorld(), LoadingWidgetClass);
 
-		if ( PersistentLoadingWidget && GEngine && GEngine->GameViewport )
+		if ( PersistentLoadingWidget )
 		{
 			PersistentLoadingWidget->TargetValue = Target;
 
-			GEngine->GameViewport->AddViewportWidgetContent(
-				PersistentLoadingWidget->TakeWidget(),
-				0
-			);
+			PersistentLoadingWidget->AddToViewport(0);
 		}
 	}
 }
@@ -36,10 +33,7 @@ void UUK_GameInstance::HideLoading()
 {
 	if ( PersistentLoadingWidget && GEngine && GEngine->GameViewport )
 	{
-		GEngine->GameViewport->RemoveViewportWidgetContent(
-			PersistentLoadingWidget->TakeWidget()
-		);
-
+		PersistentLoadingWidget->RemoveFromParent();
 		PersistentLoadingWidget = nullptr;
 	}
 }
