@@ -6,6 +6,7 @@
 #include "AnimNotifyState_UKMonsterMeleeTrace.generated.h"
 
 class USoundCue;
+class AAIMonsterBase;
 
 /**
  * 몬스터 근접 공격 트레이스
@@ -49,6 +50,10 @@ public:
 
 #pragma region Private
 private:
+	UPROPERTY()
+	TObjectPtr<AAIMonsterBase> CachedMonster;
+	bool bCachedCanParry = false;
+	
 	UPROPERTY()
 	TArray<AActor*> HitActors;
 
