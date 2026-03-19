@@ -5,6 +5,7 @@
 #include "GameplayEffectExtension.h"
 #include "Character/UK_CharacterBase.h"
 #include "Tags/UK_GameplayTags.h"
+#include "Systems/Data/UK_InGameSave.h"
 
 UUK_PlayerStatusAttributeSet::UUK_PlayerStatusAttributeSet()
 {
@@ -259,3 +260,38 @@ void UUK_PlayerStatusAttributeSet::HandleOutOfHealth()
 		}
 	}
 }
+
+void UUK_PlayerStatusAttributeSet::ExportStats(FCharacterStatSaveData& OutData)
+{
+	OutData.Health = GetHealth();
+	OutData.MaxHealth = GetMaxHealth();
+	OutData.AttackPower = GetAttackPower();
+	OutData.CurrentPower = GetCurrentPower();
+	OutData.CurrentMp = GetCurrentMp();
+	OutData.MaxMp = GetMaxMp();
+	OutData.MaxStamina = GetMaxStamina();
+	OutData.CurrentStamina = GetCurrentStamina();
+	OutData.Level = GetLevel();
+	OutData.MaxLevel = GetMaxLevel();
+	OutData.Exp = GetEXP();
+	OutData.MaxEXP = GetMaxEXP();
+	OutData.Defence = GetDefence();
+}
+
+void UUK_PlayerStatusAttributeSet::ImportStats(const struct FCharacterStatSaveData& InData)
+{
+	SetHealth(InData.Health);
+	SetMaxHealth(InData.MaxHealth);
+	SetAttackPower(InData.AttackPower);
+	SetCurrentPower(InData.CurrentPower);
+	SetCurrentMp(InData.CurrentMp);
+	SetMaxMp(InData.MaxMp);
+	SetMaxStamina(InData.MaxStamina);
+	SetCurrentStamina(InData.CurrentStamina);
+	SetLevel(InData.Level);
+	SetMaxLevel(InData.MaxLevel);
+	SetEXP(InData.Exp);
+	SetMaxEXP(InData.MaxEXP);
+	SetDefence(InData.Defence);
+}
+
