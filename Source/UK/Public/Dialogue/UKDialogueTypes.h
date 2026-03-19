@@ -21,7 +21,6 @@
 
 // [1] JSON Choice
 // 대화중 선택지와 관련된 내용들 
-
 USTRUCT(BlueprintType)
 struct FUKDialogueChoice
 {
@@ -49,7 +48,6 @@ struct FUKDialogueChoice
 
 // [2] JSON Node
 // 노드와 관련된 내용들
-
 USTRUCT(BlueprintType)
 struct FUKDialogueNode
 {
@@ -76,7 +74,6 @@ struct FUKDialogueNode
 
 // [3] JSON Dialogue
 // 다이어로그 오픈과 관련된 내용들
-
 USTRUCT(BlueprintType)
 struct FUKDialogueData
 {
@@ -102,7 +99,6 @@ struct FUKDialogueData
 
 
 // [4] JSON Dialogue Pack
-
 USTRUCT(BlueprintType)
 struct FUKDialoguePack
 {
@@ -117,7 +113,6 @@ struct FUKDialoguePack
 
 // [5] UI Choice Data
 // UI - 선택지에서 쓰면되는것들
-
 USTRUCT(BlueprintType)
 struct FUKDialogueChoiceUIData
 {

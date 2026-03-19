@@ -17,6 +17,9 @@ public:
 	
 	UPROPERTY(VisibleAnywhere)
 	class UWidgetComponent* WidgetComp;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector SetLocation;
 
 protected:
 	virtual void BeginPlay() override;

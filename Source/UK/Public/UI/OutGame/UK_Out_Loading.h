@@ -36,4 +36,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loading")
 	float InterpSpeed = 2.0f;
+
+private:
+	FTimerHandle FinishTimerHandle;
 };

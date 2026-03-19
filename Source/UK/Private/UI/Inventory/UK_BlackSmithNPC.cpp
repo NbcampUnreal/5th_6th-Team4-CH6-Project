@@ -3,11 +3,16 @@
 
 #include "UI/Inventory/UK_BlackSmithNPC.h"
 
+#include "UI/InGame/UK_CheckPoint.h"
+
 // Sets default values
 AUK_BlackSmithNPC::AUK_BlackSmithNPC()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
+	
+	MarkerComp = CreateDefaultSubobject<UChildActorComponent>("MarkerComp");
+	MarkerComp->SetupAttachment(RootComponent);
 
 }
 
@@ -16,6 +21,18 @@ void AUK_BlackSmithNPC::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	if (SelectMarker)
+	{
+		MarkerComp->SetChildActorClass(SelectMarker);
+		MarkerComp->CreateChildActor();
+        
+		NPCMarker = Cast<AUK_CheckPoint>(MarkerComp->GetChildActor());
+        
+		if (NPCMarker)
+		{
+			NPCMarker->SetActorLocation(GetActorLocation()); 
+		}
+	}
 }
 
 // Called every frame
