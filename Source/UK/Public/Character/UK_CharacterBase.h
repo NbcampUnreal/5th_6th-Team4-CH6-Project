@@ -9,6 +9,7 @@
 #include "UK_PlayerController.h"
 #include "AIMonster/AIMonsterBase.h"
 #include "DataAsset/HitMontageDataAsset.h"
+#include "Systems/Data/UK_SaveInterface.h"
 #include "UK_CharacterBase.generated.h"
 
 #define ECC_LockOn ECollisionChannel::ECC_GameTraceChannel2
@@ -72,7 +73,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadDelagate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCharacterAttribute, ECharacterAttribute, CharacterAttribute);
 
 UCLASS()
-class UK_API AUK_CharacterBase : public ACharacter, public IAbilitySystemInterface
+class UK_API AUK_CharacterBase : public ACharacter, public IAbilitySystemInterface, public IUK_SaveInterface
 {
 	GENERATED_BODY()
 
@@ -99,6 +100,9 @@ protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	float GetFloorDistance();
+
+	UFUNCTION()
+	void HealStamina();
 	//geter, seter
 public:
 	TObjectPtr<USkeletalMeshComponent> GetRightHandWeapon() { return RightHandWeaponComponent; }
@@ -135,6 +139,10 @@ protected:
 #pragma endregion
 
 public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<UGameplayEffect> HealStaminaEffect;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FActiveGameplayEffectHandle HealStaminaEffectHandle;
 	UPROPERTY(editAnywhere, BlueprintReadOnly, Category = "Sound")
 	TObjectPtr<USoundAttenuation> Attenuation;
 
@@ -159,6 +167,8 @@ public:
 	UPROPERTY(EditAnywhere)
 	UHitMontageDataAsset* HitMontageDataAsset;
 	
+	FTimerHandle StaminaHealTimerHandle;
+	
 	UPROPERTY(BlueprintReadWrite)
 	bool bInWater = false;	
 	UPROPERTY(BlueprintReadWrite)
@@ -166,8 +176,16 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	bool bIsGliding = false;
 	
+	bool bInUseStamina = false;
 #pragma endregion
 
+#pragma  region SaveGame
+public:
+	virtual void OnLoadGame(class UUK_InGameSave* SaveGameObject) override;
+	virtual void OnSaveGame(class UUK_InGameSave* SaveGameObject) override;
+
+#pragma endregion
+	
 #pragma region Interaction And Quest
 
 public:
@@ -242,7 +260,6 @@ protected:
 	void Dash();
 
 #pragma endregion
-
 public:
 #pragma region LockOn
 
@@ -308,6 +325,11 @@ protected:
 #pragma endregion
 
 public:
+	UFUNCTION(BlueprintCallable)
+	void StartSprintCost();
+	UFUNCTION(BlueprintCallable)
+	void EndSprintCost();
+public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UUK_InputConfig* InputMappingConfig;
 
@@ -316,16 +338,19 @@ public:
 
 	UPROPERTY(BlueprintReadWrite)
 	EInputMode InputType;
-
 protected:
 	bool bIsCrouched;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bIsSprinted;
+	bool bIsSprinted = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float SprintSpeed;
 
+
+	FTimerHandle GlidingTimer;
+	
+	
 
 #pragma endregion
 
@@ -347,6 +372,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SwapWeapon(int32 Index);
 
+	UFUNCTION(BlueprintCallable)
 	UUK_StatusAnimData* GetNowWeaponStatus() const { return NowWeapon; }
 
 protected:
@@ -393,15 +419,22 @@ public:
 	UFUNCTION()
 	bool GetParry(const bool CheckParry) const { return CheckParry; }
 
-	// void StartBattle();
-	// void EndBattle();
+	void StartBattle();
+	
+	void EndBattle();
 protected:
 	UPROPERTY()
 	bool bIsParry;
 	
-	// bool bInBattle = false;
-	//
-	// FTimerHandle EndBattleTimerHandle;
+	bool bInBattle = false;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<UGameplayEffect> EndBattleEffect;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FActiveGameplayEffectHandle EndBattleEffectHandle;
+	
+	FTimerHandle EndBattleTimerHandle;
 
 #pragma endregion
 

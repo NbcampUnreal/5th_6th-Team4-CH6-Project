@@ -35,13 +35,9 @@ void UUK_Out_MainMenu::NativeConstruct()
 
 void UUK_Out_MainMenu::OnPlayButtonClicked()
 {
-
 	AUK_PlayerController_Title* PlayerController = GetOwningPlayer<AUK_PlayerController_Title>();
-
-	UUK_Out_CharacterSelect* CharacterSelect = CreateWidget<UUK_Out_CharacterSelect>(PlayerController, CharacterSelectWidgetClass);
-	if ( !CharacterSelect ) return;
-
 	UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
+	if ( !GI || !PlayerController ) return;
 
 	if ( UGameplayStatics::DoesSaveGameExist(TEXT("CharacterData"), 0) )
 	{
@@ -50,54 +46,98 @@ void UUK_Out_MainMenu::OnPlayButtonClicked()
 		{
 			GI->CharacterSelected = LoadedGame->SavedCharacterClass;
 
-			if ( UUK_Out_Loading* Loading = CreateWidget<UUK_Out_Loading>(GetWorld(), LoadingWidgetClass) )
-			{
-				Loading->TargetValue = 0.7f; // 70% 목표 설정
-				if ( GEngine && GEngine->GameViewport )
-				{
-					// AddViewportWidgetContent는 레벨 전환 중에도 위젯을 유지시킵니다.
-					GEngine->GameViewport->AddViewportWidgetContent(Loading->TakeWidget(), 999);
-
-					if ( GI )
-					{
-						GI->PersistentLoadingWidget = Loading;
-						// 가비지 컬렉션 방지를 위해 Root에 추가 (선택사항이나 권장)
-						Loading->AddToRoot();
-					}
-				}
-			}
+			GI->ShowLoading(0.7f);
 
 			RemoveFromParent();
 
-			if ( IsValid(PlayerController) == true )
-			{
-				FTimerHandle TimerHandle;
-				GetWorld()->GetTimerManager().SetTimer(TimerHandle, [ PlayerController ] ()
-					{
-						if ( IsValid(PlayerController) )
-						{
-							PlayerController->StartGame();
-						}
-					}, 0.1f, false);
-			}
+			FTimerHandle TimerHandle;
+			GetWorld()->GetTimerManager().SetTimer(TimerHandle, [ PlayerController ] ()
+				{
+					if ( IsValid(PlayerController) ) PlayerController->StartGame();
+				}, 0.1f, false);
 		}
 	}
 	else 
 	{
-		CharacterSelect->AddToViewport();
+		UUK_Out_CharacterSelect* CharacterSelect = CreateWidget<UUK_Out_CharacterSelect>(PlayerController, CharacterSelectWidgetClass);
+		if ( CharacterSelect )
+		{
+			CharacterSelect->AddToViewport();
+			PlayerController->bShowMouseCursor = true;
 
-		PlayerController->bShowMouseCursor = true;
+			FInputModeGameAndUI Mode;
+			Mode.SetWidgetToFocus(CharacterSelect->TakeWidget());
+			PlayerController->SetInputMode(Mode);
 
-		FInputModeGameAndUI InputModeData;
-		InputModeData.SetWidgetToFocus(CharacterSelect->TakeWidget());
-		InputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-		InputModeData.SetHideCursorDuringCapture(false);
-
-		PlayerController->SetInputMode(InputModeData);
-
-		RemoveFromParent();
+			RemoveFromParent();
+		}
 	}
 }
+
+//void UUK_Out_MainMenu::OnPlayButtonClicked()
+//{
+//
+//	AUK_PlayerController_Title* PlayerController = GetOwningPlayer<AUK_PlayerController_Title>();
+//
+//	UUK_Out_CharacterSelect* CharacterSelect = CreateWidget<UUK_Out_CharacterSelect>(PlayerController, CharacterSelectWidgetClass);
+//	if ( !CharacterSelect ) return;
+//
+//	UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
+//
+//	if ( UGameplayStatics::DoesSaveGameExist(TEXT("CharacterData"), 0) )
+//	{
+//		UUK_SaveGame* LoadedGame = Cast<UUK_SaveGame>(UGameplayStatics::LoadGameFromSlot(TEXT("CharacterData"), 0));
+//		if ( LoadedGame && LoadedGame->SavedCharacterClass )
+//		{
+//			GI->CharacterSelected = LoadedGame->SavedCharacterClass;
+//
+//			if ( LoadingWidgetClass )
+//			{
+//				UUK_Out_Loading* Loading = CreateWidget<UUK_Out_Loading>(GetWorld(), LoadingWidgetClass);
+//				if ( Loading )
+//				{
+//					Loading->TargetValue = 0.7f;
+//
+//					Loading->AddToViewport(999);
+//
+//					if ( GI )
+//					{
+//						GI->ShowLoading(0.7f);
+//					}
+//				}
+//			}
+//
+//			RemoveFromParent();
+//
+//			if ( IsValid(PlayerController) == true )
+//			{
+//				FTimerHandle TimerHandle;
+//				GetWorld()->GetTimerManager().SetTimer(TimerHandle, [ PlayerController ] ()
+//					{
+//						if ( IsValid(PlayerController) )
+//						{
+//							PlayerController->StartGame();
+//						}
+//					}, 0.1f, false);
+//			}
+//		}
+//	}
+//	else 
+//	{
+//		CharacterSelect->AddToViewport();
+//
+//		PlayerController->bShowMouseCursor = true;
+//
+//		FInputModeGameAndUI InputModeData;
+//		InputModeData.SetWidgetToFocus(CharacterSelect->TakeWidget());
+//		InputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+//		InputModeData.SetHideCursorDuringCapture(false);
+//
+//		PlayerController->SetInputMode(InputModeData);
+//
+//		RemoveFromParent();
+//	}
+//}
 
 void UUK_Out_MainMenu::OnExitButtonClicked()
 {

@@ -29,38 +29,61 @@ void UUK_Out_CharacterSelect::NativeConstruct()
 
 void UUK_Out_CharacterSelect::OnStartButtonClicked()
 {
-	AUK_PlayerController_Title* PlayerController = GetOwningPlayer<AUK_PlayerController_Title>();
+	UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
+	if ( !GI ) return;
 
-	if ( UUK_Out_Loading* Loading = CreateWidget<UUK_Out_Loading>(GetWorld(), LoadingWidgetClass) )
-	{
-		Loading->TargetValue = 0.7f; // 70% 목표 설정
-		if ( GEngine && GEngine->GameViewport )
-		{
-			// 중요 : AddViewportWidgetContent는 레벨 전환 중에도 위젯을 유지시킵니다.
-			GEngine->GameViewport->AddViewportWidgetContent(Loading->TakeWidget(), 999);
-
-			UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
-			if ( GI )
-			{
-				GI->PersistentLoadingWidget = Loading;
-				// 가비지 컬렉션 방지를 위해 Root에 추가 (선택사항이나 권장)
-				Loading->AddToRoot();
-			}
-		}
-	}
+	GI->ShowLoading(0.7f);
 
 	RemoveFromParent();
 
-	if ( IsValid(PlayerController) == true )
+	AUK_PlayerController_Title* PC = GetOwningPlayer<AUK_PlayerController_Title>();
+	if ( IsValid(PC) )
 	{
-		//FText ServerIP = ServerIPEditableText->GetText();
 		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [ PlayerController ] ()
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [ PC ] ()
 			{
-				if ( IsValid(PlayerController) )
-				{
-					PlayerController->StartGame();
-				}
+				if ( IsValid(PC) ) PC->StartGame();
 			}, 0.1f, false);
 	}
 }
+
+//void UUK_Out_CharacterSelect::OnStartButtonClicked()
+//{
+//	UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
+//	if ( !GI || !LoadingWidgetClass ) return;
+//
+//	if ( GI->PersistentLoadingWidget == nullptr )
+//	{
+//		UUK_Out_Loading* NewLoading = CreateWidget<UUK_Out_Loading>(GetWorld(), LoadingWidgetClass);
+//		if ( NewLoading )
+//		{
+//			NewLoading->TargetValue = 0.7f;
+//
+//			if ( GEngine && GEngine->GameViewport )
+//			{
+//				GEngine->GameViewport->AddViewportWidgetContent(NewLoading->TakeWidget(), 0);
+//
+//				GI->PersistentLoadingWidget = NewLoading;
+//			}
+//		}
+//	}
+//	else
+//	{
+//		GI->PersistentLoadingWidget->TargetValue = 0.7f;
+//	}
+//
+//	RemoveFromParent();
+//
+//	AUK_PlayerController_Title* PC = GetOwningPlayer<AUK_PlayerController_Title>();
+//	if ( IsValid(PC) )
+//	{
+//		FTimerHandle TimerHandle;
+//		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [ PC ] ()
+//			{
+//				if ( IsValid(PC) )
+//				{
+//					PC->StartGame();
+//				}
+//			}, 0.1f, false);
+//	}
+//}

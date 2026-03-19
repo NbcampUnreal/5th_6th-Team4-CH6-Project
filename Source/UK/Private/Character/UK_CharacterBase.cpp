@@ -28,6 +28,8 @@
 #include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
 #include "Components/CapsuleComponent.h"
 #include "DataAsset/Data/UK_WeaponItemData.h"
+#include "Systems/Data/UK_InGameSave.h"
+#include "Systems/Sound/UK_SoundManager.h"
 
 
 #pragma region Defualt
@@ -57,7 +59,7 @@ AUK_CharacterBase::AUK_CharacterBase(const FObjectInitializer& ObjectInitializer
 
 	SpringArmComp = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArmComp->SetupAttachment(GetRootComponent());
-	SpringArmComp->TargetArmLength = 300.f;
+	SpringArmComp->TargetArmLength = 450.f;
 	SpringArmComp->SetRelativeLocation(FVector(0.f, 20.f, 60.f));
 	SpringArmComp->bUsePawnControlRotation = true;
 	SpringArmComp->bEnableCameraLag = true; // 카메라가 캐릭터를 뒤늦게 따라옴
@@ -161,7 +163,6 @@ void AUK_CharacterBase::UpdateMovementState()
 	// }
 }
 
-
 // Called when the game starts or when spawned
 void AUK_CharacterBase::BeginPlay()
 {
@@ -187,6 +188,13 @@ void AUK_CharacterBase::BeginPlay()
 		this,
 		&AUK_CharacterBase::UpdateMonsterDetection,
 		0.3f,
+		true
+	);
+	GetWorldTimerManager().SetTimer(
+		StaminaHealTimerHandle,
+		this,
+		&AUK_CharacterBase::HealStamina,
+		0.1f,
 		true
 	);
 	// GetWorldTimerManager().SetTimer(
@@ -283,7 +291,86 @@ float AUK_CharacterBase::GetFloorDistance()
 	return FloorDist;
 }
 
+void AUK_CharacterBase::HealStamina()
+{
+	if (bIsGliding == true)
+	{
+		bInUseStamina = true;
+	}
+	if (bIsSprinted == true)
+	{
+		bInUseStamina = true;
+	}
+	
+	if (bInUseStamina == false)
+	{
+		UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+		if (IsValid(ASC) == false)
+			return;
 
+		FGameplayEffectSpecHandle SpecHandle =
+			ASC->MakeOutgoingSpec(HealStaminaEffect, 1.f, ASC->MakeEffectContext());
+
+		const UUK_PlayerStatusAttributeSet* Attributes = ASC->GetSet<UUK_PlayerStatusAttributeSet>();
+		const float HealStaminaAmount = Attributes->GetMaxStamina() * 0.01f;
+
+		SpecHandle.Data->SetSetByCallerMagnitude(
+			UK_GameplayTags::Data::EndBattle::HealStamina,
+			HealStaminaAmount
+		);
+
+		HealStaminaEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+	}
+}
+
+
+#pragma endregion
+
+#pragma  region SaveGame
+
+void AUK_CharacterBase::OnLoadGame(class UUK_InGameSave* SaveGameObject)
+{
+	if (!SaveGameObject) return;
+	
+	GetCharacterMovement()->StopMovementImmediately();
+	
+	SetActorLocationAndRotation(SaveGameObject->PlayerLocation, SaveGameObject->PlayerRotation, false, nullptr, ETeleportType::TeleportPhysics);
+	
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		const UAttributeSet* AS_Base = ASC->GetAttributeSet(UUK_PlayerStatusAttributeSet::StaticClass());
+		if (const UUK_PlayerStatusAttributeSet* MyAS = Cast<UUK_PlayerStatusAttributeSet>(AS_Base))
+		{
+			const_cast<UUK_PlayerStatusAttributeSet*>(MyAS)->ImportStats(SaveGameObject->PlayerStats);
+		}
+	}
+	
+	if (InventoryComponent)
+	{
+		InventoryComponent->ImportInventory(SaveGameObject->InventoryDate);
+	}
+}
+
+void AUK_CharacterBase::OnSaveGame(class UUK_InGameSave* SaveGameObject)
+{
+	if (!SaveGameObject) return;
+	
+	SaveGameObject->PlayerLocation = GetActorLocation();
+    SaveGameObject->PlayerRotation = GetActorRotation();
+    
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+        {
+			const UAttributeSet* AS_Base = ASC->GetAttributeSet(UUK_PlayerStatusAttributeSet::StaticClass());
+			if (const UUK_PlayerStatusAttributeSet* MyAS = Cast<UUK_PlayerStatusAttributeSet>(AS_Base))
+			{
+				const_cast<UUK_PlayerStatusAttributeSet*>(MyAS)->ExportStats(SaveGameObject->PlayerStats);
+			}
+        }
+	if (InventoryComponent)
+	{
+		InventoryComponent->ExportInventory(SaveGameObject->InventoryDate);
+	}
+}
 #pragma endregion
 
 #pragma region GAS
@@ -451,7 +538,7 @@ void AUK_CharacterBase::ZoomOut()
 	}
 	const float DeltaTime = GetWorld()->GetDeltaSeconds();
 
-	constexpr float Target = 300.f;
+	constexpr float Target = 450.f;
 	SpringArmComp->TargetArmLength = FMath::FInterpTo(
 		SpringArmComp->TargetArmLength,
 		Target,
@@ -762,7 +849,7 @@ bool AUK_CharacterBase::StartGliding()
 	GetCharacterMovement()->GravityScale = 0.f;
 	GetCharacterMovement()->AirControl = 0.8;
 	GetCharacterMovement()->Velocity = Vel;
-	bIsGliding = true;
+	bInUseStamina = true;
 	//GetCharacterMovement()->SetMovementMode(MOVE_Custom, (uint8)ECustomMovementMode::CMOVE_Glide);
 	return true;
 }
@@ -772,6 +859,16 @@ void AUK_CharacterBase::EndGliding()
 	bIsGliding = false;
 	GetCharacterMovement()->GravityScale = DefualtGravity;
 	GetCharacterMovement()->AirControl = DefualtAirControl;
+	FTimerHandle EndGlidingTimer;
+	GetWorldTimerManager().SetTimer(
+		EndGlidingTimer,
+		[this]()
+		{
+			bInUseStamina = false;
+		},
+		1.f,
+		false
+	);
 }
 
 #pragma endregion
@@ -838,6 +935,32 @@ void AUK_CharacterBase::Climb(FHitResult& Hit)
 	);
 }
 
+
+void AUK_CharacterBase::StartSprintCost()
+{
+	bIsSprinted = true;
+	bInUseStamina = true;
+	FGameplayTagContainer TagContainer;
+	TagContainer.AddTag(UK_GameplayTags::Input::Sprint);
+	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(TagContainer);
+}
+
+void AUK_CharacterBase::EndSprintCost()
+{
+	bIsSprinted = false;
+	FTimerHandle EndSprintTimer;
+	GetWorldTimerManager().SetTimer(
+		EndSprintTimer,
+		[this]()
+		{
+			bInUseStamina = false;
+		},
+		1.f,
+		false
+	);
+}
+
+
 #pragma endregion
 
 #pragma endregion
@@ -882,23 +1005,24 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 	}
 	UUK_StatusAnimData* Weapon = WeaponList->FindAnimsDataAssetByTag(NewWeapon);
 	NowWeapon = Weapon;
-	if (IsValid(Weapon->GetRightHandWeapon()))
+	FWeaponStatus WeaponStatus = Weapon->FindAnimsDataAssetByType(NewWeapon);
+	if (IsValid(WeaponStatus.RightHandWeapon))
 	{
-		RightHandWeaponComponent->SetSkeletalMesh(Weapon->GetRightHandWeapon());
+		RightHandWeaponComponent->SetSkeletalMesh(WeaponStatus.RightHandWeapon);
 
-		RightHandWeaponComponent->SetRelativeLocation(Weapon->GetRightLocationOffset());
-		RightHandWeaponComponent->SetRelativeRotation(Weapon->GetRightRotationOffset());
+		RightHandWeaponComponent->SetRelativeLocation(WeaponStatus.RightLocationOffset);
+		RightHandWeaponComponent->SetRelativeRotation(WeaponStatus.RightRotationOffset);
 	}
 	else
 	{
 		RightHandWeaponComponent->SetSkeletalMesh(nullptr);
 	}
-	if (IsValid(Weapon->GetLeftHandWeapon()))
+	if (IsValid(WeaponStatus.LeftHandWeapon))
 	{
-		LeftHandWeaponComponent->SetSkeletalMesh(Weapon->GetLeftHandWeapon());
+		LeftHandWeaponComponent->SetSkeletalMesh(WeaponStatus.LeftHandWeapon);
 
-		LeftHandWeaponComponent->SetRelativeLocation(Weapon->GetLeftLocationOffset());
-		LeftHandWeaponComponent->SetRelativeRotation(Weapon->GetLeftRotationOffset());
+		LeftHandWeaponComponent->SetRelativeLocation(WeaponStatus.LeftLocationOffset);
+		LeftHandWeaponComponent->SetRelativeRotation(WeaponStatus.LeftRotationOffset);
 	}
 	else
 	{
@@ -1024,17 +1148,53 @@ void AUK_CharacterBase::Dead()
 	OnDead.Broadcast();
 }
 
-// void AUK_CharacterBase::StartBattle()
-// {
-// 	bInBattle = true;
-// }
-//
-// void AUK_CharacterBase::EndBattle()
-// {
-// 	bInBattle = false;
-// 	
-// 	
-// }
+void AUK_CharacterBase::StartBattle()
+{
+	bInBattle = true;
+	if (GetWorldTimerManager().IsTimerActive(EndBattleTimerHandle))
+	{
+		GetWorldTimerManager().ClearTimer(EndBattleTimerHandle);
+	}
+	
+	// 사운드 매니저를 찾아서 전투 상태를 True로 변경
+	if (AUK_SoundManager* SoundManager = AUK_SoundManager::Get(GetWorld()))
+	{
+		SoundManager->SetCombatState(true);
+	}
+}
+
+void AUK_CharacterBase::EndBattle()
+{
+	bInBattle = false;
+
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (IsValid(ASC) == false)
+		return;
+
+	FGameplayEffectSpecHandle SpecHandle =
+		ASC->MakeOutgoingSpec(EndBattleEffect, 1.f, ASC->MakeEffectContext());
+
+	const UUK_PlayerStatusAttributeSet* Attributes = ASC->GetSet<UUK_PlayerStatusAttributeSet>();
+	const float HealHPAmount = Attributes->GetMaxHealth() * 0.05f;
+	const float HealMPAmount = Attributes->GetMaxMp() * 0.05f;
+
+	SpecHandle.Data->SetSetByCallerMagnitude(
+		UK_GameplayTags::Data::EndBattle::HealHP,
+		HealHPAmount
+	);
+	SpecHandle.Data->SetSetByCallerMagnitude(
+		UK_GameplayTags::Data::EndBattle::HealMP,
+		HealMPAmount
+	);
+
+	EndBattleEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+	
+	// 사운드 매니저를 찾아서 전투 상태를 False로 변경
+	if (AUK_SoundManager* SoundManager = AUK_SoundManager::Get(GetWorld()))
+	{
+		SoundManager->SetCombatState(false);
+	}
+}
 
 void AUK_CharacterBase::UpdateMonsterDetection()
 {
@@ -1062,20 +1222,23 @@ void AUK_CharacterBase::UpdateMonsterDetection()
 			}
 		}
 	}
-	// if (NewSet.Num() > 0)
-	// {
-	// 	StartBattle();
-	// }
-	// else
-	// {
-	// 	GetWorldTimerManager().SetTimer(
-	// 		EndBattleTimerHandle,
-	// 		this,
-	// 		&AUK_CharacterBase::EndBattle,
-	// 		3.f,
-	// 		false
-	// 	);
-	// }
+	if (NewSet.Num() > 0)
+	{
+		StartBattle();
+	}
+	else
+	{
+		if (GetWorldTimerManager().IsTimerActive(EndBattleTimerHandle) == false)
+		{
+			GetWorldTimerManager().SetTimer(
+				EndBattleTimerHandle,
+				this,
+				&AUK_CharacterBase::EndBattle,
+				5.f,
+				false
+			);
+		}
+	}
 	// 범위가 벗어났는지 확인 
 	for (AAIMonsterBase* OldMonster : NearbyMonsters)
 	{

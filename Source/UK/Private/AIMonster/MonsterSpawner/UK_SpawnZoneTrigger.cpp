@@ -90,7 +90,8 @@ void AUK_SpawnZoneTrigger::OnPlayerExitRange(UPrimitiveComponent*, AActor* Other
     {
         if (!IsValid(Spawner)) continue;
 
-        Spawner->StopSpawning();
+        const bool bActuallyStoped = Spawner->StopSpawning();
+    	if (!bActuallyStoped) continue;
 
         TArray<AAIMonsterBase*> ToDeactivate = Spawner->GetActiveMonsters();
         for (AAIMonsterBase* Monster : ToDeactivate)

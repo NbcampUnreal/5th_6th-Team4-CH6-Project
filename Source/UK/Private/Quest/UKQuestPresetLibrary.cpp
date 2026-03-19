@@ -20,9 +20,9 @@ namespace
 
 	static void AddCommonFlags(FQuestProgress& InOutProgress, FName QuestId)
 	{
+		// 시작 시점에는 Accepted만 넣는다.
+		// Completed / Failed 는 실제 상태가 바뀔 때만 넣어야 한다.
 		InOutProgress.Flags.Add(MakePresetFlagKey(QuestId, FName("Accepted")));
-		InOutProgress.Flags.Add(MakePresetFlagKey(QuestId, FName("Completed")));
-		InOutProgress.Flags.Add(MakePresetFlagKey(QuestId, FName("Failed")));
 	}
 }
 

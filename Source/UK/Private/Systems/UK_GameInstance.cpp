@@ -2,48 +2,39 @@
 
 
 #include "Systems/UK_GameInstance.h"
-
+#include "Systems/Data/UK_SaveInterface.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
 
-void UUK_GameInstance::LoadLevelWithLoading(FName LevelName)
-{
-	if (!LoadingWidgetClass) return;
 
-	// 1. GameViewport에 Loading 생성
-	if (!PersistentLoadingWidget)
+void UUK_GameInstance::ShowLoading(float Target)
+{
+	if ( PersistentLoadingWidget && PersistentLoadingWidget->IsInViewport() )
 	{
-		PersistentLoadingWidget = CreateWidget<UUK_Out_Loading>(this, LoadingWidgetClass);
-		if (PersistentLoadingWidget)
-		{
-			PersistentLoadingWidget->TargetValue = 0.f;
-			PersistentLoadingWidget->AddToViewport(999); // 항상 앞에
-		}
+		PersistentLoadingWidget->TargetValue = Target;
+		return;
 	}
 
-	// 2. Async Level Load
-	FLatentActionInfo LatentInfo;
-	LatentInfo.CallbackTarget = this;
-	LatentInfo.ExecutionFunction = "OnLevelLoaded";
-	LatentInfo.Linkage = 0;
-	LatentInfo.UUID = 1;
+	if ( LoadingWidgetClass && GetWorld() )
+	{
+		PersistentLoadingWidget = CreateWidget<UUK_Out_Loading>(GetWorld(), LoadingWidgetClass);
 
-	UGameplayStatics::LoadStreamLevel(this, LevelName, true, false, LatentInfo);
+		if ( PersistentLoadingWidget )
+		{
+			PersistentLoadingWidget->TargetValue = Target;
+
+			PersistentLoadingWidget->AddToViewport(0);
+		}
+	}
 }
 
-UFUNCTION()
-void UUK_GameInstance::OnLevelLoaded()
+void UUK_GameInstance::HideLoading()
 {
-	if (PersistentLoadingWidget)
+	if ( PersistentLoadingWidget && GEngine && GEngine->GameViewport )
 	{
 		PersistentLoadingWidget->RemoveFromParent();
 		PersistentLoadingWidget = nullptr;
-		APlayerController* PC = GetFirstLocalPlayerController();
-		if (PC)
-		{
-			SetLoadingInputMode(PC);
-		}
 	}
 }
 
@@ -62,4 +53,73 @@ void UUK_GameInstance::SetLoadingInputMode(APlayerController* PC)
 	InputModeData.SetHideCursorDuringCapture(false);
 
 	PC->SetInputMode(InputModeData);
+}
+
+void UUK_GameInstance::SaveEntireGame()
+{
+	if (!GetWorld() || IsEngineExitRequested() || GIsSlowTask || !GIsRunning)
+	{
+		return; 
+	}
+	
+	if (GetWorld()->bIsTearingDown) 
+	{
+		return;
+	}
+	
+	UUK_InGameSave* SaveInstance = Cast<UUK_InGameSave>(UGameplayStatics::CreateSaveGameObject(UUK_InGameSave::StaticClass()));
+	if (!SaveInstance) return;
+	
+	TArray<AActor*> SaveAbleActors;
+	UGameplayStatics::GetAllActorsWithInterface(GetWorld(),UUK_SaveInterface::StaticClass(),SaveAbleActors);
+	
+	for (AActor* Actor : SaveAbleActors)
+	{
+		if (IsValid(Actor) && !Actor->IsUnreachable())
+		{
+			IUK_SaveInterface* SaveIntf = Cast<IUK_SaveInterface>(Actor);
+			if (SaveIntf)
+			{
+				SaveIntf->OnSaveGame(SaveInstance);
+			}
+		}
+	}
+	
+	UGameplayStatics::SaveGameToSlot(SaveInstance, MainSaveSlotName, 0);
+}
+
+void UUK_GameInstance::LoadEntireGame()
+{
+	if (!UGameplayStatics::DoesSaveGameExist(MainSaveSlotName,0))
+	{
+		return;
+	}
+	
+	UUK_InGameSave* LoadedInstance = Cast<UUK_InGameSave>(UGameplayStatics::LoadGameFromSlot(MainSaveSlotName,0));
+	if (!LoadedInstance) return;
+	
+	TArray<AActor*> SaveAbleActors;
+	UGameplayStatics::GetAllActorsWithInterface(GetWorld(),UUK_SaveInterface::StaticClass(),SaveAbleActors);
+	
+	for (AActor* Actor : SaveAbleActors)
+	{
+		IUK_SaveInterface* SaveIntf = Cast<IUK_SaveInterface>(Actor);
+		if (SaveIntf)
+		{
+			SaveIntf->OnLoadGame(LoadedInstance);
+		}
+	}
+}
+
+void UUK_GameInstance::Shutdown()
+{
+	Super::Shutdown();
+}
+
+void UUK_GameInstance::RequestSaveAndQuit()
+{
+	SaveEntireGame();
+
+	APlayerController* PC = GetFirstLocalPlayerController();
+	UKismetSystemLibrary::QuitGame(GetWorld(), PC, EQuitPreference::Quit, false);
 }

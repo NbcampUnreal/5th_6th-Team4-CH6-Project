@@ -5,6 +5,7 @@
 #include "GameplayEffectExtension.h"
 #include "Character/UK_CharacterBase.h"
 #include "Tags/UK_GameplayTags.h"
+#include "Systems/Data/UK_InGameSave.h"
 
 UUK_PlayerStatusAttributeSet::UUK_PlayerStatusAttributeSet()
 {
@@ -95,8 +96,8 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxStamina());
 
 
-		UE_LOG(LogTemp, Log, TEXT("   Stamina: %.1f → %.1f (Max: %.1f)"),
-		       OldValue, NewValue, GetMaxStamina());
+		// UE_LOG(LogTemp, Log, TEXT("   Stamina: %.1f → %.1f (Max: %.1f)"),
+		//        OldValue, NewValue, GetMaxStamina());
 	}
 	// 최대 경험치 전처리
 	else if (Attribute == GetMaxEXPAttribute())
@@ -116,6 +117,7 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 		{
 			NewValue = 0.f;
 		}
+		
 		UE_LOG(LogTemp, Log, TEXT("   EXP: %.1f → %.1f (Max: %.1f)"),
 		       OldValue, NewValue, GetMaxEXP());
 	}
@@ -154,7 +156,26 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 		       GetCurrentPower(), NewValue);
 	}
 }
+void UUK_PlayerStatusAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
+{
+    Super::PostGameplayEffectExecute(Data);
 
+    if (Data.EvaluatedData.Attribute == GetCurrentStaminaAttribute())
+    {
+    	float NewValue = GetCurrentStamina();
+        SetCurrentStamina(FMath::Clamp(NewValue, 0.f, GetMaxStamina()));
+    }
+    else if (Data.EvaluatedData.Attribute == GetCurrentMpAttribute())
+    {
+    	float NewValue = GetCurrentMp();
+        SetCurrentMp(FMath::Clamp(NewValue, 0.f, GetMaxMp()));
+    }
+    else if (Data.EvaluatedData.Attribute == GetHealthAttribute())
+    {
+    	float NewValue = GetHealth();
+        SetHealth(FMath::Clamp(NewValue, 0.f, GetMaxHealth()));
+    }
+}
 void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue,
                                                        float NewValue)
 {
@@ -177,6 +198,7 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 		{
 			HandleOutOfHealth();
 		}
+		//SetCurrentMp(FMath::Clamp(GetHealth(), 0.f, GetMaxHealth()));
 		HealthChanged.Broadcast(OldValue, NewValue);
 	}
 	// 최대채력 후처리
@@ -194,17 +216,19 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 	// MP 후처리
 	else if (Attribute == GetCurrentMpAttribute())
 	{
+		//SetCurrentMp(FMath::Clamp(GetCurrentMp(), 0.f, GetMaxMp()));
 		CurrentMpChanged.Broadcast(OldValue, NewValue);
 	}
 	// 최대 스테미너 후처리
 	else if (Attribute == GetMaxStaminaAttribute())
 	{
-		SetCurrentMp(GetMaxStamina());
+		SetCurrentStamina(GetMaxStamina());
 		MaxMpChanged.Broadcast(OldValue, NewValue);
 	}
 	// 스테미너 후처리
 	else if (Attribute == GetCurrentStaminaAttribute())
 	{
+		//SetCurrentStamina(FMath::Clamp(GetCurrentStamina(), 0.f, GetMaxStamina()));
 		CurrentStaminaChanged.Broadcast(OldValue, NewValue);
 	}
 	// 최대 경험치 후처리
@@ -234,7 +258,9 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 		if (GetMaxLevel() != NewValue)
 		{
 			SetMaxEXP((NewValue*2) * 10 + 100);
-			SetAttackPower(GetAttackPower() + (GetLevel() * 10));
+			SetAttackPower(GetAttackPower() + 10);
+			SetMaxHealth(GetMaxHealth() + 10);
+			SetMaxMp(GetMaxMp() + 10);
 			LevelChanged.Broadcast(OldValue, NewValue);
 		}
 	}
@@ -259,3 +285,42 @@ void UUK_PlayerStatusAttributeSet::HandleOutOfHealth()
 		}
 	}
 }
+
+void UUK_PlayerStatusAttributeSet::ExportStats(FCharacterStatSaveData& OutData)
+{
+	OutData.Health = GetHealth();
+	OutData.MaxHealth = GetMaxHealth();
+	OutData.AttackPower = GetAttackPower();
+	OutData.CurrentPower = GetCurrentPower();
+	OutData.CurrentMp = GetCurrentMp();
+	OutData.MaxMp = GetMaxMp();
+	OutData.MaxStamina = GetMaxStamina();
+	OutData.CurrentStamina = GetCurrentStamina();
+	OutData.Level = GetLevel();
+	OutData.MaxLevel = GetMaxLevel();
+	OutData.Exp = GetEXP();
+	OutData.MaxEXP = GetMaxEXP();
+	OutData.Defence = GetDefence();
+}
+
+void UUK_PlayerStatusAttributeSet::ImportStats(const struct FCharacterStatSaveData& InData)
+{
+	InitAttackPower(InData.AttackPower);
+	InitLevel(InData.Level);
+	InitMaxLevel(InData.MaxLevel);
+	InitEXP(InData.Exp);
+	InitMaxEXP(InData.MaxEXP);
+	InitDefence(InData.Defence);
+    
+	InitMaxHealth(InData.MaxHealth);
+	InitMaxMp(InData.MaxMp);
+	InitMaxStamina(InData.MaxStamina);
+
+	SetHealth(InData.Health);
+	SetCurrentMp(InData.CurrentMp);
+	SetCurrentStamina(InData.CurrentStamina);
+
+	HealthChanged.Broadcast(0.f, InData.Health);
+	CurrentMpChanged.Broadcast(0.f, InData.CurrentMp);
+}
+

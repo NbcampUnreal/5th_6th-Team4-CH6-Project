@@ -10,6 +10,7 @@ class UScrollBox;
 class AUK_MapManager;
 class UCanvasPanel;
 class USizeBox;
+class UUK_WarpIcon;
 
 UCLASS()
 class UK_API UUK_MainMap : public UUserWidget
@@ -64,6 +65,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Map")
 	void OnMapViewOpened();
 
+	//---------- Warp ----------//
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Data")
+	TObjectPtr<UDataTable> WarpDataTableAsset;
+
+	UPROPERTY(EditAnywhere, Category = "Map|Data")
+	TSubclassOf<class UUK_Out_Loading> LoadingWidgetClass;
+
 protected:
 	//---------- UUserWidget Interface ----------//
 	virtual void NativeConstruct() override;
@@ -95,5 +103,24 @@ protected:
 
 	UFUNCTION()
 	void UpdatePlayerLocation();
+
+	//---------- Warp ----------//
+
+	// 블루프린트에서 WBP_WarpIcon을 할당하기 위한 변수
+	UPROPERTY(EditAnywhere, Category = "Map|Warp")
+	TSubclassOf<UUK_WarpIcon> WarpIconClass;
+
+	// 생성된 워프 아이콘들을 관리할 배열
+	UPROPERTY()
+	TArray<TObjectPtr<UUK_WarpIcon>> WarpIconWidgets;
+
+	// 월드 좌표 -> 맵 로컬 좌표 변환 (기존 로직 통합)
+	FVector2D GetMapPositionFromWorld(const FVector& WorldPos);
+
+	// 워프 아이콘 초기 생성 함수
+	void InitializeWarpIcons();
+
+	// 워프 아이콘들 위치 업데이트 (줌/드래그 대응)
+	void UpdateWarpIconLocations();
 
 };
