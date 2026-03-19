@@ -29,34 +29,40 @@ void UUK_Out_CharacterSelect::NativeConstruct()
 
 void UUK_Out_CharacterSelect::OnStartButtonClicked()
 {
-	AUK_PlayerController_Title* PlayerController = GetOwningPlayer<AUK_PlayerController_Title>();
+	UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
+	if ( !GI || !LoadingWidgetClass ) return;
 
-	if ( UUK_Out_Loading* Loading = CreateWidget<UUK_Out_Loading>(GetWorld(), LoadingWidgetClass) )
+	if ( GI->PersistentLoadingWidget == nullptr )
 	{
-		Loading->TargetValue = 0.7f; // 70% 목표 설정
-		if ( GEngine && GEngine->GameViewport )
+		UUK_Out_Loading* NewLoading = CreateWidget<UUK_Out_Loading>(GetWorld(), LoadingWidgetClass);
+		if ( NewLoading )
 		{
-			// 중요 : AddViewportWidgetContent는 레벨 전환 중에도 위젯을 유지시킵니다.
-			GEngine->GameViewport->AddViewportWidgetContent(Loading->TakeWidget(), 999);
+			NewLoading->TargetValue = 0.7f;
 
-			UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
-			if ( GI )
+			if ( GEngine && GEngine->GameViewport )
 			{
-				GI->ShowLoading(0.7f);
+				GEngine->GameViewport->AddViewportWidgetContent(NewLoading->TakeWidget(), 0);
+
+				GI->PersistentLoadingWidget = NewLoading;
 			}
 		}
+	}
+	else
+	{
+		GI->PersistentLoadingWidget->TargetValue = 0.7f;
 	}
 
 	RemoveFromParent();
 
-	if ( IsValid(PlayerController) == true )
+	AUK_PlayerController_Title* PC = GetOwningPlayer<AUK_PlayerController_Title>();
+	if ( IsValid(PC) )
 	{
 		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [ PlayerController ] ()
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [ PC ] ()
 			{
-				if ( IsValid(PlayerController) )
+				if ( IsValid(PC) )
 				{
-					PlayerController->StartGame();
+					PC->StartGame();
 				}
 			}, 0.1f, false);
 	}
