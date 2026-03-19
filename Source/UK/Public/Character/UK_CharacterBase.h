@@ -250,7 +250,6 @@ protected:
 	void Dash();
 
 #pragma endregion
-
 public:
 #pragma region LockOn
 
@@ -316,6 +315,9 @@ protected:
 #pragma endregion
 
 public:
+	UFUNCTION(BlueprintCallable)
+	void SprintCost();
+public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UUK_InputConfig* InputMappingConfig;
 
@@ -324,7 +326,6 @@ public:
 
 	UPROPERTY(BlueprintReadWrite)
 	EInputMode InputType;
-
 protected:
 	bool bIsCrouched;
 
@@ -334,6 +335,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float SprintSpeed;
 
+
+	
 
 #pragma endregion
 

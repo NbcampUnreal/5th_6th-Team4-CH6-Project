@@ -28,7 +28,7 @@
 #include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
 #include "Components/CapsuleComponent.h"
 #include "DataAsset/Data/UK_WeaponItemData.h"
-#include "Systems/Data/UK_InGameSave.h" 
+#include "Systems/Data/UK_InGameSave.h"
 
 
 #pragma region Defualt
@@ -850,6 +850,25 @@ void AUK_CharacterBase::Climb(FHitResult& Hit)
 	);
 }
 
+
+void AUK_CharacterBase::SprintCost()
+{
+	if (bIsSprinted == false)
+	{
+		bIsSprinted = true;
+		FGameplayTagContainer TagContainer;
+		TagContainer.AddTag(UK_GameplayTags::Input::Sprint);
+
+		bool bIsCostSufficient = GetAbilitySystemComponent()->TryActivateAbilitiesByTag(
+			TagContainer
+		);
+	}
+	else
+	{
+		bIsSprinted = false;
+	}
+}
+
 #pragma endregion
 
 #pragma endregion
@@ -1044,23 +1063,22 @@ void AUK_CharacterBase::StartBattle()
 	{
 		GetWorldTimerManager().ClearTimer(EndBattleTimerHandle);
 	}
-	
 }
 
 void AUK_CharacterBase::EndBattle()
 {
 	bInBattle = false;
-	
+
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (IsValid(ASC) == false)
 		return;
 
 	FGameplayEffectSpecHandle SpecHandle =
 		ASC->MakeOutgoingSpec(EndBattleEffect, 1.f, ASC->MakeEffectContext());
-	
+
 	const UUK_PlayerStatusAttributeSet* Attributes = ASC->GetSet<UUK_PlayerStatusAttributeSet>();
 	const float HealAmount = Attributes->GetMaxHealth() * 0.05f;
-	
+
 	SpecHandle.Data->SetSetByCallerMagnitude(
 		UK_GameplayTags::Data::EndBattle::Heal,
 		HealAmount

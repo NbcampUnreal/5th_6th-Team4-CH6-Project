@@ -34,8 +34,9 @@ public:
 
 	UFUNCTION()
 	void SetTrackingPosition(const FVector2D& ScreenPos, float Scale, bool bVisible);
+	
 protected:
-	UPROPERTY(meta = ( BindWidget ))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta = ( BindWidget ))
 	UImage* StaminaBar;
 
 	UPROPERTY(BlueprintReadWrite, Category = "UI|Stamina")
