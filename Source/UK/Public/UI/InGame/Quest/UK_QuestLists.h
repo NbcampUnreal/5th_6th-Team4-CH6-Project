@@ -1,6 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
@@ -8,9 +6,7 @@
 
 class UScrollBox;
 class UUK_QuestItem;
-/**
- * 
- */
+
 UCLASS()
 class UK_API UUK_QuestLists : public UUserWidget
 {
