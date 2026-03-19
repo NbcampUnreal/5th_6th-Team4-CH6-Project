@@ -28,7 +28,7 @@ void UUK_MarkerWidget::NativeDestruct()
 	}
 }
 
-void UUK_MarkerWidget::SetOriginLocation(FVector InLocation)
+void UUK_MarkerWidget::SetOriginLocation(FVector InLocation) // 마커 텍스트 위치 초기화
 {
 	OriginLocation = InLocation;
 }
@@ -36,19 +36,19 @@ void UUK_MarkerWidget::SetOriginLocation(FVector InLocation)
 void UUK_MarkerWidget::CheckDistance()
 {
 	if (!PlayerPawn || !Location) return;
-
+	
 	float Distance = FVector::Dist(PlayerPawn->GetActorLocation(), OriginLocation);
 	int32 Meter = FMath::RoundToInt(Distance / 100.f);
-
-	Location->SetText(FText::FromString(FString::Printf(TEXT("%dm"), Meter)
-	));
+	
+	Location->SetText(FText::FromString(FString::Printf(TEXT("%dm"), Meter)));
 }
 
 void UUK_MarkerWidget::PlayFadeIn()
 {
 	if (FadeInAnim)
-	{
+	{ 
 		PlayAnimation(FadeInAnim);
+		// EndOverlap 애님
 	}
 }
 
@@ -57,5 +57,6 @@ void UUK_MarkerWidget::PlayFadeOut()
 	if (FadeOutAnim)
 	{
 		PlayAnimation(FadeOutAnim);
+		// BeginOverlap 애님
 	}
 }
