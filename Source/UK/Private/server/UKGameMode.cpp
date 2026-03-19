@@ -58,8 +58,6 @@ void AUKGameMode::BeginPlay()
 	UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
 	if ( GI && GI->PersistentLoadingWidget )
 	{
-		GI->PersistentLoadingWidget->AddToViewport(999);
-
 		FTimerHandle TimerHandle;
 		GetWorldTimerManager().SetTimer(TimerHandle, [ GI ] ()
 			{
