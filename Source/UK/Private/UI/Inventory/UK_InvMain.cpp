@@ -30,9 +30,9 @@ void UUK_InvMain::NativeConstruct()
 		InvUI->OnInvSlotPreviewCleared.AddDynamic(this, &UUK_InvMain::OnPreviewCleared);
 	}
 
-	if (TapSystem)
+	if (TapState )
 	{
-		TapSystem->OnButtonTap.AddDynamic(this, &UUK_InvMain::TapClicked);
+		TapState->OnButtonTap.AddDynamic(this, &UUK_InvMain::TapClicked);
 	}
 
 	if (TapInventory)
@@ -51,12 +51,18 @@ void UUK_InvMain::NativeConstruct()
 	}
 
 	AUK_CharacterBase* CB = Cast<AUK_CharacterBase>(GetOwningPlayerPawn());
-	if (CB)
+	if ( CB )
 	{
 		UUK_InventoryComponent* InvComp = CB->GetInventoryComponent();
-		if (MoneyWidget && InvComp)
+		if ( InvComp )
 		{
-			MoneyWidget->BindInventoryComponent(InvComp);
+			//돈 위젯 바인딩
+			if ( MoneyWidget )
+			{
+				MoneyWidget->BindInventoryComponent(InvComp);
+			}
+
+			InvComp->OnInventoryUpdate.AddDynamic(this, &UUK_InvMain::RefreshInventoryUI);
 		}
 	}
 }
@@ -69,7 +75,7 @@ void UUK_InvMain::TapClicked(UUK_InvTapbutton* ClickTap)
 	{
 		SetMainTab(EMainTab::Inventory);
 	}
-	else if (ClickTap == TapSystem)
+	else if (ClickTap == TapState)
 	{
 		SetMainTab(EMainTab::System);
 	}
@@ -111,5 +117,13 @@ void UUK_InvMain::OnCloseButtonClicked()
 	if (OwnerMainHUD)
 	{
 		OwnerMainHUD->CloseInventory();
+	}
+}
+
+void UUK_InvMain::RefreshInventoryUI()
+{
+	if ( InvUI )
+	{
+		InvUI->ApplyItemDataTables();
 	}
 }

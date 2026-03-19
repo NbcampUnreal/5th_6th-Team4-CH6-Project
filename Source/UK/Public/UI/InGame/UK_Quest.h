@@ -8,9 +8,9 @@
 #include "Components/TextBlock.h"
 #include "UK_Quest.generated.h"
 
-/**
- * 
- */
+class UUKQuestUIManagerSubsystem;
+class UUK_QuestMain;
+
 UCLASS()
 class UK_API UUK_Quest : public UUserWidget
 {

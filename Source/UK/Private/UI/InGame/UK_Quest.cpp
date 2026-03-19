@@ -2,6 +2,11 @@
 #include "Quest/UKQuestManagerSubsystem.h"
 #include "Character/UK_CharacterBase.h"
 #include "Character/UK_PlayerController.h"
+#include "Dialogue/UKQuestUIManagerSubsystem.h"
+#include "Character/UK_PlayerController.h"
+#include "Quest/UKQuestManagerSubsystem.h"
+#include "UI/InGame/Quest/UK_QuestMain.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 
 UUK_Quest::UUK_Quest(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -45,26 +50,33 @@ void UUK_Quest::SetQuestUI(FName QuestID,const FText& NPCName,const FText& Dialo
 
 void UUK_Quest::OnPlayButtonClicked()
 {
-	UE_LOG(LogTemp, Log, TEXT("[QuestUI] Accept Clicked"));
 
-	if (CurrentQuestId.IsNone())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[QuestUI] QuestId is None"));
-		return;
-	}
+	if (CurrentQuestId.IsNone()) return;
+
 
 	UUKQuestManagerSubsystem* QuestSys = GetGameInstance()->GetSubsystem<UUKQuestManagerSubsystem>();
 
 	if (QuestSys)
 	{
 		const FString EventStr = FString::Printf(TEXT("QuestEvent.Accepted.%s"), *CurrentQuestId.ToString());
-
 		QuestSys->EmitQuestEvent(FName(*EventStr));
+	}
+
+
+	TArray<UUserWidget*> FoundWidgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UUK_QuestMain::StaticClass(), false);
+
+	for ( UUserWidget* Widget : FoundWidgets )
+	{
+		if ( UUK_QuestMain* QuestMain = Cast<UUK_QuestMain>(Widget) )
+		{
+			QuestMain->RefreshQuestList();
+		}
 	}
 
 	AUK_PlayerController* PlayerCtl = Cast<AUK_PlayerController>(GetOwningPlayer());
 
-	if (PlayerCtl)
+	if ( PlayerCtl )
 	{
 		PlayerCtl->ApplyInputState(EInputState::Game);
 		PlayerCtl->SetCursorVisible(false);
@@ -75,9 +87,8 @@ void UUK_Quest::OnPlayButtonClicked()
 
 void UUK_Quest::OnExitButtonClicked()
 {
-	UE_LOG(LogTemp, Log, TEXT("[QuestUI] Exit Clicked"));
 	AUK_PlayerController* PlayerCtl = Cast<AUK_PlayerController>(GetOwningPlayer());
-	if (PlayerCtl)
+	if ( PlayerCtl )
 	{
 		PlayerCtl->ApplyInputState(EInputState::Game);
 		PlayerCtl->SetCursorVisible(false);
