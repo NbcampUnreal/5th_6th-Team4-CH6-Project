@@ -32,7 +32,6 @@ void UUK_Out_CharacterSelect::OnStartButtonClicked()
 	UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
 	if ( !GI ) return;
 
-	// 로딩창 띄우기 (GI 내부에서 중복 체크를 하므로 안전함)
 	GI->ShowLoading(0.7f);
 
 	RemoveFromParent();
