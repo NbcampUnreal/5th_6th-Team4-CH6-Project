@@ -817,6 +817,13 @@ void AAIMonsterBase::ResetHealth()
 	UE_LOG(LogTemp, Log, TEXT("[%s] ResetHealth: HP restored to %.0f"), *GetName(), MaxHP);
 }
 
+void AAIMonsterBase::ResetForRespawn()
+{
+	bRewardGranted = false;
+	bIsDying = false;
+	LastAttackerController = nullptr;
+}
+
 void AAIMonsterBase::ResetAppearance()
 {
 	SetActorHiddenInGame(false);
