@@ -25,7 +25,7 @@ public:
 	FText ItemDescription;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	TSoftObjectPtr<UTexture2D> ItemIcon;
+	UTexture2D* ItemIcon;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	int32 ItemStackCount = 0;

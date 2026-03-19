@@ -63,7 +63,8 @@ public:
 	int32 GetItemTotalQuantity(FName ItemID) const;
 	UFUNCTION(BlueprintCallable)
 	bool AddWeapon(FName ItemID, int32 index = -1);
-
+	
+	UFUNCTION(BlueprintCallable)
 	bool RemoveWeapon(FName ItemID, int32 index);
 
 	UFUNCTION(BlueprintCallable)
