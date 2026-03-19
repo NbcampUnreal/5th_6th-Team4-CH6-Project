@@ -127,7 +127,9 @@ namespace UK_GameplayTags
 
 		namespace EndBattle
 		{
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Heal);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(HealHP);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(HealMP);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(HealStamina);
 		}
 	}
 
