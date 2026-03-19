@@ -271,6 +271,45 @@ bool UUKQuestManagerSubsystem::ParseQuestTagFromQuestId(FName QuestId, EUKQuestT
 	return false;
 }
 
+bool UUKQuestManagerSubsystem::CanStartQuestBySequence(FName QuestId) const
+{
+	if ( QuestId.IsNone() )
+	{
+		return false;
+	}
+
+	// 1번은 게임 시작 시 바로 수락 가능
+	if ( QuestId == FName("Q_Start_M_DIA_001") )
+	{
+		return true;
+	}
+
+	auto IsCompletedQuest = [ this ] (FName InQuestId) -> bool
+		{
+			const FQuestProgress* P = RuntimeProgress.Find(InQuestId);
+			return ( P && P->bCompleted );
+		};
+
+	if ( QuestId == FName("Q_Start_M_HNT_002") )
+	{
+		return IsCompletedQuest(FName("Q_Start_M_DIA_001"));
+	}
+	if ( QuestId == FName("Q_Start_M_DLV_003") )
+	{
+		return IsCompletedQuest(FName("Q_Start_M_HNT_002"));
+	}
+	if ( QuestId == FName("Q_Start_M_HNT_004") )
+	{
+		return IsCompletedQuest(FName("Q_Start_M_DLV_003"));
+	}
+	if ( QuestId == FName("Q_Start_M_BOS_005") )
+	{
+		return IsCompletedQuest(FName("Q_Start_M_HNT_004"));
+	}
+
+	// 이 체인 밖의 퀘스트는 기본 허용
+	return true;
+}
 
 // [3] Quest 기본 API
 bool UUKQuestManagerSubsystem::StartQuest(FName QuestId)
@@ -281,6 +320,12 @@ bool UUKQuestManagerSubsystem::StartQuest(FName QuestId)
 
 	if ( RuntimeProgress.Contains(QuestId) )
 		return true;
+
+	if ( !CanStartQuestBySequence(QuestId) )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Quest] StartQuest blocked by sequence rule: %s"), *QuestId.ToString());
+		return false;
+	}
 
 	// 1) 빈 진행도 생성
 	FQuestProgress NewProgress{};
@@ -536,7 +581,7 @@ void UUKQuestManagerSubsystem::EmitQuestEvent(FName EventId)
 		}
 
 		// 5) 변경이 있었다면 자동 완료 시도
-		if ( bAnyChanged )
+		if ( bAnyChanged && bAutoCompleteOnObjectivesSatisfied )
 		{
 			TryAutoCompleteQuest(QuestId);
 		}
