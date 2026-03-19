@@ -134,7 +134,7 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		if ( !MonsterDataTablePath.IsValid() )
 		{
 			// 경로 하드코딩
-			MonsterDataTablePath = FSoftObjectPath(TEXT("/Game/ItemData/AIMonsterDT/DT_UKMonsterMeta.DT_UKMonsterMeta'"));
+			MonsterDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/ItemData/AIMonsterDT/DT_UKMonsterMeta.DT_UKMonsterMeta'"));
 		}
 
 		if ( MonsterDataTablePath.IsValid() )
@@ -430,7 +430,7 @@ void UUKQuestManagerSubsystem::EmitQuestEvent(FName EventId)
 			case EUKQuestObjectiveType::TalkedTo:    return C == EUKQuestEventCategory::TalkedTo;
 			case EUKQuestObjectiveType::GotItem:     return C == EUKQuestEventCategory::GotItem;
 			case EUKQuestObjectiveType::Killed:      return C == EUKQuestEventCategory::Killed;
-			case EUKQuestObjectiveType::Delivered: return C == EUKQuestEventCategory::Delivered;
+			case EUKQuestObjectiveType::Delivered:   return C == EUKQuestEventCategory::Delivered;
 			case EUKQuestObjectiveType::Custom:      return C == EUKQuestEventCategory::Custom;
 			default: return false;
 			}
