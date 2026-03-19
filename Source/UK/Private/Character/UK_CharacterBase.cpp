@@ -58,7 +58,7 @@ AUK_CharacterBase::AUK_CharacterBase(const FObjectInitializer& ObjectInitializer
 
 	SpringArmComp = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArmComp->SetupAttachment(GetRootComponent());
-	SpringArmComp->TargetArmLength = 300.f;
+	SpringArmComp->TargetArmLength = 450.f;
 	SpringArmComp->SetRelativeLocation(FVector(0.f, 20.f, 60.f));
 	SpringArmComp->bUsePawnControlRotation = true;
 	SpringArmComp->bEnableCameraLag = true; // 카메라가 캐릭터를 뒤늦게 따라옴
@@ -463,7 +463,7 @@ void AUK_CharacterBase::ZoomOut()
 	}
 	const float DeltaTime = GetWorld()->GetDeltaSeconds();
 
-	constexpr float Target = 300.f;
+	constexpr float Target = 450.f;
 	SpringArmComp->TargetArmLength = FMath::FInterpTo(
 		SpringArmComp->TargetArmLength,
 		Target,
