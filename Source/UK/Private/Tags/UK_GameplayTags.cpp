@@ -130,7 +130,9 @@ namespace UK_GameplayTags
 
 		namespace EndBattle
 		{
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Heal, "Data.EndBattle.Heal", "EndBattle")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HealHP, "Data.EndBattle.HealHP", "EndBattle")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HealMP, "Data.EndBattle.HealMP", "EndBattle")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HealStamina, "Data.EndBattle.HealStamina", "EndBattle")
 		}
 	}
 

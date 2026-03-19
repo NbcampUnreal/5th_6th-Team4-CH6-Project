@@ -162,7 +162,6 @@ void AUK_CharacterBase::UpdateMovementState()
 	// }
 }
 
-
 // Called when the game starts or when spawned
 void AUK_CharacterBase::BeginPlay()
 {
@@ -188,6 +187,13 @@ void AUK_CharacterBase::BeginPlay()
 		this,
 		&AUK_CharacterBase::UpdateMonsterDetection,
 		0.3f,
+		true
+	);
+	GetWorldTimerManager().SetTimer(
+		StaminaHealTimerHandle,
+		this,
+		&AUK_CharacterBase::HealStamina,
+		0.1f,
 		true
 	);
 	// GetWorldTimerManager().SetTimer(
@@ -284,6 +290,29 @@ float AUK_CharacterBase::GetFloorDistance()
 	return FloorDist;
 }
 
+void AUK_CharacterBase::HealStamina()
+{
+	if (bInUseStamina == false)
+	{
+		UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+		if (IsValid(ASC) == false)
+			return;
+
+		FGameplayEffectSpecHandle SpecHandle =
+			ASC->MakeOutgoingSpec(HealStaminaEffect, 1.f, ASC->MakeEffectContext());
+
+		const UUK_PlayerStatusAttributeSet* Attributes = ASC->GetSet<UUK_PlayerStatusAttributeSet>();
+		const float HealStaminaAmount = Attributes->GetMaxStamina() * 0.01f;
+
+		SpecHandle.Data->SetSetByCallerMagnitude(
+			UK_GameplayTags::Data::EndBattle::HealStamina,
+			HealStaminaAmount
+		);
+
+		HealStaminaEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+	}
+}
+
 
 #pragma endregion
 
@@ -291,10 +320,46 @@ float AUK_CharacterBase::GetFloorDistance()
 
 void AUK_CharacterBase::OnLoadGame(class UUK_InGameSave* SaveGameObject)
 {
+	if (!SaveGameObject) return;
+	
+	GetCharacterMovement()->StopMovementImmediately();
+	
+	SetActorLocationAndRotation(SaveGameObject->PlayerLocation, SaveGameObject->PlayerRotation, false, nullptr, ETeleportType::TeleportPhysics);
+	
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		const UAttributeSet* AS_Base = ASC->GetAttributeSet(UUK_PlayerStatusAttributeSet::StaticClass());
+		if (const UUK_PlayerStatusAttributeSet* MyAS = Cast<UUK_PlayerStatusAttributeSet>(AS_Base))
+		{
+			const_cast<UUK_PlayerStatusAttributeSet*>(MyAS)->ImportStats(SaveGameObject->PlayerStats);
+		}
+	}
+	
+	if (InventoryComponent)
+	{
+		InventoryComponent->ImportInventory(SaveGameObject->InventoryDate);
+	}
 }
 
 void AUK_CharacterBase::OnSaveGame(class UUK_InGameSave* SaveGameObject)
 {
+	if (!SaveGameObject) return;
+	
+	SaveGameObject->PlayerLocation = GetActorLocation();
+    SaveGameObject->PlayerRotation = GetActorRotation();
+    
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+        {
+			const UAttributeSet* AS_Base = ASC->GetAttributeSet(UUK_PlayerStatusAttributeSet::StaticClass());
+			if (const UUK_PlayerStatusAttributeSet* MyAS = Cast<UUK_PlayerStatusAttributeSet>(AS_Base))
+			{
+				const_cast<UUK_PlayerStatusAttributeSet*>(MyAS)->ExportStats(SaveGameObject->PlayerStats);
+			}
+        }
+	if (InventoryComponent)
+	{
+		InventoryComponent->ExportInventory(SaveGameObject->InventoryDate);
+	}
 }
 #pragma endregion
 
@@ -774,7 +839,7 @@ bool AUK_CharacterBase::StartGliding()
 	GetCharacterMovement()->GravityScale = 0.f;
 	GetCharacterMovement()->AirControl = 0.8;
 	GetCharacterMovement()->Velocity = Vel;
-	bIsGliding = true;
+	bInUseStamina = true;
 	//GetCharacterMovement()->SetMovementMode(MOVE_Custom, (uint8)ECustomMovementMode::CMOVE_Glide);
 	return true;
 }
@@ -784,6 +849,16 @@ void AUK_CharacterBase::EndGliding()
 	bIsGliding = false;
 	GetCharacterMovement()->GravityScale = DefualtGravity;
 	GetCharacterMovement()->AirControl = DefualtAirControl;
+	FTimerHandle EndGlidingTimer;
+	GetWorldTimerManager().SetTimer(
+		EndGlidingTimer,
+		[this]()
+		{
+			bInUseStamina = false;
+		},
+		1.f,
+		false
+	);
 }
 
 #pragma endregion
@@ -856,18 +931,38 @@ void AUK_CharacterBase::SprintCost()
 	if (bIsSprinted == false)
 	{
 		bIsSprinted = true;
-		FGameplayTagContainer TagContainer;
-		TagContainer.AddTag(UK_GameplayTags::Input::Sprint);
 
-		bool bIsCostSufficient = GetAbilitySystemComponent()->TryActivateAbilitiesByTag(
-			TagContainer
+
+		GetWorldTimerManager().SetTimer(
+			SprintTimer,
+			[this]()
+			{
+				bInUseStamina = true;
+				FGameplayTagContainer TagContainer;
+				TagContainer.AddTag(UK_GameplayTags::Input::Sprint);
+				GetAbilitySystemComponent()->TryActivateAbilitiesByTag(TagContainer);
+			},
+			0.1f,
+			true
 		);
 	}
 	else
 	{
 		bIsSprinted = false;
+		GetWorldTimerManager().ClearTimer(SprintTimer);
+		FTimerHandle EndSprintTimer;
+		GetWorldTimerManager().SetTimer(
+			EndSprintTimer,
+			[this]()
+			{
+				bInUseStamina = false;
+			},
+			1.f,
+			false
+		);
 	}
 }
+
 
 #pragma endregion
 
@@ -1077,11 +1172,16 @@ void AUK_CharacterBase::EndBattle()
 		ASC->MakeOutgoingSpec(EndBattleEffect, 1.f, ASC->MakeEffectContext());
 
 	const UUK_PlayerStatusAttributeSet* Attributes = ASC->GetSet<UUK_PlayerStatusAttributeSet>();
-	const float HealAmount = Attributes->GetMaxHealth() * 0.05f;
+	const float HealHPAmount = Attributes->GetMaxHealth() * 0.05f;
+	const float HealMPAmount = Attributes->GetMaxMp() * 0.05f;
 
 	SpecHandle.Data->SetSetByCallerMagnitude(
-		UK_GameplayTags::Data::EndBattle::Heal,
-		HealAmount
+		UK_GameplayTags::Data::EndBattle::HealHP,
+		HealHPAmount
+	);
+	SpecHandle.Data->SetSetByCallerMagnitude(
+		UK_GameplayTags::Data::EndBattle::HealMP,
+		HealMPAmount
 	);
 
 	EndBattleEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());

@@ -63,7 +63,8 @@ public:
 	int32 GetItemTotalQuantity(FName ItemID) const;
 	UFUNCTION(BlueprintCallable)
 	bool AddWeapon(FName ItemID, int32 index = -1);
-
+	
+	UFUNCTION(BlueprintCallable)
 	bool RemoveWeapon(FName ItemID, int32 index);
 
 	UFUNCTION(BlueprintCallable)
@@ -124,4 +125,7 @@ public:
 	bool RemoveItemByInventoryIndex(int32 InventoryIndex, int32 Amount = 1, bool bBroadcastInventoryUpdate = true);
 	UFUNCTION(BlueprintCallable)
 	bool AddWeaponFromInventoryIndex(FName ItemID, int32 EquipIndex, int32 SourceInventoryIndex);
+	
+	void ExportInventory(struct FInventorySaveData& OutData);
+	void ImportInventory(const struct FInventorySaveData& InData);
 };
