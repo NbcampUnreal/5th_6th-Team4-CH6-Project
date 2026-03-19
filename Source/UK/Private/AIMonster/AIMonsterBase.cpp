@@ -1104,7 +1104,12 @@ float AAIMonsterBase::CalculateGold(int32 PlayerLevel) const
 {
 	const FUK_MonsterStatRow* Row = GetStatRow();
 	if (!Row) return 0.f;
-	return Row->BaseGold + Row->GoldPerLevel * (PlayerLevel - 1);
+
+	const float LevelBonus = PlayerLevel * Row->GoldPerLevel;
+	const float Min = Row->BaseGoldMin + LevelBonus;
+	const float Max = Row->BaseGoldMax + LevelBonus;
+
+	return FMath::RandRange(Min, Max);
 }
 
 FName AAIMonsterBase::GetRowName() const
