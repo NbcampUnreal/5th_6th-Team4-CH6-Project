@@ -20,6 +20,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	UImage* EquipSlot;
 
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	UImage* EquipSlotWeaponMark;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equip", meta = ( ExposeOnSpawn = "true" ))
 	int32 EquipIndex = INDEX_NONE;
 
