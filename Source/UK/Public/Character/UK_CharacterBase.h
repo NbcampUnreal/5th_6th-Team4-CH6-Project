@@ -100,6 +100,9 @@ protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	float GetFloorDistance();
+
+	UFUNCTION()
+	void HealStamina();
 	//geter, seter
 public:
 	TObjectPtr<USkeletalMeshComponent> GetRightHandWeapon() { return RightHandWeaponComponent; }
@@ -136,6 +139,10 @@ protected:
 #pragma endregion
 
 public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<UGameplayEffect> HealStaminaEffect;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FActiveGameplayEffectHandle HealStaminaEffectHandle;
 	UPROPERTY(editAnywhere, BlueprintReadOnly, Category = "Sound")
 	TObjectPtr<USoundAttenuation> Attenuation;
 
@@ -160,6 +167,8 @@ public:
 	UPROPERTY(EditAnywhere)
 	UHitMontageDataAsset* HitMontageDataAsset;
 	
+	FTimerHandle StaminaHealTimerHandle;
+	
 	UPROPERTY(BlueprintReadWrite)
 	bool bInWater = false;	
 	UPROPERTY(BlueprintReadWrite)
@@ -167,6 +176,7 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	bool bIsGliding = false;
 	
+	bool bInUseStamina = false;
 #pragma endregion
 
 #pragma  region SaveGame
@@ -250,7 +260,6 @@ protected:
 	void Dash();
 
 #pragma endregion
-
 public:
 #pragma region LockOn
 
@@ -316,6 +325,9 @@ protected:
 #pragma endregion
 
 public:
+	UFUNCTION(BlueprintCallable)
+	void SprintCost();
+public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UUK_InputConfig* InputMappingConfig;
 
@@ -324,16 +336,20 @@ public:
 
 	UPROPERTY(BlueprintReadWrite)
 	EInputMode InputType;
-
 protected:
 	bool bIsCrouched;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bIsSprinted;
+	bool bIsSprinted = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float SprintSpeed;
 
+
+	FTimerHandle GlidingTimer;
+	
+	FTimerHandle SprintTimer;
+	
 
 #pragma endregion
 

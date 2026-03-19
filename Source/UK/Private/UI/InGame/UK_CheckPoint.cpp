@@ -16,7 +16,6 @@ AUK_CheckPoint::AUK_CheckPoint()
 	Sphere->SetCollisionProfileName(TEXT("Trigger"));
 	
 	WidgetComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("Widget"));
-
 	WidgetComp->SetupAttachment(RootComponent);
 	WidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
 	WidgetComp->SetDrawSize(FVector2D(200.f, 50.f));
@@ -25,7 +24,9 @@ AUK_CheckPoint::AUK_CheckPoint()
 void AUK_CheckPoint::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
+	SetLocation = GetActorLocation();
+	
 	if (WidgetComp)
 	{
 		UUserWidget* Widget = WidgetComp->GetUserWidgetObject();
@@ -33,7 +34,7 @@ void AUK_CheckPoint::BeginPlay()
 
 		if (MarkerWidget)
 		{
-			MarkerWidget->SetOriginLocation(GetActorLocation());
+			MarkerWidget->SetOriginLocation(SetLocation);
 		}
 	}
 	

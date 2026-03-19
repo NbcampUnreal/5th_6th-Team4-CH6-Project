@@ -28,7 +28,7 @@
 #include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
 #include "Components/CapsuleComponent.h"
 #include "DataAsset/Data/UK_WeaponItemData.h"
-#include "Systems/Data/UK_InGameSave.h" 
+#include "Systems/Data/UK_InGameSave.h"
 
 
 #pragma region Defualt
@@ -162,7 +162,6 @@ void AUK_CharacterBase::UpdateMovementState()
 	// }
 }
 
-
 // Called when the game starts or when spawned
 void AUK_CharacterBase::BeginPlay()
 {
@@ -188,6 +187,13 @@ void AUK_CharacterBase::BeginPlay()
 		this,
 		&AUK_CharacterBase::UpdateMonsterDetection,
 		0.3f,
+		true
+	);
+	GetWorldTimerManager().SetTimer(
+		StaminaHealTimerHandle,
+		this,
+		&AUK_CharacterBase::HealStamina,
+		0.1f,
 		true
 	);
 	// GetWorldTimerManager().SetTimer(
@@ -282,6 +288,29 @@ float AUK_CharacterBase::GetFloorDistance()
 		FloorDist = 2000.f;
 	}
 	return FloorDist;
+}
+
+void AUK_CharacterBase::HealStamina()
+{
+	if (bInUseStamina == false)
+	{
+		UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+		if (IsValid(ASC) == false)
+			return;
+
+		FGameplayEffectSpecHandle SpecHandle =
+			ASC->MakeOutgoingSpec(HealStaminaEffect, 1.f, ASC->MakeEffectContext());
+
+		const UUK_PlayerStatusAttributeSet* Attributes = ASC->GetSet<UUK_PlayerStatusAttributeSet>();
+		const float HealStaminaAmount = Attributes->GetMaxStamina() * 0.01f;
+
+		SpecHandle.Data->SetSetByCallerMagnitude(
+			UK_GameplayTags::Data::EndBattle::HealStamina,
+			HealStaminaAmount
+		);
+
+		HealStaminaEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+	}
 }
 
 
@@ -774,7 +803,7 @@ bool AUK_CharacterBase::StartGliding()
 	GetCharacterMovement()->GravityScale = 0.f;
 	GetCharacterMovement()->AirControl = 0.8;
 	GetCharacterMovement()->Velocity = Vel;
-	bIsGliding = true;
+	bInUseStamina = true;
 	//GetCharacterMovement()->SetMovementMode(MOVE_Custom, (uint8)ECustomMovementMode::CMOVE_Glide);
 	return true;
 }
@@ -784,6 +813,16 @@ void AUK_CharacterBase::EndGliding()
 	bIsGliding = false;
 	GetCharacterMovement()->GravityScale = DefualtGravity;
 	GetCharacterMovement()->AirControl = DefualtAirControl;
+	FTimerHandle EndGlidingTimer;
+	GetWorldTimerManager().SetTimer(
+		EndGlidingTimer,
+		[this]()
+		{
+			bInUseStamina = false;
+		},
+		1.f,
+		false
+	);
 }
 
 #pragma endregion
@@ -849,6 +888,45 @@ void AUK_CharacterBase::Climb(FHitResult& Hit)
 		LatentInfo
 	);
 }
+
+
+void AUK_CharacterBase::SprintCost()
+{
+	if (bIsSprinted == false)
+	{
+		bIsSprinted = true;
+
+
+		GetWorldTimerManager().SetTimer(
+			SprintTimer,
+			[this]()
+			{
+				bInUseStamina = true;
+				FGameplayTagContainer TagContainer;
+				TagContainer.AddTag(UK_GameplayTags::Input::Sprint);
+				GetAbilitySystemComponent()->TryActivateAbilitiesByTag(TagContainer);
+			},
+			0.1f,
+			true
+		);
+	}
+	else
+	{
+		bIsSprinted = false;
+		GetWorldTimerManager().ClearTimer(SprintTimer);
+		FTimerHandle EndSprintTimer;
+		GetWorldTimerManager().SetTimer(
+			EndSprintTimer,
+			[this]()
+			{
+				bInUseStamina = false;
+			},
+			1.f,
+			false
+		);
+	}
+}
+
 
 #pragma endregion
 
@@ -1044,26 +1122,30 @@ void AUK_CharacterBase::StartBattle()
 	{
 		GetWorldTimerManager().ClearTimer(EndBattleTimerHandle);
 	}
-	
 }
 
 void AUK_CharacterBase::EndBattle()
 {
 	bInBattle = false;
-	
+
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (IsValid(ASC) == false)
 		return;
 
 	FGameplayEffectSpecHandle SpecHandle =
 		ASC->MakeOutgoingSpec(EndBattleEffect, 1.f, ASC->MakeEffectContext());
-	
+
 	const UUK_PlayerStatusAttributeSet* Attributes = ASC->GetSet<UUK_PlayerStatusAttributeSet>();
-	const float HealAmount = Attributes->GetMaxHealth() * 0.05f;
-	
+	const float HealHPAmount = Attributes->GetMaxHealth() * 0.05f;
+	const float HealMPAmount = Attributes->GetMaxMp() * 0.05f;
+
 	SpecHandle.Data->SetSetByCallerMagnitude(
-		UK_GameplayTags::Data::EndBattle::Heal,
-		HealAmount
+		UK_GameplayTags::Data::EndBattle::HealHP,
+		HealHPAmount
+	);
+	SpecHandle.Data->SetSetByCallerMagnitude(
+		UK_GameplayTags::Data::EndBattle::HealMP,
+		HealMPAmount
 	);
 
 	EndBattleEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());

@@ -177,7 +177,6 @@ void AUK_PlayerController::Client_CreatePlayerUI_Implementation()
 			StaminaWidget->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
-
 	// ----- Setting UI -----
 	if ( SettingWidgetClass )
 	{
@@ -185,7 +184,7 @@ void AUK_PlayerController::Client_CreatePlayerUI_Implementation()
 
 		if ( SettingWidget )
 		{
-			SettingWidget->AddToViewport();
+			SettingWidget->AddToViewport(99);
 			SettingWidget->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
@@ -197,27 +196,34 @@ void AUK_PlayerController::ApplyInputState(EInputState NewState)
 {
 	CurrentInputState = NewState;
 
+	SetAllGameUIInputVisibility(false);
+
 	switch ( CurrentInputState )
 	{
 	case EInputState::Game:
 	{
+		SetAllGameUIInputVisibility(true);
 		SetIgnoreLookInput(false);
 		SetIgnoreMoveInput(false);
 
 		FInputModeGameOnly Mode;
 		SetInputMode(Mode);
+		SetCursorVisible(false);
 		break;
 	}
 
 	case EInputState::UI:
 	{
+		SetAllGameUIInputVisibility(false);
 		SetIgnoreLookInput(true);
 		SetIgnoreMoveInput(true);
 
 		FInputModeGameAndUI Mode;
 		Mode.SetHideCursorDuringCapture(false);
 		Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+
 		SetInputMode(Mode);
+		SetCursorVisible(true);
 		break;
 	}
 
@@ -255,6 +261,19 @@ void AUK_PlayerController::ToggleMouseCursor()
 
 //  Setting UI (카메라 멈춤 모드)
 
+void AUK_PlayerController::SetAllGameUIInputVisibility(bool bVisible)
+{
+	ESlateVisibility NewVisibility = bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
+
+	// 개별 위젯들 가시성 조절
+	if ( MainHUD ) MainHUD->SetVisibility(NewVisibility);
+	if ( StaminaWidget ) StaminaWidget->SetVisibility(NewVisibility);
+
+	// 퀘스트나 상점 위젯이 떠 있다면 그것들도 숨김/제거
+	if ( QuestWidget ) QuestWidget->SetVisibility(NewVisibility);
+	if ( ShopWidget ) ShopWidget->SetVisibility(NewVisibility);
+}
+
 void AUK_PlayerController::Setting_UI()
 {
 	if ( !SettingWidget ) return;
@@ -263,24 +282,18 @@ void AUK_PlayerController::Setting_UI()
 
 	if ( bIsSetting )
 	{
-		// ----- 열기 -----
-		SettingWidget->SetVisibility(ESlateVisibility::Visible);
-
 		ApplyInputState(EInputState::UI);
 
-		// 캐릭터 움직임 + 화면 회전은 불가
-		SetCursorVisible(true);
-		SetIgnoreLookInput(true);
+		SettingWidget->SetVisibility(ESlateVisibility::Visible);
+
 		GetWorldTimerManager().PauseTimer(StaminaTrackingTimer);
 	}
 	else
 	{
-		// ----- 닫기 -----
 		SettingWidget->SetVisibility(ESlateVisibility::Collapsed);
 
 		ApplyInputState(EInputState::Game);
-		SetCursorVisible(false);
-		SetIgnoreLookInput(false);
+
 		GetWorldTimerManager().UnPauseTimer(StaminaTrackingTimer);
 	}
 }

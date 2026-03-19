@@ -121,7 +121,11 @@
 		{
 			"Name": "SteamSockets",
 			"Enabled": true
-		}
+		},
+    {
+        "Name": "Synthesis",
+        "Enabled": false
+    }
 	],
 	"TargetPlatforms": [
 		"Windows"
