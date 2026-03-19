@@ -292,6 +292,15 @@ float AUK_CharacterBase::GetFloorDistance()
 
 void AUK_CharacterBase::HealStamina()
 {
+	if (bIsGliding == true)
+	{
+		bInUseStamina = true;
+	}
+	if (bIsSprinted == true)
+	{
+		bInUseStamina = true;
+	}
+	
 	if (bInUseStamina == false)
 	{
 		UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
@@ -890,41 +899,28 @@ void AUK_CharacterBase::Climb(FHitResult& Hit)
 }
 
 
-void AUK_CharacterBase::SprintCost()
+void AUK_CharacterBase::StartSprintCost()
 {
-	if (bIsSprinted == false)
-	{
-		bIsSprinted = true;
+	bIsSprinted = true;
+	bInUseStamina = true;
+	FGameplayTagContainer TagContainer;
+	TagContainer.AddTag(UK_GameplayTags::Input::Sprint);
+	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(TagContainer);
+}
 
-
-		GetWorldTimerManager().SetTimer(
-			SprintTimer,
-			[this]()
-			{
-				bInUseStamina = true;
-				FGameplayTagContainer TagContainer;
-				TagContainer.AddTag(UK_GameplayTags::Input::Sprint);
-				GetAbilitySystemComponent()->TryActivateAbilitiesByTag(TagContainer);
-			},
-			0.1f,
-			true
-		);
-	}
-	else
-	{
-		bIsSprinted = false;
-		GetWorldTimerManager().ClearTimer(SprintTimer);
-		FTimerHandle EndSprintTimer;
-		GetWorldTimerManager().SetTimer(
-			EndSprintTimer,
-			[this]()
-			{
-				bInUseStamina = false;
-			},
-			1.f,
-			false
-		);
-	}
+void AUK_CharacterBase::EndSprintCost()
+{
+	bIsSprinted = false;
+	FTimerHandle EndSprintTimer;
+	GetWorldTimerManager().SetTimer(
+		EndSprintTimer,
+		[this]()
+		{
+			bInUseStamina = false;
+		},
+		1.f,
+		false
+	);
 }
 
 
