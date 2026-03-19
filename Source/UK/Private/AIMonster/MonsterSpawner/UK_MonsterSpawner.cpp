@@ -34,23 +34,30 @@ void AUK_MonsterSpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
 #pragma region Spawning Control
 void AUK_MonsterSpawner::StartSpawning()
 {
+	TriggerRefCount++;
+	if (TriggerRefCount != 1)	return;
+	
+	
 	if (bIsSpawning) return;
 	bIsSpawning = true;
 	SpawnInitialMonsters();
 }
 
-void AUK_MonsterSpawner::StopSpawning()
+bool AUK_MonsterSpawner::StopSpawning()
 {
+	if (TriggerRefCount <= 0)	return false;
+	TriggerRefCount = FMath::Max(0, TriggerRefCount - 1);
+	if (TriggerRefCount != 0)	return false;
+	
 	bIsSpawning = false;
-
 	for (FTimerHandle& Timer : RespawnTimers)
 	{
 		if (Timer.IsValid()) 
-		{
 			GetWorldTimerManager().ClearTimer(Timer);
-		}
+		
 	}
 	RespawnTimers.Empty();
+	return true;
 }
 
 void AUK_MonsterSpawner::SpawnInitialMonsters()
@@ -199,6 +206,7 @@ void AUK_MonsterSpawner::ActivateMonster(AAIMonsterBase* Monster)
 	
 	Monster->ResetAppearance();  
 	Monster->ResetHealth();
+	Monster->ResetForRespawn();
 	Monster->bIsAttacking = false;
 	Monster->bIsHit = false;
 	Monster->bIsAggressive = false;
@@ -236,18 +244,20 @@ void AUK_MonsterSpawner::ActivateMonster(AAIMonsterBase* Monster)
 		AICon->Possess(Monster);
 	
 	if (AICon)
-	{
-		if (UBrainComponent* Brain = AICon->GetBrainComponent())
-			Brain->RestartLogic();
-		else if (Monster->BehaviorTree)
-			AICon->RunBehaviorTree(Monster->BehaviorTree);
-		
+	{		
 		if (UBlackboardComponent* BB = AICon->GetBlackboardComponent())
 		{
 			BB->SetValueAsVector(TEXT("SpawnLocation"), NewLocation);
 			BB->SetValueAsVector(TEXT("PatrolLocation"), NewLocation);
 			BB->ClearValue(TEXT("TargetPlayer"));
+			BB->ClearValue(TEXT("IsPlayerClose"));
+			BB->ClearValue(TEXT("WanderLocation"));
 		}
+		
+		if (UBrainComponent* Brain = AICon->GetBrainComponent())
+			Brain->RestartLogic();
+		else if (Monster->BehaviorTree)
+			AICon->RunBehaviorTree(Monster->BehaviorTree);
 	}
 	
     ActiveMonsters.Add(Monster);
