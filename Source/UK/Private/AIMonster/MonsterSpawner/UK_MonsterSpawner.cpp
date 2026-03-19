@@ -304,30 +304,30 @@ void AUK_MonsterSpawner::OnMonsterDied(AAIMonsterBase* DeadMonster)
 	if (!DeadMonster || !IsValid(DeadMonster)) return;
 
 	TotalDeathCount++;
-	ActiveMonsters.Remove(DeadMonster);
 	ReturnMonsterToPool(DeadMonster);
 
 	FTimerHandle RespawnTimer;
 	FTimerDelegate RespawnDelegate;
 	
 	TWeakObjectPtr<AUK_MonsterSpawner> WeakThis(this);
-	
-	RespawnDelegate.BindLambda([WeakThis]()
+	TSharedPtr<FTimerHandle> SharedTimer = MakeShared<FTimerHandle>();
+
+	RespawnDelegate.BindLambda([WeakThis, SharedTimer]()
 	{
 		if (!WeakThis.IsValid()) return;
-		
 		AUK_MonsterSpawner* Spawner = WeakThis.Get();
+
+		Spawner->RespawnTimers.RemoveSingleSwap(*SharedTimer); 
+
 		if (Spawner->bIsSpawning && Spawner->ActiveMonsters.Num() < Spawner->MaxMonsters)
 		{
 			if (AAIMonsterBase* Monster = Spawner->GetMonsterFromPool())
-			{
 				Spawner->ActivateMonster(Monster);
-			}
 		}
 	});
 
-	GetWorldTimerManager().SetTimer(RespawnTimer, RespawnDelegate, RespawnDelay, false);
-	RespawnTimers.Add(RespawnTimer);
+	GetWorldTimerManager().SetTimer(*SharedTimer, RespawnDelegate, RespawnDelay, false);
+	RespawnTimers.Add(*SharedTimer);
 }
 #pragma endregion
 
