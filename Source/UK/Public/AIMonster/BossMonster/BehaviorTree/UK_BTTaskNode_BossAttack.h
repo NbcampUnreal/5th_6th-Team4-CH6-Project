@@ -20,4 +20,11 @@ protected:
 	float AttackDuration;
 
 	float CurrentTime;
+	
+private:
+	UPROPERTY()
+	TObjectPtr<AUK_BossMonsterBase> CachedBoss;
+    
+	FDelegateHandle AttackFinishedHandle;
+	UBehaviorTreeComponent* CachedOwnerComp = nullptr;
 };

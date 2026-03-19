@@ -53,6 +53,18 @@ void AUK_BossMonsterBase::StartAttack()
 	
 	HitActors.Empty();
 	SetWeaponCollisionEnabled(true);
+	
+	CachedHitType = EHitReactionType::None;
+	if (MonsterCombatTable)
+	{
+		FString RowStr;
+		UEnum::GetValueAsString(MonsterType).Split(TEXT("::"), nullptr, &RowStr);
+		if (FUK_MonsterCombatRow* Row = MonsterCombatTable->FindRow<FUK_MonsterCombatRow>(FName(*RowStr), TEXT("")))
+		{
+			CachedHitType = (CurrentAttackType == EMonsterAttackType::Normal)
+				? Row->NormalAttackHit : Row->SpecialAttackHit;
+		}
+	}
 
 }
 
@@ -170,38 +182,18 @@ void AUK_BossMonsterBase::OnWeaponOverlap(UPrimitiveComponent* OverlappedCompone
 
 			if (PlayerStats)
 			{
-				float BeforeHP = PlayerStats->GetHealth();
-
 				TargetASC->ApplyModToAttribute(
-					UUK_PlayerStatusAttributeSet::GetDamageAttribute(), 
-					EGameplayModOp::Additive, 
+					UUK_PlayerStatusAttributeSet::GetDamageAttribute(),
+					EGameplayModOp::Additive,
 					AttackDamage
 				);
 
-				FVector HitLocation = OtherActor->GetActorLocation();
-				DrawDebugSphere(GetWorld(), HitLocation, 50.f, 12, FColor::Red, false, 2.0f);
-				DrawDebugString(GetWorld(), HitLocation + FVector(0.f, 0.f, 100.f), TEXT("!!! HIT !!!"), nullptr, FColor::Yellow, 1.5f);
-			
-				if (MonsterCombatTable)
-				{
-					FString EnumStr = UEnum::GetValueAsString(MonsterType);
-					FString RowStr;
-					EnumStr.Split(TEXT("::"), nullptr, &RowStr);
-
-					if (FUK_MonsterCombatRow* Row = MonsterCombatTable->FindRow<FUK_MonsterCombatRow>(FName(*RowStr), TEXT("")))
-					{
-						EHitReactionType HitType = (CurrentAttackType == EMonsterAttackType::Normal)
-							? Row->NormalAttackHit
-							: Row->SpecialAttackHit;
-
-						FGameplayEventData EventData;
-						EventData.EventMagnitude = (float)HitType;
-						UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
-							TargetPlayer,
-							UK_GameplayTags::Action::BeAttacked,
-							EventData);
-					}
-				}
+				FGameplayEventData EventData;
+				EventData.EventMagnitude = (float)CachedHitType; 
+				UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+					TargetPlayer,
+					UK_GameplayTags::Action::BeAttacked,
+					EventData);
 			}
 		}
 	}

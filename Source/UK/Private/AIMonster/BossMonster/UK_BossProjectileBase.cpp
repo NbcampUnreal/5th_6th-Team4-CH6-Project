@@ -8,7 +8,7 @@
 
 AUK_BossProjectileBase::AUK_BossProjectileBase()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	Collisioncomp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
 	Collisioncomp->InitSphereRadius(50.0f);
 
