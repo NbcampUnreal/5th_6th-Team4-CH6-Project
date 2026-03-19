@@ -200,7 +200,7 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 	// 최대 스테미너 후처리
 	else if (Attribute == GetMaxStaminaAttribute())
 	{
-		SetCurrentMp(GetMaxStamina());
+		SetCurrentStamina(GetMaxStamina());
 		MaxMpChanged.Broadcast(OldValue, NewValue);
 	}
 	// 스테미너 후처리
