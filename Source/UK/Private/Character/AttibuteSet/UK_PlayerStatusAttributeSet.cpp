@@ -96,8 +96,8 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxStamina());
 
 
-		UE_LOG(LogTemp, Log, TEXT("   Stamina: %.1f → %.1f (Max: %.1f)"),
-		       OldValue, NewValue, GetMaxStamina());
+		// UE_LOG(LogTemp, Log, TEXT("   Stamina: %.1f → %.1f (Max: %.1f)"),
+		//        OldValue, NewValue, GetMaxStamina());
 	}
 	// 최대 경험치 전처리
 	else if (Attribute == GetMaxEXPAttribute())
@@ -162,15 +162,18 @@ void UUK_PlayerStatusAttributeSet::PostGameplayEffectExecute(const FGameplayEffe
 
     if (Data.EvaluatedData.Attribute == GetCurrentStaminaAttribute())
     {
-        SetCurrentStamina(FMath::Clamp(GetCurrentStamina(), 0.f, GetMaxStamina()));
+    	float NewValue = GetCurrentStamina();
+        SetCurrentStamina(FMath::Clamp(NewValue, 0.f, GetMaxStamina()));
     }
     else if (Data.EvaluatedData.Attribute == GetCurrentMpAttribute())
     {
-        SetCurrentMp(FMath::Clamp(GetCurrentMp(), 0.f, GetMaxMp()));
+    	float NewValue = GetCurrentMp();
+        SetCurrentMp(FMath::Clamp(NewValue, 0.f, GetMaxMp()));
     }
     else if (Data.EvaluatedData.Attribute == GetHealthAttribute())
     {
-        SetHealth(FMath::Clamp(GetHealth(), 0.f, GetMaxHealth()));
+    	float NewValue = GetHealth();
+        SetHealth(FMath::Clamp(NewValue, 0.f, GetMaxHealth()));
     }
 }
 void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue,

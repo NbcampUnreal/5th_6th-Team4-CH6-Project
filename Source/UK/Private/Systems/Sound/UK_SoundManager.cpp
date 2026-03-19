@@ -44,18 +44,22 @@ void AUK_SoundManager::SetCombatState(bool bInCombat)
 
 	if (bInCombat)
 	{
-		// 1. 현재 필드 BGM 저장
-		LastFieldBGM = BGMComponent->Sound;
+		// 1. 현재 필드 BGM 저장 (전투 끝나고 돌아오기 위함)
+		LastFieldBGM = BGMComponent->GetSound();
 
-		// 현재 속해있는 상위지역 의 전투 음악 찾기
+		// 2. 현재 지역(CurrentRegion)에 맞는 전투 음악 찾아서 재생
 		if (USoundBase** CombatBGM = CombatBGMMappings.Find(CurrentRegion))
 		{
 			PlayBGM(*CombatBGM);
 		}
+		else if (DefaultCombatBGM) // 지역 전투곡 없으면 기본 전투곡이라도 재생
+		{
+			PlayBGM(DefaultCombatBGM);
+		}
 	}
 	else
 	{
-		// 3. 전투 종료 시 복귀
+		// 3. 전투 종료 시: 아까 저장해둔 필드 BGM으로 복귀
 		if (LastFieldBGM)
 		{
 			PlayBGM(LastFieldBGM);

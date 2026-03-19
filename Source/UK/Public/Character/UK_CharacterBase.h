@@ -326,7 +326,9 @@ protected:
 
 public:
 	UFUNCTION(BlueprintCallable)
-	void SprintCost();
+	void StartSprintCost();
+	UFUNCTION(BlueprintCallable)
+	void EndSprintCost();
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UUK_InputConfig* InputMappingConfig;
@@ -348,7 +350,6 @@ protected:
 
 	FTimerHandle GlidingTimer;
 	
-	FTimerHandle SprintTimer;
 	
 
 #pragma endregion
