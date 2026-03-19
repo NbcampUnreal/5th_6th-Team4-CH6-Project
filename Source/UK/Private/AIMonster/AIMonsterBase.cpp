@@ -20,6 +20,7 @@
 #include "AIMonster/UK_AiMonsterCtl.h"
 #include "UI/InGame/UK_FloatingDamageActor.h" 
 #include "DataAsset/DataTable/AIMonster/UK_MonsterMetaRow.h"
+#include "Engine/OverlapResult.h"
 
 #pragma region Initialization
 AAIMonsterBase::AAIMonsterBase()
@@ -870,18 +871,25 @@ void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
 {
 	if (!Enemy) return;
 
-	TArray<AActor*> FoundActors;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), GetClass(), FoundActors);
+	TArray<FOverlapResult> Overlaps;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+	
+	GetWorld()->OverlapMultiByObjectType(
+	Overlaps,
+	GetActorLocation(),
+	FQuat::Identity,
+	FCollisionObjectQueryParams(ECC_Pawn),
+	FCollisionShape::MakeSphere(AllyCallRadius),
+	Params
+	);
 
-	for (AActor* Actor : FoundActors)
+	for (const FOverlapResult& Overlap : Overlaps)
 	{
-		if (!Actor || Actor == this) continue;
-
-		AAIMonsterBase* Ally = Cast<AAIMonsterBase>(Actor);
-		if (!Ally) continue;
+		AAIMonsterBase* Ally = Cast<AAIMonsterBase>(Overlap.GetActor());
+		if (!Ally || Ally == this) continue;
 		if (Ally->Personality != EMonsterPersonality::Peaceful) continue;
 		if (Ally->bIsAggressive || Ally->IsDead()) continue;
-		if (FVector::Dist(GetActorLocation(), Ally->GetActorLocation()) > AllyCallRadius) continue;
 
 		Ally->bIsAggressive = true;
 		Ally->Aggressor     = Enemy;
@@ -956,7 +964,7 @@ void AAIMonsterBase::ShowHPBar()
 		GetWorldTimerManager().SetTimer(
 			HPBarUpdateTimer, this,
 			&AAIMonsterBase::UpdateHPBarWidget,
-			0.05f, true);
+			0.1f, true);
 	}
 }
 

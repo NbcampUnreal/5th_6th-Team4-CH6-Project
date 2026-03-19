@@ -53,11 +53,11 @@ void UUK_BTService_DetectPlayer::TickNormalMode(UBehaviorTreeComponent& OwnerCom
     if (!BlackboardComp) return;
 
     AAIMonsterBase* Monster = Cast<AAIMonsterBase>(ControlledPawn);
-    if (Monster) DetectionRadius = Monster->DetectionRadius;
+	const float UseRadius = Monster ? Monster->DetectionRadius : DetectionRadius;
 
     const FVector MonsterLocation = ControlledPawn->GetActorLocation();
     const FVector SpawnLocation   = BlackboardComp->GetValueAsVector(SpawnLocationKey.SelectedKeyName);
-    const float   DistFromSpawn   = FVector::Dist(MonsterLocation, SpawnLocation);
+	const float DistFromSpawnSq = FVector::DistSquared(MonsterLocation, SpawnLocation);
     const float   ChaseLimit      = Monster ? Monster->MaxChaseDistance : 2500.f;
 
     const bool bHasTarget  = (BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName)  != nullptr);
@@ -77,14 +77,14 @@ void UUK_BTService_DetectPlayer::TickNormalMode(UBehaviorTreeComponent& OwnerCom
         BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
         AIController->ClearFocus(EAIFocusPriority::Gameplay);
 
-        if (DistFromSpawn <= ReturnDistanceThreshold)
+        if (DistFromSpawnSq <= FMath::Square(ReturnDistanceThreshold))
         {
             Memory->bReturning = false;
         }
         return;
     }
 
-    if (DistFromSpawn > ChaseLimit)
+    if (DistFromSpawnSq > FMath::Square(ChaseLimit))
     {
         Memory->bReturning = true;
         Memory->bHadTarget = false;
