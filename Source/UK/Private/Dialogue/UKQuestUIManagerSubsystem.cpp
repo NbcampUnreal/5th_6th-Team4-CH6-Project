@@ -57,7 +57,6 @@ const UUKQuestDefinitionAsset* UUKQuestUIManagerSubsystem::GetQuestDefinitionSaf
 
 // [4] Quest UI Text Getter
 
-
 FText UUKQuestUIManagerSubsystem::GetQuestTitleText(FName QuestId) const
 {
 	const UUKQuestDefinitionAsset* Def = GetQuestDefinitionSafe(QuestId);
@@ -109,7 +108,6 @@ FText UUKQuestUIManagerSubsystem::GetQuestNPCDialogueText(FName QuestId) const
 
 
 // [5] Quest State Bool Getter
-
 
 bool UUKQuestUIManagerSubsystem::CanAcceptQuest(FName QuestId) const
 {
@@ -229,7 +227,6 @@ bool UUKQuestUIManagerSubsystem::AreObjectivesSatisfied(FName QuestId) const
 
 
 // [6] Dialogue UI Getter
-
 
 FText UUKQuestUIManagerSubsystem::GetCurrentDialogueSpeakerName() const
 {
