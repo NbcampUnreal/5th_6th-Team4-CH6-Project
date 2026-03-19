@@ -8,6 +8,8 @@
 #include "ActorComponent/UK_InventoryComponent.h"
 #include "UI/Inventory/UK_MoneyWidget.h"
 
+#include "Components/Button.h"
+#include "UI/InGame/UK_MainHUD.h"
 
 void UUK_InvMain::NativeConstruct()
 {
@@ -41,6 +43,11 @@ void UUK_InvMain::NativeConstruct()
 	if (TapMap)
 	{
 		TapMap->OnButtonTap.AddDynamic(this, &UUK_InvMain::TapClicked);
+	}
+
+	if (CloseButton)
+	{
+		CloseButton->OnClicked.AddDynamic(this, &UUK_InvMain::OnCloseButtonClicked);
 	}
 
 	AUK_CharacterBase* CB = Cast<AUK_CharacterBase>(GetOwningPlayerPawn());
@@ -97,4 +104,12 @@ void UUK_InvMain::SetMainTab(EMainTab NewTab)
 {
 	if (!InvSwitcher) return;
 	InvSwitcher->SetActiveWidgetIndex(static_cast<int32>(NewTab));
+}
+
+void UUK_InvMain::OnCloseButtonClicked()
+{
+	if (OwnerMainHUD)
+	{
+		OwnerMainHUD->CloseInventory();
+	}
 }

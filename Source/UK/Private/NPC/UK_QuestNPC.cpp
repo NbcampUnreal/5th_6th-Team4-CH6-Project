@@ -8,12 +8,15 @@
 #include "NPC/Component/UK_QuestComponent.h"
 #include "Quest/UKQuestManagerSubsystem.h"
 
+#include "Blueprint/UserWidget.h"       
+#include "GameFramework/PlayerController.h"
+
 AUK_QuestNPC::AUK_QuestNPC()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
 	bPlayerInRange = false;
-	bReplicates = true;
+
 	InteractionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionSphere"));
 	InteractionSphere->SetupAttachment(RootComponent);
 	InteractionSphere->SetSphereRadius(1000.f); // 마커 띄울 범위 임시 설정
@@ -136,7 +139,7 @@ void AUK_QuestNPC::UpdateMarkerRotation()
 	QuestMarker->SetWorldRotation(LookAtRotation);
 }
 
-void AUK_QuestNPC::Interact_Implementation(AActor* Interactor)
+void AUK_QuestNPC::Interact(AActor* Interactor)
 {
 	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(Interactor);
 	if ( !Player ) return;
@@ -146,36 +149,38 @@ void AUK_QuestNPC::Interact_Implementation(AActor* Interactor)
 
 void AUK_QuestNPC::HandleQuestInteract(AUK_CharacterBase* Player)
 {
-	if ( !Player || !bPlayerInRange ) return;
+	if (!Player || !bPlayerInRange) return;
 
 	UWorld* World = GetWorld();
-	if ( !World ) return;
+	if (!World) return;
 
 	UGameInstance* GI = World->GetGameInstance();
-	if ( !GI ) return;
+	if (!GI) return;
 
 	UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>();
-	if ( !QuestSys ) return;
-
-	if ( !NPCID.IsNone() )
-	{
-		const FName EventID(*FString::Printf(TEXT("QuestEvent.TalkedTo.%s"), *NPCID.ToString()));
-		QuestSys->EmitQuestEvent(EventID);
-
-		UE_LOG(LogTemp, Log, TEXT("[NPC] Emit TalkedTo Event: %s"), *EventID.ToString());
-	}
-
-	const UUKQuestDefinitionAsset* Def = QuestSys->GetQuestDefinition(QuestID);
-	if ( !Def ) return;
+	if (!QuestSys) return;
 
 	AUK_PlayerController* PlayerCtl = Cast<AUK_PlayerController>(Player->GetController());
-	if ( !PlayerCtl ) return;
+	if (!PlayerCtl) return;
 
-	PlayerCtl->Client_ShowQuestUI(
+	const UUKQuestDefinitionAsset* Def = QuestSys->GetQuestDefinition(QuestID);
+
+	FText QuestTitle = NPCDisplayName;
+	FText Dialogue = NPCDescription;
+	FText QuestDesc = FText::GetEmpty();
+
+	if ( Def )
+	{
+		QuestTitle = Def->QuestTitle;
+		Dialogue = Def->NPCDialogue;
+		QuestDesc = Def->QuestDescription;
+	}
+
+	PlayerCtl->ShowQuestUI(
 		QuestID,
-		Def->QuestTitle,
-		Def->NPCDialogue,
-		Def->QuestDescription
+		QuestTitle,
+		Dialogue,
+		QuestDesc
 	);
 }
 

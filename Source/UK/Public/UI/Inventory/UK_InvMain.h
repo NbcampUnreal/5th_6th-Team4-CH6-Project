@@ -11,6 +11,8 @@ class UUK_InvUI;
 class UUK_InvInfo;
 class UDataTable;
 class UUK_MoneyWidget;
+class UButton; 
+class UUK_MainHUD;
 
 UENUM(BlueprintType)
 enum class EMainTab : uint8
@@ -64,4 +66,13 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetMainTab(EMainTab NewTab);
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UButton* CloseButton;
+	
+	UPROPERTY(BlueprintReadWrite)
+	UUK_MainHUD* OwnerMainHUD = nullptr;
+
+	UFUNCTION()
+	void OnCloseButtonClicked();
 };
