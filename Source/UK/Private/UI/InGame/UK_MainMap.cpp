@@ -10,11 +10,24 @@
 #include "Character/UK_CharacterBase.h" 
 #include "UI/InGame/UK_MapManager.h"    
 #include "Kismet/GameplayStatics.h"      
-#include "TimerManager.h"               
+#include "TimerManager.h"        
+
+#include "UI/InGame/UK_WarpIcon.h"
+#include "Level/Warp/UK_WarpSubsystem.h"
 
 void UUK_MainMap::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	// 서브시스템 가져오기
+	UUK_WarpSubsystem* WarpSubsystem = GetWorld()->GetSubsystem<UUK_WarpSubsystem>();
+
+	if ( WarpSubsystem && WarpDataTableAsset )
+	{
+		// 서브시스템의 WarpDataTable에 내가 들고 있는 에셋을 넣어줌
+		WarpSubsystem->WarpDataTable = WarpDataTableAsset;
+		UE_LOG(LogTemp, Log, TEXT("WarpDataTable has been successfully linked to Subsystem!"));
+	}
 
 	if (HorizontalScrollBox)
 	{
@@ -59,6 +72,9 @@ void UUK_MainMap::NativeConstruct()
 	}
 
 	UpdatePlayerLocation();
+
+	InitializeWarpIcons(); // 아이콘 생성
+	UpdateWarpIconLocations(); // 첫 위치 잡기
 
 }
 void UUK_MainMap::NativeDestruct()
@@ -126,6 +142,8 @@ void UUK_MainMap::UpdatePlayerLocation()
 	//-------- 아이콘 회전 --------
 	const float Yaw = PC->GetControlRotation().Yaw;
 	PlayerIcon->SetRenderTransformAngle(Yaw + 90.0f);
+
+	UpdateWarpIconLocations();
 }
 void UUK_MainMap::CacheMapBaseSize()
 {
@@ -204,6 +222,8 @@ void UUK_MainMap::ApplyMapZoom(float InZoomLevel, FVector2D LocalMousePos)
 	{
 		VerticalScrollBox->SetScrollOffset(NewScrollY);
 	}
+
+	UpdateWarpIconLocations();
 
 	UpdatePlayerLocation();
 }
@@ -304,4 +324,88 @@ bool UUK_MainMap::IsMouseInsideMap(const FGeometry& InGeometry, const FPointerEv
 	FVector2D WidgetSize = InGeometry.GetLocalSize();
 
 	return LocalPos.X >= 0.f && LocalPos.X <= WidgetSize.X && LocalPos.Y >= 0.f && LocalPos.Y <= WidgetSize.Y;
+}
+
+// 월드 좌표를 맵 UI 좌표로 변환하는 공통 함수
+FVector2D UUK_MainMap::GetMapPositionFromWorld(const FVector& WorldPos)
+{
+	if ( !MapImage || !MapContainer ) return FVector2D::ZeroVector;
+
+	const FVector2D WorldXY(WorldPos.X, WorldPos.Y);
+	const FVector2D Delta = WorldXY - CachedMapData.MapCenter;
+	const float WorldSize = FMath::Max(static_cast< float >( CachedMapData.MapSize ), 1.f);
+
+	float U = ( Delta.Y / WorldSize ) + 0.5f;
+	float V = ( Delta.X / WorldSize ) + 0.5f;
+	V = 1.0f - V;
+
+	U = FMath::Clamp(U, 0.f, 1.f);
+	V = FMath::Clamp(V, 0.f, 1.f);
+
+	const FGeometry& MapGeom = MapImage->GetCachedGeometry();
+	const FVector2D MapSize = MapGeom.GetLocalSize();
+	if ( MapSize.X <= 1.f || MapSize.Y <= 1.f ) return FVector2D::ZeroVector;
+
+	const FVector2D MapLocalPixel(U * MapSize.X, V * MapSize.Y);
+	const FVector2D AbsPos = MapGeom.LocalToAbsolute(MapLocalPixel);
+	const FGeometry& ContGeom = MapContainer->GetCachedGeometry();
+
+	return ContGeom.AbsoluteToLocal(AbsPos);
+}
+
+// 데이터테이블을 읽어 아이콘 위젯들을 최초 생성
+void UUK_MainMap::InitializeWarpIcons()
+{
+	UUK_WarpSubsystem* WarpSubsystem = GetWorld()->GetSubsystem<UUK_WarpSubsystem>();
+
+	//  Subsystem이나 DataTable이 없으면 그냥 리턴해서 크래시를 막음.
+	if ( !WarpSubsystem || !WarpSubsystem->WarpDataTable || !WarpIconClass )
+	{
+		UE_LOG(LogTemp, Error, TEXT("WarpDataTable or WarpIconClass is NULL!"));
+		return;
+	}
+	
+    // 기존 생성된 위젯이 있다면 제거
+	for ( auto Icon : WarpIconWidgets ) { if ( Icon ) Icon->RemoveFromParent(); }
+	WarpIconWidgets.Empty();
+
+	TArray<FWarpPointRow*> AllRows;
+	WarpSubsystem->WarpDataTable->GetAllRows<FWarpPointRow>(TEXT("WarpInit"), AllRows);
+	TArray<FName> ActivatedIDs = WarpSubsystem->GetActivatedPointIDs();
+
+	for ( FWarpPointRow* Row : AllRows )
+	{
+		UUK_WarpIcon* NewIcon = CreateWidget<UUK_WarpIcon>(this, WarpIconClass);
+		if ( NewIcon )
+		{
+			bool bIsActive = ActivatedIDs.Contains(Row->WarpPointID);
+			NewIcon->InitWarpIcon(Row->WarpPointID, bIsActive);
+
+			MapContainer->AddChildToCanvas(NewIcon);
+			WarpIconWidgets.Add(NewIcon);
+		}
+	}
+}
+
+// 줌이나 드래그 시 워프 아이콘들의 위치를 재계산
+void UUK_MainMap::UpdateWarpIconLocations()
+{
+	UUK_WarpSubsystem* WarpSubsystem = GetWorld()->GetSubsystem<UUK_WarpSubsystem>();
+	if ( !WarpSubsystem ) return;
+
+	for ( UUK_WarpIcon* Icon : WarpIconWidgets )
+	{
+		if ( !Icon ) continue;
+
+		FWarpPointRow RowData = WarpSubsystem->GetWarpRowByID(Icon->WarpPointID);
+		// 데이터테이블에 추가한 WorldLocation 좌표 사용
+		FVector2D MapPos = GetMapPositionFromWorld(RowData.WorldLocation);
+
+		if ( UCanvasPanelSlot* IconSlot = Cast<UCanvasPanelSlot>(Icon->Slot) )
+		{
+			IconSlot->SetAnchors(FAnchors(0.f, 0.f, 0.f, 0.f));
+			IconSlot->SetAlignment(FVector2D(0.5f, 0.5f));
+			IconSlot->SetPosition(MapPos);
+		}
+	}
 }

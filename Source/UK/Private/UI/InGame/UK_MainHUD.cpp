@@ -33,7 +33,7 @@ void UUK_MainHUD::NativeConstruct()
 			UpdateHealthBar(Data);
 			Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetHealthAttribute());
 			UpdateHealthBar(Data);
-			
+
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute()).
 			     AddUObject(this, &UUK_MainHUD::UpdateHealthBar);
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetHealthAttribute()).
@@ -45,7 +45,7 @@ void UUK_MainHUD::NativeConstruct()
 			UpdateMpBar(Data);
 			Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetCurrentMpAttribute());
 			UpdateMpBar(Data);
-			
+
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetMaxMpAttribute()).
 			     AddUObject(this, &UUK_MainHUD::UpdateMpBar);
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetCurrentMpAttribute()).
@@ -57,7 +57,7 @@ void UUK_MainHUD::NativeConstruct()
 			UpdateLevel(Data);
 			Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetLevelAttribute());
 			UpdateLevel(Data);
-			
+
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetMaxLevelAttribute()).
 			     AddUObject(this, &UUK_MainHUD::UpdateLevel);
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetLevelAttribute()).
@@ -118,7 +118,7 @@ void UUK_MainHUD::UpdateHealthBar(const FOnAttributeChangeData& Data)
 		float MaxHealth =
 			ASC->GetNumericAttribute(
 				UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute());
-		if (HealthBar && Data.NewValue > 0.f)
+		if (HealthBar && Data.NewValue >= 0.f)
 		{
 			// 0.0 ~ 1.0 사이의 퍼센트 값으로 변환하여 반영
 			HealthBar->SetPercent(Data.NewValue / MaxHealth);
@@ -149,7 +149,7 @@ void UUK_MainHUD::UpdateMpBar(const FOnAttributeChangeData& Data)
 		float MaxMp =
 			ASC->GetNumericAttribute(
 				UUK_PlayerStatusAttributeSet::GetMaxMpAttribute());
-		if (MpBar && Data.NewValue > 0.f)
+		if (MpBar && Data.NewValue >= 0.f)
 		{
 			// 0.0 ~ 1.0 사이의 퍼센트 값으로 변환하여 반영
 			MpBar->SetPercent(Data.NewValue / MaxMp);
