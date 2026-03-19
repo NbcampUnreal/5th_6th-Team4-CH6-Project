@@ -28,6 +28,7 @@
 #include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
 #include "Components/CapsuleComponent.h"
 #include "DataAsset/Data/UK_WeaponItemData.h"
+#include "Systems/Data/UK_InGameSave.h" 
 
 
 #pragma region Defualt
@@ -284,6 +285,17 @@ float AUK_CharacterBase::GetFloorDistance()
 }
 
 
+#pragma endregion
+
+#pragma  region SaveGame
+
+void AUK_CharacterBase::OnLoadGame(class UUK_InGameSave* SaveGameObject)
+{
+}
+
+void AUK_CharacterBase::OnSaveGame(class UUK_InGameSave* SaveGameObject)
+{
+}
 #pragma endregion
 
 #pragma region GAS
@@ -882,23 +894,24 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 	}
 	UUK_StatusAnimData* Weapon = WeaponList->FindAnimsDataAssetByTag(NewWeapon);
 	NowWeapon = Weapon;
-	if (IsValid(Weapon->GetRightHandWeapon()))
+	FWeaponStatus WeaponStatus = Weapon->FindAnimsDataAssetByType(NewWeapon);
+	if (IsValid(WeaponStatus.RightHandWeapon))
 	{
-		RightHandWeaponComponent->SetSkeletalMesh(Weapon->GetRightHandWeapon());
+		RightHandWeaponComponent->SetSkeletalMesh(WeaponStatus.RightHandWeapon);
 
-		RightHandWeaponComponent->SetRelativeLocation(Weapon->GetRightLocationOffset());
-		RightHandWeaponComponent->SetRelativeRotation(Weapon->GetRightRotationOffset());
+		RightHandWeaponComponent->SetRelativeLocation(WeaponStatus.RightLocationOffset);
+		RightHandWeaponComponent->SetRelativeRotation(WeaponStatus.RightRotationOffset);
 	}
 	else
 	{
 		RightHandWeaponComponent->SetSkeletalMesh(nullptr);
 	}
-	if (IsValid(Weapon->GetLeftHandWeapon()))
+	if (IsValid(WeaponStatus.LeftHandWeapon))
 	{
-		LeftHandWeaponComponent->SetSkeletalMesh(Weapon->GetLeftHandWeapon());
+		LeftHandWeaponComponent->SetSkeletalMesh(WeaponStatus.LeftHandWeapon);
 
-		LeftHandWeaponComponent->SetRelativeLocation(Weapon->GetLeftLocationOffset());
-		LeftHandWeaponComponent->SetRelativeRotation(Weapon->GetLeftRotationOffset());
+		LeftHandWeaponComponent->SetRelativeLocation(WeaponStatus.LeftLocationOffset);
+		LeftHandWeaponComponent->SetRelativeRotation(WeaponStatus.LeftRotationOffset);
 	}
 	else
 	{
@@ -1024,17 +1037,37 @@ void AUK_CharacterBase::Dead()
 	OnDead.Broadcast();
 }
 
-// void AUK_CharacterBase::StartBattle()
-// {
-// 	bInBattle = true;
-// }
-//
-// void AUK_CharacterBase::EndBattle()
-// {
-// 	bInBattle = false;
-// 	
-// 	
-// }
+void AUK_CharacterBase::StartBattle()
+{
+	bInBattle = true;
+	if (GetWorldTimerManager().IsTimerActive(EndBattleTimerHandle))
+	{
+		GetWorldTimerManager().ClearTimer(EndBattleTimerHandle);
+	}
+	
+}
+
+void AUK_CharacterBase::EndBattle()
+{
+	bInBattle = false;
+	
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (IsValid(ASC) == false)
+		return;
+
+	FGameplayEffectSpecHandle SpecHandle =
+		ASC->MakeOutgoingSpec(EndBattleEffect, 1.f, ASC->MakeEffectContext());
+	
+	const UUK_PlayerStatusAttributeSet* Attributes = ASC->GetSet<UUK_PlayerStatusAttributeSet>();
+	const float HealAmount = Attributes->GetMaxHealth() * 0.05f;
+	
+	SpecHandle.Data->SetSetByCallerMagnitude(
+		UK_GameplayTags::Data::EndBattle::Heal,
+		HealAmount
+	);
+
+	EndBattleEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+}
 
 void AUK_CharacterBase::UpdateMonsterDetection()
 {
@@ -1062,20 +1095,23 @@ void AUK_CharacterBase::UpdateMonsterDetection()
 			}
 		}
 	}
-	// if (NewSet.Num() > 0)
-	// {
-	// 	StartBattle();
-	// }
-	// else
-	// {
-	// 	GetWorldTimerManager().SetTimer(
-	// 		EndBattleTimerHandle,
-	// 		this,
-	// 		&AUK_CharacterBase::EndBattle,
-	// 		3.f,
-	// 		false
-	// 	);
-	// }
+	if (NewSet.Num() > 0)
+	{
+		StartBattle();
+	}
+	else
+	{
+		if (GetWorldTimerManager().IsTimerActive(EndBattleTimerHandle) == false)
+		{
+			GetWorldTimerManager().SetTimer(
+				EndBattleTimerHandle,
+				this,
+				&AUK_CharacterBase::EndBattle,
+				5.f,
+				false
+			);
+		}
+	}
 	// 범위가 벗어났는지 확인 
 	for (AAIMonsterBase* OldMonster : NearbyMonsters)
 	{
