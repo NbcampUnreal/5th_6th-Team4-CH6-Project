@@ -7,12 +7,12 @@
 class AActor;
 class AUK_QuestNPC;
 
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+UCLASS(ClassGroup = ( Custom ), meta = ( BlueprintSpawnableComponent ))
 class UK_API UUK_InteractionComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:	
+public:
 	UUK_InteractionComponent();
 
 protected:
@@ -21,13 +21,10 @@ protected:
 	UPROPERTY()
 	AActor* NearActor;
 
-public:	
+public:
 	void SetNearActor(AActor* NewActor);
 	void ClearNearActor();
 	void TryInteract();
 
-	UFUNCTION(Server, Reliable)
-	void Server_TryInteract(AActor* Target);
-	void Server_TryInteract_Implementation(AActor* Target);
-
+	AActor* GetNearActor() const { return NearActor; }
 };

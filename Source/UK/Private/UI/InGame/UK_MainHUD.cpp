@@ -13,6 +13,8 @@
 #include "ActorComponent/UK_InventoryComponent.h"
 #include "AbilitySystemComponent.h"
 #include "Blueprint/UserWidget.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 //끝
 void UUK_MainHUD::NativeConstruct()
 {
@@ -193,45 +195,7 @@ void UUK_MainHUD::UpdateLevel(const FOnAttributeChangeData& Data)
 
 void UUK_MainHUD::OnInventoryButtonClicked()
 {
-	if (!InvMainClass) return;
-
-	// 인벤토리 위젯이 생성되지 않았다면 생성
-	if (!InvMainWidget)
-	{
-		InvMainWidget = CreateWidget<UUK_InvMain>(GetWorld(), InvMainClass);
-	}
-
-	if (InvMainWidget)
-	{
-		if (!InvMainWidget->IsInViewport())
-		{
-			// 화면에 추가
-			InvMainWidget->AddToViewport();
-			//NewText히든으로 숨김
-			SetInventoryNewVisible(false);
-			// 마우스 커서 활성화 및 입력 모드 변경
-			APlayerController* PC = GetOwningPlayer();
-			if (PC)
-			{
-				PC->SetShowMouseCursor(true);
-				FInputModeGameAndUI InputMode;
-				InputMode.SetWidgetToFocus(InvMainWidget->TakeWidget());
-				PC->SetInputMode(InputMode);
-			}
-		}
-		else
-		{
-			// 이미 열려있다면 닫기 (토글 방식)
-			InvMainWidget->RemoveFromParent();
-
-			APlayerController* PC = GetOwningPlayer();
-			if (PC)
-			{
-				PC->SetShowMouseCursor(false);
-				PC->SetInputMode(FInputModeGameOnly());
-			}
-		}
-	}
+	ToggleInventory();
 }
 
 void UUK_MainHUD::HandleItemAdded_ShowNew(FName ItemID, int32 Amount)
@@ -291,5 +255,75 @@ void UUK_MainHUD::NotifyChildren()
 		}
 
 		VB_ItemNotify->RemoveChildAt(0);
+	}
+}
+
+
+void UUK_MainHUD::OpenInventory()
+{
+	if (!InvMainClass) return;
+
+	APlayerController* PC = GetOwningPlayer();
+	if (!PC) return;
+
+	if (!InvMainWidget)
+	{
+		InvMainWidget = CreateWidget<UUK_InvMain>(GetWorld(), InvMainClass);
+
+		
+		if (InvMainWidget)
+		{
+			InvMainWidget->OwnerMainHUD = this;
+		}
+	}
+
+	if (InvMainWidget)
+	{
+		if (!InvMainWidget->IsInViewport())
+		{
+			InvMainWidget->AddToViewport();
+			SetInventoryNewVisible(false);
+
+			PC->SetShowMouseCursor(true);
+
+			FInputModeUIOnly InputMode;
+			InputMode.SetWidgetToFocus(InvMainWidget->TakeWidget());
+			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+
+			PC->SetInputMode(InputMode);
+
+			if (PlayerPawn)
+			{
+				PlayerPawn->GetCharacterMovement()->StopMovementImmediately();
+			}
+		}
+	}
+}
+
+void UUK_MainHUD::CloseInventory()
+{
+	APlayerController* PC = GetOwningPlayer();
+	if (!PC) return;
+
+	if (InvMainWidget && InvMainWidget->IsInViewport())
+	{
+		InvMainWidget->RemoveFromParent();
+	}
+
+	PC->SetShowMouseCursor(false);
+
+	FInputModeGameOnly InputMode;
+	PC->SetInputMode(InputMode);
+}
+
+void UUK_MainHUD::ToggleInventory()
+{
+	if ( InvMainWidget && InvMainWidget->IsInViewport() )
+	{
+		CloseInventory();
+	}
+	else
+	{
+		OpenInventory();
 	}
 }

@@ -25,7 +25,7 @@ public:
 
 	bool CanInteract() const {return bPlayerInRange;}
 
-	virtual void Interact_Implementation(AActor* Interactor) override;
+	void Interact(AActor* Interactor);
 
 	// 퀘스트 마커를 표시할 영역
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC")
