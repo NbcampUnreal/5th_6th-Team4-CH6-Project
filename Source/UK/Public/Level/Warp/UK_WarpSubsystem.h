@@ -5,7 +5,8 @@
 #include "Level/Warp/UK_WarpPointData.h"
 #include "UK_WarpSubsystem.generated.h"
 
-UCLASS()
+UCLASS(BlueprintType)
+
 class UK_API UUK_WarpSubsystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
