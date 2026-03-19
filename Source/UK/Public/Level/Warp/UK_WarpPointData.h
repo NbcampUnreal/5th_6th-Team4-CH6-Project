@@ -22,4 +22,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Warp")
 	TObjectPtr<UTexture2D> MapIcon;
 
+	// 워프타워 좌표
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Warp")
+	FVector WorldLocation;
+
 };
