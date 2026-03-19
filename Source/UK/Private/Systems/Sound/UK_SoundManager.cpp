@@ -1,5 +1,6 @@
 #include "Systems/Sound/UK_SoundManager.h"
 #include "Kismet/GameplayStatics.h"
+#include "TimerManager.h"
 
 AUK_SoundManager::AUK_SoundManager()
 {
@@ -8,26 +9,30 @@ AUK_SoundManager::AUK_SoundManager()
 	BGMComponent->bAutoActivate = false;
 }
 
+// 스태틱 함수 구현
+AUK_SoundManager* AUK_SoundManager::Get(const UObject* WorldContextObject)
+{
+	return Cast<AUK_SoundManager>(UGameplayStatics::GetActorOfClass(WorldContextObject, AUK_SoundManager::StaticClass()));
+}
+
 void AUK_SoundManager::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 void AUK_SoundManager::SetCurrentRegion(EBKRegion NewRegion, USoundBase* NewBGM)
 {
-	if (CurrentRegion == NewRegion && !bIsInCombat) return;
-
 	CurrentRegion = NewRegion;
 	
-	// 전투 중이 아닐 때만 실제 사운드 교체
+	if (!bIsInCombat && BGMComponent->GetSound() == NewBGM) return;
+	
 	if (!bIsInCombat)
 	{
 		PlayBGM(NewBGM);
 	}
 	else
 	{
-		// 전투 중이라면 복귀용 BGM 정보만 업데이트
+		// 전투 중이면 나중에 돌아올 음악만 바꿔둠
 		LastFieldBGM = NewBGM;
 	}
 }
@@ -42,7 +47,7 @@ void AUK_SoundManager::SetCombatState(bool bInCombat)
 		// 1. 현재 필드 BGM 저장
 		LastFieldBGM = BGMComponent->Sound;
 
-		// 2. 현재 지역에 맞는 전투 BGM 찾기
+		// 현재 속해있는 상위지역 의 전투 음악 찾기
 		if (USoundBase** CombatBGM = CombatBGMMappings.Find(CurrentRegion))
 		{
 			PlayBGM(*CombatBGM);
@@ -50,7 +55,7 @@ void AUK_SoundManager::SetCombatState(bool bInCombat)
 	}
 	else
 	{
-		// 3. 전투 종료 시 저장해둔 필드 BGM으로 복귀
+		// 3. 전투 종료 시 복귀
 		if (LastFieldBGM)
 		{
 			PlayBGM(LastFieldBGM);
@@ -60,15 +65,15 @@ void AUK_SoundManager::SetCombatState(bool bInCombat)
 
 void AUK_SoundManager::PlayBGM(USoundBase* NewSound, bool bFade)
 {
-	if (!NewSound) return;
+	if (!NewSound || BGMComponent->Sound == NewSound) return;
 
 	if (bFade)
 	{
+		// 페이드 아웃 후 교체
 		BGMComponent->FadeOut(FadeOutDuration, 0.0f);
 		
-		// 약간의 딜레이 후 새 사운드 재생 (또는 타이머 사용 가능)
 		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this, NewSound]()
+		GetWorldTimerManager().SetTimer(TimerHandle, [this, NewSound]()
 		{
 			BGMComponent->SetSound(NewSound);
 			BGMComponent->FadeIn(FadeInDuration);
