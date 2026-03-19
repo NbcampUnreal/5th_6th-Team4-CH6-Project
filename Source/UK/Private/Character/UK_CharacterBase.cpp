@@ -29,6 +29,7 @@
 #include "Components/CapsuleComponent.h"
 #include "DataAsset/Data/UK_WeaponItemData.h"
 #include "Systems/Data/UK_InGameSave.h"
+#include "Systems/Sound/UK_SoundManager.h"
 
 
 #pragma region Defualt
@@ -1154,6 +1155,12 @@ void AUK_CharacterBase::StartBattle()
 	{
 		GetWorldTimerManager().ClearTimer(EndBattleTimerHandle);
 	}
+	
+	// 사운드 매니저를 찾아서 전투 상태를 True로 변경
+	if (AUK_SoundManager* SoundManager = AUK_SoundManager::Get(GetWorld()))
+	{
+		SoundManager->SetCombatState(true);
+	}
 }
 
 void AUK_CharacterBase::EndBattle()
@@ -1181,6 +1188,12 @@ void AUK_CharacterBase::EndBattle()
 	);
 
 	EndBattleEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+	
+	// 사운드 매니저를 찾아서 전투 상태를 False로 변경
+	if (AUK_SoundManager* SoundManager = AUK_SoundManager::Get(GetWorld()))
+	{
+		SoundManager->SetCombatState(false);
+	}
 }
 
 void AUK_CharacterBase::UpdateMonsterDetection()
