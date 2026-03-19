@@ -169,6 +169,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Monster")
 	void ResetHealth();
 
+	UFUNCTION(BlueprintCallable, Category = "Monster")
+	void ResetForRespawn();
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 	float DetectionRadius = 800.0f;
 

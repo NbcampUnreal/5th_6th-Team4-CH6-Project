@@ -16,33 +16,36 @@ UUK_BTService_SetWalkSpeed::UUK_BTService_SetWalkSpeed()
 void UUK_BTService_SetWalkSpeed::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	Super::OnBecomeRelevant(OwnerComp, NodeMemory);
+	FSetWalkSpeedMemory* Memory = reinterpret_cast<FSetWalkSpeedMemory*>(NodeMemory);
 
 	AAIController* AIController = OwnerComp.GetAIOwner();
 	if (!AIController) return;
-
 	ACharacter* Character = Cast<ACharacter>(AIController->GetPawn());
 	if (!Character) return;
-
 	UCharacterMovementComponent* MoveComp = Character->GetCharacterMovement();
 	if (!MoveComp) return;
 
-	CachedOriginalSpeed    = MoveComp->MaxWalkSpeed;
+	Memory->CachedOriginalSpeed = MoveComp->MaxWalkSpeed; 
 	MoveComp->MaxWalkSpeed = WanderSpeed;
 }
 
 void UUK_BTService_SetWalkSpeed::OnCeaseRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	Super::OnCeaseRelevant(OwnerComp, NodeMemory);
+	FSetWalkSpeedMemory* Memory = reinterpret_cast<FSetWalkSpeedMemory*>(NodeMemory);
 
 	AAIController* AIController = OwnerComp.GetAIOwner();
 	if (!AIController) return;
-
 	ACharacter* Character = Cast<ACharacter>(AIController->GetPawn());
 	if (!Character) return;
-
 	UCharacterMovementComponent* MoveComp = Character->GetCharacterMovement();
 	if (!MoveComp) return;
 
-	MoveComp->MaxWalkSpeed = (OriginalSpeed > 0.f) ? OriginalSpeed : CachedOriginalSpeed;
+	MoveComp->MaxWalkSpeed = (OriginalSpeed > 0.f) ? OriginalSpeed : Memory->CachedOriginalSpeed;
+}
+
+uint16 UUK_BTService_SetWalkSpeed::GetInstanceMemorySize() const
+{
+	return Super::GetInstanceMemorySize();
 }
 #pragma endregion
