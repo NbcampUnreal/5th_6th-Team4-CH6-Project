@@ -283,6 +283,7 @@ void AUK_PlayerController::Setting_UI()
 	if ( bIsSetting )
 	{
 		ApplyInputState(EInputState::UI);
+
 		SettingWidget->SetVisibility(ESlateVisibility::Visible);
 
 		GetWorldTimerManager().PauseTimer(StaminaTrackingTimer);

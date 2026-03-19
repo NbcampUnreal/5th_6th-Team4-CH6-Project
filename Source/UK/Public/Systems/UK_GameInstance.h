@@ -32,11 +32,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Widgets")
 	TSubclassOf<UUK_Out_Loading> LoadingWidgetClass;
 
-	UFUNCTION(BlueprintCallable)
-	void LoadLevelWithLoading(FName LevelName);
+	//UFUNCTION(BlueprintCallable)
+	//void LoadLevelWithLoading(FName LevelName);
 
-	UFUNCTION(BlueprintCallable)
-	void OnLevelLoaded();
+	//UFUNCTION(BlueprintCallable)
+	//void OnLevelLoaded();
 
 	UFUNCTION(BlueprintCallable)
 	void SetLoadingInputMode(APlayerController* PC);

@@ -2,6 +2,7 @@
 
 
 #include "UI/OutGame/UK_Out_Loading.h"
+#include "Character/UK_PlayerController.h"
 #include "Systems/UK_GameInstance.h"
 
 void UUK_Out_Loading::LoadingLogoFunc(const FGeometry& MyGeometry, float InDeltaTime)
@@ -22,6 +23,8 @@ void UUK_Out_Loading::LoadingLogoFunc(const FGeometry& MyGeometry, float InDelta
 
 void UUK_Out_Loading::HandleLoadingComplete()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Loading Complete! Removing Widget..."));
+
 	GetWorld()->GetTimerManager().ClearTimer(FinishTimerHandle);
 
 	UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
@@ -30,13 +33,13 @@ void UUK_Out_Loading::HandleLoadingComplete()
 		GI->PersistentLoadingWidget = nullptr;
 	}
 
-	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	AUK_PlayerController* PC = Cast<AUK_PlayerController>(GetWorld()->GetFirstPlayerController());
 	if ( PC )
 	{
 		FInputModeGameOnly InputMode;
 		PC->SetInputMode(InputMode);
 		PC->bShowMouseCursor = false;
-
+		PC->ApplyInputState(EInputState::Game);
 		FSlateApplication::Get().SetAllUserFocusToGameViewport();
 	}
 

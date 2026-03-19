@@ -22,7 +22,7 @@ void UUK_GameInstance::ShowLoading(float Target)
 
 			GEngine->GameViewport->AddViewportWidgetContent(
 				PersistentLoadingWidget->TakeWidget(),
-				999
+				0
 			);
 		}
 	}
