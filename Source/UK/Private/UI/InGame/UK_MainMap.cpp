@@ -27,6 +27,9 @@ void UUK_MainMap::NativeConstruct()
 		// 서브시스템의 WarpDataTable에 내가 들고 있는 에셋을 넣어줌
 		WarpSubsystem->WarpDataTable = WarpDataTableAsset;
 		UE_LOG(LogTemp, Log, TEXT("WarpDataTable has been successfully linked to Subsystem!"));
+
+		// 로딩창 클래스 
+		WarpSubsystem->LoadingWidgetClass = LoadingWidgetClass;
 	}
 
 	if (HorizontalScrollBox)
