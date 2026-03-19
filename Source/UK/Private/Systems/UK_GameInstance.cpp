@@ -10,7 +10,11 @@
 
 void UUK_GameInstance::ShowLoading(float Target)
 {
-	if ( PersistentLoadingWidget ) return;
+	if ( PersistentLoadingWidget )
+	{
+		PersistentLoadingWidget->TargetValue = Target;
+		return;
+	}
 
 	if ( LoadingWidgetClass && GetWorld() )
 	{
