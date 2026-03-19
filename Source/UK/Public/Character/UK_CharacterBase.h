@@ -9,6 +9,7 @@
 #include "UK_PlayerController.h"
 #include "AIMonster/AIMonsterBase.h"
 #include "DataAsset/HitMontageDataAsset.h"
+#include "Systems/Data/UK_SaveInterface.h"
 #include "UK_CharacterBase.generated.h"
 
 #define ECC_LockOn ECollisionChannel::ECC_GameTraceChannel2
@@ -72,7 +73,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadDelagate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCharacterAttribute, ECharacterAttribute, CharacterAttribute);
 
 UCLASS()
-class UK_API AUK_CharacterBase : public ACharacter, public IAbilitySystemInterface
+class UK_API AUK_CharacterBase : public ACharacter, public IAbilitySystemInterface, public IUK_SaveInterface
 {
 	GENERATED_BODY()
 
@@ -168,6 +169,13 @@ public:
 	
 #pragma endregion
 
+#pragma  region SaveGame
+public:
+	virtual void OnLoadGame(class UUK_InGameSave* SaveGameObject) override;
+	virtual void OnSaveGame(class UUK_InGameSave* SaveGameObject) override;
+
+#pragma endregion
+	
 #pragma region Interaction And Quest
 
 public:
@@ -347,6 +355,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SwapWeapon(int32 Index);
 
+	UFUNCTION(BlueprintCallable)
 	UUK_StatusAnimData* GetNowWeaponStatus() const { return NowWeapon; }
 
 protected:

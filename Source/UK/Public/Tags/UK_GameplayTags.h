@@ -109,6 +109,17 @@ namespace UK_GameplayTags
 
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Damage);
 
+		namespace Cost
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(SkillCost);
+
+			namespace OneHandSword
+			{
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(NormalSkill);
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(UltimateSkill);
+			}
+		}
+
 		namespace WeaponStat
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(ExtraAttackPower);

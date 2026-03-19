@@ -53,16 +53,12 @@ class UK_API UUK_StatusAnimData : public UDataAsset
 public:
 	UUK_AnimData* FindAnimsDataAssetByType(const EComboAttackType AttackType);
 	
-	FWeaponStatus FindAnimsDataAssetByType(const FGameplayTag& WeaponTag);
+	FWeaponStatus FindAnimsDataAssetByType(const FGameplayTag& FindWeaponTag);
 	
-	// TObjectPtr<USkeletalMesh> GetLeftHandWeapon() const { return LeftHandWeapon; }
-	// TObjectPtr<USkeletalMesh> GetRightHandWeapon() const { return RightHandWeapon; }
-	//
-	// FVector GetLeftLocationOffset()const { return LeftLocationOffset; }
-	// FRotator GetLeftRotationOffset()const { return LeftRotationOffset; }
-	//
-	// FVector GetRightLocationOffset()const { return RightLocationOffset; }
-	// FRotator GetRightRotationOffset()const { return RightRotationOffset; }
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	FGameplayTag NormalSkillCostTag;	
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	FGameplayTag UltimalteSkillCostTag;
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ComboAttack")
 	TMap<EComboAttackType, TObjectPtr<UUK_AnimData>> ComboAnimationDatas;

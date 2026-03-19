@@ -106,12 +106,22 @@ namespace UK_GameplayTags
 				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Air4, "Data.Damages.OneHandSword.Air4", "DamageTag")
 				UE_DEFINE_GAMEPLAY_TAG_COMMENT(Drop, "Data.Damages.OneHandSword.Drop", "DamageTag")
 				UE_DEFINE_GAMEPLAY_TAG_COMMENT(NormalSkill, "Data.Damages.OneHandSword.NormalSkill", "DamageTag")
-				UE_DEFINE_GAMEPLAY_TAG_COMMENT(UltimateSkill, "Data.Damages.OneHandSword.UltimateSkill",
-				                               "DamageTag")
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(UltimateSkill, "Data.Damages.OneHandSword.UltimateSkill", "DamageTag")
 			}
 		}
 
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Damage, "Data.Damage", "Damage Data")
+
+		namespace Cost
+		{
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(SkillCost, "Data.Cost.SkillCost", "Cost Data")
+
+			namespace OneHandSword
+			{
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(NormalSkill, "Data.Cost.OneHandSword.NormalSkill", "Cost Data")
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(UltimateSkill, "Data.Cost.OneHandSword.UltimateSkill", "Cost Data")
+			}
+		}
 
 		namespace WeaponStat
 		{
@@ -141,4 +151,3 @@ namespace UK_GameplayTags
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(MaterialRoot, "Material", "Root Material Tag")
 	}
 }
-

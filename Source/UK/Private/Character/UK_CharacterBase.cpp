@@ -28,6 +28,7 @@
 #include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
 #include "Components/CapsuleComponent.h"
 #include "DataAsset/Data/UK_WeaponItemData.h"
+#include "Systems/Data/UK_InGameSave.h" 
 
 
 #pragma region Defualt
@@ -284,6 +285,17 @@ float AUK_CharacterBase::GetFloorDistance()
 }
 
 
+#pragma endregion
+
+#pragma  region SaveGame
+
+void AUK_CharacterBase::OnLoadGame(class UUK_InGameSave* SaveGameObject)
+{
+}
+
+void AUK_CharacterBase::OnSaveGame(class UUK_InGameSave* SaveGameObject)
+{
+}
 #pragma endregion
 
 #pragma region GAS
@@ -883,7 +895,6 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 	UUK_StatusAnimData* Weapon = WeaponList->FindAnimsDataAssetByTag(NewWeapon);
 	NowWeapon = Weapon;
 	FWeaponStatus WeaponStatus = Weapon->FindAnimsDataAssetByType(NewWeapon);
-	
 	if (IsValid(WeaponStatus.RightHandWeapon))
 	{
 		RightHandWeaponComponent->SetSkeletalMesh(WeaponStatus.RightHandWeapon);
@@ -1048,7 +1059,7 @@ void AUK_CharacterBase::EndBattle()
 		ASC->MakeOutgoingSpec(EndBattleEffect, 1.f, ASC->MakeEffectContext());
 	
 	const UUK_PlayerStatusAttributeSet* Attributes = ASC->GetSet<UUK_PlayerStatusAttributeSet>();
-	const float HealAmount = Attributes->GetMaxHealth() / 5.f;
+	const float HealAmount = Attributes->GetMaxHealth() * 0.05f;
 	
 	SpecHandle.Data->SetSetByCallerMagnitude(
 		UK_GameplayTags::Data::EndBattle::Heal,
