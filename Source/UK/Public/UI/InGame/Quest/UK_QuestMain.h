@@ -5,6 +5,7 @@
 #include "UK_QuestMain.generated.h"
 
 class UUKQuestUIManagerSubsystem;
+class UUKQuestManagerSubsystem;
 class UUK_QuestLists;
 
 UCLASS()
@@ -23,5 +24,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TArray<FName> QuestIds;
+
+
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void RefreshQuestList();
+
+	UPROPERTY()
+	TObjectPtr<UUKQuestManagerSubsystem> QuestManager = nullptr;
 	
 };
