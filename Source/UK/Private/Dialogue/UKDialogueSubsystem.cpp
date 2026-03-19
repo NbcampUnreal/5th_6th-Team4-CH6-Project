@@ -25,9 +25,8 @@ void UUKDialogueSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-// =========================
+
 // [2] Load / Start / End
-// =========================
 
 bool UUKDialogueSubsystem::LoadDialoguePack(const FString& PackFileName)
 {
@@ -119,9 +118,8 @@ bool UUKDialogueSubsystem::CanStartDialogue(FName DialogueId) const
 	return true;
 }
 
-// =========================
+
 // [3] Current State Getter
-// =========================
 
 FName UUKDialogueSubsystem::GetCurrentSpeakerID() const
 {
@@ -222,9 +220,8 @@ FUKCurrentDialogueUIData UUKDialogueSubsystem::GetCurrentDialogueUIData() const
 	return OutData;
 }
 
-// =========================
+
 // [4] Progress
-// =========================
 
 bool UUKDialogueSubsystem::SelectChoice(int32 ChoiceIndex)
 {
@@ -266,9 +263,8 @@ bool UUKDialogueSubsystem::SelectChoice(int32 ChoiceIndex)
 	return true;
 }
 
-// =========================
+
 // [6] Helpers
-// =========================
 
 const FUKDialogueData* UUKDialogueSubsystem::FindDialogueById(FName DialogueId) const
 {

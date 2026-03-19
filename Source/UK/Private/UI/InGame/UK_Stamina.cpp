@@ -99,3 +99,4 @@ void UUK_Stamina::SetTrackingPosition(const FVector2D& ScreenPos, float Scale, b
 	SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
 	SetRenderScale(FVector2D(Scale, Scale));
 }
+
