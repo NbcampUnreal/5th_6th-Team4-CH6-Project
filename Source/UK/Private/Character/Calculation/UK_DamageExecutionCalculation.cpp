@@ -19,22 +19,22 @@ struct FDamageCapture
 		AttackPowerDef = FGameplayEffectAttributeCaptureDefinition(
 			UUK_PlayerStatusAttributeSet::GetAttackPowerAttribute(),
 			EGameplayEffectAttributeCaptureSource::Source,
-			true
+			false
 			);					
 		CurrentPowerDef = FGameplayEffectAttributeCaptureDefinition(
 			UUK_PlayerStatusAttributeSet::GetCurrentPowerAttribute(),
 			EGameplayEffectAttributeCaptureSource::Source,
-			true
+			false
 			);				
 		CriticalChanceDef = FGameplayEffectAttributeCaptureDefinition(
 				UUK_PlayerStatusAttributeSet::GetCriticalChanceAttribute(),
 				EGameplayEffectAttributeCaptureSource::Source,
-				true
+				false
 			);		
 		CriticalDamageDef = FGameplayEffectAttributeCaptureDefinition(
 				UUK_PlayerStatusAttributeSet::GetCriticalDamageAttribute(),
 				EGameplayEffectAttributeCaptureSource::Source,
-				true
+				false
 			);		
 
 	}
@@ -49,6 +49,9 @@ static FDamageCapture& GetDamageCapture()
 UUK_DamageExecutionCalculation::UUK_DamageExecutionCalculation()
 {
 	RelevantAttributesToCapture.Add(GetDamageCapture().AttackPowerDef);
+	RelevantAttributesToCapture.Add(GetDamageCapture().CurrentPowerDef);
+	RelevantAttributesToCapture.Add(GetDamageCapture().CriticalChanceDef);
+	RelevantAttributesToCapture.Add(GetDamageCapture().CriticalDamageDef);
 }
 
 void UUK_DamageExecutionCalculation::Execute_Implementation(
@@ -64,11 +67,19 @@ void UUK_DamageExecutionCalculation::Execute_Implementation(
 	//캐릭터의 기본 공격력
 	float AttackPower = 0.f;
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(
-		FDamageCapture().AttackPowerDef, EvalParams, AttackPower);		
+		FDamageCapture().AttackPowerDef, EvalParams, AttackPower);	
+	
+	//무기 공격력
 	float CurrentPower = 0.f;
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(
 		FDamageCapture().CurrentPowerDef, EvalParams, CurrentPower);	
+	
+	UE_LOG(LogTemp, Display, TEXT("AttackPower : %f, CurrentPower : %f"),AttackPower ,  CurrentPower);
+	
+	// 기본 공격력 + 무기 공격력
 	float FinalAttack = AttackPower + CurrentPower;
+	
+	//크리티컬 확률
 	float CriticalChance = 0.f;
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(
 		FDamageCapture().CriticalChanceDef, EvalParams, CriticalChance);
