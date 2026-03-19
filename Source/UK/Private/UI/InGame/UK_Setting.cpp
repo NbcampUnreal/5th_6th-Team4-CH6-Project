@@ -48,6 +48,13 @@ void UUK_Setting::OnSoundButtonClicked()
 
 	SoundWidget->AddToViewport();
 
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(SoundWidget->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+
+	UK_PC->SetInputMode(InputMode);
+	UK_PC->bShowMouseCursor = true;
+
 	this->SetVisibility(ESlateVisibility::Collapsed);
 }
 
@@ -63,6 +70,13 @@ void UUK_Setting::OnVideoButtonClicked()
 	VideoWidget->SetParentWidget(this);
 
 	VideoWidget->AddToViewport();
+
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(VideoWidget->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+
+	UK_PC->SetInputMode(InputMode);
+	UK_PC->bShowMouseCursor = true;
 
 	this->SetVisibility(ESlateVisibility::Collapsed);
 }
@@ -82,6 +96,13 @@ void UUK_Setting::OnControlButtonClicked()
 	ControlWidget->SetParentWidget(this);
 
 	ControlWidget->AddToViewport();
+
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(ControlWidget->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+
+	UK_PC->SetInputMode(InputMode);
+	UK_PC->bShowMouseCursor = true;
 
 	this->SetVisibility(ESlateVisibility::Collapsed);
 }

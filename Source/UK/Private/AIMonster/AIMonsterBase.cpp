@@ -20,6 +20,7 @@
 #include "AIMonster/UK_AiMonsterCtl.h"
 #include "UI/InGame/UK_FloatingDamageActor.h" 
 #include "DataAsset/DataTable/AIMonster/UK_MonsterMetaRow.h"
+#include "Engine/OverlapResult.h"
 
 #pragma region Initialization
 AAIMonsterBase::AAIMonsterBase()
@@ -817,6 +818,13 @@ void AAIMonsterBase::ResetHealth()
 	UE_LOG(LogTemp, Log, TEXT("[%s] ResetHealth: HP restored to %.0f"), *GetName(), MaxHP);
 }
 
+void AAIMonsterBase::ResetForRespawn()
+{
+	bRewardGranted = false;
+	bIsDying = false;
+	LastAttackerController = nullptr;
+}
+
 void AAIMonsterBase::ResetAppearance()
 {
 	SetActorHiddenInGame(false);
@@ -863,18 +871,25 @@ void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
 {
 	if (!Enemy) return;
 
-	TArray<AActor*> FoundActors;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), GetClass(), FoundActors);
+	TArray<FOverlapResult> Overlaps;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+	
+	GetWorld()->OverlapMultiByObjectType(
+	Overlaps,
+	GetActorLocation(),
+	FQuat::Identity,
+	FCollisionObjectQueryParams(ECC_Pawn),
+	FCollisionShape::MakeSphere(AllyCallRadius),
+	Params
+	);
 
-	for (AActor* Actor : FoundActors)
+	for (const FOverlapResult& Overlap : Overlaps)
 	{
-		if (!Actor || Actor == this) continue;
-
-		AAIMonsterBase* Ally = Cast<AAIMonsterBase>(Actor);
-		if (!Ally) continue;
+		AAIMonsterBase* Ally = Cast<AAIMonsterBase>(Overlap.GetActor());
+		if (!Ally || Ally == this) continue;
 		if (Ally->Personality != EMonsterPersonality::Peaceful) continue;
 		if (Ally->bIsAggressive || Ally->IsDead()) continue;
-		if (FVector::Dist(GetActorLocation(), Ally->GetActorLocation()) > AllyCallRadius) continue;
 
 		Ally->bIsAggressive = true;
 		Ally->Aggressor     = Enemy;
@@ -949,7 +964,7 @@ void AAIMonsterBase::ShowHPBar()
 		GetWorldTimerManager().SetTimer(
 			HPBarUpdateTimer, this,
 			&AAIMonsterBase::UpdateHPBarWidget,
-			0.05f, true);
+			0.1f, true);
 	}
 }
 
@@ -1104,7 +1119,12 @@ float AAIMonsterBase::CalculateGold(int32 PlayerLevel) const
 {
 	const FUK_MonsterStatRow* Row = GetStatRow();
 	if (!Row) return 0.f;
-	return Row->BaseGold + Row->GoldPerLevel * (PlayerLevel - 1);
+
+	const float LevelBonus = PlayerLevel * Row->GoldPerLevel;
+	const float Min = Row->BaseGoldMin + LevelBonus;
+	const float Max = Row->BaseGoldMax + LevelBonus;
+
+	return FMath::RandRange(Min, Max);
 }
 
 FName AAIMonsterBase::GetRowName() const
