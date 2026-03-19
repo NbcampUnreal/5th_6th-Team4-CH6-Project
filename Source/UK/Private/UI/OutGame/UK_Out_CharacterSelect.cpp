@@ -42,9 +42,7 @@ void UUK_Out_CharacterSelect::OnStartButtonClicked()
 			UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
 			if ( GI )
 			{
-				GI->PersistentLoadingWidget = Loading;
-				// 가비지 컬렉션 방지를 위해 Root에 추가 (선택사항이나 권장)
-				Loading->AddToRoot();
+				GI->ShowLoading(0.7f);
 			}
 		}
 	}
@@ -53,7 +51,6 @@ void UUK_Out_CharacterSelect::OnStartButtonClicked()
 
 	if ( IsValid(PlayerController) == true )
 	{
-		//FText ServerIP = ServerIPEditableText->GetText();
 		FTimerHandle TimerHandle;
 		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [ PlayerController ] ()
 			{
