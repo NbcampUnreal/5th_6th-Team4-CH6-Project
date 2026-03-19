@@ -55,10 +55,12 @@ public:
 	void StartSpawning();
 
 	UFUNCTION(BlueprintCallable, Category = "Spawner")
-	void StopSpawning();
+	bool StopSpawning();
 
 	UFUNCTION()
 	void OnMonsterDied(AAIMonsterBase* DeadMonster);
+private:
+	int32 TriggerRefCount = 0;
 #pragma endregion
 
 #pragma region Object Pool

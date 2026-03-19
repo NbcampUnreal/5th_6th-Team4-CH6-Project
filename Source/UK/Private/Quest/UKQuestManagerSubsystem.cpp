@@ -134,7 +134,7 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		if ( !MonsterDataTablePath.IsValid() )
 		{
 			// 경로 하드코딩
-			MonsterDataTablePath = FSoftObjectPath(TEXT("/Game/ItemData/AIMonsterDT/DT_UKMonsterMeta.DT_UKMonsterMeta'"));
+			MonsterDataTablePath = FSoftObjectPath(TEXT("DataTable'/Game/ItemData/AIMonsterDT/DT_UKMonsterMeta.DT_UKMonsterMeta'"));
 		}
 
 		if ( MonsterDataTablePath.IsValid() )
@@ -310,23 +310,36 @@ bool UUKQuestManagerSubsystem::StartQuest(FName QuestId)
 		EUKQuestTag Tag;
 		if ( ParseQuestTagFromQuestId(QuestId, Tag) )
 		{
-			UUKQuestPresetLibrary::ApplyPresetToProgress(PresetAsset, Tag, NewProgress);
+			const bool bApplied = UUKQuestPresetLibrary::ApplyPresetToProgress(
+				PresetAsset,
+				QuestId,
+				Tag,
+				NewProgress
+			);
 
-			UE_LOG(LogTemp, Log, TEXT("[Quest][Preset] Applied. Step=%d Counters=%d Flags=%d"),
-				NewProgress.Step, NewProgress.Counters.Num(), NewProgress.Flags.Num());
+			if ( bApplied )
+			{
+				UE_LOG(LogTemp, Log, TEXT("[Quest][Preset] Applied. Step=%d Counters=%d Flags=%d"),
+					NewProgress.Step,
+					NewProgress.Counters.Num(),
+					NewProgress.Flags.Num());
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Quest][Preset] Apply failed: Quest=%s"),
+					*QuestId.ToString());
+			}
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[Quest][Preset] Tag parse FAILED: %s"), *QuestId.ToString());
+			UE_LOG(LogTemp, Warning, TEXT("[Quest][Preset] Tag parse FAILED: %s"),
+				*QuestId.ToString());
 		}
 	}
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[Quest][Preset] PresetAsset is null. Check PresetAssetPath."));
 	}
-
-	// Accepted 플래그 세팅 (명명규칙: F.<QuestID>.Accepted)
-	SetFlag(NewProgress, MakeFlagKey(QuestId, FName("Accepted")));
 
 	// 3) 런타임 등록
 	RuntimeProgress.Add(QuestId, NewProgress);
@@ -417,6 +430,7 @@ void UUKQuestManagerSubsystem::EmitQuestEvent(FName EventId)
 			case EUKQuestObjectiveType::TalkedTo:    return C == EUKQuestEventCategory::TalkedTo;
 			case EUKQuestObjectiveType::GotItem:     return C == EUKQuestEventCategory::GotItem;
 			case EUKQuestObjectiveType::Killed:      return C == EUKQuestEventCategory::Killed;
+			case EUKQuestObjectiveType::Delivered:   return C == EUKQuestEventCategory::Delivered;
 			case EUKQuestObjectiveType::Custom:      return C == EUKQuestEventCategory::Custom;
 			default: return false;
 			}

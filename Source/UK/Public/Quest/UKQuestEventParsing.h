@@ -39,6 +39,7 @@ static inline bool UK_ParseQuestEventId(const FName EventId, FUKQuestParsedEvent
 	if ( Cat == "GotItem" ) { SetCat(EUKQuestEventCategory::GotItem); return true; }
 	if ( Cat == "Killed" ) { SetCat(EUKQuestEventCategory::Killed); return true; }
 	if ( Cat == "Custom" ) { SetCat(EUKQuestEventCategory::Custom); return true; }
+	if ( Cat == "Delivered" ) { SetCat(EUKQuestEventCategory::Delivered); return true; }
 
 	if ( Cat == "Accepted" ) { SetCat(EUKQuestEventCategory::Accepted); return true; }
 	if ( Cat == "Completed" ) { SetCat(EUKQuestEventCategory::Completed); return true; }

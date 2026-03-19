@@ -169,6 +169,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Monster")
 	void ResetHealth();
 
+	UFUNCTION(BlueprintCallable, Category = "Monster")
+	void ResetForRespawn();
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 	float DetectionRadius = 800.0f;
 
@@ -427,7 +430,7 @@ public:
 	float CalculateDefense(int32 PlayerLevel) const;
 
 	UFUNCTION(BlueprintPure, Category = "Monster|Data")
-	float CalculateExp(int32 PlayerLevel) const;
+	float CalculateExp(int32 PlayerLevel, float PlayerMaxExp) const;
 	
 	UFUNCTION(BlueprintPure, Category = "Monster|Data")
 	float CalculateGold(int32 PlayerLevel) const;

@@ -48,28 +48,42 @@ void UUK_DragEquipSlot::BindInventory(UUK_InventoryComponent* InInventoryCompone
 
 void UUK_DragEquipSlot::UpdateEquipSlotVisual()
 {
-	if (!EquipSlot || !InventoryComponent || EquipIndex == INDEX_NONE) return;
+	//EquipSlotWeaponMark도 유효성 검사에 추가
+	if ( !EquipSlot || !EquipSlotWeaponMark || !InventoryComponent || EquipIndex == INDEX_NONE ) return;
 
 	FInventorySlot* WeaponSlotData = InventoryComponent->FindWeaponSlotbyIndex(EquipIndex);
-	if (!WeaponSlotData || WeaponSlotData->isEmpty())
+
+	//아이템이 없는 경우
+	if ( !WeaponSlotData || WeaponSlotData->isEmpty() )
 	{
 		EquipSlot->SetBrushFromTexture(nullptr);
+		EquipSlot->SetVisibility(ESlateVisibility::Hidden); // 아이템 이미지 숨김
+		EquipSlotWeaponMark->SetVisibility(ESlateVisibility::SelfHitTestInvisible); // 마크 표시
 		return;
 	}
 
 	FUK_ItemTableRowView ItemInfo;
-	if (!UK_ItemTableHelper::FindItemData(ItemDataTables, WeaponSlotData->ItemID, ItemInfo))
+	//아이템 데이터를 찾지 못한 경우도 빈 슬롯 처리
+	if ( !UK_ItemTableHelper::FindItemData(ItemDataTables, WeaponSlotData->ItemID, ItemInfo) )
 	{
 		EquipSlot->SetBrushFromTexture(nullptr);
+		EquipSlot->SetVisibility(ESlateVisibility::Hidden);
+		EquipSlotWeaponMark->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 		return;
 	}
 
-	if (UTexture2D* IconTexture = ItemInfo.ItemIcon.LoadSynchronous())
+	//아이템이 있는 경우
+	if ( UTexture2D* IconTexture = ItemInfo.ItemIcon.LoadSynchronous() )
 	{
 		EquipSlot->SetBrushFromTexture(IconTexture);
+		EquipSlot->SetVisibility(ESlateVisibility::SelfHitTestInvisible); // 아이템 이미지 표시
+		EquipSlotWeaponMark->SetVisibility(ESlateVisibility::Hidden); // 마크 숨김
 	}
 	else
 	{
+		//텍스처 로드 실패 시 예외 처리
 		EquipSlot->SetBrushFromTexture(nullptr);
+		EquipSlot->SetVisibility(ESlateVisibility::Hidden);
+		EquipSlotWeaponMark->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	}
 }
