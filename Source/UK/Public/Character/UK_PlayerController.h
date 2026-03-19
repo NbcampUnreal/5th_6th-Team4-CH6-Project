@@ -51,7 +51,7 @@ private:
 
 public:
 	// ----- Input -----
-
+	UFUNCTION(BlueprintCallable)
 	void ApplyInputState(EInputState NewState);
 
 private:
@@ -76,6 +76,8 @@ public:
 
 	bool bIsSetting = false;
 	void Setting_UI();
+
+	void SetAllGameUIInputVisibility(bool bVisible);
 
 	// ----- Stamina ----- 
 
