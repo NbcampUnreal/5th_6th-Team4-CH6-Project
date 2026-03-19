@@ -10,10 +10,10 @@ struct FQuestData
 	GENERATED_BODY()
 
 	UPROPERTY()
-	int32 QuestID;
+	int32 QuestID = 0;
 
 	UPROPERTY()
-	bool bCompleted;
+	bool bCompleted = false;
 };
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
