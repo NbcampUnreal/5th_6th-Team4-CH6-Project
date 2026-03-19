@@ -28,7 +28,17 @@ void AUKGameMode::InitGame(
 void AUKGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
+	FTimerHandle LoadTimerHandle;
+	GetWorldTimerManager().SetTimer(LoadTimerHandle, [this]()
+	{
+		if (UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance()))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[GameMode] Delayed Load Started..."));
+			GI->LoadEntireGame();
+		}
+	}, 0.2f, false);
+	
 	// 데이터 테이블 확인
 	if (!MonsterRewardTable)
 	{

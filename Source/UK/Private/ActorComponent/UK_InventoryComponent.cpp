@@ -5,6 +5,7 @@
 #include "DataAsset/Data/UK_ItemData.h"
 #include "DataAsset/Data/UK_WeaponItemData.h"
 #include "UI/Inventory/UK_InvUI.h"
+#include "Systems/Data/UK_InGameSave.h"
 
 // Sets default values for this component's properties
 UUK_InventoryComponent::UUK_InventoryComponent() :
@@ -545,4 +546,34 @@ bool UUK_InventoryComponent::AddWeaponFromInventoryIndex(FName ItemID, int32 Equ
 	OnChangedWeapon.Broadcast(EquipIndex);
 	OnInventoryUpdate.Broadcast();
 	return true;
+}
+
+void UUK_InventoryComponent::ExportInventory(struct FInventorySaveData& OutData)
+{
+	OutData.ItemIds.Empty();
+	OutData.ItemCounts.Empty();
+	
+	for (const FInventorySlot& Slot : InventorySlots)
+	{
+		if (!Slot.isEmpty())
+		{
+			OutData.ItemIds.Add(Slot.ItemID);
+			OutData.ItemCounts.Add(Slot.Quantity);
+		}
+	}
+	OutData.Gold = this->Gold;
+}
+
+void UUK_InventoryComponent::ImportInventory(const struct FInventorySaveData& InData)
+{
+	for (FInventorySlot& Slot : InventorySlots) { Slot.Clear(); }
+	for (int32 i = 0; i < InData.ItemIds.Num(); ++i)
+	{
+		AddItem(InData.ItemIds[i], InData.ItemCounts[i], false, false);
+	}
+	
+	this->Gold = InData.Gold;
+	
+	BroadcastInventoryUpdate();
+	OnChangedGold.Broadcast(this->Gold);
 }
