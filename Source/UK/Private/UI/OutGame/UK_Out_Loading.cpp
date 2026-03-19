@@ -15,26 +15,29 @@ void UUK_Out_Loading::LoadingLogoFunc(const FGeometry& MyGeometry, float InDelta
 
 	if ( CurrentPercentage >= 0.99f && TargetValue >= 1.0f )
 	{
-		// 0.5초 뒤에 꺼지도록 타이머 설정
-		FTimerHandle FinishTimerHandle;
+		
 		GetWorld()->GetTimerManager().SetTimer(FinishTimerHandle, this, &UUK_Out_Loading::HandleLoadingComplete, 0.5f, false);
 	}
 }
 
 void UUK_Out_Loading::HandleLoadingComplete()
 {
+	GetWorld()->GetTimerManager().ClearTimer(FinishTimerHandle);
+
 	UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
 	if ( GI )
 	{
 		GI->PersistentLoadingWidget = nullptr;
 	}
 
-	APlayerController* PC = GetOwningPlayer();
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
 	if ( PC )
 	{
 		FInputModeGameOnly InputMode;
 		PC->SetInputMode(InputMode);
 		PC->bShowMouseCursor = false;
+
+		FSlateApplication::Get().SetAllUserFocusToGameViewport();
 	}
 
 	RemoveFromParent();

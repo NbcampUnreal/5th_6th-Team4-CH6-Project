@@ -7,59 +7,35 @@
 #include "Engine/World.h"
 #include "TimerManager.h"
 
-void UUK_GameInstance::LoadLevelWithLoading(FName LevelName)
-{
-	if (!LoadingWidgetClass) return;
 
-	// 1. GameViewport에 Loading 생성
-	if (!PersistentLoadingWidget)
+void UUK_GameInstance::ShowLoading(float Target)
+{
+	if ( PersistentLoadingWidget ) return;
+
+	if ( LoadingWidgetClass && GetWorld() )
 	{
-		PersistentLoadingWidget = CreateWidget<UUK_Out_Loading>(this, LoadingWidgetClass);
-		if (PersistentLoadingWidget)
+		PersistentLoadingWidget = CreateWidget<UUK_Out_Loading>(GetWorld(), LoadingWidgetClass);
+
+		if ( PersistentLoadingWidget && GEngine && GEngine->GameViewport )
 		{
-			PersistentLoadingWidget->TargetValue = 0.f;
-			PersistentLoadingWidget->AddToViewport(999); // 항상 앞에
+			PersistentLoadingWidget->TargetValue = Target;
+
+			GEngine->GameViewport->AddViewportWidgetContent(
+				PersistentLoadingWidget->TakeWidget(),
+				999
+			);
 		}
 	}
-
-	// 2. Async Level Load
-	FLatentActionInfo LatentInfo;
-	LatentInfo.CallbackTarget = this;
-	LatentInfo.ExecutionFunction = "OnLevelLoaded";
-	LatentInfo.Linkage = 0;
-	LatentInfo.UUID = 1;
-
-	UGameplayStatics::LoadStreamLevel(this, LevelName, true, false, LatentInfo);
 }
 
-UFUNCTION()
-void UUK_GameInstance::OnLevelLoaded()
+void UUK_GameInstance::HideLoading()
 {
-	if (PersistentLoadingWidget)
+	if ( PersistentLoadingWidget && GEngine && GEngine->GameViewport )
 	{
-		PersistentLoadingWidget->RemoveFromParent();
+		GEngine->GameViewport->RemoveViewportWidgetContent(
+			PersistentLoadingWidget->TakeWidget()
+		);
+
 		PersistentLoadingWidget = nullptr;
-		APlayerController* PC = GetFirstLocalPlayerController();
-		if (PC)
-		{
-			SetLoadingInputMode(PC);
-		}
 	}
-}
-
-void UUK_GameInstance::SetLoadingInputMode(APlayerController* PC)
-{
-	if (!PC) return;
-
-	PC->bShowMouseCursor = true;
-
-	FInputModeGameAndUI InputModeData;
-	if (PersistentLoadingWidget)
-	{
-		InputModeData.SetWidgetToFocus(PersistentLoadingWidget->TakeWidget());
-	}
-	InputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-	InputModeData.SetHideCursorDuringCapture(false);
-
-	PC->SetInputMode(InputModeData);
 }

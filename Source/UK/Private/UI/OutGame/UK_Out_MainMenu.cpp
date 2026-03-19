@@ -50,19 +50,18 @@ void UUK_Out_MainMenu::OnPlayButtonClicked()
 		{
 			GI->CharacterSelected = LoadedGame->SavedCharacterClass;
 
-			if ( UUK_Out_Loading* Loading = CreateWidget<UUK_Out_Loading>(GetWorld(), LoadingWidgetClass) )
+			if ( LoadingWidgetClass )
 			{
-				Loading->TargetValue = 0.7f; // 70% 목표 설정
-				if ( GEngine && GEngine->GameViewport )
+				UUK_Out_Loading* Loading = CreateWidget<UUK_Out_Loading>(GetWorld(), LoadingWidgetClass);
+				if ( Loading )
 				{
-					// AddViewportWidgetContent는 레벨 전환 중에도 위젯을 유지시킵니다.
-					GEngine->GameViewport->AddViewportWidgetContent(Loading->TakeWidget(), 999);
+					Loading->TargetValue = 0.7f;
+
+					Loading->AddToViewport(999);
 
 					if ( GI )
 					{
-						GI->PersistentLoadingWidget = Loading;
-						// 가비지 컬렉션 방지를 위해 Root에 추가 (선택사항이나 권장)
-						Loading->AddToRoot();
+						GI->ShowLoading(0.7f);
 					}
 				}
 			}

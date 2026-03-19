@@ -17,6 +17,13 @@ class UK_API UUK_GameInstance : public UGameInstance
 	GENERATED_BODY()
 
 public:
+
+	UFUNCTION(BlueprintCallable)
+	void ShowLoading(float Target = 0.7f);
+
+	UFUNCTION(BlueprintCallable)
+	void HideLoading();
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TSubclassOf<class AUK_CharacterBase> CharacterSelected;
 
@@ -25,13 +32,4 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Widgets")
 	TSubclassOf<UUK_Out_Loading> LoadingWidgetClass;
-
-	UFUNCTION(BlueprintCallable)
-	void LoadLevelWithLoading(FName LevelName);
-
-	UFUNCTION(BlueprintCallable)
-	void OnLevelLoaded();
-
-	UFUNCTION(BlueprintCallable)
-	void SetLoadingInputMode(APlayerController* PC);
 };
