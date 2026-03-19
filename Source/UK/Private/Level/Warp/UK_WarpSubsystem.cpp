@@ -17,7 +17,7 @@ void UUK_WarpSubsystem::TeleportToWarpPoint(ACharacter* PlayerChar, FName PointI
 	{
 		FVector TargetLoc = ActivatedWarpPoints[ PointID ];
 		TargetLoc.X += 250.0f;
-
+    
 		PlayerChar->SetActorLocation(TargetLoc);
 		UE_LOG(LogTemp, Warning, TEXT("Teleported to: %s"), *PointID.ToString());
 	}

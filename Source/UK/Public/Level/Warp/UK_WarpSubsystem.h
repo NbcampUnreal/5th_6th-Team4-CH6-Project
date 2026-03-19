@@ -6,6 +6,7 @@
 #include "UK_WarpSubsystem.generated.h"
 
 UCLASS(BlueprintType)
+
 class UK_API UUK_WarpSubsystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
