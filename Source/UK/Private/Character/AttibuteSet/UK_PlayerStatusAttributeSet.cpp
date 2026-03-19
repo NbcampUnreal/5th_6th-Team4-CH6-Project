@@ -280,18 +280,22 @@ void UUK_PlayerStatusAttributeSet::ExportStats(FCharacterStatSaveData& OutData)
 
 void UUK_PlayerStatusAttributeSet::ImportStats(const struct FCharacterStatSaveData& InData)
 {
+	InitAttackPower(InData.AttackPower);
+	InitLevel(InData.Level);
+	InitMaxLevel(InData.MaxLevel);
+	InitEXP(InData.Exp);
+	InitMaxEXP(InData.MaxEXP);
+	InitDefence(InData.Defence);
+    
+	InitMaxHealth(InData.MaxHealth);
+	InitMaxMp(InData.MaxMp);
+	InitMaxStamina(InData.MaxStamina);
+
 	SetHealth(InData.Health);
-	SetMaxHealth(InData.MaxHealth);
-	SetAttackPower(InData.AttackPower);
-	SetCurrentPower(InData.CurrentPower);
 	SetCurrentMp(InData.CurrentMp);
-	SetMaxMp(InData.MaxMp);
-	SetMaxStamina(InData.MaxStamina);
 	SetCurrentStamina(InData.CurrentStamina);
-	SetLevel(InData.Level);
-	SetMaxLevel(InData.MaxLevel);
-	SetEXP(InData.Exp);
-	SetMaxEXP(InData.MaxEXP);
-	SetDefence(InData.Defence);
+
+	HealthChanged.Broadcast(0.f, InData.Health);
+	CurrentMpChanged.Broadcast(0.f, InData.CurrentMp);
 }
 

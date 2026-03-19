@@ -124,4 +124,7 @@ public:
 	bool RemoveItemByInventoryIndex(int32 InventoryIndex, int32 Amount = 1, bool bBroadcastInventoryUpdate = true);
 	UFUNCTION(BlueprintCallable)
 	bool AddWeaponFromInventoryIndex(FName ItemID, int32 EquipIndex, int32 SourceInventoryIndex);
+	
+	void ExportInventory(struct FInventorySaveData& OutData);
+	void ImportInventory(const struct FInventorySaveData& InData);
 };

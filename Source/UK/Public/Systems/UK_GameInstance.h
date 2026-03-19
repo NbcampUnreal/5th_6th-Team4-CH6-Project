@@ -39,7 +39,12 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void LoadEntireGame();
+	UFUNCTION(BlueprintCallable)
 	
+	void Shutdown();
+	
+	UFUNCTION(BlueprintCallable, Category = "SaveSystem")
+	void RequestSaveAndQuit();
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "SaveSystem")
 	FString MainSaveSlotName = TEXT("Slot_0");
