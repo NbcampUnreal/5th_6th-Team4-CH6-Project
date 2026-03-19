@@ -329,10 +329,46 @@ void AUK_CharacterBase::HealStamina()
 
 void AUK_CharacterBase::OnLoadGame(class UUK_InGameSave* SaveGameObject)
 {
+	if (!SaveGameObject) return;
+	
+	GetCharacterMovement()->StopMovementImmediately();
+	
+	SetActorLocationAndRotation(SaveGameObject->PlayerLocation, SaveGameObject->PlayerRotation, false, nullptr, ETeleportType::TeleportPhysics);
+	
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		const UAttributeSet* AS_Base = ASC->GetAttributeSet(UUK_PlayerStatusAttributeSet::StaticClass());
+		if (const UUK_PlayerStatusAttributeSet* MyAS = Cast<UUK_PlayerStatusAttributeSet>(AS_Base))
+		{
+			const_cast<UUK_PlayerStatusAttributeSet*>(MyAS)->ImportStats(SaveGameObject->PlayerStats);
+		}
+	}
+	
+	if (InventoryComponent)
+	{
+		InventoryComponent->ImportInventory(SaveGameObject->InventoryDate);
+	}
 }
 
 void AUK_CharacterBase::OnSaveGame(class UUK_InGameSave* SaveGameObject)
 {
+	if (!SaveGameObject) return;
+	
+	SaveGameObject->PlayerLocation = GetActorLocation();
+    SaveGameObject->PlayerRotation = GetActorRotation();
+    
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+        {
+			const UAttributeSet* AS_Base = ASC->GetAttributeSet(UUK_PlayerStatusAttributeSet::StaticClass());
+			if (const UUK_PlayerStatusAttributeSet* MyAS = Cast<UUK_PlayerStatusAttributeSet>(AS_Base))
+			{
+				const_cast<UUK_PlayerStatusAttributeSet*>(MyAS)->ExportStats(SaveGameObject->PlayerStats);
+			}
+        }
+	if (InventoryComponent)
+	{
+		InventoryComponent->ExportInventory(SaveGameObject->InventoryDate);
+	}
 }
 #pragma endregion
 

@@ -12,13 +12,12 @@ void UUK_QuestLists::AddQuestItem(FText QuestName, FText QuestDescription)
 
 	UUK_QuestItem* NewItem = CreateWidget<UUK_QuestItem>(GetWorld(), QuestItemClass);
 
-	if ( NewItem )
-	{
-		// Date 변경시 함수 적용 ( 퀘스트 클리어 등 상태가 변경될 때)
+	if (!NewItem) return;
 
-		QuestScrollBox->AddChild(NewItem);
+	NewItem->SetQusetData(QuestName, QuestDescription);
 
-		// 추가된 항목으로 자동 스크롤 (필요시)
-		QuestScrollBox->ScrollToEnd();
-	}
+	// 추가된 항목으로 자동 스크롤 (필요시)
+	QuestScrollBox->ScrollToEnd();
+	// Date 변경시 함수 적용 ( 퀘스트 클리어 등 상태가 변경될 때)
+	QuestScrollBox->AddChild(NewItem);
 }

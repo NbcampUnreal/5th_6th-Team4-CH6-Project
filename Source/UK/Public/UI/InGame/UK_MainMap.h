@@ -69,6 +69,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Data")
 	TObjectPtr<UDataTable> WarpDataTableAsset;
 
+	UPROPERTY(EditAnywhere, Category = "Map|Data")
+	TSubclassOf<class UUK_Out_Loading> LoadingWidgetClass;
+
 protected:
 	//---------- UUserWidget Interface ----------//
 	virtual void NativeConstruct() override;
