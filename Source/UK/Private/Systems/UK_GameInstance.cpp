@@ -10,7 +10,7 @@
 
 void UUK_GameInstance::ShowLoading(float Target)
 {
-	if ( PersistentLoadingWidget )
+	if ( PersistentLoadingWidget && PersistentLoadingWidget->IsInViewport() )
 	{
 		PersistentLoadingWidget->TargetValue = Target;
 		return;
@@ -20,14 +20,11 @@ void UUK_GameInstance::ShowLoading(float Target)
 	{
 		PersistentLoadingWidget = CreateWidget<UUK_Out_Loading>(GetWorld(), LoadingWidgetClass);
 
-		if ( PersistentLoadingWidget && GEngine && GEngine->GameViewport )
+		if ( PersistentLoadingWidget )
 		{
 			PersistentLoadingWidget->TargetValue = Target;
 
-			GEngine->GameViewport->AddViewportWidgetContent(
-				PersistentLoadingWidget->TakeWidget(),
-				0
-			);
+			PersistentLoadingWidget->AddToViewport(0);
 		}
 	}
 }
@@ -36,10 +33,7 @@ void UUK_GameInstance::HideLoading()
 {
 	if ( PersistentLoadingWidget && GEngine && GEngine->GameViewport )
 	{
-		GEngine->GameViewport->RemoveViewportWidgetContent(
-			PersistentLoadingWidget->TakeWidget()
-		);
-
+		PersistentLoadingWidget->RemoveFromParent();
 		PersistentLoadingWidget = nullptr;
 	}
 }
@@ -63,18 +57,31 @@ void UUK_GameInstance::SetLoadingInputMode(APlayerController* PC)
 
 void UUK_GameInstance::SaveEntireGame()
 {
+	if (!GetWorld() || IsEngineExitRequested() || GIsSlowTask || !GIsRunning)
+	{
+		return; 
+	}
+	
+	if (GetWorld()->bIsTearingDown) 
+	{
+		return;
+	}
+	
 	UUK_InGameSave* SaveInstance = Cast<UUK_InGameSave>(UGameplayStatics::CreateSaveGameObject(UUK_InGameSave::StaticClass()));
 	if (!SaveInstance) return;
 	
 	TArray<AActor*> SaveAbleActors;
-	UGameplayStatics::GetAllActorsWithInterface(GetWorld(),UUK_GameInstance::StaticClass(),SaveAbleActors);
+	UGameplayStatics::GetAllActorsWithInterface(GetWorld(),UUK_SaveInterface::StaticClass(),SaveAbleActors);
 	
 	for (AActor* Actor : SaveAbleActors)
 	{
-		IUK_SaveInterface* SaveIntf = Cast<IUK_SaveInterface>(Actor);
-		if (SaveIntf)
+		if (IsValid(Actor) && !Actor->IsUnreachable())
 		{
-			SaveIntf->OnSaveGame(SaveInstance);
+			IUK_SaveInterface* SaveIntf = Cast<IUK_SaveInterface>(Actor);
+			if (SaveIntf)
+			{
+				SaveIntf->OnSaveGame(SaveInstance);
+			}
 		}
 	}
 	
@@ -92,7 +99,7 @@ void UUK_GameInstance::LoadEntireGame()
 	if (!LoadedInstance) return;
 	
 	TArray<AActor*> SaveAbleActors;
-	UGameplayStatics::GetAllActorsWithInterface(GetWorld(),UUK_GameInstance::StaticClass(),SaveAbleActors);
+	UGameplayStatics::GetAllActorsWithInterface(GetWorld(),UUK_SaveInterface::StaticClass(),SaveAbleActors);
 	
 	for (AActor* Actor : SaveAbleActors)
 	{
@@ -102,4 +109,17 @@ void UUK_GameInstance::LoadEntireGame()
 			SaveIntf->OnLoadGame(LoadedInstance);
 		}
 	}
+}
+
+void UUK_GameInstance::Shutdown()
+{
+	Super::Shutdown();
+}
+
+void UUK_GameInstance::RequestSaveAndQuit()
+{
+	SaveEntireGame();
+
+	APlayerController* PC = GetFirstLocalPlayerController();
+	UKismetSystemLibrary::QuitGame(GetWorld(), PC, EQuitPreference::Quit, false);
 }
