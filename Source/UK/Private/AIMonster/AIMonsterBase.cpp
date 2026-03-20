@@ -970,7 +970,7 @@ void AAIMonsterBase::ShowHPBar()
 
 void AAIMonsterBase::HideHPBar()
 {
-	if (bHPVisible || !HPWidgetComponent) return;
+	if (!bHPVisible || !HPWidgetComponent) return;
 	bHPVisible = false;
 
 	if (UUserWidget* Widget = HPWidgetComponent->GetUserWidgetObject())

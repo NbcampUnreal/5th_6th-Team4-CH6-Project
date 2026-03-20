@@ -75,7 +75,17 @@ public:
 	UPROPERTY(meta = (BindWidgetOptional))
 	UTextBlock* NewText;
 
-	UFUNCTION()
+
+	UFUNCTION(BlueprintCallable)
+	void OpenInventory();
+
+	UFUNCTION(BlueprintCallable)
+	void CloseInventory();
+
+	UFUNCTION(BlueprintCallable)
+	void ToggleInventory();
+
+	UFUNCTION(BlueprintCallable)
 	void HandleItemAdded_ShowNew(FName ItemID, int32 Amount);
 
 	void SetInventoryNewVisible(bool bVisible);
