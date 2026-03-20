@@ -209,6 +209,14 @@ void AUK_CharacterBase::BeginPlay()
 	// 	0.5f,
 	// 	true
 	// );
+	
+	if (AUK_SoundManager::Get(GetWorld()))
+	{
+		SoundManager = AUK_SoundManager::Get(GetWorld());
+	}
+	else
+	{
+	}
 }
 
 void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -1163,7 +1171,7 @@ void AUK_CharacterBase::StartBattle()
 	}
 	
 	// 사운드 매니저를 찾아서 전투 상태를 True로 변경
-	if (AUK_SoundManager* SoundManager = AUK_SoundManager::Get(GetWorld()))
+	if (SoundManager)
 	{
 		SoundManager->SetCombatState(true);
 	}
@@ -1196,7 +1204,7 @@ void AUK_CharacterBase::EndBattle()
 	EndBattleEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	
 	// 사운드 매니저를 찾아서 전투 상태를 False로 변경
-	if (AUK_SoundManager* SoundManager = AUK_SoundManager::Get(GetWorld()))
+	if (SoundManager)
 	{
 		SoundManager->SetCombatState(false);
 	}

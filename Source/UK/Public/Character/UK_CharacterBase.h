@@ -16,6 +16,7 @@
 
 
 #pragma region Forward Declaration
+class AUK_SoundManager;
 class USpringArmComponent;
 class UCameraComponent;
 class UStatusComponent;
@@ -441,6 +442,9 @@ public:
 	void StartBattle();
 	
 	void EndBattle();
+	
+	UPROPERTY()
+    AUK_SoundManager* SoundManager;
 protected:
 	UPROPERTY()
 	bool bIsParry;
