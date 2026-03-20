@@ -56,7 +56,6 @@ EBTNodeResult::Type UUK_BTTask_ReturnToSpawn::ExecuteTask(UBehaviorTreeComponent
 		MoveComp->bOrientRotationToMovement = true;
 		MoveComp->bUseControllerDesiredRotation = false;
 		MoveComp->SetMovementMode(MOVE_Walking);  
-		MoveComp->StopMovementImmediately();     
 		
 		// 속도 확인 및 설정
 		if (MoveComp->MaxWalkSpeed <= 0.f)
@@ -91,29 +90,33 @@ void UUK_BTTask_ReturnToSpawn::TickTask(UBehaviorTreeComponent& OwnerComp, uint8
 	if (!BB) { RestoreSpeed(ControlledPawn); FinishLatentTask(OwnerComp, EBTNodeResult::Failed); return; }
 
 	const FVector SpawnLocation = BB->GetValueAsVector(SpawnLocationKey.SelectedKeyName);
-	const FVector CurrentLocation = ControlledPawn->GetActorLocation();
-	const float DistFromSpawn = FVector::Dist(CurrentLocation, SpawnLocation);
+	const float DistFromSpawn = FVector::Dist(ControlledPawn->GetActorLocation(), SpawnLocation);
 
 	if (DistFromSpawn <= ArrivalDistance)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[ReturnToSpawn] ARRIVED at spawn"));
-		
 		RestoreSpeed(ControlledPawn);
 		AICon->StopMovement();
 
 		if (AAIMonsterBase* Monster = Cast<AAIMonsterBase>(ControlledPawn))
 		{
 			if (Monster->Personality == EMonsterPersonality::Peaceful && Monster->GetIsAggressive())
-			{
 				Monster->ResetToPassive();
-			}
 		}
 
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 		return;
 	}
-	
-	AICon->MoveToLocation(SpawnLocation, ArrivalDistance, false, true, false, false);
+
+	// 멈춰있을 때만 재요청 (매 틱 호출 제거) ← 핵심 수정
+	StuckRetryTimer += DeltaSeconds;
+	if (StuckRetryTimer >= 1.0f)
+	{
+		StuckRetryTimer = 0.f;
+		if (ControlledPawn->GetVelocity().SizeSquared2D() < 10.f)
+		{
+			AICon->MoveToLocation(SpawnLocation, ArrivalDistance, false, true, false, false);
+		}
+	}
 }
 #pragma endregion
 

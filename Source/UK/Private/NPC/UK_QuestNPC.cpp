@@ -4,6 +4,7 @@
 #include "Character/UK_CharacterBase.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SphereComponent.h"
+#include "Dialogue/UKDialogueSubsystem.h"
 #include "NPC/Component/UK_InteractionComponent.h"
 #include "NPC/Component/UK_QuestComponent.h"
 #include "Quest/UKQuestManagerSubsystem.h"
@@ -257,6 +258,26 @@ void AUK_QuestNPC::HandleQuestInteract(AUK_CharacterBase* Player)
 	UE_LOG(LogTemp, Log, TEXT("[QuestNPC] NPC=%s ActiveQuest=%s"),
 		*NPCID.ToString(),
 		*ActiveQuestId.ToString());
+
+	UUKDialogueSubsystem* DialogueSys = GI->GetSubsystem<UUKDialogueSubsystem>();
+	if ( DialogueSys && Def )
+	{
+		FString PackFileName = Def->DialoguePackId.ToString();
+
+		// 에셋에 .json 없이 넣었으면 자동 보정
+		if ( !PackFileName.EndsWith(TEXT(".json")) )
+		{
+			PackFileName += TEXT(".json");
+		}
+
+		const bool bStartedDialogue = DialogueSys->StartDialogue(PackFileName, Def->DialogueId);
+		if ( !bStartedDialogue )
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] StartDialogue failed. Pack=%s DialogueId=%s"),
+				*PackFileName,
+				*Def->DialogueId.ToString());
+		}
+	}
 
 	PlayerCtl->ShowQuestUI(
 		ActiveQuestId,
