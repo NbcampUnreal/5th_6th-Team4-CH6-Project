@@ -70,6 +70,8 @@ DECLARE_DYNAMIC_DELEGATE(FOnFloorDelagate);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadDelagate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOutOfStamina);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNormalSkill, float, CoolDown);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUltimateSkill, float, CoolDown);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCharacterAttribute, ECharacterAttribute, CharacterAttribute);
 
@@ -185,6 +187,13 @@ public:
 	bool bIsGliding = false;
 	
 	bool bInUseStamina = false;
+	
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "CoolDown", meta = ( DisplayNmae = "OnNomalSkillCoolDown" ))
+	FOnNormalSkill OnNormalSkillCoolDownDelegate;
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "CoolDown", meta = ( DisplayNmae = "OnNomalSkillCoolDown" ))
+	FOnUltimateSkill OnUltimateSkillCoolDownDelegate;
+	
 #pragma endregion
 
 #pragma  region SaveGame

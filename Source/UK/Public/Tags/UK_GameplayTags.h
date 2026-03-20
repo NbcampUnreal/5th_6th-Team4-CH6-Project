@@ -132,14 +132,20 @@ namespace UK_GameplayTags
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(HealMP);
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(HealStamina);
 		}
+
+		namespace CoolDown
+		{
+			namespace OneHandSword
+			{
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(NormalSkill);
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(UltimateSkill);
+			}
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(NormalSkill);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(UltimateSkill);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Hit);
+		}
 	}
 
-	namespace CoolDown
-	{
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(NomalSkill);
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UltimateSkill);
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Hit);
-	}
 
 	namespace Food
 	{

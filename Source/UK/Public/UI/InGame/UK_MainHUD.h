@@ -37,7 +37,19 @@ public:
 	// 레벨이 변할 때 실행될 함수
 	//UFUNCTION()
 	void UpdateLevel(const FOnAttributeChangeData& Data);
+	UFUNCTION()
+	void InitNormalSkillCoolDown(const float CoolDown);
+	UFUNCTION()
+	void InitUltimateSkillCoolDown(const float CoolDown);
+	UFUNCTION()
+	void UpdateNormalSkillCoolDown();
+	UFUNCTION()
+	void UpdateUltimateSkillCoolDown();
+	float NormalCurrentCooldown;
+	float UltimateCurrentCooldown;
+	FTimerHandle NormalCooldownTimerHandle;
 	
+	FTimerHandle UltimateCooldownTimerHandle;
 	UPROPERTY(meta = ( BindWidget ))
 	class UProgressBar* HealthBar;
 
@@ -46,7 +58,12 @@ public:
 	UTextBlock* CurrentHealthText; // 현재 체력
 
 	UPROPERTY(meta = ( BindWidget ))
-	UTextBlock* MaxHealthText;     // 최대 체력
+	UTextBlock* MaxHealthText;     // 최대 체력	
+	
+	UPROPERTY(meta = ( BindWidget ))
+	UTextBlock* NormalSkillCoolDownText;     // 노말 스킬 쿨다운
+	UPROPERTY(meta = ( BindWidget ))
+	UTextBlock* UltimateSkillCoolDownText;     // 궁극기 쿨다운
 
 
 	UPROPERTY(meta = ( BindWidget ))

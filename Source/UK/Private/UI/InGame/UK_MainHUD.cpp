@@ -16,6 +16,9 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 //끝
+//임시
+#include "Character/GA/UK_LightAttackAbility.h"
+//끝
 void UUK_MainHUD::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -23,8 +26,11 @@ void UUK_MainHUD::NativeConstruct()
 	SetInventoryNewVisible(false);
 
 	PlayerPawn = Cast<AUK_CharacterBase>(GetOwningPlayerPawn());
+	
 	if (PlayerPawn)
 	{
+		PlayerPawn->OnNormalSkillCoolDownDelegate.AddDynamic(this, &UUK_MainHUD::InitNormalSkillCoolDown);
+		PlayerPawn->OnUltimateSkillCoolDownDelegate.AddDynamic(this, &UUK_MainHUD::InitUltimateSkillCoolDown);
 		ASC = PlayerPawn->GetAbilitySystemComponent();
 		if (ASC)
 		{
@@ -32,21 +38,21 @@ void UUK_MainHUD::NativeConstruct()
 			// 		//UpdateStaminaBar(StatusPtr->CurrentStamina, StatusPtr->MaxStamina); 
 			// HP 초기값 세팅 및 바인딩
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute()).
-				AddUObject(this, &UUK_MainHUD::UpdateHealthBar);
+			     AddUObject(this, &UUK_MainHUD::UpdateHealthBar);
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetHealthAttribute()).
-				AddUObject(this, &UUK_MainHUD::UpdateHealthBar);
+			     AddUObject(this, &UUK_MainHUD::UpdateHealthBar);
 
 			// MP 바인딩
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetMaxMpAttribute()).
-				AddUObject(this, &UUK_MainHUD::UpdateMpBar);
+			     AddUObject(this, &UUK_MainHUD::UpdateMpBar);
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetCurrentMpAttribute()).
-				AddUObject(this, &UUK_MainHUD::UpdateMpBar);
+			     AddUObject(this, &UUK_MainHUD::UpdateMpBar);
 
 			// 레벨 바인딩
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetMaxLevelAttribute()).
-				AddUObject(this, &UUK_MainHUD::UpdateLevel);
+			     AddUObject(this, &UUK_MainHUD::UpdateLevel);
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetLevelAttribute()).
-				AddUObject(this, &UUK_MainHUD::UpdateLevel);
+			     AddUObject(this, &UUK_MainHUD::UpdateLevel);
 			// AttributeSet->MpStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateMpBar);
 
 			// 레벨 초기값 세팅 및 바인딩
@@ -76,6 +82,13 @@ void UUK_MainHUD::NativeConstruct()
 			// }
 			FTimerHandle InitTimer;
 			GetWorld()->GetTimerManager().SetTimer(InitTimer, this, &UUK_MainHUD::RefreshAllStatus, 0.4f, false);
+			for (const FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
+			{
+				if (UUK_LightAttackAbility* Ability = Cast<UUK_LightAttackAbility>(Spec.GetPrimaryInstance()))
+				{
+
+				}
+			}
 		}
 	}
 
@@ -190,6 +203,76 @@ void UUK_MainHUD::UpdateLevel(const FOnAttributeChangeData& Data)
 	// }
 }
 
+void UUK_MainHUD::InitNormalSkillCoolDown(const float CoolDown)
+{
+	if (NormalSkillCoolDownText)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(NormalCooldownTimerHandle);
+		NormalCurrentCooldown = CoolDown;
+		NormalSkillCoolDownText->SetText(FText::AsNumber(NormalCurrentCooldown));
+
+		GetWorld()->GetTimerManager().SetTimer(
+			NormalCooldownTimerHandle,
+			this,
+			&UUK_MainHUD::UpdateNormalSkillCoolDown,
+			1.0f,
+			true
+		);
+	}
+}
+
+void UUK_MainHUD::InitUltimateSkillCoolDown(const float CoolDown)
+{
+	if (UltimateSkillCoolDownText)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(UltimateCooldownTimerHandle);
+		UltimateCurrentCooldown = CoolDown;
+		UltimateSkillCoolDownText->SetText(FText::AsNumber(UltimateCurrentCooldown));
+
+		GetWorld()->GetTimerManager().SetTimer(
+			UltimateCooldownTimerHandle,
+			this,
+			&UUK_MainHUD::UpdateUltimateSkillCoolDown,
+			1.0f,
+			true
+		);
+	}
+}
+
+void UUK_MainHUD::UpdateNormalSkillCoolDown()
+{
+	NormalCurrentCooldown -= 1.f;
+
+	if (NormalCurrentCooldown <= 0.f)
+	{
+		NormalCurrentCooldown = 0.f;
+
+		NormalSkillCoolDownText->SetText(FText::AsNumber(NormalCurrentCooldown));
+
+		GetWorld()->GetTimerManager().ClearTimer(NormalCooldownTimerHandle);
+		return;
+	}
+
+	NormalSkillCoolDownText->SetText(FText::AsNumber(NormalCurrentCooldown));
+}
+
+void UUK_MainHUD::UpdateUltimateSkillCoolDown()
+{
+	UltimateCurrentCooldown -= 1.f;
+
+	if (UltimateCurrentCooldown <= 0.f)
+	{
+		UltimateCurrentCooldown = 0.f;
+
+		UltimateSkillCoolDownText->SetText(FText::AsNumber(UltimateCurrentCooldown));
+
+		GetWorld()->GetTimerManager().ClearTimer(UltimateCooldownTimerHandle);
+		return;
+	}
+
+	UltimateSkillCoolDownText->SetText(FText::AsNumber(UltimateCurrentCooldown));
+}
+
 void UUK_MainHUD::OnInventoryButtonClicked()
 {
 	ToggleInventory();
@@ -295,7 +378,7 @@ void UUK_MainHUD::OpenInventory()
 	{
 		InvMainWidget = CreateWidget<UUK_InvMain>(GetWorld(), InvMainClass);
 
-		
+
 		if (InvMainWidget)
 		{
 			InvMainWidget->OwnerMainHUD = this;
@@ -343,7 +426,7 @@ void UUK_MainHUD::CloseInventory()
 
 void UUK_MainHUD::ToggleInventory()
 {
-	if ( InvMainWidget && InvMainWidget->IsInViewport() )
+	if (InvMainWidget && InvMainWidget->IsInViewport())
 	{
 		CloseInventory();
 	}
