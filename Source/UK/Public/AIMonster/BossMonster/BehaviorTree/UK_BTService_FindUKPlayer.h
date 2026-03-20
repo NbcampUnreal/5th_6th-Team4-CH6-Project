@@ -14,7 +14,10 @@ public:
 protected:
 
 	UPROPERTY(EditAnywhere, Category="Detect")
-	float DetectRadius = 1500.f;
-
+	float DetectRadius = 5000.f;
+	
+	UPROPERTY(EditAnywhere, Category="Detect")
+	float SearchDuration = 30.f;
+	
 	virtual void TickNode(UBehaviorTreeComponent& OwnerComp,uint8* NodeMemory,float DeltaSeconds) override;
 };

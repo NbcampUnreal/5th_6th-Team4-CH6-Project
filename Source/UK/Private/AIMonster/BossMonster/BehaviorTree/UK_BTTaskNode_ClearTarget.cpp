@@ -1,4 +1,9 @@
 #include "AIMonster/BossMonster/BehaviorTree/UK_BTTaskNode_ClearTarget.h"
+
+#include "AIController.h"
+#include "AIMonster/BossMonster/UK_BossMonsterBase.h"
+#include "AIMonster/BossMonster/UK_BossMonster_Grux.h"
+#include "AIMonster/AttibuteSet/UK_MonsterAttributeSet.h"
 #include "BehaviorTree/BlackboardComponent.h"
 
 UUK_BTTaskNode_ClearTarget::UUK_BTTaskNode_ClearTarget()
@@ -11,7 +16,7 @@ EBTNodeResult::Type UUK_BTTaskNode_ClearTarget::ExecuteTask(UBehaviorTreeCompone
 	auto* BB = OwnerComp.GetBlackboardComponent();
 	if (!BB) return EBTNodeResult::Failed;
 
-	BB->ClearValue("TargetActor");
+	BB->ClearValue(TEXT("TargetActor"));
 
 	return EBTNodeResult::Succeeded;
 }

@@ -86,4 +86,7 @@ private:
 	void ExecuteDashMove(); //대쉬 공격 루프함수
 	void StopDashMovement(); //대쉬만 할수있게 가속중지 함수
 	void LookAtTargetSmooth(); //회전 보간 함수
+	
+public:
+	virtual void ResetForReturn() override;
 };
