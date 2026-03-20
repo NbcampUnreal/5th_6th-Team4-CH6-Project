@@ -163,6 +163,11 @@ void AUK_CharacterBase::UpdateMovementState()
 	// }
 }
 
+void AUK_CharacterBase::OutOfStamina()
+{
+	OutOfStaminaHandle.Broadcast();
+}
+
 // Called when the game starts or when spawned
 void AUK_CharacterBase::BeginPlay()
 {
@@ -204,6 +209,14 @@ void AUK_CharacterBase::BeginPlay()
 	// 	0.5f,
 	// 	true
 	// );
+	
+	if (AUK_SoundManager::Get(GetWorld()))
+	{
+		SoundManager = AUK_SoundManager::Get(GetWorld());
+	}
+	else
+	{
+	}
 }
 
 void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -849,6 +862,7 @@ bool AUK_CharacterBase::StartGliding()
 	GetCharacterMovement()->GravityScale = 0.f;
 	GetCharacterMovement()->AirControl = 0.8;
 	GetCharacterMovement()->Velocity = Vel;
+	bIsGliding = true;
 	bInUseStamina = true;
 	//GetCharacterMovement()->SetMovementMode(MOVE_Custom, (uint8)ECustomMovementMode::CMOVE_Glide);
 	return true;
@@ -1157,7 +1171,7 @@ void AUK_CharacterBase::StartBattle()
 	}
 	
 	// 사운드 매니저를 찾아서 전투 상태를 True로 변경
-	if (AUK_SoundManager* SoundManager = AUK_SoundManager::Get(GetWorld()))
+	if (SoundManager)
 	{
 		SoundManager->SetCombatState(true);
 	}
@@ -1190,7 +1204,7 @@ void AUK_CharacterBase::EndBattle()
 	EndBattleEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	
 	// 사운드 매니저를 찾아서 전투 상태를 False로 변경
-	if (AUK_SoundManager* SoundManager = AUK_SoundManager::Get(GetWorld()))
+	if (SoundManager)
 	{
 		SoundManager->SetCombatState(false);
 	}

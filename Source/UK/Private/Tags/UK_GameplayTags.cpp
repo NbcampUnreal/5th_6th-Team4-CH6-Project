@@ -11,6 +11,7 @@ namespace UK_GameplayTags
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Look, "Input.Look", "Default Movement Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Jump, "Input.Jump", "Default Movement Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Sprint, "Input.Sprint", "Default Movement Ability")
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(StopSprint, "Input.StopSprint", "Default Movement Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(ZoomIn, "Input.Zoom.In", "Default Movement Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(ZoomOut, "Input.Zoom.Out", "Default Movement Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(NomalSkill, "Input.NomalSkill", "Default Movement Ability")
@@ -134,14 +135,23 @@ namespace UK_GameplayTags
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HealMP, "Data.EndBattle.HealMP", "EndBattle")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HealStamina, "Data.EndBattle.HealStamina", "EndBattle")
 		}
+
+		namespace CoolDown
+		{
+			namespace OneHandSword
+			{
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(NomalSkill, "Data.CoolDown.OneHandSword.NormalSkill",
+				                               "NormalSkill CoolDown")
+				UE_DEFINE_GAMEPLAY_TAG_COMMENT(UltimateSkill, "Data.CoolDown.OneHandSword.UltimateSkill",
+				                               "UltimateSkill CoolDown")
+			}
+
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(NomalSkill, "Data.CoolDown.NormalSkill", "NormalSkill CoolDown")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(UltimateSkill, "Data.CoolDown.UltimateSkill", "UltimateSkill CoolDown")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Hit, "Data.CoolDown.Hit", "Hit CoolDown")
+		}
 	}
 
-	namespace CoolDown
-	{
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(NomalSkill, "CoolDown.NomalSkill", "Nomalskill CoolDown")
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(UltimateSkill, "CoolDown.UltimateSkill", "UltimateSkill CoolDown")
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Hit, "CoolDown.Hit", "Hit CoolDown")
-	}
 
 	namespace Food
 	{

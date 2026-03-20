@@ -106,7 +106,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "HUD")
 	TObjectPtr<UUK_MainHUD> MainHUD;
 
-	UPROPERTY(BlueprintReadWrite, Category = "HUD")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
 	TSubclassOf<UUK_MainHUD> MainHUDClass;
 
 public:

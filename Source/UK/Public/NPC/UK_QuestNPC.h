@@ -9,8 +9,8 @@
 #include "Engine/DataTable.h"
 #include "UK_QuestNPC.generated.h"
 
-
 class AUK_CharacterBase;
+class UUKQuestManagerSubsystem;
 
 UCLASS()
 class UK_API AUK_QuestNPC : public AUK_NPCAIBase
@@ -23,8 +23,7 @@ protected:
 public:
 	AUK_QuestNPC();
 
-	bool CanInteract() const {return bPlayerInRange;}
-
+	bool CanInteract() const { return bPlayerInRange; }
 	void Interact(AActor* Interactor);
 
 	// 퀘스트 마커를 표시할 영역
@@ -41,21 +40,37 @@ public:
 	bool bPlayerInRange;
 
 	UFUNCTION()
-	void OnPlayerEnter(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,bool bFromSweep, const FHitResult& SweepResult);
+	void OnPlayerEnter(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult
+	);
 
 	UFUNCTION()
-	void OnPlayerExit(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	void OnPlayerExit(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex
+	);
 
 	void UpdateMarkerRotation();
 
+	// 하위 호환용 / 단일 퀘스트 fallback
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
 	FName QuestID;
+
+	// 중장기 구조: 이 NPC가 순서대로 담당하는 퀘스트 목록
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
+	TArray<FName> OfferedQuestIDs;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
 	TSubclassOf<UUK_Quest> QuestUIClass;
 
 	void HandleQuestInteract(AUK_CharacterBase* Player);
-
 
 	// DT에서 읽어온 공식 NPC EntityID
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Data")
@@ -68,4 +83,9 @@ public:
 	// DT에서 읽어온 NPC 설명
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Data")
 	FText NPCDescription;
+
+protected:
+	bool IsQuestStarted(const UUKQuestManagerSubsystem* QuestSys, FName InQuestId) const;
+	bool IsQuestCompleted(const UUKQuestManagerSubsystem* QuestSys, FName InQuestId) const;
+	FName ResolveCurrentQuestID(const UUKQuestManagerSubsystem* QuestSys) const;
 };
