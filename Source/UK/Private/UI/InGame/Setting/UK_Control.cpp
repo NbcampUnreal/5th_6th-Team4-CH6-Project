@@ -19,6 +19,18 @@ void UUK_Control::OnBackButtonClicked()
 	if ( ParentSettingWidget )
 	{
 		ParentSettingWidget->SetVisibility(ESlateVisibility::Visible);
+
+		if ( APlayerController* PC = GetOwningPlayer() )
+		{
+			FInputModeGameAndUI Mode;
+			
+			Mode.SetWidgetToFocus(ParentSettingWidget->TakeWidget());
+			Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+			Mode.SetHideCursorDuringCapture(false);
+
+			PC->SetInputMode(Mode);
+		}
+
 		RemoveFromParent();
 	}
 }

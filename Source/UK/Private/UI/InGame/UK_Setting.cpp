@@ -35,13 +35,36 @@ void UUK_Setting::NativeConstruct()
 	}
 }
 
+void UUK_Setting::ClearAllWidgets()
+{
+	if ( SoundWidget && SoundWidget->IsInViewport() )
+	{
+		SoundWidget->RemoveFromParent();
+		SoundWidget = nullptr;
+	}
+
+	// 2. 비디오(스크린) 창 제거
+	if ( ControlWidget && ControlWidget->IsInViewport() )
+	{
+		ControlWidget->RemoveFromParent();
+		ControlWidget = nullptr;
+	}
+
+	// 3. 컨트롤 창 제거
+	if ( VideoWidget && VideoWidget->IsInViewport() )
+	{
+		VideoWidget->RemoveFromParent();
+		VideoWidget = nullptr;
+	}
+}
+
 void UUK_Setting::OnSoundButtonClicked()
 {
 	if ( !SoundWidgetClass ) return;
 
 	if ( !UK_PC ) return;
-
-	UUK_Sound* SoundWidget = CreateWidget<UUK_Sound>(UK_PC, SoundWidgetClass);
+	ClearAllWidgets();
+	SoundWidget = CreateWidget<UUK_Sound>(UK_PC, SoundWidgetClass);
 	if ( !SoundWidget ) return;
 
 	SoundWidget->SetParentWidget(this);
@@ -63,8 +86,8 @@ void UUK_Setting::OnVideoButtonClicked()
 	if ( !VideoWidgetClass ) return;
 
 	if ( !UK_PC ) return;
-
-	UUK_Screen* VideoWidget = CreateWidget<UUK_Screen>(UK_PC, VideoWidgetClass);
+	ClearAllWidgets();
+	VideoWidget = CreateWidget<UUK_Screen>(UK_PC, VideoWidgetClass);
 	if ( !VideoWidget ) return;
 
 	VideoWidget->SetParentWidget(this);
@@ -86,8 +109,8 @@ void UUK_Setting::OnControlButtonClicked()
 	if ( !ControlWidgetClass ) return;
 
 	if ( !UK_PC ) return;
-
-	UUK_Control* ControlWidget = CreateWidget<UUK_Control>(UK_PC, ControlWidgetClass);
+	ClearAllWidgets();
+	ControlWidget = CreateWidget<UUK_Control>(UK_PC, ControlWidgetClass);
 	if ( !ControlWidget )
 	{
 		UE_LOG(LogTemp, Error, TEXT("SoundWidgetClass is NOT assigned in Blueprint!"));
@@ -111,10 +134,12 @@ void UUK_Setting::OnExitButtonClicked()
 {
 	if ( UK_PC )
 	{
+		ClearAllWidgets();
 		UK_PC->Setting_UI();
 	}
 	else
 	{
+		ClearAllWidgets();
 		RemoveFromParent();
 	}
 

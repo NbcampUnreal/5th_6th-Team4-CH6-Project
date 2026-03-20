@@ -9,6 +9,9 @@
 
 
 class AUK_PlayerController;
+class UUK_Sound;
+class UUK_Screen;
+class UUK_Control;
 /**
  * 
  */
@@ -20,6 +23,8 @@ class UK_API UUK_Setting : public UUserWidget
 public:
 
 	virtual void NativeConstruct() override;
+
+	void ClearAllWidgets();
 
 	UPROPERTY(meta = ( BindWidget ))
 	UButton* Sound;
@@ -38,6 +43,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UUserWidget> VideoWidgetClass;
+
+	UUK_Sound* SoundWidget;
+
+	UUK_Screen* VideoWidget;
+
+	UUK_Control* ControlWidget;
 
 	UPROPERTY(meta = ( BindWidget ))
 	UButton* Infomation;
