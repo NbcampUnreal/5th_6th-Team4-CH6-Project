@@ -34,12 +34,6 @@ void AUK_SoundManager::SetCombatState(bool bInCombat)
 
 	if (bInCombat)
 	{
-		UE_LOG(LogTemp, Display, TEXT("be in Combat Start"))
-		// 1. 현재 필드 BGM 저장 (전투 끝나고 돌아오기 위함)
-		/*LastFieldBGM = BGMComponent->GetSound();
-		BGMComponent->SetSound(LastFieldBGM);
-		BGMComponent->Stop();*/
-		
 		if (IsValid(CurrentSound_cpp))
 		{
 			CurrentSound_cpp->GetAudioComponent()->Stop();
