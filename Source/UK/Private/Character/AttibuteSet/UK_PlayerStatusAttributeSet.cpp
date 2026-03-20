@@ -175,6 +175,7 @@ void UUK_PlayerStatusAttributeSet::PostGameplayEffectExecute(const FGameplayEffe
     	float NewValue = GetHealth();
         SetHealth(FMath::Clamp(NewValue, 0.f, GetMaxHealth()));
     }
+	
 }
 void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue,
                                                        float NewValue)
@@ -272,6 +273,10 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 	else if (Attribute == GetLevelAttribute())
 	{
 		DefenceChanged.Broadcast(OldValue, NewValue);
+	}
+	else if ( Attribute == GetCurrentPowerAttribute() )
+	{
+		CurrentPowerChanged.Broadcast(OldValue, NewValue);
 	}
 	Super::PostAttributeChange(Attribute, OldValue, NewValue);
 }
