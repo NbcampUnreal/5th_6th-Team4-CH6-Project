@@ -49,7 +49,6 @@ void AUK_PlayerController::BeginPlay()
 
 	Client_CreatePlayerUI();
 
-	// 게임 입력 상태
 	ApplyInputState(EInputState::Game);
 
 	GetWorldTimerManager().SetTimer(
@@ -91,39 +90,6 @@ void AUK_PlayerController::BeginPlay()
 				}, 0.3f, false);
 		}
 	}
-	//FOnAttributeChangeData Data;
-	//// 		//UpdateStaminaBar(StatusPtr->CurrentStamina, StatusPtr->MaxStamina); 
-	//// HP 초기값 세팅 및 바인딩
-	//Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute());
-	//OnHealthChanged(Data);
-	//Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetHealthAttribute());
-	//OnHealthChanged(Data);
-
-	//ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute()).
-	//	AddUObject(this, &AUK_PlayerController::OnHealthChanged);
-	//ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetHealthAttribute()).
-	//	AddUObject(this, &AUK_PlayerController::OnHealthChanged);
-
-	//FOnAttributeChangeData Data;
-	//if ( ASC )
-	//{
-	//	// 현재 체력 값 가져와서 초기 체크
-
-	//	/*Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetHealthAttribute());
-	//	OnHealthChanged(Data);
-
-	//	ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetHealthAttribute()).
-	//		AddUObject(this, &AUK_PlayerController::OnHealthChanged);*/
-
-	//}
-
-	//if ( UUK_PlayerStatusAttributeSet* AttributeSet = ASC->GetSet<UUK_PlayerStatusAttributeSet>() )
-	//{
-	//	// Health 변화 바인딩
-	//	ASC->GetGameplayAttributeValueChangeDelegate(
-	//		UUK_PlayerStatusAttributeSet::GetHealthAttribute()
-	//	).AddUObject(this, &AUK_PlayerController::OnHealthChanged);
-	//}
 }
 
 void AUK_PlayerController::PostSeamlessTravel()
@@ -191,42 +157,42 @@ void AUK_PlayerController::ClearAllWidgets()
 	// 메인 HUD
 	if ( MainHUD && MainHUD->IsInViewport() )
 	{
-		MainHUD->RemoveFromParent();
+		MainHUD->SetVisibility(ESlateVisibility::Collapsed);
 		MainHUD = nullptr;
 	}
 
 	//// 스태미나
 	if ( StaminaWidget && StaminaWidget->IsInViewport() )
 	{
-		StaminaWidget->RemoveFromParent();
+		StaminaWidget->SetVisibility(ESlateVisibility::Collapsed);
 		StaminaWidget = nullptr;
 	}
 
 	// 세팅
 	if ( SettingWidget && SettingWidget->IsInViewport() )
 	{
-		SettingWidget->RemoveFromParent();
+		SettingWidget->SetVisibility(ESlateVisibility::Collapsed);
 		SettingWidget = nullptr;
 	}
 
 	// 퀘스트
 	if ( QuestWidget && QuestWidget->IsInViewport() )
 	{
-		QuestWidget->RemoveFromParent();
+		QuestWidget->SetVisibility(ESlateVisibility::Collapsed);
 		QuestWidget = nullptr;
 	}
 
 	// 상점
 	if ( ShopWidget && ShopWidget->IsInViewport() )
 	{
-		ShopWidget->RemoveFromParent();
+		ShopWidget->SetVisibility(ESlateVisibility::Collapsed);
 		ShopWidget = nullptr;
 	}
 
 	// 게임오버
 	if ( GameOverWidget && GameOverWidget->IsInViewport() )
 	{
-		GameOverWidget->RemoveFromParent();
+		GameOverWidget->SetVisibility(ESlateVisibility::Collapsed);
 		GameOverWidget = nullptr;
 	}
 }
@@ -399,7 +365,7 @@ void AUK_PlayerController::UpdateStaminaTracking()
 	{
 		// 로딩 중이면 트래킹 계산을 하지 않고 위젯을 숨깁니다.
 		StaminaWidget->SetVisibility(ESlateVisibility::Collapsed);
-		return; // 여기서 함수 종료! 아래의 SetTrackingPosition을 호출하지 않음.
+		return; 
 	}
 
 	APawn* MyPawn = GetPawn();
@@ -507,14 +473,14 @@ void AUK_PlayerController::ShowQuestUI(const FName& QuestID, const FText& NPCNam
 	if ( !QuestWidget ) return;
 
 	//QuestWidget->AddToViewport();
-	//QuestWidget = CreateWidget<UUK_Quest>(this, QuestWidgetClass);
+	QuestWidget = CreateWidget<UUK_Quest>(this, QuestWidgetClass);
 	if ( !QuestWidget )
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[PC] CreateWidget 실패"));
 		return;
 	}
 
-	//QuestWidget->AddToViewport();
+	QuestWidget->AddToViewport();
 	UE_LOG(LogTemp, Warning, TEXT("[PC] AddToViewport 성공"));
 
 
