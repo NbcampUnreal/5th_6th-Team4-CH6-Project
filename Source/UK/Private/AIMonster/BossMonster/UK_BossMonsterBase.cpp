@@ -74,6 +74,40 @@ void AUK_BossMonsterBase::EndAttack()
 	SetWeaponCollisionEnabled(false);
 }
 
+void AUK_BossMonsterBase::ResetForReturn()
+{
+	bIsDying = false;
+	bRewardGranted = false;
+	bIsAttacking = false;
+	bIsHit = false;
+    
+	SetWeaponCollisionEnabled(false);
+	HitActors.Empty();
+    
+	RequestState(EMonsterState::Idle);
+    
+	// 캡슐 콜리전 복구
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Capsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	}
+    
+	// 메시 콜리전 복구 ← 추가
+	if (USkeletalMeshComponent* SKMesh = GetMesh())
+	{
+		SKMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		SKMesh->SetAllBodiesSimulatePhysics(false);
+	}
+
+	// 이동 복구 ← 추가
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->SetMovementMode(EMovementMode::MOVE_Walking);
+	}
+	
+
+}
+
 void AUK_BossMonsterBase::ReceiveDamage(float Damage)
 {
 	Super::ReceiveDamage(Damage);

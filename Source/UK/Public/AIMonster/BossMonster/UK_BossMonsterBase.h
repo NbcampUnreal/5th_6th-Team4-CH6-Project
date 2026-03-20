@@ -31,6 +31,9 @@ protected:
 	
 #pragma region Phase & Combat
 public:
+	UFUNCTION(BlueprintCallable)
+	virtual void ResetForReturn();
+	
 	virtual void ReceiveDamage(float Damage) override;
 	
 	virtual bool PlayRandomAttackMontage() override;
