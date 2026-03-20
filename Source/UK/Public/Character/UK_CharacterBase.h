@@ -69,6 +69,7 @@ enum class ECharacterAttribute : uint8
 DECLARE_DYNAMIC_DELEGATE(FOnFloorDelagate);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadDelagate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOutOfStamina);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCharacterAttribute, ECharacterAttribute, CharacterAttribute);
 
@@ -93,6 +94,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ChangedAttribute(ECharacterAttribute NewAttribute);
 	void UpdateMovementState();
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -137,8 +139,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UAIPerceptionStimuliSourceComponent> StimuliSource;
 #pragma endregion
-
+	
+	
 public:
+	void OutOfStamina();
+	
+	UPROPERTY(BlueprintAssignable)
+	FOutOfStamina OutOfStaminaHandle;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<UGameplayEffect> HealStaminaEffect;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -303,6 +311,8 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void EndGliding();
+	
+	
 #pragma endregion
 
 #pragma region Climb

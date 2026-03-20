@@ -27,6 +27,7 @@ public:
 	void ExportStats(struct FCharacterStatSaveData& OutData);
 	void ImportStats(const struct FCharacterStatSaveData& InData);
 	void HandleOutOfHealth();
+	void HandleOutOStamina();
 
 	ATTRIBUTE_ACCESSORS_BASIC(UUK_PlayerStatusAttributeSet, Health);
 	ATTRIBUTE_ACCESSORS_BASIC(UUK_PlayerStatusAttributeSet, MaxHealth);
