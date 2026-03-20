@@ -581,7 +581,20 @@ void AAIMonsterBase::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupt
 	}
 	
 	bIsAttacking = false;
-	OnAttackFinished.ExecuteIfBound();
+	
+	const float BlendOutTime = Montage ? Montage->BlendOut.GetBlendTime() : 0.f;
+	if (BlendOutTime > 0.f)
+	{
+		FTimerHandle BlendOutTimer;
+		GetWorldTimerManager().SetTimer(BlendOutTimer, [this]()
+		{
+			OnAttackFinished.ExecuteIfBound();
+		}, BlendOutTime, false);
+	}
+	else
+	{
+		OnAttackFinished.ExecuteIfBound();
+	}
 }
 #pragma endregion
 
@@ -912,7 +925,7 @@ void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
 
 void AAIMonsterBase::ResetToPassive()
 {
-	bIsAggressive = false;
+    bIsAggressive = false;
 	bIsAttacking  = false;
 	Aggressor     = nullptr;
 
@@ -1370,6 +1383,8 @@ void AAIMonsterBase::GrantRewardsToKiller()
 
 void AAIMonsterBase::PlayHitEffect(FVector ImpactPoint)
 {
+	if (bIsDying || IsDead()) return;
+	
 	if ( HitEffect )
 	{
 		FVector SpawnLoc = ( ImpactPoint.IsNearlyZero() ) ? GetActorLocation() + FVector(0.f, 0.f, 100.f) : ImpactPoint;

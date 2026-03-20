@@ -62,7 +62,7 @@ void UUK_Out_MainMenu::OnPlayButtonClicked()
 		UUK_Out_CharacterSelect* CharacterSelect = CreateWidget<UUK_Out_CharacterSelect>(PlayerController, CharacterSelectWidgetClass);
 		if ( CharacterSelect )
 		{
-			CharacterSelect->AddToViewport();
+			CharacterSelect->AddToViewport(0);
 			PlayerController->bShowMouseCursor = true;
 
 			FInputModeGameAndUI Mode;

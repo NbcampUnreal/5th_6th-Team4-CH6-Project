@@ -36,11 +36,14 @@ void AUK_SoundManager::SetCombatState(bool bInCombat)
 	{
 		UE_LOG(LogTemp, Display, TEXT("be in Combat Start"))
 		// 1. 현재 필드 BGM 저장 (전투 끝나고 돌아오기 위함)
-		LastFieldBGM = BGMComponent->GetSound();
+		/*LastFieldBGM = BGMComponent->GetSound();
 		BGMComponent->SetSound(LastFieldBGM);
-		BGMComponent->Stop();
+		BGMComponent->Stop();*/
 		
-		CurrentSound_cpp->GetAudioComponent()->Stop();
+		if (IsValid(CurrentSound_cpp))
+		{
+			CurrentSound_cpp->GetAudioComponent()->Stop();
+		}
 
 		// 2. 현재 지역(CurrentRegion)에 맞는 전투 음악 찾아서 재생
 		if (USoundBase** CombatBGM = CombatBGMMappings.Find(CurrentRegion))
@@ -51,18 +54,18 @@ void AUK_SoundManager::SetCombatState(bool bInCombat)
 	}
 	else
 	{
-		CurrentSound_cpp->GetAudioComponent()->Play();
-		// 3. 전투 종료 시: 아까 저장해둔 필드 BGM으로 복귀
-		/*if (LastFieldBGM)
+		if (IsValid(CurrentSound_cpp))
 		{
-			PlayBGM(LastFieldBGM);
-		}*/
+			BGMComponent->Stop();
+			
+			CurrentSound_cpp->GetAudioComponent()->Play();
+		}
 	}
 }
 
 void AUK_SoundManager::PlayBGM(USoundBase* NewSound, bool bFade)
 {
-	if (!NewSound || BGMComponent->Sound == NewSound) return;
+	if (!NewSound) return;
 
 	if (bFade)
 	{

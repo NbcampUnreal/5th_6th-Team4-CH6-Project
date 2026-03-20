@@ -7,6 +7,7 @@
 
 class UButton;
 class UImage;
+class UTextBlock;
 
 UCLASS()
 class UK_API UUK_WarpIcon : public UUserWidget
@@ -28,6 +29,10 @@ protected:
 	UFUNCTION()
 	void OnWarpButtonClicked();
 
+	// 마우스 이벤트 오버라이드
+	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
+
 protected:
 	// UI Binding (블루프린트 위젯 이름과 일치해야 함) 
 	UPROPERTY(meta = ( BindWidget ))
@@ -35,6 +40,9 @@ protected:
 
 	UPROPERTY(meta = ( BindWidget ))
 	TObjectPtr<UImage> IconImage;
+
+	UPROPERTY(meta = ( BindWidget ))
+	TObjectPtr<UTextBlock> WarpInfoText;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Warp")
 	bool bIsActivated = false;
@@ -45,4 +53,8 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Warp|Visual")
 	FLinearColor InactiveColor = FLinearColor(0.2f, 0.2f, 0.2f, 0.8f);
+
+	// 워프 비용
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warp")
+	int32 WarpCost = 3000;
 };

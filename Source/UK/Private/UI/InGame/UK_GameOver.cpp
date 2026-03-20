@@ -8,23 +8,29 @@
 void UUK_GameOver::NativeConstruct()
 {
 	Super::NativeConstruct();
-
-	if ( RestartButton )
-	{
-		RestartButton->OnClicked.AddDynamic(this, &ThisClass::OnRestartButtonClicked);
-	}
-	if ( ExitButton )
-	{
-		ExitButton->OnClicked.AddDynamic(this, &ThisClass::OnReExitButtonClicked);
-	}
 }
 
-void UUK_GameOver::OnRestartButtonClicked()
-{
-	//Restart할 경우 저장된 위치나 특정 장면으로 돌아가게 설정
-}
 
-void UUK_GameOver::OnReExitButtonClicked()
+void UUK_GameOver::SetupGameOverUI()
 {
-	UGameplayStatics::OpenLevel(this, FName("MainMenu_Level"));
+	if ( FadeIn )
+	{
+		PlayAnimation(FadeIn);
+	}
+
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if ( PC )
+	{
+		bIsFocusable = true;
+
+		PC->bShowMouseCursor = true;
+
+		FInputModeUIOnly InputModeData;
+		InputModeData.SetWidgetToFocus(TakeWidget());
+		InputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+
+		PC->SetInputMode(InputModeData);
+	}
+
+	UGameplayStatics::SetGamePaused(GetWorld(), true);
 }
