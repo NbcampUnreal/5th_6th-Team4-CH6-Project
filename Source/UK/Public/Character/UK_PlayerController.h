@@ -42,6 +42,12 @@ public:
 	virtual void PostSeamlessTravel() override;
 	virtual void OnPossess(APawn* pawn) override;
 
+	UFUNCTION(BlueprintCallable)
+	void ClearAllWidgets();
+
+	template <typename T>
+	T* ShowOnlyWidget(TSubclassOf<T> WidgetClass, int32 ZOrder = 0);
+
 	//UFUNCTION()
 	void OnHealthChanged(const FOnAttributeChangeData& Data);
 
@@ -114,7 +120,7 @@ public:
 	UPROPERTY(EditAnywhere)
 	UInputMappingContext* IMC;
 
-	UPROPERTY(BlueprintReadWrite, Category = "UI")
+	UPROPERTY(EditAnywhere, Category = "UI")
 	TSubclassOf<UUK_Stamina> StaminaWidgetClass;
 
 	UPROPERTY(BlueprintReadWrite, Category = "UI")

@@ -10,30 +10,68 @@
 
 void UUK_GameInstance::ShowLoading(float Target)
 {
+	// 1. 이미 위젯이 존재하는 경우 값만 업데이트
+
+	if ( auto PC = Cast<AUK_PlayerController>(GetFirstLocalPlayerController()) )
+	{
+		PC->ClearAllWidgets(); // 기존 UI 모두 제거
+		PC->ApplyInputState(EInputState::UI); // 입력 UI 모드
+	}
+
 	if ( PersistentLoadingWidget && PersistentLoadingWidget->IsInViewport() )
 	{
 		PersistentLoadingWidget->TargetValue = Target;
 		return;
 	}
 
-	if ( LoadingWidgetClass && GetWorld() )
+	// 2. 위젯이 없거나 뷰포트에 없는 경우 생성 및 설정
+	if ( LoadingWidgetClass )
 	{
-		PersistentLoadingWidget = CreateWidget<UUK_Out_Loading>(GetWorld(), LoadingWidgetClass);
+		//// 이전에 남은 위젯이 있다면 정리 (안전장치)
+		//if ( PersistentLoadingWidget )
+		//{
+		//	HideLoading();
+		//}
+
+		PersistentLoadingWidget = CreateWidget<UUK_Out_Loading>(this, LoadingWidgetClass);
 
 		if ( PersistentLoadingWidget )
 		{
+
 			PersistentLoadingWidget->TargetValue = Target;
 
-			PersistentLoadingWidget->AddToViewport(0);
+			if ( GEngine && GEngine->GameViewport )
+			{
+				GEngine->GameViewport->AddViewportWidgetContent(
+					PersistentLoadingWidget->TakeWidget(),
+					10
+				);
+			}
+
+			PersistentLoadingWidget->ForceLayoutPrepass();
+
+			if ( auto PC = Cast<AUK_PlayerController>(GetFirstLocalPlayerController()) )
+			{
+				PC->ApplyInputState(EInputState::UI);
+			}
 		}
 	}
 }
 
 void UUK_GameInstance::HideLoading()
 {
-	if ( PersistentLoadingWidget && GEngine && GEngine->GameViewport )
+	if ( PersistentLoadingWidget )
 	{
-		PersistentLoadingWidget->RemoveFromParent();
+		if ( auto PC = Cast<AUK_PlayerController>(GetFirstLocalPlayerController()) )
+		{
+			PC->ApplyInputState(EInputState::Game);
+		}
+
+		if ( GEngine && GEngine->GameViewport )
+		{
+			GEngine->GameViewport->RemoveViewportWidgetContent(PersistentLoadingWidget->TakeWidget());
+		}
+
 		PersistentLoadingWidget = nullptr;
 	}
 }

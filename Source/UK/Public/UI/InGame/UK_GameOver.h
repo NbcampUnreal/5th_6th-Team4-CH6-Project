@@ -17,16 +17,15 @@ class UK_API UUK_GameOver : public UUserWidget
 protected:
 	virtual void NativeConstruct() override;
 
-	UFUNCTION()
-	void OnRestartButtonClicked();
+	UPROPERTY(Transient, BlueprintReadWrite, meta = ( BindWidgetAnim ))
+	class UWidgetAnimation* FadeIn;
 
-	UFUNCTION()
-	void OnReExitButtonClicked();
+public:
+	// 위젯이 생성된 후 호출될 초기화 함수
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void SetupGameOverUI();
 
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = USTitleWidget, Meta = ( AllowPrivateAccess, BindWidget ))
 	TObjectPtr<UButton> RestartButton;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = USTitleWidget, Meta = ( AllowPrivateAccess, BindWidget ))
-	TObjectPtr<UButton> ExitButton;
 };

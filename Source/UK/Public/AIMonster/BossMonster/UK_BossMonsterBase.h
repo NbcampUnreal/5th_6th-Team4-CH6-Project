@@ -27,8 +27,13 @@ protected:
 	
 	float PlayMontage(UAnimMontage* Montage, float InPlayRate = 1.f);
 	
+	EHitReactionType CachedHitType = EHitReactionType::None;
+	
 #pragma region Phase & Combat
 public:
+	UFUNCTION(BlueprintCallable)
+	virtual void ResetForReturn();
+	
 	virtual void ReceiveDamage(float Damage) override;
 	
 	virtual bool PlayRandomAttackMontage() override;

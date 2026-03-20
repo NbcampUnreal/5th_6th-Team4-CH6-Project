@@ -15,18 +15,25 @@
 #include "UI/InGame/UK_GameOver.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayEffectTypes.h"
+#include "Systems/UK_GameInstance.h"
 
 
 AUK_PlayerController::AUK_PlayerController()
 	: bMouseCursorEnabled(false)
 {
 	QuestWidget = nullptr;
+	StaminaWidget = nullptr;
+	SettingWidget = nullptr;
+	MainHUD = nullptr;
+	GameOverWidget = nullptr;
+	ShopWidget = nullptr;
+	bIsSetting = false;
+	CurrentInputState = EInputState::Game;
 }
 
 void AUK_PlayerController::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-
 	if ( PlayerCameraManager )
 	{
 		PlayerCameraManager->ViewPitchMax = 45.f;
@@ -52,12 +59,38 @@ void AUK_PlayerController::BeginPlay()
 		0.005f,
 		true
 	);
-	if (MainHUDClass)
+
+	if ( MainHUDClass )
 	{
 		MainHUD = CreateWidget<UUK_MainHUD>(this, MainHUDClass);
-		MainHUD->AddToViewport();
+		if ( MainHUD )
+		{
+			MainHUD->AddToViewport();
+			MainHUD->SetVisibility(ESlateVisibility::Collapsed);
+		}
 	}
 
+	if ( StaminaWidgetClass )
+	{
+		StaminaWidget = CreateWidget<UUK_Stamina>(this, StaminaWidgetClass);
+		if ( StaminaWidget )
+		{
+			StaminaWidget->AddToViewport();
+			StaminaWidget->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
+	if ( UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance()) )
+	{
+		if ( GI->PersistentLoadingWidget )
+		{
+			FTimerHandle TimerHandle;
+			GetWorldTimerManager().SetTimer(TimerHandle, [ GI ] ()
+				{
+					GI->PersistentLoadingWidget->TargetValue = 1.0f;
+				}, 0.3f, false);
+		}
+	}
 	//FOnAttributeChangeData Data;
 	//// 		//UpdateStaminaBar(StatusPtr->CurrentStamina, StatusPtr->MaxStamina); 
 	//// HP 초기값 세팅 및 바인딩
@@ -98,66 +131,120 @@ void AUK_PlayerController::PostSeamlessTravel()
 	Super::PostSeamlessTravel();
 
 	if ( !IsLocalController() ) return;
-
-	// 맵 이동 후 게임 상태
-	ApplyInputState(EInputState::Game);
+	//ApplyInputState(EInputState::Game);
 	SetCursorVisible(false);
 }
 
 void AUK_PlayerController::OnPossess(APawn* pawn)
 {
 	Super::OnPossess(pawn);
-
-	if ( !IsLocalController() )
-		return;
-
-	if ( IsLocalController() )
-	{
-		ConnectStaminaWidget();
-	}
-
+	if ( !IsLocalController() || !pawn ) return;
 
 	AUK_CharacterBase* MyCharacter = Cast<AUK_CharacterBase>(pawn);
+
 	if ( !MyCharacter ) return;
+	//if ( !StaminaWidget && StaminaWidgetClass )
+	//{
+	//	StaminaWidget = CreateWidget<UUK_Stamina>(this, StaminaWidgetClass);
+	//	if ( StaminaWidget )
+	//	{
+	//		StaminaWidget->AddToViewport(1);
+	//		StaminaWidget->SetVisibility(ESlateVisibility::Visible);
+	//	}
+	//}
 
-	UUK_InputConfig* InputConfig_Player = MyCharacter->InputMappingConfig;
-	if ( !InputConfig_Player ) return;
+	ConnectStaminaWidget();
 
-	IMC = InputConfig_Player->GetIMC();
-	if ( !IMC ) return;
-
-	ULocalPlayer* LocalPlayer = GetLocalPlayer();
-	if ( !LocalPlayer ) return;
-
-	UEnhancedInputLocalPlayerSubsystem* Subsystem =
-		LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
-
-	if ( !Subsystem ) return;
-
-	Subsystem->ClearAllMappings();
-	Subsystem->AddMappingContext(IMC, 0);
-
-	UEnhancedInputUserSettings* Settings = Subsystem->GetUserSettings();
-	if ( Settings )
+	if ( StaminaWidget )
+		UpdateStaminaTracking();
+	// 입력 설정
+	if ( UUK_InputConfig* InputConfig = MyCharacter->InputMappingConfig )
 	{
-		if ( !Settings->IsMappingContextRegistered(this->IMC) )
+		IMC = InputConfig->GetIMC();
+		if ( IMC )
 		{
-			Settings->RegisterInputMappingContext(this->IMC);
+			if ( ULocalPlayer* LocalPlayer = GetLocalPlayer() )
+			{
+				UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
+				if ( Subsystem )
+				{
+					Subsystem->ClearAllMappings();
+					Subsystem->AddMappingContext(IMC, 0);
+
+					if ( UEnhancedInputUserSettings* Settings = Subsystem->GetUserSettings() )
+					{
+						if ( !Settings->IsMappingContextRegistered(IMC) )
+							Settings->RegisterInputMappingContext(IMC);
+					}
+				}
+			}
 		}
 	}
 
-	if ( MyCharacter )
+	MyCharacter->OnDead.RemoveAll(this);
+	MyCharacter->OnDead.AddDynamic(this, &ThisClass::ShowGameOverUI);
+
+}
+
+void AUK_PlayerController::ClearAllWidgets()
+{
+	// 메인 HUD
+	if ( MainHUD && MainHUD->IsInViewport() )
 	{
-		// 이전에 연결된 게 있다면 정리하고 새로 연결 (중복 방지)
-		MyCharacter->OnDead.RemoveAll(this);
-		MyCharacter->OnDead.AddDynamic(this, &ThisClass::ShowGameOverUI);
+		MainHUD->RemoveFromParent();
+		MainHUD = nullptr;
 	}
-	//UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 
-	//if ( Subsystem )
-	//{
-	//	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	//// 스태미나
+	if ( StaminaWidget && StaminaWidget->IsInViewport() )
+	{
+		StaminaWidget->RemoveFromParent();
+		StaminaWidget = nullptr;
+	}
 
+	// 세팅
+	if ( SettingWidget && SettingWidget->IsInViewport() )
+	{
+		SettingWidget->RemoveFromParent();
+		SettingWidget = nullptr;
+	}
+
+	// 퀘스트
+	if ( QuestWidget && QuestWidget->IsInViewport() )
+	{
+		QuestWidget->RemoveFromParent();
+		QuestWidget = nullptr;
+	}
+
+	// 상점
+	if ( ShopWidget && ShopWidget->IsInViewport() )
+	{
+		ShopWidget->RemoveFromParent();
+		ShopWidget = nullptr;
+	}
+
+	// 게임오버
+	if ( GameOverWidget && GameOverWidget->IsInViewport() )
+	{
+		GameOverWidget->RemoveFromParent();
+		GameOverWidget = nullptr;
+	}
+}
+
+template <typename T>
+T* AUK_PlayerController::ShowOnlyWidget(TSubclassOf<T> WidgetClass, int32 ZOrder)
+{
+	if ( !WidgetClass ) return nullptr;
+
+	ClearAllWidgets();
+
+	T* NewWidget = CreateWidget<T>(this, WidgetClass);
+	if ( NewWidget )
+	{
+		NewWidget->AddToViewport(ZOrder);
+	}
+
+	return NewWidget;
 }
 
 // -----  UI 생성 -----
@@ -166,22 +253,10 @@ void AUK_PlayerController::Client_CreatePlayerUI_Implementation()
 {
 	if ( !IsLocalController() ) return;
 
-	// ----- Stamina UI -----
-	if ( StaminaWidgetClass )
+	if ( SettingWidgetClass && !SettingWidget )
 	{
-		StaminaWidget = CreateWidget<UUK_Stamina>(this, StaminaWidgetClass);
-
-		if ( StaminaWidget )
-		{
-			StaminaWidget->AddToViewport();
-			StaminaWidget->SetVisibility(ESlateVisibility::Collapsed);
-		}
-	}
-	// ----- Setting UI -----
-	if ( SettingWidgetClass )
-	{
+		// ShowOnlyWidget을 쓰면 HUD 포인터가 날아갑니다. 직접 생성하세요.
 		SettingWidget = CreateWidget<UUK_Setting>(this, SettingWidgetClass);
-
 		if ( SettingWidget )
 		{
 			SettingWidget->AddToViewport(99);
@@ -202,13 +277,22 @@ void AUK_PlayerController::ApplyInputState(EInputState NewState)
 	{
 	case EInputState::Game:
 	{
-		SetAllGameUIInputVisibility(true);
 		SetIgnoreLookInput(false);
 		SetIgnoreMoveInput(false);
 
 		FInputModeGameOnly Mode;
 		SetInputMode(Mode);
 		SetCursorVisible(false);
+
+		if ( MainHUD )
+		{
+			MainHUD->SetVisibility(ESlateVisibility::Visible);
+		}
+		if ( StaminaWidget )
+		{
+			StaminaWidget->SetVisibility(ESlateVisibility::Visible);
+		}
+
 		break;
 	}
 
@@ -286,6 +370,11 @@ void AUK_PlayerController::Setting_UI()
 
 		SettingWidget->SetVisibility(ESlateVisibility::Visible);
 
+		FInputModeGameAndUI Mode;
+		Mode.SetWidgetToFocus(SettingWidget->TakeWidget());
+		Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		SetInputMode(Mode);
+
 		GetWorldTimerManager().PauseTimer(StaminaTrackingTimer);
 	}
 	else
@@ -303,6 +392,15 @@ void AUK_PlayerController::UpdateStaminaTracking()
 	if ( !IsLocalController() ) return;
 	if ( !StaminaWidget ) return;
 	if ( !PlayerCameraManager ) return;
+
+
+	UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
+	if ( GI && GI->PersistentLoadingWidget )
+	{
+		// 로딩 중이면 트래킹 계산을 하지 않고 위젯을 숨깁니다.
+		StaminaWidget->SetVisibility(ESlateVisibility::Collapsed);
+		return; // 여기서 함수 종료! 아래의 SetTrackingPosition을 호출하지 않음.
+	}
 
 	APawn* MyPawn = GetPawn();
 	if ( !MyPawn )
@@ -404,15 +502,21 @@ void AUK_PlayerController::ShowQuestUI(const FName& QuestID, const FText& NPCNam
 		return;
 	}
 
-	QuestWidget = CreateWidget<UUK_Quest>(this, QuestWidgetClass);
+
+	QuestWidget = ShowOnlyWidget<UUK_Quest>(QuestWidgetClass, 0);
+	if ( !QuestWidget ) return;
+
+	//QuestWidget->AddToViewport();
+	//QuestWidget = CreateWidget<UUK_Quest>(this, QuestWidgetClass);
 	if ( !QuestWidget )
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[PC] CreateWidget 실패"));
 		return;
 	}
 
-	QuestWidget->AddToViewport();
+	//QuestWidget->AddToViewport();
 	UE_LOG(LogTemp, Warning, TEXT("[PC] AddToViewport 성공"));
+
 
 	QuestWidget->SetQuestUI(
 		QuestID,
@@ -453,22 +557,15 @@ void AUK_PlayerController::OnHealthChanged(const FOnAttributeChangeData& Data)
 
 void AUK_PlayerController::ShowGameOverUI()
 {
+	if ( GameOverWidget && GameOverWidget->IsInViewport() ) return;
 	if ( !GameOverWidgetClass ) return;
 
-	if ( !GameOverWidget )
-	{
-		GameOverWidget = CreateWidget<UUK_GameOver>(this, GameOverWidgetClass);
-	}
+	ClearAllWidgets();
 
-	if ( GameOverWidget && !GameOverWidget->IsInViewport() )
+	GameOverWidget = CreateWidget<UUK_GameOver>(this, GameOverWidgetClass);
+	if ( GameOverWidget )
 	{
-		GameOverWidget->AddToViewport();
-
-		// 게임 오버 UI가 떴으니 마우스 커서와 입력 모드 설정
-		bShowMouseCursor = true;
-		FInputModeUIOnly InputModeData;
-		InputModeData.SetWidgetToFocus(GameOverWidget->TakeWidget());
-		SetInputMode(InputModeData);
+		GameOverWidget->AddToViewport(100);
 	}
 }
 
@@ -476,10 +573,10 @@ void AUK_PlayerController::ShowShopUI(TSubclassOf<UUserWidget> ShopWidgetClass)
 {
 	if (!ShopWidgetClass) return;
 	
-	ShopWidget = CreateWidget<UUserWidget>(this, ShopWidgetClass);
+	ShopWidget = ShowOnlyWidget<UUserWidget>(ShopWidgetClass, 0);
 	if (ShopWidget)
 	{
-		ShopWidget->AddToViewport();
+		//ShopWidget->AddToViewport();
 		bShowMouseCursor = true;
 		FInputModeGameAndUI InputMode;
 		InputMode.SetWidgetToFocus(ShopWidget->TakeWidget());
