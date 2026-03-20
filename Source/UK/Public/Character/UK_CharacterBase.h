@@ -16,6 +16,7 @@
 
 
 #pragma region Forward Declaration
+class AUK_SoundManager;
 class USpringArmComponent;
 class UCameraComponent;
 class UStatusComponent;
@@ -69,6 +70,9 @@ enum class ECharacterAttribute : uint8
 DECLARE_DYNAMIC_DELEGATE(FOnFloorDelagate);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadDelagate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOutOfStamina);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNormalSkill, float, CoolDown);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUltimateSkill, float, CoolDown);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCharacterAttribute, ECharacterAttribute, CharacterAttribute);
 
@@ -93,9 +97,11 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ChangedAttribute(ECharacterAttribute NewAttribute);
 	void UpdateMovementState();
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
@@ -137,8 +143,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UAIPerceptionStimuliSourceComponent> StimuliSource;
 #pragma endregion
-
+	
+	
 public:
+	void OutOfStamina();
+	
+	UPROPERTY(BlueprintAssignable)
+	FOutOfStamina OutOfStaminaHandle;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<UGameplayEffect> HealStaminaEffect;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -177,6 +189,13 @@ public:
 	bool bIsGliding = false;
 	
 	bool bInUseStamina = false;
+	
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "CoolDown", meta = ( DisplayNmae = "OnNomalSkillCoolDown" ))
+	FOnNormalSkill OnNormalSkillCoolDownDelegate;
+
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "CoolDown", meta = ( DisplayNmae = "OnNomalSkillCoolDown" ))
+	FOnUltimateSkill OnUltimateSkillCoolDownDelegate;
+	
 #pragma endregion
 
 #pragma  region SaveGame
@@ -303,6 +322,8 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void EndGliding();
+	
+	
 #pragma endregion
 
 #pragma region Climb
@@ -326,7 +347,9 @@ protected:
 
 public:
 	UFUNCTION(BlueprintCallable)
-	void SprintCost();
+	void StartSprintCost();
+	UFUNCTION(BlueprintCallable)
+	void EndSprintCost();
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	UUK_InputConfig* InputMappingConfig;
@@ -348,7 +371,6 @@ protected:
 
 	FTimerHandle GlidingTimer;
 	
-	FTimerHandle SprintTimer;
 	
 
 #pragma endregion
@@ -421,11 +443,16 @@ public:
 	void StartBattle();
 	
 	void EndBattle();
+	
+	UPROPERTY()
+    AUK_SoundManager* SoundManager;
 protected:
 	UPROPERTY()
 	bool bIsParry;
 	
 	bool bInBattle = false;
+	
+	float DissolveValue;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<UGameplayEffect> EndBattleEffect;
@@ -434,7 +461,13 @@ protected:
 	FActiveGameplayEffectHandle EndBattleEffectHandle;
 	
 	FTimerHandle EndBattleTimerHandle;
-
+	
+	FTimerHandle DissolveTimerHandle;
+	UPROPERTY()
+	UMaterialInstanceDynamic* DynamicMaterial;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UAnimMontage* DeathMontage;
 #pragma endregion
 
 #pragma region FindMonsterHPBar

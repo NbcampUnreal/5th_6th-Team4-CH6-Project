@@ -29,6 +29,7 @@
 #include "Components/CapsuleComponent.h"
 #include "DataAsset/Data/UK_WeaponItemData.h"
 #include "Systems/Data/UK_InGameSave.h"
+#include "Systems/Sound/UK_SoundManager.h"
 
 
 #pragma region Defualt
@@ -162,6 +163,11 @@ void AUK_CharacterBase::UpdateMovementState()
 	// }
 }
 
+void AUK_CharacterBase::OutOfStamina()
+{
+	OutOfStaminaHandle.Broadcast();
+}
+
 // Called when the game starts or when spawned
 void AUK_CharacterBase::BeginPlay()
 {
@@ -169,7 +175,6 @@ void AUK_CharacterBase::BeginPlay()
 
 	InventoryComponent->OnChangedWeapon.AddDynamic(this, &ThisClass::SwapWeapon);
 	PC = Cast<AUK_PlayerController>(GetController());
-
 	DefualtGravity = GetCharacterMovement()->GravityScale;
 	DefualtAirControl = GetCharacterMovement()->AirControl;
 	if (IsValid(GetAbilitySystemComponent()))
@@ -203,6 +208,21 @@ void AUK_CharacterBase::BeginPlay()
 	// 	0.5f,
 	// 	true
 	// );
+
+	if (AUK_SoundManager::Get(GetWorld()))
+	{
+		SoundManager = AUK_SoundManager::Get(GetWorld());
+	}
+	else
+	{
+	}
+}
+
+void AUK_CharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorldTimerManager().ClearTimer(DissolveTimerHandle);
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -292,6 +312,15 @@ float AUK_CharacterBase::GetFloorDistance()
 
 void AUK_CharacterBase::HealStamina()
 {
+	if (bIsGliding == true)
+	{
+		bInUseStamina = true;
+	}
+	if (bIsSprinted == true)
+	{
+		bInUseStamina = true;
+	}
+
 	if (bInUseStamina == false)
 	{
 		UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
@@ -320,10 +349,47 @@ void AUK_CharacterBase::HealStamina()
 
 void AUK_CharacterBase::OnLoadGame(class UUK_InGameSave* SaveGameObject)
 {
+	if (!SaveGameObject) return;
+
+	GetCharacterMovement()->StopMovementImmediately();
+
+	SetActorLocationAndRotation(SaveGameObject->PlayerLocation, SaveGameObject->PlayerRotation, false, nullptr,
+	                            ETeleportType::TeleportPhysics);
+
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		const UAttributeSet* AS_Base = ASC->GetAttributeSet(UUK_PlayerStatusAttributeSet::StaticClass());
+		if (const UUK_PlayerStatusAttributeSet* MyAS = Cast<UUK_PlayerStatusAttributeSet>(AS_Base))
+		{
+			const_cast<UUK_PlayerStatusAttributeSet*>(MyAS)->ImportStats(SaveGameObject->PlayerStats);
+		}
+	}
+
+	if (InventoryComponent)
+	{
+		InventoryComponent->ImportInventory(SaveGameObject->InventoryDate);
+	}
 }
 
 void AUK_CharacterBase::OnSaveGame(class UUK_InGameSave* SaveGameObject)
 {
+	if (!SaveGameObject) return;
+
+	SaveGameObject->PlayerLocation = GetActorLocation();
+	SaveGameObject->PlayerRotation = GetActorRotation();
+
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		const UAttributeSet* AS_Base = ASC->GetAttributeSet(UUK_PlayerStatusAttributeSet::StaticClass());
+		if (const UUK_PlayerStatusAttributeSet* MyAS = Cast<UUK_PlayerStatusAttributeSet>(AS_Base))
+		{
+			const_cast<UUK_PlayerStatusAttributeSet*>(MyAS)->ExportStats(SaveGameObject->PlayerStats);
+		}
+	}
+	if (InventoryComponent)
+	{
+		InventoryComponent->ExportInventory(SaveGameObject->InventoryDate);
+	}
 }
 #pragma endregion
 
@@ -803,6 +869,7 @@ bool AUK_CharacterBase::StartGliding()
 	GetCharacterMovement()->GravityScale = 0.f;
 	GetCharacterMovement()->AirControl = 0.8;
 	GetCharacterMovement()->Velocity = Vel;
+	bIsGliding = true;
 	bInUseStamina = true;
 	//GetCharacterMovement()->SetMovementMode(MOVE_Custom, (uint8)ECustomMovementMode::CMOVE_Glide);
 	return true;
@@ -890,41 +957,28 @@ void AUK_CharacterBase::Climb(FHitResult& Hit)
 }
 
 
-void AUK_CharacterBase::SprintCost()
+void AUK_CharacterBase::StartSprintCost()
 {
-	if (bIsSprinted == false)
-	{
-		bIsSprinted = true;
+	bIsSprinted = true;
+	bInUseStamina = true;
+	FGameplayTagContainer TagContainer;
+	TagContainer.AddTag(UK_GameplayTags::Input::Sprint);
+	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(TagContainer);
+}
 
-
-		GetWorldTimerManager().SetTimer(
-			SprintTimer,
-			[this]()
-			{
-				bInUseStamina = true;
-				FGameplayTagContainer TagContainer;
-				TagContainer.AddTag(UK_GameplayTags::Input::Sprint);
-				GetAbilitySystemComponent()->TryActivateAbilitiesByTag(TagContainer);
-			},
-			0.1f,
-			true
-		);
-	}
-	else
-	{
-		bIsSprinted = false;
-		GetWorldTimerManager().ClearTimer(SprintTimer);
-		FTimerHandle EndSprintTimer;
-		GetWorldTimerManager().SetTimer(
-			EndSprintTimer,
-			[this]()
-			{
-				bInUseStamina = false;
-			},
-			1.f,
-			false
-		);
-	}
+void AUK_CharacterBase::EndSprintCost()
+{
+	bIsSprinted = false;
+	FTimerHandle EndSprintTimer;
+	GetWorldTimerManager().SetTimer(
+		EndSprintTimer,
+		[this]()
+		{
+			bInUseStamina = false;
+		},
+		1.f,
+		false
+	);
 }
 
 
@@ -1107,13 +1161,24 @@ void AUK_CharacterBase::EndComboAttack()
 
 void AUK_CharacterBase::Dead()
 {
+	if (GetAbilitySystemComponent()->HasMatchingGameplayTag(UK_GameplayTags::Status::Dead))
+		return;
+	
 	UE_LOG(LogTemp, Display, TEXT("Is Player Dead"));
 	GetCharacterMovement()->DisableMovement();
 	GetController()->SetIgnoreMoveInput(true);
 	GetController()->SetIgnoreLookInput(true);
 	GetAbilitySystemComponent()->AddLooseGameplayTag(UK_GameplayTags::Status::Dead);
+
+	FOnMontageEnded EndDelegate;
+	if (DeathMontage)
+	{
+		DynamicMaterial = SkeletalMeshComp->CreateDynamicMaterialInstance(0);
+		PlayAnimMontage(DeathMontage);
+	}
 	OnDead.Broadcast();
 }
+
 
 void AUK_CharacterBase::StartBattle()
 {
@@ -1121,6 +1186,12 @@ void AUK_CharacterBase::StartBattle()
 	if (GetWorldTimerManager().IsTimerActive(EndBattleTimerHandle))
 	{
 		GetWorldTimerManager().ClearTimer(EndBattleTimerHandle);
+	}
+
+	// 사운드 매니저를 찾아서 전투 상태를 True로 변경
+	if (SoundManager)
+	{
+		SoundManager->SetCombatState(true);
 	}
 }
 
@@ -1149,6 +1220,12 @@ void AUK_CharacterBase::EndBattle()
 	);
 
 	EndBattleEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+
+	// 사운드 매니저를 찾아서 전투 상태를 False로 변경
+	if (SoundManager)
+	{
+		SoundManager->SetCombatState(false);
+	}
 }
 
 void AUK_CharacterBase::UpdateMonsterDetection()

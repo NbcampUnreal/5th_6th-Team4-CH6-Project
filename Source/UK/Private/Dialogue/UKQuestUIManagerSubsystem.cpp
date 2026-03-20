@@ -117,10 +117,14 @@ bool UUKQuestUIManagerSubsystem::CanAcceptQuest(FName QuestId) const
 		return false;
 	}
 
-	// 아직 진행도 자체가 없으면 수락 가능으로 본다.
 	FQuestProgress Progress;
 	const bool bHasProgress = QS->GetProgress(QuestId, Progress);
-	return !bHasProgress;
+	if ( bHasProgress )
+	{
+		return false;
+	}
+
+	return QS->CanStartQuestBySequence(QuestId);
 }
 
 bool UUKQuestUIManagerSubsystem::IsQuestInProgress(FName QuestId) const

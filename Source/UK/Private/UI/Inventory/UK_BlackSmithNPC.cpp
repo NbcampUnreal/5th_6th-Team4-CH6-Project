@@ -30,7 +30,8 @@ void AUK_BlackSmithNPC::BeginPlay()
         
 		if (NPCMarker)
 		{
-			NPCMarker->SetActorLocation(GetActorLocation()); 
+			FVector CheckLocation = GetActorLocation() + FVector(0.0f, 0.0f, 50.0f);
+			NPCMarker->SetActorLocation(CheckLocation); 
 		}
 	}
 }

@@ -28,7 +28,17 @@ void AUKGameMode::InitGame(
 void AUKGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
+	FTimerHandle LoadTimerHandle;
+	GetWorldTimerManager().SetTimer(LoadTimerHandle, [this]()
+	{
+		if (UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance()))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[GameMode] Delayed Load Started..."));
+			GI->LoadEntireGame();
+		}
+	}, 0.2f, false);
+	
 	// 데이터 테이블 확인
 	if (!MonsterRewardTable)
 	{
@@ -55,21 +65,18 @@ void AUKGameMode::BeginPlay()
 		}
 	}
 
-	UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
-	if ( GI && GI->PersistentLoadingWidget )
-	{
-		GI->PersistentLoadingWidget->AddToViewport(999);
-
-		FTimerHandle TimerHandle;
-		GetWorldTimerManager().SetTimer(TimerHandle, [ GI ] ()
-			{
-				if ( GI && GI->PersistentLoadingWidget )
-				{
-					// 5초 뒤에 100%로 설정
-					GI->PersistentLoadingWidget->TargetValue = 1.0f;
-				}
-			}, 5.0f, false);
-	}
+	//UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
+	//if ( GI && GI->PersistentLoadingWidget )
+	//{
+	//	FTimerHandle TimerHandle;
+	//	GetWorldTimerManager().SetTimer(TimerHandle, [ GI ] ()
+	//		{
+	//			if ( GI && GI->PersistentLoadingWidget )
+	//			{
+	//				GI->PersistentLoadingWidget->TargetValue = 1.0f;
+	//			}
+	//		}, 5.0f, false);
+	//}
 
 	UE_LOG(LogTemp, Warning, TEXT("[GameMode] Registered %d monsters from map"), RegisteredCount);
 }

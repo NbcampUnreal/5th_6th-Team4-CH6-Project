@@ -53,6 +53,13 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void EmitQuestEvent(FName EventId);
 
+	UFUNCTION(BlueprintCallable, Category = "UK|Quest")
+	bool CanStartQuestBySequence(FName QuestId) const;
+
+protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UK|Quest|Flow")
+	bool bAutoCompleteOnObjectivesSatisfied = false;
+
 
 	// [4] Item EntityID / ItemDataTable
 	// 에디터 또는 경로 로드로 사용할 아이템 정보 데이터 테이블

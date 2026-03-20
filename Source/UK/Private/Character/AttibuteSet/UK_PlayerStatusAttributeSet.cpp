@@ -96,8 +96,8 @@ void UUK_PlayerStatusAttributeSet::PreAttributeChange(const FGameplayAttribute& 
 		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxStamina());
 
 
-		UE_LOG(LogTemp, Log, TEXT("   Stamina: %.1f → %.1f (Max: %.1f)"),
-		       OldValue, NewValue, GetMaxStamina());
+		// UE_LOG(LogTemp, Log, TEXT("   Stamina: %.1f → %.1f (Max: %.1f)"),
+		//        OldValue, NewValue, GetMaxStamina());
 	}
 	// 최대 경험치 전처리
 	else if (Attribute == GetMaxEXPAttribute())
@@ -162,15 +162,18 @@ void UUK_PlayerStatusAttributeSet::PostGameplayEffectExecute(const FGameplayEffe
 
     if (Data.EvaluatedData.Attribute == GetCurrentStaminaAttribute())
     {
-        SetCurrentStamina(FMath::Clamp(GetCurrentStamina(), 0.f, GetMaxStamina()));
+    	float NewValue = GetCurrentStamina();
+        SetCurrentStamina(FMath::Clamp(NewValue, 0.f, GetMaxStamina()));
     }
     else if (Data.EvaluatedData.Attribute == GetCurrentMpAttribute())
     {
-        SetCurrentMp(FMath::Clamp(GetCurrentMp(), 0.f, GetMaxMp()));
+    	float NewValue = GetCurrentMp();
+        SetCurrentMp(FMath::Clamp(NewValue, 0.f, GetMaxMp()));
     }
     else if (Data.EvaluatedData.Attribute == GetHealthAttribute())
     {
-        SetHealth(FMath::Clamp(GetHealth(), 0.f, GetMaxHealth()));
+    	float NewValue = GetHealth();
+        SetHealth(FMath::Clamp(NewValue, 0.f, GetMaxHealth()));
     }
 }
 void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue,
@@ -225,6 +228,10 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 	// 스테미너 후처리
 	else if (Attribute == GetCurrentStaminaAttribute())
 	{
+		if (GetCurrentStamina() <= 0.f)
+		{
+			HandleOutOStamina();
+		}
 		//SetCurrentStamina(FMath::Clamp(GetCurrentStamina(), 0.f, GetMaxStamina()));
 		CurrentStaminaChanged.Broadcast(OldValue, NewValue);
 	}
@@ -283,6 +290,18 @@ void UUK_PlayerStatusAttributeSet::HandleOutOfHealth()
 	}
 }
 
+void UUK_PlayerStatusAttributeSet::HandleOutOStamina()
+{
+	if (AActor* Avatar = GetOwningAbilitySystemComponent()->GetAvatarActor())
+	{
+		if (AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(Avatar))
+		{
+			UE_LOG(LogTemp, Log, TEXT("OutOfStamina"));
+			Player->OutOfStamina();
+		}
+	}
+}
+
 void UUK_PlayerStatusAttributeSet::ExportStats(FCharacterStatSaveData& OutData)
 {
 	OutData.Health = GetHealth();
@@ -302,18 +321,22 @@ void UUK_PlayerStatusAttributeSet::ExportStats(FCharacterStatSaveData& OutData)
 
 void UUK_PlayerStatusAttributeSet::ImportStats(const struct FCharacterStatSaveData& InData)
 {
+	InitAttackPower(InData.AttackPower);
+	InitLevel(InData.Level);
+	InitMaxLevel(InData.MaxLevel);
+	InitEXP(InData.Exp);
+	InitMaxEXP(InData.MaxEXP);
+	InitDefence(InData.Defence);
+    
+	InitMaxHealth(InData.MaxHealth);
+	InitMaxMp(InData.MaxMp);
+	InitMaxStamina(InData.MaxStamina);
+
 	SetHealth(InData.Health);
-	SetMaxHealth(InData.MaxHealth);
-	SetAttackPower(InData.AttackPower);
-	SetCurrentPower(InData.CurrentPower);
 	SetCurrentMp(InData.CurrentMp);
-	SetMaxMp(InData.MaxMp);
-	SetMaxStamina(InData.MaxStamina);
 	SetCurrentStamina(InData.CurrentStamina);
-	SetLevel(InData.Level);
-	SetMaxLevel(InData.MaxLevel);
-	SetEXP(InData.Exp);
-	SetMaxEXP(InData.MaxEXP);
-	SetDefence(InData.Defence);
+
+	HealthChanged.Broadcast(0.f, InData.Health);
+	CurrentMpChanged.Broadcast(0.f, InData.CurrentMp);
 }
 

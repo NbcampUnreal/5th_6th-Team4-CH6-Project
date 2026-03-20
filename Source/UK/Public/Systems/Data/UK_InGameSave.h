@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
@@ -19,7 +19,11 @@ struct FInventorySaveData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FName> ItemIds;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FName> EquippedWeaponIds;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<int32> ItemCounts;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 Gold;
 };
 
 USTRUCT()
@@ -66,6 +70,10 @@ public:
 	
 	UPROPERTY(VisibleAnywhere, Category = "Meta")
 	FString SaveSlotName;
+
+	// 활성화된 워프 포인트의 ID들만 저장
+	UPROPERTY()
+	TArray<FName> ActivatedWarpIDs;
 	
 	UUK_InGameSave()
 	{
