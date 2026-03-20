@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
@@ -68,6 +68,10 @@ public:
 	
 	UPROPERTY(VisibleAnywhere, Category = "Meta")
 	FString SaveSlotName;
+
+	// 활성화된 워프 포인트의 ID들만 저장
+	UPROPERTY()
+	TArray<FName> ActivatedWarpIDs;
 	
 	UUK_InGameSave()
 	{
