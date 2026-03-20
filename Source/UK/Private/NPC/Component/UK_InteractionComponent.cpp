@@ -1,5 +1,4 @@
 ﻿#include "NPC/Component/UK_InteractionComponent.h"
-#include "Net/UnrealNetwork.h"
 #include "NPC/UK_QuestNPC.h"
 #include "NPC/UK_Shop_NPC.h"
 #include "GameFramework/Actor.h"
@@ -8,9 +7,7 @@
 
 UUK_InteractionComponent::UUK_InteractionComponent()
 {
-
 	PrimaryComponentTick.bCanEverTick = false;
-	SetIsReplicatedByDefault(true);
 
 	NearActor = nullptr;
 }
@@ -22,11 +19,11 @@ void UUK_InteractionComponent::BeginPlay()
 
 void UUK_InteractionComponent::SetNearActor(AActor* NewActor)
 {
-	if (!NewActor) return;
+	if ( !NewActor ) return;
 	NearActor = NewActor;
 
 	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(GetOwner());
-	if (!Player) return;
+	if ( !Player ) return;
 
 }
 
@@ -34,13 +31,13 @@ void UUK_InteractionComponent::ClearNearActor()
 {
 	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(GetOwner());
 
-	if (Player)
+	if ( Player )
 	{
 		AUK_PlayerController* PlayerCtl = Cast<AUK_PlayerController>(Player->GetController());
 
-		if (PlayerCtl)
+		if ( PlayerCtl )
 		{
-			PlayerCtl->Client_HideQuestUI();
+			PlayerCtl->HideQuestUI();
 			PlayerCtl->HideShopUI();
 		}
 	}
@@ -50,7 +47,8 @@ void UUK_InteractionComponent::ClearNearActor()
 
 void UUK_InteractionComponent::TryInteract()
 {
-	if (!NearActor) return;
+	if (!NearActor)	return;
+
 
 	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(GetOwner());
 	if (!Player) return;
@@ -59,22 +57,13 @@ void UUK_InteractionComponent::TryInteract()
 	if (NPC)
 	{
 		NPC->Interact(Player);
+		return;
 	}
-	else if (AUK_Shop_NPC* ShopNPC = Cast<AUK_Shop_NPC>(NearActor))
+
+	AUK_Shop_NPC* ShopNPC = Cast<AUK_Shop_NPC>(NearActor);
+	if (ShopNPC)
 	{
 		ShopNPC->Interact(Player);
+		return;
 	}
-}
-
-void UUK_InteractionComponent::Server_TryInteract_Implementation(AActor* Target)
-{
-	if (!Target) return;
-
-	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(GetOwner());
-	if (!Player) return;
-
-	AUK_QuestNPC* NPC = Cast<AUK_QuestNPC>(Target);
-	if (!NPC) return;
-
-	NPC->Interact(GetOwner());
 }

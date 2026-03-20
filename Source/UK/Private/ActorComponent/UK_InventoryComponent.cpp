@@ -561,17 +561,44 @@ void UUK_InventoryComponent::ExportInventory(struct FInventorySaveData& OutData)
 			OutData.ItemCounts.Add(Slot.Quantity);
 		}
 	}
+	OutData.EquippedWeaponIds.Empty();
+	for (int32 i = 0; i < InventorySlots.Num(); ++i)
+	{
+		if (WeaponSlots.IsValidIndex(i) && !WeaponSlots[i].isEmpty())
+		{
+			OutData.EquippedWeaponIds.Add(WeaponSlots[i].ItemID);
+		}
+		else
+		{
+			OutData.EquippedWeaponIds.Add(FName("None"));
+		}
+	}
+	
 	OutData.Gold = this->Gold;
 }
 
 void UUK_InventoryComponent::ImportInventory(const struct FInventorySaveData& InData)
 {
 	for (FInventorySlot& Slot : InventorySlots) { Slot.Clear(); }
+	for (FInventorySlot& Slot : WeaponSlots) { Slot.Clear(); }
+	
 	for (int32 i = 0; i < InData.ItemIds.Num(); ++i)
 	{
 		AddItem(InData.ItemIds[i], InData.ItemCounts[i], false, false);
 	}
 	
+	for (int32 i = 0; i < InData.EquippedWeaponIds.Num(); ++i)
+	{
+		if (i >= 3) break;
+		
+		if (WeaponSlots.IsValidIndex(i) && InData.EquippedWeaponIds[i] != FName("None"))
+		{
+			WeaponSlots[i].ItemID = InData.EquippedWeaponIds[i];
+			WeaponSlots[i].Quantity = 1;
+			
+			OnChangedWeapon.Broadcast(i);
+		}
+	}
 	this->Gold = InData.Gold;
 	
 	BroadcastInventoryUpdate();

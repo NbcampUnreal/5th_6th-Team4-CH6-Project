@@ -27,7 +27,7 @@ public:
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryUpdate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemAdded, FName, ItemID, int32, Amount);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnChangedGold, int32, Glod);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnChangedGold, int32, Gold);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnChangedWeapon, int32, WeaponIndex);
 
 UCLASS(ClassGroup = ( Custom ), meta = ( BlueprintSpawnableComponent ))

@@ -106,7 +106,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "HUD")
 	TObjectPtr<UUK_MainHUD> MainHUD;
 
-	UPROPERTY(BlueprintReadWrite, Category = "HUD")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
 	TSubclassOf<UUK_MainHUD> MainHUDClass;
 
 public:
@@ -153,11 +153,8 @@ protected:
 	
 	
 public:
-	UFUNCTION(Client, Reliable)
-	void Client_ShowQuestUI(const FName& QuestID,const FText& NPCName,const FText& Dialogue,const FText& QuestDesc);
-
-	UFUNCTION(Client, Reliable)
-	void Client_HideQuestUI();
+	void ShowQuestUI(const FName& QuestID, const FText& NPCName, const FText& Dialogue, const FText& QuestDesc);
+	void HideQuestUI();
 	
 	void ShowShopUI(TSubclassOf<UUserWidget>ShopWidgetClass);
 	void HideShopUI();

@@ -13,6 +13,11 @@
 #include "ActorComponent/UK_InventoryComponent.h"
 #include "AbilitySystemComponent.h"
 #include "Blueprint/UserWidget.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+//끝
+//임시
+#include "Character/GA/UK_LightAttackAbility.h"
 //끝
 void UUK_MainHUD::NativeConstruct()
 {
@@ -21,35 +26,33 @@ void UUK_MainHUD::NativeConstruct()
 	SetInventoryNewVisible(false);
 
 	PlayerPawn = Cast<AUK_CharacterBase>(GetOwningPlayerPawn());
+	
 	if (PlayerPawn)
 	{
+		PlayerPawn->OnNormalSkillCoolDownDelegate.AddDynamic(this, &UUK_MainHUD::InitNormalSkillCoolDown);
+		PlayerPawn->OnUltimateSkillCoolDownDelegate.AddDynamic(this, &UUK_MainHUD::InitUltimateSkillCoolDown);
 		ASC = PlayerPawn->GetAbilitySystemComponent();
 		if (ASC)
 		{
 			FOnAttributeChangeData Data;
 			// 		//UpdateStaminaBar(StatusPtr->CurrentStamina, StatusPtr->MaxStamina); 
 			// HP 초기값 세팅 및 바인딩
-			Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute());
-			UpdateHealthBar(Data);
-			Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetHealthAttribute());
-			UpdateHealthBar(Data);
-
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute()).
 			     AddUObject(this, &UUK_MainHUD::UpdateHealthBar);
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetHealthAttribute()).
 			     AddUObject(this, &UUK_MainHUD::UpdateHealthBar);
-			//AttributeSet->MaxHealthChanged.AddDynamic(this, &UUK_MainHUD::UpdateHealthBar);
 
-			// MP 초기값 세팅 및 바인딩
-			Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetMaxMpAttribute());
-			UpdateMpBar(Data);
-			Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetCurrentMpAttribute());
-			UpdateMpBar(Data);
-
+			// MP 바인딩
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetMaxMpAttribute()).
 			     AddUObject(this, &UUK_MainHUD::UpdateMpBar);
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetCurrentMpAttribute()).
 			     AddUObject(this, &UUK_MainHUD::UpdateMpBar);
+
+			// 레벨 바인딩
+			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetMaxLevelAttribute()).
+			     AddUObject(this, &UUK_MainHUD::UpdateLevel);
+			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetLevelAttribute()).
+			     AddUObject(this, &UUK_MainHUD::UpdateLevel);
 			// AttributeSet->MpStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateMpBar);
 
 			// 레벨 초기값 세팅 및 바인딩
@@ -77,6 +80,15 @@ void UUK_MainHUD::NativeConstruct()
 			// 		//UpdateStaminaBar(StatusPtr->CurrentStamina, StatusPtr->MaxStamina); 
 			// 	}
 			// }
+			FTimerHandle InitTimer;
+			GetWorld()->GetTimerManager().SetTimer(InitTimer, this, &UUK_MainHUD::RefreshAllStatus, 0.4f, false);
+			for (const FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
+			{
+				if (UUK_LightAttackAbility* Ability = Cast<UUK_LightAttackAbility>(Spec.GetPrimaryInstance()))
+				{
+
+				}
+			}
 		}
 	}
 
@@ -191,47 +203,79 @@ void UUK_MainHUD::UpdateLevel(const FOnAttributeChangeData& Data)
 	// }
 }
 
+void UUK_MainHUD::InitNormalSkillCoolDown(const float CoolDown)
+{
+	if (NormalSkillCoolDownText)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(NormalCooldownTimerHandle);
+		NormalCurrentCooldown = CoolDown;
+		NormalSkillCoolDownText->SetText(FText::AsNumber(NormalCurrentCooldown));
+
+		GetWorld()->GetTimerManager().SetTimer(
+			NormalCooldownTimerHandle,
+			this,
+			&UUK_MainHUD::UpdateNormalSkillCoolDown,
+			1.0f,
+			true
+		);
+	}
+}
+
+void UUK_MainHUD::InitUltimateSkillCoolDown(const float CoolDown)
+{
+	if (UltimateSkillCoolDownText)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(UltimateCooldownTimerHandle);
+		UltimateCurrentCooldown = CoolDown;
+		UltimateSkillCoolDownText->SetText(FText::AsNumber(UltimateCurrentCooldown));
+
+		GetWorld()->GetTimerManager().SetTimer(
+			UltimateCooldownTimerHandle,
+			this,
+			&UUK_MainHUD::UpdateUltimateSkillCoolDown,
+			1.0f,
+			true
+		);
+	}
+}
+
+void UUK_MainHUD::UpdateNormalSkillCoolDown()
+{
+	NormalCurrentCooldown -= 1.f;
+
+	if (NormalCurrentCooldown <= 0.f)
+	{
+		NormalCurrentCooldown = 0.f;
+
+		NormalSkillCoolDownText->SetText(FText::AsNumber(NormalCurrentCooldown));
+
+		GetWorld()->GetTimerManager().ClearTimer(NormalCooldownTimerHandle);
+		return;
+	}
+
+	NormalSkillCoolDownText->SetText(FText::AsNumber(NormalCurrentCooldown));
+}
+
+void UUK_MainHUD::UpdateUltimateSkillCoolDown()
+{
+	UltimateCurrentCooldown -= 1.f;
+
+	if (UltimateCurrentCooldown <= 0.f)
+	{
+		UltimateCurrentCooldown = 0.f;
+
+		UltimateSkillCoolDownText->SetText(FText::AsNumber(UltimateCurrentCooldown));
+
+		GetWorld()->GetTimerManager().ClearTimer(UltimateCooldownTimerHandle);
+		return;
+	}
+
+	UltimateSkillCoolDownText->SetText(FText::AsNumber(UltimateCurrentCooldown));
+}
+
 void UUK_MainHUD::OnInventoryButtonClicked()
 {
-	if (!InvMainClass) return;
-
-	// 인벤토리 위젯이 생성되지 않았다면 생성
-	if (!InvMainWidget)
-	{
-		InvMainWidget = CreateWidget<UUK_InvMain>(GetWorld(), InvMainClass);
-	}
-
-	if (InvMainWidget)
-	{
-		if (!InvMainWidget->IsInViewport())
-		{
-			// 화면에 추가
-			InvMainWidget->AddToViewport();
-			//NewText히든으로 숨김
-			SetInventoryNewVisible(false);
-			// 마우스 커서 활성화 및 입력 모드 변경
-			APlayerController* PC = GetOwningPlayer();
-			if (PC)
-			{
-				PC->SetShowMouseCursor(true);
-				FInputModeGameAndUI InputMode;
-				InputMode.SetWidgetToFocus(InvMainWidget->TakeWidget());
-				PC->SetInputMode(InputMode);
-			}
-		}
-		else
-		{
-			// 이미 열려있다면 닫기 (토글 방식)
-			InvMainWidget->RemoveFromParent();
-
-			APlayerController* PC = GetOwningPlayer();
-			if (PC)
-			{
-				PC->SetShowMouseCursor(false);
-				PC->SetInputMode(FInputModeGameOnly());
-			}
-		}
-	}
+	ToggleInventory();
 }
 
 void UUK_MainHUD::HandleItemAdded_ShowNew(FName ItemID, int32 Amount)
@@ -244,6 +288,34 @@ void UUK_MainHUD::SetInventoryNewVisible(bool bVisible)
 	if (!NewText) return;
 
 	NewText->SetVisibility(bVisible ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
+}
+
+void UUK_MainHUD::RefreshAllStatus()
+{
+	if (!ASC) return;
+
+	FOnAttributeChangeData Data;
+
+	// HP 강제 갱신
+	Data.Attribute = UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute();
+	Data.NewValue = ASC->GetNumericAttribute(Data.Attribute);
+	UpdateHealthBar(Data);
+	Data.Attribute = UUK_PlayerStatusAttributeSet::GetHealthAttribute();
+	Data.NewValue = ASC->GetNumericAttribute(Data.Attribute);
+	UpdateHealthBar(Data);
+
+	// MP 강제 갱신
+	Data.Attribute = UUK_PlayerStatusAttributeSet::GetMaxMpAttribute();
+	Data.NewValue = ASC->GetNumericAttribute(Data.Attribute);
+	UpdateMpBar(Data);
+	Data.Attribute = UUK_PlayerStatusAttributeSet::GetCurrentMpAttribute();
+	Data.NewValue = ASC->GetNumericAttribute(Data.Attribute);
+	UpdateMpBar(Data);
+
+	// Level 강제 갱신
+	Data.Attribute = UUK_PlayerStatusAttributeSet::GetLevelAttribute();
+	Data.NewValue = ASC->GetNumericAttribute(Data.Attribute);
+	UpdateLevel(Data);
 }
 
 void UUK_MainHUD::ShowItemNotify(FName ItemID, int32 Amount)
@@ -291,5 +363,75 @@ void UUK_MainHUD::NotifyChildren()
 		}
 
 		VB_ItemNotify->RemoveChildAt(0);
+	}
+}
+
+
+void UUK_MainHUD::OpenInventory()
+{
+	if (!InvMainClass) return;
+
+	APlayerController* PC = GetOwningPlayer();
+	if (!PC) return;
+
+	if (!InvMainWidget)
+	{
+		InvMainWidget = CreateWidget<UUK_InvMain>(GetWorld(), InvMainClass);
+
+
+		if (InvMainWidget)
+		{
+			InvMainWidget->OwnerMainHUD = this;
+		}
+	}
+
+	if (InvMainWidget)
+	{
+		if (!InvMainWidget->IsInViewport())
+		{
+			InvMainWidget->AddToViewport();
+			SetInventoryNewVisible(false);
+
+			PC->SetShowMouseCursor(true);
+
+			FInputModeUIOnly InputMode;
+			InputMode.SetWidgetToFocus(InvMainWidget->TakeWidget());
+			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+
+			PC->SetInputMode(InputMode);
+
+			if (PlayerPawn)
+			{
+				PlayerPawn->GetCharacterMovement()->StopMovementImmediately();
+			}
+		}
+	}
+}
+
+void UUK_MainHUD::CloseInventory()
+{
+	APlayerController* PC = GetOwningPlayer();
+	if (!PC) return;
+
+	if (InvMainWidget && InvMainWidget->IsInViewport())
+	{
+		InvMainWidget->RemoveFromParent();
+	}
+
+	PC->SetShowMouseCursor(false);
+
+	FInputModeGameOnly InputMode;
+	PC->SetInputMode(InputMode);
+}
+
+void UUK_MainHUD::ToggleInventory()
+{
+	if (InvMainWidget && InvMainWidget->IsInViewport())
+	{
+		CloseInventory();
+	}
+	else
+	{
+		OpenInventory();
 	}
 }

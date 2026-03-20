@@ -163,6 +163,11 @@ void AUK_CharacterBase::UpdateMovementState()
 	// }
 }
 
+void AUK_CharacterBase::OutOfStamina()
+{
+	OutOfStaminaHandle.Broadcast();
+}
+
 // Called when the game starts or when spawned
 void AUK_CharacterBase::BeginPlay()
 {
@@ -849,6 +854,7 @@ bool AUK_CharacterBase::StartGliding()
 	GetCharacterMovement()->GravityScale = 0.f;
 	GetCharacterMovement()->AirControl = 0.8;
 	GetCharacterMovement()->Velocity = Vel;
+	bIsGliding = true;
 	bInUseStamina = true;
 	//GetCharacterMovement()->SetMovementMode(MOVE_Custom, (uint8)ECustomMovementMode::CMOVE_Glide);
 	return true;
