@@ -52,11 +52,6 @@ void AUK_SoundManager::SetCombatState(bool bInCombat)
 	else
 	{
 		CurrentSound_cpp->GetAudioComponent()->Play();
-		// 3. 전투 종료 시: 아까 저장해둔 필드 BGM으로 복귀
-		/*if (LastFieldBGM)
-		{
-			PlayBGM(LastFieldBGM);
-		}*/
 	}
 }
 
