@@ -30,6 +30,7 @@ void UUK_InvSystem::NativeConstruct()
 			MutableAS->CriticalChanceChanged.AddDynamic(this, &UUK_InvSystem::UpdateCriticalChance);
 			MutableAS->CriticalDamageChanged.AddDynamic(this, &UUK_InvSystem::UpdateCriticalDamage);
 			MutableAS->MaxStaminaChanged.AddDynamic(this, &UUK_InvSystem::UpdateMaxStamina);
+			MutableAS->CurrentPowerChanged.AddDynamic(this, &UUK_InvSystem::UpdateAttackWeapon);
 
 			//초기 값 설정
 			ProcessStatUpdate(StateHealth, Arrow_Health, 0.f, AS->GetHealth());
@@ -41,6 +42,9 @@ void UUK_InvSystem::NativeConstruct()
 			ProcessStatUpdate(StateCriticalChance, Arrow_CritChance, 0.f, AS->GetCriticalChance());
 			ProcessStatUpdate(StateCriticalDamage, Arrow_CritDamage, 0.f, AS->GetCriticalDamage());
 			ProcessStatUpdate(StateMaxStamina, Arrow_Stamina, 0.f, AS->GetMaxStamina());
+
+			float WeaponPower = AS->GetCurrentPower();
+			ProcessStatUpdate(StateAttackWeapon, Arrow_AttackWeapon, 0.f, WeaponPower);
 		}
 	}
 }
@@ -80,6 +84,11 @@ void UUK_InvSystem::UpdateCriticalDamage(float OldValue, float NewValue)
 void UUK_InvSystem::UpdateMaxStamina(float OldValue, float NewValue)
 {
 	ProcessStatUpdate(StateMaxStamina, Arrow_Stamina, OldValue, NewValue);
+}
+
+void UUK_InvSystem::UpdateAttackWeapon(float OldValue, float NewValue)
+{
+	ProcessStatUpdate(StateAttackWeapon, Arrow_AttackWeapon, OldValue, NewValue);
 }
 
 void UUK_InvSystem::ProcessStatUpdate(UTextBlock* TargetText, UImage* ArrowImage, float OldValue, float NewValue)
