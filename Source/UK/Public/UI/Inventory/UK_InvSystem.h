@@ -61,6 +61,10 @@ public:
 
 	UFUNCTION() 
 	void UpdateMaxStamina(float OldValue, float NewValue);
+
+	UFUNCTION()
+	void UpdateAttackWeapon(float OldValue, float NewValue);
+
 	UFUNCTION()
 	void ProcessStatUpdate(UTextBlock* TargetText, class UImage* ArrowImage, float OldValue, float NewValue);
 
@@ -95,6 +99,9 @@ public:
 	UTextBlock* StateMaxStamina;
 
 	UPROPERTY(meta = (BindWidget))
+	UTextBlock* StateAttackWeapon;
+
+	UPROPERTY(meta = (BindWidget))
 	UImage* Arrow_Health;
 	UPROPERTY(meta = (BindWidget))
 	UImage* Arrow_MaxHealth;
@@ -112,4 +119,6 @@ public:
 	UImage* Arrow_CritDamage;
 	UPROPERTY(meta = (BindWidget)) 
 	UImage* Arrow_Stamina;
+	UPROPERTY(meta = (BindWidget))
+	UImage* Arrow_AttackWeapon;
 };
