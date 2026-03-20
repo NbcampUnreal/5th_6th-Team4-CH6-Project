@@ -15,6 +15,11 @@ class UK_API UUK_WarpSubsystem : public UWorldSubsystem
 
 public:
 
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+
+	void SaveWarpData();
+	void LoadWarpData();
+
 	// 외부(MainMap)에서 로딩창 클래스를 넣어줄 변수
 		UPROPERTY(BlueprintReadWrite, Category = "Warp")
 	TSubclassOf<UUK_Out_Loading> LoadingWidgetClass;
@@ -36,6 +41,13 @@ public:
 	// ID로 해당 행의 데이터를 찾아오는 함수
 	UFUNCTION(BlueprintPure, Category = "Warp")
 	FWarpPointRow GetWarpRowByID(FName PointID) const;
+
+	// 특정 ID가 활성화 상태인지 확인하는 함수 
+	UFUNCTION(BlueprintPure, Category = "Warp")
+	bool IsWarpPointActivated(FName PointID) const
+	{
+		return ActivatedWarpPoints.Contains(PointID);
+	}
 
 private:
 	// 활성화된 워프 포인트 데이터 (ID, 위치)
