@@ -19,6 +19,8 @@ struct FInventorySaveData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FName> ItemIds;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FName> EquippedWeaponIds;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<int32> ItemCounts;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Gold;
