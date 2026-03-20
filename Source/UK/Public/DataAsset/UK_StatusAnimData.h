@@ -58,7 +58,11 @@ public:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	FGameplayTag NormalSkillCostTag;	
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
-	FGameplayTag UltimalteSkillCostTag;
+	FGameplayTag UltimateSkillCostTag;
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	FGameplayTag NormalSkillCoolDownTag;
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	FGameplayTag UltimateSkillCoolDownTag;
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ComboAttack")
 	TMap<EComboAttackType, TObjectPtr<UUK_AnimData>> ComboAnimationDatas;

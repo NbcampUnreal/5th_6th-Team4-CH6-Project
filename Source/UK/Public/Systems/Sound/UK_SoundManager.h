@@ -5,6 +5,8 @@
 #include "GameFramework/Actor.h"
 #include "UK_SoundManager.generated.h"
 
+class AAmbientSound;
+
 UENUM(BlueprintType)
 enum class EBKRegion : uint8
 {
@@ -23,14 +25,18 @@ public:
 	AUK_SoundManager();
 
 	// 어디서든 사운드 매니저를 찾을 수 있게 해주는 도우미 함수
+	UFUNCTION(blueprintCallable, BlueprintPure, Category = "SoundManager")
 	static AUK_SoundManager* Get(const UObject* WorldContextObject);
 
 protected:
 	virtual void BeginPlay() override;
 	
 public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Sound")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Sound")
 	UAudioComponent* BGMComponent;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Sound")
+	AAmbientSound* CurrentSound_cpp;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound|Settings")
 	float FadeOutDuration = 2.0f;
@@ -57,7 +63,7 @@ private:
 public:
 	// 지역/구역 진입 시 호출
 	UFUNCTION(BlueprintCallable, Category = "Sound")
-	void SetCurrentRegion(EBKRegion NewRegion, USoundBase* NewBGM);
+	void SetCurrentRegion(EBKRegion NewRegion);
 
 	// 전투 상태 변경 시 호출
 	UFUNCTION(BlueprintCallable, Category = "Sound")

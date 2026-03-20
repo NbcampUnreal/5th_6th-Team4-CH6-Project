@@ -163,6 +163,11 @@ void AUK_CharacterBase::UpdateMovementState()
 	// }
 }
 
+void AUK_CharacterBase::OutOfStamina()
+{
+	OutOfStaminaHandle.Broadcast();
+}
+
 // Called when the game starts or when spawned
 void AUK_CharacterBase::BeginPlay()
 {
@@ -170,7 +175,6 @@ void AUK_CharacterBase::BeginPlay()
 
 	InventoryComponent->OnChangedWeapon.AddDynamic(this, &ThisClass::SwapWeapon);
 	PC = Cast<AUK_PlayerController>(GetController());
-
 	DefualtGravity = GetCharacterMovement()->GravityScale;
 	DefualtAirControl = GetCharacterMovement()->AirControl;
 	if (IsValid(GetAbilitySystemComponent()))
@@ -204,6 +208,21 @@ void AUK_CharacterBase::BeginPlay()
 	// 	0.5f,
 	// 	true
 	// );
+
+	if (AUK_SoundManager::Get(GetWorld()))
+	{
+		SoundManager = AUK_SoundManager::Get(GetWorld());
+	}
+	else
+	{
+	}
+}
+
+void AUK_CharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorldTimerManager().ClearTimer(DissolveTimerHandle);
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -301,7 +320,7 @@ void AUK_CharacterBase::HealStamina()
 	{
 		bInUseStamina = true;
 	}
-	
+
 	if (bInUseStamina == false)
 	{
 		UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
@@ -331,11 +350,12 @@ void AUK_CharacterBase::HealStamina()
 void AUK_CharacterBase::OnLoadGame(class UUK_InGameSave* SaveGameObject)
 {
 	if (!SaveGameObject) return;
-	
+
 	GetCharacterMovement()->StopMovementImmediately();
-	
-	SetActorLocationAndRotation(SaveGameObject->PlayerLocation, SaveGameObject->PlayerRotation, false, nullptr, ETeleportType::TeleportPhysics);
-	
+
+	SetActorLocationAndRotation(SaveGameObject->PlayerLocation, SaveGameObject->PlayerRotation, false, nullptr,
+	                            ETeleportType::TeleportPhysics);
+
 	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
 	{
 		const UAttributeSet* AS_Base = ASC->GetAttributeSet(UUK_PlayerStatusAttributeSet::StaticClass());
@@ -344,7 +364,7 @@ void AUK_CharacterBase::OnLoadGame(class UUK_InGameSave* SaveGameObject)
 			const_cast<UUK_PlayerStatusAttributeSet*>(MyAS)->ImportStats(SaveGameObject->PlayerStats);
 		}
 	}
-	
+
 	if (InventoryComponent)
 	{
 		InventoryComponent->ImportInventory(SaveGameObject->InventoryDate);
@@ -354,18 +374,18 @@ void AUK_CharacterBase::OnLoadGame(class UUK_InGameSave* SaveGameObject)
 void AUK_CharacterBase::OnSaveGame(class UUK_InGameSave* SaveGameObject)
 {
 	if (!SaveGameObject) return;
-	
+
 	SaveGameObject->PlayerLocation = GetActorLocation();
-    SaveGameObject->PlayerRotation = GetActorRotation();
-    
+	SaveGameObject->PlayerRotation = GetActorRotation();
+
 	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
-        {
-			const UAttributeSet* AS_Base = ASC->GetAttributeSet(UUK_PlayerStatusAttributeSet::StaticClass());
-			if (const UUK_PlayerStatusAttributeSet* MyAS = Cast<UUK_PlayerStatusAttributeSet>(AS_Base))
-			{
-				const_cast<UUK_PlayerStatusAttributeSet*>(MyAS)->ExportStats(SaveGameObject->PlayerStats);
-			}
-        }
+	{
+		const UAttributeSet* AS_Base = ASC->GetAttributeSet(UUK_PlayerStatusAttributeSet::StaticClass());
+		if (const UUK_PlayerStatusAttributeSet* MyAS = Cast<UUK_PlayerStatusAttributeSet>(AS_Base))
+		{
+			const_cast<UUK_PlayerStatusAttributeSet*>(MyAS)->ExportStats(SaveGameObject->PlayerStats);
+		}
+	}
 	if (InventoryComponent)
 	{
 		InventoryComponent->ExportInventory(SaveGameObject->InventoryDate);
@@ -849,6 +869,7 @@ bool AUK_CharacterBase::StartGliding()
 	GetCharacterMovement()->GravityScale = 0.f;
 	GetCharacterMovement()->AirControl = 0.8;
 	GetCharacterMovement()->Velocity = Vel;
+	bIsGliding = true;
 	bInUseStamina = true;
 	//GetCharacterMovement()->SetMovementMode(MOVE_Custom, (uint8)ECustomMovementMode::CMOVE_Glide);
 	return true;
@@ -1145,8 +1166,42 @@ void AUK_CharacterBase::Dead()
 	GetController()->SetIgnoreMoveInput(true);
 	GetController()->SetIgnoreLookInput(true);
 	GetAbilitySystemComponent()->AddLooseGameplayTag(UK_GameplayTags::Status::Dead);
+
+	FOnMontageEnded EndDelegate;
+	if (DeathMontage)
+	{
+		DynamicMaterial = SkeletalMeshComp->CreateDynamicMaterialInstance(0);
+		PlayAnimMontage(DeathMontage);
+		StartDissolve();
+	}
 	OnDead.Broadcast();
 }
+
+void AUK_CharacterBase::StartDissolve()
+{
+	GetWorldTimerManager().SetTimer(
+		DissolveTimerHandle,
+		this,
+		&ThisClass::UpdateDissolve,
+		0.05f,
+		true
+	);
+}
+
+void AUK_CharacterBase::UpdateDissolve()
+{
+	DissolveValue += 0.05f;
+	if (DynamicMaterial)
+	{
+		DynamicMaterial->SetScalarParameterValue("DissolveAmount", DissolveValue);
+	}
+	if (DissolveValue >= 1.0f)
+	{
+		DissolveValue = 0.f;
+		GetWorldTimerManager().ClearTimer(DissolveTimerHandle);
+	}
+}
+
 
 void AUK_CharacterBase::StartBattle()
 {
@@ -1155,9 +1210,9 @@ void AUK_CharacterBase::StartBattle()
 	{
 		GetWorldTimerManager().ClearTimer(EndBattleTimerHandle);
 	}
-	
+
 	// 사운드 매니저를 찾아서 전투 상태를 True로 변경
-	if (AUK_SoundManager* SoundManager = AUK_SoundManager::Get(GetWorld()))
+	if (SoundManager)
 	{
 		SoundManager->SetCombatState(true);
 	}
@@ -1188,9 +1243,9 @@ void AUK_CharacterBase::EndBattle()
 	);
 
 	EndBattleEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-	
+
 	// 사운드 매니저를 찾아서 전투 상태를 False로 변경
-	if (AUK_SoundManager* SoundManager = AUK_SoundManager::Get(GetWorld()))
+	if (SoundManager)
 	{
 		SoundManager->SetCombatState(false);
 	}
