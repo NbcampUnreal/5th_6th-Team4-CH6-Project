@@ -9,7 +9,10 @@ void UCustomCharacterMovementComponent::PhysCustom(float deltaTime, int32 Iterat
 	switch ((ECustomMovementMode)CustomMovementMode)
 	{
 	case ECustomMovementMode::CMOVE_Climb:
-		PhysClimb(deltaTime, Iterations);
+		break;
+		
+	case ECustomMovementMode::CMOVE_Gliding:
+		PhysGlide(deltaTime, Iterations);
 		break;
 	default:
 		Super::PhysCustom(deltaTime, Iterations);
@@ -17,40 +20,18 @@ void UCustomCharacterMovementComponent::PhysCustom(float deltaTime, int32 Iterat
 	}
 }
 
-void UCustomCharacterMovementComponent::PhysClimb(float deltaTime, int32 Iterations)
+void UCustomCharacterMovementComponent::PhysGlide(float deltaTime, int32 Iterations)
 {
-	if (deltaTime < MIN_TICK_TIME)
-		return;
+	float SavedGravity = GravityScale;
+	float SavedAirControl = AirControl;
 
-	FVector Input = ConsumeInputVector();
+	GravityScale = 0.f;
+	AirControl = 0.8f;
 
-	if (bIsClimbingSurface == false)
-	{
-		SetMovementMode(MOVE_Falling);
-		return;
-	}
+	Velocity.Z = FMath::Max(Velocity.Z, -GlideFallSpeed);
 
-	FVector WallNormal = CurrentClimbNormal;
+	PhysFlying(deltaTime, Iterations);
 
-	FVector Up = FVector::UpVector;
-	FVector Right = FVector::CrossProduct(Up, WallNormal);
-	FVector ClimbUp = FVector::CrossProduct(WallNormal, Right);
-
-	FVector MoveDir =
-		(ClimbUp * Input.X) +
-		(Right * Input.Y);
-
-	MoveDir = MoveDir.GetSafeNormal();
-
-	float Speed = 200.f;
-	FVector Delta = MoveDir * Speed * deltaTime;
-
-	FHitResult Hit;
-	SafeMoveUpdatedComponent(Delta, UpdatedComponent->GetComponentQuat(), true, Hit);
-
-	FVector Snap = -WallNormal * 50.f * deltaTime;
-	SafeMoveUpdatedComponent(Snap, UpdatedComponent->GetComponentQuat(), true, Hit);
-
-	FRotator TargetRot = (-WallNormal).Rotation();
-	UpdatedComponent->SetWorldRotation(TargetRot);
+	GravityScale = SavedGravity;
+	AirControl = SavedAirControl;
 }
