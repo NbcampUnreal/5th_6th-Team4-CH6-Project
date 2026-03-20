@@ -1,6 +1,7 @@
 #include "Systems/Sound/UK_SoundManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
+#include "Sound/AmbientSound.h"
 
 AUK_SoundManager::AUK_SoundManager()
 {
@@ -20,21 +21,10 @@ void AUK_SoundManager::BeginPlay()
 	Super::BeginPlay();
 }
 
-void AUK_SoundManager::SetCurrentRegion(EBKRegion NewRegion, USoundBase* NewBGM)
+void AUK_SoundManager::SetCurrentRegion(EBKRegion NewRegion)
 {
+	// 지역 정보 업데이트
 	CurrentRegion = NewRegion;
-	
-	if (!bIsInCombat && BGMComponent->GetSound() == NewBGM) return;
-	
-	if (!bIsInCombat)
-	{
-		PlayBGM(NewBGM);
-	}
-	else
-	{
-		// 전투 중이면 나중에 돌아올 음악만 바꿔둠
-		LastFieldBGM = NewBGM;
-	}
 }
 
 void AUK_SoundManager::SetCombatState(bool bInCombat)
@@ -44,26 +34,29 @@ void AUK_SoundManager::SetCombatState(bool bInCombat)
 
 	if (bInCombat)
 	{
+		UE_LOG(LogTemp, Display, TEXT("be in Combat Start"))
 		// 1. 현재 필드 BGM 저장 (전투 끝나고 돌아오기 위함)
 		LastFieldBGM = BGMComponent->GetSound();
+		BGMComponent->SetSound(LastFieldBGM);
+		BGMComponent->Stop();
+		
+		CurrentSound_cpp->GetAudioComponent()->Stop();
 
 		// 2. 현재 지역(CurrentRegion)에 맞는 전투 음악 찾아서 재생
 		if (USoundBase** CombatBGM = CombatBGMMappings.Find(CurrentRegion))
 		{
+			UE_LOG(LogTemp, Display, TEXT("CombatBGMStart"))
 			PlayBGM(*CombatBGM);
-		}
-		else if (DefaultCombatBGM) // 지역 전투곡 없으면 기본 전투곡이라도 재생
-		{
-			PlayBGM(DefaultCombatBGM);
 		}
 	}
 	else
 	{
+		CurrentSound_cpp->GetAudioComponent()->Play();
 		// 3. 전투 종료 시: 아까 저장해둔 필드 BGM으로 복귀
-		if (LastFieldBGM)
+		/*if (LastFieldBGM)
 		{
 			PlayBGM(LastFieldBGM);
-		}
+		}*/
 	}
 }
 
