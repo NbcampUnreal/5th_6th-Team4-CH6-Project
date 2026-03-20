@@ -17,6 +17,8 @@ class UUK_InventoryComponent;
 class AUK_CharacterBase;
 //struct FOnAttributeChangeData;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNormalSkillCooldown, float, Cooldown);
+
 UCLASS()
 class UK_API UUK_MainHUD : public UUserWidget
 {
@@ -53,6 +55,13 @@ public:
 	UPROPERTY(meta = ( BindWidget ))
 	class UProgressBar* HealthBar;
 
+	// 스킬 쿨타임 갱신
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SkillCoolDown")
+	float SkillCoolTime;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Skill")
+	FOnNormalSkillCooldown OnNormalSkillCooldown;
+	
 	// 체력 수치를 표시할 텍스트 
 	UPROPERTY(meta = ( BindWidget ))
 	UTextBlock* CurrentHealthText; // 현재 체력
