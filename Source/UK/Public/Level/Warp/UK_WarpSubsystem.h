@@ -15,6 +15,11 @@ class UK_API UUK_WarpSubsystem : public UWorldSubsystem
 
 public:
 
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+
+	void SaveWarpData();
+	void LoadWarpData();
+
 	// 외부(MainMap)에서 로딩창 클래스를 넣어줄 변수
 		UPROPERTY(BlueprintReadWrite, Category = "Warp")
 	TSubclassOf<UUK_Out_Loading> LoadingWidgetClass;
