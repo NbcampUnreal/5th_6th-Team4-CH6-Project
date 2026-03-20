@@ -205,6 +205,9 @@ void UUK_MainHUD::UpdateLevel(const FOnAttributeChangeData& Data)
 
 void UUK_MainHUD::InitNormalSkillCoolDown(const float CoolDown)
 {
+	SkillCoolTime = CoolDown;
+	OnNormalSkillCooldown.Broadcast(CoolDown);
+	
 	if (NormalSkillCoolDownText)
 	{
 		GetWorld()->GetTimerManager().ClearTimer(NormalCooldownTimerHandle);
