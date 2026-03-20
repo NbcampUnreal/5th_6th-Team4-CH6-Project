@@ -101,6 +101,7 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
@@ -427,6 +428,9 @@ public:
 	UFUNCTION()
 	void Dead();
 
+	void StartDissolve();
+	
+	void UpdateDissolve();
 	UPROPERTY(BlueprintReadWrite)
 	bool bIsFry;
 
@@ -451,6 +455,8 @@ protected:
 	
 	bool bInBattle = false;
 	
+	float DissolveValue;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<UGameplayEffect> EndBattleEffect;
 	
@@ -458,7 +464,13 @@ protected:
 	FActiveGameplayEffectHandle EndBattleEffectHandle;
 	
 	FTimerHandle EndBattleTimerHandle;
-
+	
+	FTimerHandle DissolveTimerHandle;
+	UPROPERTY()
+	UMaterialInstanceDynamic* DynamicMaterial;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UAnimMontage* DeathMontage;
 #pragma endregion
 
 #pragma region FindMonsterHPBar
