@@ -11,12 +11,14 @@ class UUK_InvUI;
 class UUK_InvInfo;
 class UDataTable;
 class UUK_MoneyWidget;
+class UButton; 
+class UUK_MainHUD;
 
 UENUM(BlueprintType)
 enum class EMainTab : uint8
 {
 	Inventory UMETA(DisplayName = "Inventory"),
-	System UMETA(DisplayName = "System"),
+	System UMETA(DisplayName = "State"),
 	Map UMETA(DisplayName = "Map")
 };
 
@@ -31,7 +33,7 @@ public:
 	UWidgetSwitcher* InvSwitcher;
 
 	UPROPERTY(meta = (BindWidget))
-	UUK_InvTapbutton* TapSystem;
+	UUK_InvTapbutton* TapState;
 
 	UPROPERTY(meta = (BindWidget))
 	UUK_InvTapbutton* TapInventory;
@@ -64,4 +66,17 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetMainTab(EMainTab NewTab);
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UButton* CloseButton;
+	
+	UPROPERTY(BlueprintReadWrite)
+	UUK_MainHUD* OwnerMainHUD = nullptr;
+
+	UFUNCTION()
+	void OnCloseButtonClicked();
+
+protected:
+	UFUNCTION()
+	void RefreshInventoryUI();
 };

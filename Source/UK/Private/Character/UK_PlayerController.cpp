@@ -270,8 +270,8 @@ void AUK_PlayerController::SetAllGameUIInputVisibility(bool bVisible)
 	if ( StaminaWidget ) StaminaWidget->SetVisibility(NewVisibility);
 
 	// 퀘스트나 상점 위젯이 떠 있다면 그것들도 숨김/제거
-	if ( QuestWidget ) QuestWidget->SetVisibility(NewVisibility);
-	if ( ShopWidget ) ShopWidget->SetVisibility(NewVisibility);
+	/*if ( QuestWidget ) QuestWidget->SetVisibility(NewVisibility);
+	if ( ShopWidget ) ShopWidget->SetVisibility(NewVisibility);*/
 }
 
 void AUK_PlayerController::Setting_UI()
@@ -382,17 +382,37 @@ void AUK_PlayerController::ConnectStaminaWidget()
 
 // -------- 퀘스트 UI Interaction (무현 구현중)
  
-void AUK_PlayerController::Client_ShowQuestUI_Implementation(const FName& QuestID,const FText& NPCName,const FText& Dialogue,const FText& QuestDesc)
+void AUK_PlayerController::ShowQuestUI(const FName& QuestID, const FText& NPCName, const FText& Dialogue, const FText& QuestDesc)
 {
-	if ( !IsLocalController() ) return;
+	UE_LOG(LogTemp, Warning, TEXT("[PC] ShowQuestUI 호출됨"));
 
-	if ( QuestWidget ) return;
-	if ( !QuestWidgetClass ) return;
+	if ( !IsLocalController() )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PC] LocalController 아님"));
+		return;
+	}
+
+	if ( QuestWidget )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PC] QuestWidget 이미 있음"));
+		return;
+	}
+
+	if ( !QuestWidgetClass )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PC] QuestWidgetClass 없음"));
+		return;
+	}
 
 	QuestWidget = CreateWidget<UUK_Quest>(this, QuestWidgetClass);
-	if ( !QuestWidget ) return;
+	if ( !QuestWidget )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PC] CreateWidget 실패"));
+		return;
+	}
 
 	QuestWidget->AddToViewport();
+	UE_LOG(LogTemp, Warning, TEXT("[PC] AddToViewport 성공"));
 
 	QuestWidget->SetQuestUI(
 		QuestID,
@@ -407,11 +427,11 @@ void AUK_PlayerController::Client_ShowQuestUI_Implementation(const FName& QuestI
 	SetCursorVisible(true);
 }
 
-void AUK_PlayerController::Client_HideQuestUI_Implementation()
+void AUK_PlayerController::HideQuestUI()
 {
-	if (!IsLocalController()) return;
+	if ( !IsLocalController() ) return;
 
-	if (!QuestWidget) return;
+	if ( !QuestWidget ) return;
 
 	QuestWidget->RemoveFromParent();
 	QuestWidget = nullptr;

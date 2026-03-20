@@ -63,7 +63,8 @@
               "text": "다음 일도 해볼게요.",
               "next": "N_END",
               "emit": [
-                "QuestEvent.Completed.Q_Start_M_DIA_001"
+                "QuestEvent.Completed.Q_Start_M_DIA_001",
+                "QuestEvent.TalkedTo.NPC_Start_GuideGirl"
               ]
             }
           ]
