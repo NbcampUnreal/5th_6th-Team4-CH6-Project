@@ -228,6 +228,10 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 	// 스테미너 후처리
 	else if (Attribute == GetCurrentStaminaAttribute())
 	{
+		if (GetCurrentStamina() <= 0.f)
+		{
+			HandleOutOStamina();
+		}
 		//SetCurrentStamina(FMath::Clamp(GetCurrentStamina(), 0.f, GetMaxStamina()));
 		CurrentStaminaChanged.Broadcast(OldValue, NewValue);
 	}
@@ -282,6 +286,18 @@ void UUK_PlayerStatusAttributeSet::HandleOutOfHealth()
 		{
 			UE_LOG(LogTemp, Log, TEXT("OnDead1"));
 			Player->Dead();
+		}
+	}
+}
+
+void UUK_PlayerStatusAttributeSet::HandleOutOStamina()
+{
+	if (AActor* Avatar = GetOwningAbilitySystemComponent()->GetAvatarActor())
+	{
+		if (AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(Avatar))
+		{
+			UE_LOG(LogTemp, Log, TEXT("OutOfStamina"));
+			Player->OutOfStamina();
 		}
 	}
 }

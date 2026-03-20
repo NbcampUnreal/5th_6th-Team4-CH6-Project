@@ -11,6 +11,7 @@ namespace UK_GameplayTags
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Look, "Input.Look", "Default Movement Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Jump, "Input.Jump", "Default Movement Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Sprint, "Input.Sprint", "Default Movement Ability")
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(StopSprint, "Input.StopSprint", "Default Movement Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(ZoomIn, "Input.Zoom.In", "Default Movement Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(ZoomOut, "Input.Zoom.Out", "Default Movement Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(NomalSkill, "Input.NomalSkill", "Default Movement Ability")
