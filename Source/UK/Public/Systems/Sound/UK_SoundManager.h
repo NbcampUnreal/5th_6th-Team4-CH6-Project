@@ -39,10 +39,10 @@ public:
 	AAmbientSound* CurrentSound_cpp;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound|Settings")
-	float FadeOutDuration = 2.0f;
+	float FadeOutDuration = 0.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound|Settings")
-	float FadeInDuration = 2.0f;
+	float FadeInDuration = 0.5f;
 
 	// 지역별 전투 BGM (에디터에서 설정)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound|Combat")
@@ -51,14 +51,15 @@ public:
 	// 기본 전투 BGM (해당 지역 전투음악이 없을 때 대비)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound|Combat")
 	USoundBase* DefaultCombatBGM;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound|Combat")
+	bool bIsInCombat = false;
 
 private:
 	EBKRegion CurrentRegion = EBKRegion::None;
 	
 	UPROPERTY()
 	USoundBase* LastFieldBGM; // 전투 종료 후 복귀용
-
-	bool bIsInCombat = false;
 
 public:
 	// 지역/구역 진입 시 호출

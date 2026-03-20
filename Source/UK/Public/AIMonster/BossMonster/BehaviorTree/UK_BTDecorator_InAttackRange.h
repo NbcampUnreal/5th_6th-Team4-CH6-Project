@@ -13,7 +13,7 @@ public:
 
 protected:
 	UPROPERTY(EditAnywhere, Category="AI")
-	float AttackRange = 200.f;
+	float AttackRange = 1000.f;
 
 	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp,uint8* NodeMemory) const override;
 };
