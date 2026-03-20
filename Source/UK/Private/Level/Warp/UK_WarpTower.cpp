@@ -26,6 +26,24 @@ void AUK_WarpTower::BeginPlay()
 
 	// 델리게이트 바인딩
 	CollisionSphere->OnComponentBeginOverlap.AddDynamic(this, &AUK_WarpTower::OnOverlapBegin);
+
+	// 게임 시작 시 서브시스템에서 활성화 여부 확인
+		if ( UWorld* World = GetWorld() )
+		{
+			if ( UUK_WarpSubsystem* WarpSubsystem = World->GetSubsystem<UUK_WarpSubsystem>() )
+			{
+				// 서브시스템에 이미 내 ID가 등록되어 있을 시
+				if ( WarpSubsystem->GetActivatedPointIDs().Contains(WarpPointID) )
+				{
+					bIsActivated = true;
+
+					// 블루프린트에서 만든 시각 효과 로직 실행
+					OnTowerActivated();
+
+					UE_LOG(LogTemp, Log, TEXT("WarpTower [%s]: Already Activated in Load Data."), *WarpPointID.ToString());
+				}
+			}
+		}
 }
 
 void AUK_WarpTower::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
