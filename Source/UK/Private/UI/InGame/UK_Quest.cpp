@@ -48,21 +48,98 @@ void UUK_Quest::SetQuestUI(FName QuestID,const FText& NPCName,const FText& Dialo
 		ExitTextBlock->SetText(ExitText);
 }
 
-void UUK_Quest::OnPlayButtonClicked()
+void UUK_Quest::SetDialogueOnly(const FText& NPCName, const FText& Dialogue)
 {
-
-	if (CurrentQuestId.IsNone()) return;
-
-
-	UUKQuestManagerSubsystem* QuestSys = GetGameInstance()->GetSubsystem<UUKQuestManagerSubsystem>();
-
-	if (QuestSys)
+	if ( NPCNameText )
 	{
-		const FString EventStr = FString::Printf(TEXT("QuestEvent.Accepted.%s"), *CurrentQuestId.ToString());
-		QuestSys->EmitQuestEvent(FName(*EventStr));
+		NPCNameText->SetText(NPCName);
 	}
 
+	if ( DialogueText )
+	{
+		DialogueText->SetText(Dialogue);
+	}
+}
 
+void UUK_Quest::RefreshDialogueUI()
+{
+	UGameInstance* GI = GetGameInstance();
+	if ( !GI )
+	{
+		return;
+	}
+
+	UUKQuestUIManagerSubsystem* QuestUIManager = GI->GetSubsystem<UUKQuestUIManagerSubsystem>();
+	if ( !QuestUIManager )
+	{
+		return;
+	}
+
+	const FText SpeakerName = QuestUIManager->GetCurrentDialogueSpeakerName();
+	const FText CurrentDialogue = QuestUIManager->GetCurrentDialogueText();
+
+	if ( NPCNameText )
+	{
+		NPCNameText->SetText(SpeakerName);
+	}
+
+	if ( DialogueText )
+	{
+		DialogueText->SetText(CurrentDialogue);
+	}
+
+	FText CurrentChoiceText = FText::GetEmpty();
+	const TArray<FText> ChoiceTexts = QuestUIManager->GetCurrentDialogueChoiceTexts();
+	if ( ChoiceTexts.Num() > 0 )
+	{
+		CurrentChoiceText = ChoiceTexts[ 0 ];
+	}
+
+	if ( AcceptTextBlock )
+	{
+		AcceptTextBlock->SetText(CurrentChoiceText);
+	}
+
+	if ( Accept_Button )
+	{
+		Accept_Button->SetVisibility(ChoiceTexts.Num() > 0 ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
+}
+
+void UUK_Quest::OnPlayButtonClicked()
+{
+	UGameInstance* GI = GetGameInstance();
+	if ( !GI )
+	{
+		return;
+	}
+
+	UUKQuestUIManagerSubsystem* QuestUIManager = GI->GetSubsystem<UUKQuestUIManagerSubsystem>();
+	if ( !QuestUIManager )
+	{
+		return;
+	}
+
+	const bool bSelected = QuestUIManager->SelectDialogueChoice(0);
+	if ( !bSelected )
+	{
+		return;
+	}
+
+	// 선택 후 현재 대화 상태 확인
+	const FText CurrentDialogue = QuestUIManager->GetCurrentDialogueText();
+	const TArray<FText> ChoiceTexts = QuestUIManager->GetCurrentDialogueChoiceTexts();
+
+	const bool bDialogueEnded = CurrentDialogue.IsEmpty() && ChoiceTexts.Num() == 0;
+
+	if ( !bDialogueEnded )
+	{
+		// 아직 다음 노드가 남아 있으면 UI만 갱신하고 유지
+		RefreshDialogueUI();
+		return;
+	}
+
+	// 대화가 완전히 끝났을 때만 퀘스트 목록 갱신 + UI 닫기
 	TArray<UUserWidget*> FoundWidgets;
 	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UUK_QuestMain::StaticClass(), false);
 
@@ -75,7 +152,6 @@ void UUK_Quest::OnPlayButtonClicked()
 	}
 
 	AUK_PlayerController* PlayerCtl = Cast<AUK_PlayerController>(GetOwningPlayer());
-
 	if ( PlayerCtl )
 	{
 		PlayerCtl->ApplyInputState(EInputState::Game);
