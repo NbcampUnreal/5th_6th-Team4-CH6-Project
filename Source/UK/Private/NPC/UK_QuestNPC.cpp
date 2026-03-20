@@ -38,7 +38,7 @@ void AUK_QuestNPC::BeginPlay()
 	bPlayerInRange = false;
 
 	// NPCID는 BP 기본값 또는 배치된 액터에서 미리 지정되어 있어야 함
-	if ( NPCID.IsNone())
+	if ( NPCID.IsNone() )
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[NPC] NPCID is None."));
 		return;
@@ -77,16 +77,16 @@ void AUK_QuestNPC::BeginPlay()
 	NPCDisplayName = Row->NPCName;
 	NPCDescription = Row->NPCDescription;
 
-	UE_LOG(LogTemp, Log, TEXT("[NPC] Loaded from DT. NPCID=%s"), 
+	UE_LOG(LogTemp, Log, TEXT("[NPC] Loaded from DT. NPCID=%s"),
 		*NPCID.ToString());
 }
 
 
-void AUK_QuestNPC::OnPlayerEnter(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AUK_QuestNPC::OnPlayerEnter(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(OtherActor);
 
-	if (Player && Player->InteractionComp)
+	if ( Player && Player->InteractionComp )
 	{
 		bPlayerInRange = true;
 
@@ -106,11 +106,11 @@ void AUK_QuestNPC::OnPlayerEnter(UPrimitiveComponent* OverlappedComp, AActor* Ot
 	}
 }
 
-void AUK_QuestNPC::OnPlayerExit(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void AUK_QuestNPC::OnPlayerExit(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(OtherActor);
 
-	if (Player && Player->InteractionComp)
+	if ( Player && Player->InteractionComp )
 
 	{
 		bPlayerInRange = false;
@@ -127,16 +127,87 @@ void AUK_QuestNPC::OnPlayerExit(UPrimitiveComponent* OverlappedComp, AActor* Oth
 
 void AUK_QuestNPC::UpdateMarkerRotation()
 {
-	if (!QuestMarker) return;
+	if ( !QuestMarker ) return;
 
 	ACharacter* PlayerChar = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
-	if (!PlayerChar) return;
+	if ( !PlayerChar ) return;
 
 	FVector ToPlayer = PlayerChar->GetActorLocation() - QuestMarker->GetComponentLocation();
 	FRotator LookAtRotation = ToPlayer.Rotation();
 	LookAtRotation.Pitch = 0.f;
 	LookAtRotation.Yaw += 90.f;
 	QuestMarker->SetWorldRotation(LookAtRotation);
+}
+
+bool AUK_QuestNPC::IsQuestStarted(const UUKQuestManagerSubsystem* QuestSys, FName InQuestId) const
+{
+	if ( !QuestSys || InQuestId.IsNone() )
+	{
+		return false;
+	}
+
+	FQuestProgress Progress;
+	return QuestSys->GetProgress(InQuestId, Progress);
+}
+
+bool AUK_QuestNPC::IsQuestCompleted(const UUKQuestManagerSubsystem* QuestSys, FName InQuestId) const
+{
+	if ( !QuestSys || InQuestId.IsNone() )
+	{
+		return false;
+	}
+
+	FQuestProgress Progress;
+	if ( !QuestSys->GetProgress(InQuestId, Progress) )
+	{
+		return false;
+	}
+
+	return Progress.bCompleted;
+}
+
+FName AUK_QuestNPC::ResolveCurrentQuestID(const UUKQuestManagerSubsystem* QuestSys) const
+{
+	// 1) 체인 배열이 있으면 그걸 우선 사용
+	if ( OfferedQuestIDs.Num() > 0 && QuestSys )
+	{
+		for ( const FName& CandidateQuestId : OfferedQuestIDs )
+		{
+			if ( CandidateQuestId.IsNone() )
+			{
+				continue;
+			}
+
+			const bool bStarted = IsQuestStarted(QuestSys, CandidateQuestId);
+			const bool bCompleted = IsQuestCompleted(QuestSys, CandidateQuestId);
+
+			// 아직 시작 안 한 퀘스트 -> 다음 제시 퀘스트
+			if ( !bStarted )
+			{
+				return CandidateQuestId;
+			}
+
+			// 시작했지만 아직 안 끝난 퀘스트 -> 현재 진행 퀘스트
+			if ( bStarted && !bCompleted )
+			{
+				return CandidateQuestId;
+			}
+
+			// 완료된 퀘스트는 다음 후보로 넘어감
+		}
+
+		// 전부 완료된 경우: 마지막 퀘스트 반환(완료 대사/엔드 처리용 fallback)
+		for ( int32 i = OfferedQuestIDs.Num() - 1; i >= 0; --i )
+		{
+			if ( !OfferedQuestIDs[ i ].IsNone() )
+			{
+				return OfferedQuestIDs[ i ];
+			}
+		}
+	}
+
+	// 2) 체인 배열이 없으면 기존 단일 QuestID fallback
+	return QuestID;
 }
 
 void AUK_QuestNPC::Interact(AActor* Interactor)
@@ -149,21 +220,28 @@ void AUK_QuestNPC::Interact(AActor* Interactor)
 
 void AUK_QuestNPC::HandleQuestInteract(AUK_CharacterBase* Player)
 {
-	if (!Player || !bPlayerInRange) return;
+	if ( !Player || !bPlayerInRange ) return;
 
 	UWorld* World = GetWorld();
-	if (!World) return;
+	if ( !World ) return;
 
 	UGameInstance* GI = World->GetGameInstance();
-	if (!GI) return;
+	if ( !GI ) return;
 
 	UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>();
-	if (!QuestSys) return;
+	if ( !QuestSys ) return;
 
 	AUK_PlayerController* PlayerCtl = Cast<AUK_PlayerController>(Player->GetController());
-	if (!PlayerCtl) return;
+	if ( !PlayerCtl ) return;
 
-	const UUKQuestDefinitionAsset* Def = QuestSys->GetQuestDefinition(QuestID);
+	const FName ActiveQuestId = ResolveCurrentQuestID(QuestSys);
+	if ( ActiveQuestId.IsNone() )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] ActiveQuestId is None. NPCID=%s"), *NPCID.ToString());
+		return;
+	}
+
+	const UUKQuestDefinitionAsset* Def = QuestSys->GetQuestDefinition(ActiveQuestId);
 
 	FText QuestTitle = NPCDisplayName;
 	FText Dialogue = NPCDescription;
@@ -176,14 +254,14 @@ void AUK_QuestNPC::HandleQuestInteract(AUK_CharacterBase* Player)
 		QuestDesc = Def->QuestDescription;
 	}
 
+	UE_LOG(LogTemp, Log, TEXT("[QuestNPC] NPC=%s ActiveQuest=%s"),
+		*NPCID.ToString(),
+		*ActiveQuestId.ToString());
+
 	PlayerCtl->ShowQuestUI(
-		QuestID,
+		ActiveQuestId,
 		QuestTitle,
 		Dialogue,
 		QuestDesc
 	);
 }
-
-
-
-
