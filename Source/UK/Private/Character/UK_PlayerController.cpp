@@ -15,7 +15,7 @@
 #include "UI/InGame/UK_GameOver.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayEffectTypes.h"
-
+#include "Dialogue/UKQuestUIManagerSubsystem.h"
 
 AUK_PlayerController::AUK_PlayerController()
 	: bMouseCursorEnabled(false)
@@ -414,12 +414,30 @@ void AUK_PlayerController::ShowQuestUI(const FName& QuestID, const FText& NPCNam
 	QuestWidget->AddToViewport();
 	UE_LOG(LogTemp, Warning, TEXT("[PC] AddToViewport 성공"));
 
+	UUKQuestUIManagerSubsystem* QuestUIManager = GetGameInstance()->GetSubsystem<UUKQuestUIManagerSubsystem>();
+
+	FText CurrentSpeakerName = NPCName;
+	FText CurrentDialogueText = Dialogue;
+	FText CurrentChoiceText = FText::FromString(TEXT("선택지 글줄"));
+
+	if ( QuestUIManager )
+	{
+		CurrentSpeakerName = QuestUIManager->GetCurrentDialogueSpeakerName();
+		CurrentDialogueText = QuestUIManager->GetCurrentDialogueText();
+
+		const TArray<FText> ChoiceTexts = QuestUIManager->GetCurrentDialogueChoiceTexts();
+		if (ChoiceTexts.Num() >0)
+		{
+			CurrentChoiceText = ChoiceTexts[0];
+		}
+	}
+
 	QuestWidget->SetQuestUI(
 		QuestID,
-		NPCName,
-		Dialogue,
+		CurrentSpeakerName,
+		CurrentDialogueText,
 		QuestDesc,
-		FText::FromString(TEXT("수락")),
+		CurrentChoiceText,
 		FText::FromString(TEXT("닫기"))
 	);
 
