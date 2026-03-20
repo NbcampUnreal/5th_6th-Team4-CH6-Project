@@ -31,27 +31,22 @@ void UUK_MainHUD::NativeConstruct()
 			FOnAttributeChangeData Data;
 			// 		//UpdateStaminaBar(StatusPtr->CurrentStamina, StatusPtr->MaxStamina); 
 			// HP 초기값 세팅 및 바인딩
-			Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute());
-			UpdateHealthBar(Data);
-			Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetHealthAttribute());
-			UpdateHealthBar(Data);
-
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute()).
-			     AddUObject(this, &UUK_MainHUD::UpdateHealthBar);
+				AddUObject(this, &UUK_MainHUD::UpdateHealthBar);
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetHealthAttribute()).
-			     AddUObject(this, &UUK_MainHUD::UpdateHealthBar);
-			//AttributeSet->MaxHealthChanged.AddDynamic(this, &UUK_MainHUD::UpdateHealthBar);
+				AddUObject(this, &UUK_MainHUD::UpdateHealthBar);
 
-			// MP 초기값 세팅 및 바인딩
-			Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetMaxMpAttribute());
-			UpdateMpBar(Data);
-			Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetCurrentMpAttribute());
-			UpdateMpBar(Data);
-
+			// MP 바인딩
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetMaxMpAttribute()).
-			     AddUObject(this, &UUK_MainHUD::UpdateMpBar);
+				AddUObject(this, &UUK_MainHUD::UpdateMpBar);
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetCurrentMpAttribute()).
-			     AddUObject(this, &UUK_MainHUD::UpdateMpBar);
+				AddUObject(this, &UUK_MainHUD::UpdateMpBar);
+
+			// 레벨 바인딩
+			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetMaxLevelAttribute()).
+				AddUObject(this, &UUK_MainHUD::UpdateLevel);
+			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetLevelAttribute()).
+				AddUObject(this, &UUK_MainHUD::UpdateLevel);
 			// AttributeSet->MpStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateMpBar);
 
 			// 레벨 초기값 세팅 및 바인딩
@@ -79,6 +74,8 @@ void UUK_MainHUD::NativeConstruct()
 			// 		//UpdateStaminaBar(StatusPtr->CurrentStamina, StatusPtr->MaxStamina); 
 			// 	}
 			// }
+			FTimerHandle InitTimer;
+			GetWorld()->GetTimerManager().SetTimer(InitTimer, this, &UUK_MainHUD::RefreshAllStatus, 0.4f, false);
 		}
 	}
 
@@ -208,6 +205,34 @@ void UUK_MainHUD::SetInventoryNewVisible(bool bVisible)
 	if (!NewText) return;
 
 	NewText->SetVisibility(bVisible ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
+}
+
+void UUK_MainHUD::RefreshAllStatus()
+{
+	if (!ASC) return;
+
+	FOnAttributeChangeData Data;
+
+	// HP 강제 갱신
+	Data.Attribute = UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute();
+	Data.NewValue = ASC->GetNumericAttribute(Data.Attribute);
+	UpdateHealthBar(Data);
+	Data.Attribute = UUK_PlayerStatusAttributeSet::GetHealthAttribute();
+	Data.NewValue = ASC->GetNumericAttribute(Data.Attribute);
+	UpdateHealthBar(Data);
+
+	// MP 강제 갱신
+	Data.Attribute = UUK_PlayerStatusAttributeSet::GetMaxMpAttribute();
+	Data.NewValue = ASC->GetNumericAttribute(Data.Attribute);
+	UpdateMpBar(Data);
+	Data.Attribute = UUK_PlayerStatusAttributeSet::GetCurrentMpAttribute();
+	Data.NewValue = ASC->GetNumericAttribute(Data.Attribute);
+	UpdateMpBar(Data);
+
+	// Level 강제 갱신
+	Data.Attribute = UUK_PlayerStatusAttributeSet::GetLevelAttribute();
+	Data.NewValue = ASC->GetNumericAttribute(Data.Attribute);
+	UpdateLevel(Data);
 }
 
 void UUK_MainHUD::ShowItemNotify(FName ItemID, int32 Amount)
