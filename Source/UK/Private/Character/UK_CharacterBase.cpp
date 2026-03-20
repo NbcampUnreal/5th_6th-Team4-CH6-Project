@@ -1161,6 +1161,9 @@ void AUK_CharacterBase::EndComboAttack()
 
 void AUK_CharacterBase::Dead()
 {
+	if (GetAbilitySystemComponent()->HasMatchingGameplayTag(UK_GameplayTags::Status::Dead))
+		return;
+	
 	UE_LOG(LogTemp, Display, TEXT("Is Player Dead"));
 	GetCharacterMovement()->DisableMovement();
 	GetController()->SetIgnoreMoveInput(true);
@@ -1172,34 +1175,8 @@ void AUK_CharacterBase::Dead()
 	{
 		DynamicMaterial = SkeletalMeshComp->CreateDynamicMaterialInstance(0);
 		PlayAnimMontage(DeathMontage);
-		StartDissolve();
 	}
 	OnDead.Broadcast();
-}
-
-void AUK_CharacterBase::StartDissolve()
-{
-	GetWorldTimerManager().SetTimer(
-		DissolveTimerHandle,
-		this,
-		&ThisClass::UpdateDissolve,
-		0.05f,
-		true
-	);
-}
-
-void AUK_CharacterBase::UpdateDissolve()
-{
-	DissolveValue += 0.05f;
-	if (DynamicMaterial)
-	{
-		DynamicMaterial->SetScalarParameterValue("DissolveAmount", DissolveValue);
-	}
-	if (DissolveValue >= 1.0f)
-	{
-		DissolveValue = 0.f;
-		GetWorldTimerManager().ClearTimer(DissolveTimerHandle);
-	}
 }
 
 

@@ -428,9 +428,6 @@ public:
 	UFUNCTION()
 	void Dead();
 
-	void StartDissolve();
-	
-	void UpdateDissolve();
 	UPROPERTY(BlueprintReadWrite)
 	bool bIsFry;
 
