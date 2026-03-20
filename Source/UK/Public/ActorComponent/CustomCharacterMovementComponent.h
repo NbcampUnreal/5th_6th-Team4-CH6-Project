@@ -14,7 +14,8 @@ UENUM(BlueprintType)
 enum class ECustomMovementMode : uint8
 {
 	CMOVE_None UMETA(DisplayName="None"),
-	CMOVE_Climb UMETA(DisplayName="Climb")
+	CMOVE_Climb UMETA(DisplayName="Climb"),
+	CMOVE_Gliding UMETA(DisplayName="Gliding")
 };
 
 UCLASS()
@@ -24,10 +25,14 @@ class UK_API UCustomCharacterMovementComponent : public UCharacterMovementCompon
 public:
 	virtual void PhysCustom(float deltaTime, int32 Iterations) override;
 
-	UPROPERTY(VisibleAnywhere)
-	bool bIsClimbingSurface;
-	UPROPERTY()
-	FVector CurrentClimbNormal;
 protected:
 	void PhysClimb(float deltaTime, int32 Iterations);
+#pragma region Gliding
+	void PhysGlide(float deltaTime, int32 Iterations);
+	
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Glide")
+	float GlideFallSpeed;
+#pragma endregion
+	
 };
