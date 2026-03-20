@@ -42,6 +42,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Warp")
 	FWarpPointRow GetWarpRowByID(FName PointID) const;
 
+	// 특정 ID가 활성화 상태인지 확인하는 함수 
+	UFUNCTION(BlueprintPure, Category = "Warp")
+	bool IsWarpPointActivated(FName PointID) const
+	{
+		return ActivatedWarpPoints.Contains(PointID);
+	}
+
 private:
 	// 활성화된 워프 포인트 데이터 (ID, 위치)
 	UPROPERTY()

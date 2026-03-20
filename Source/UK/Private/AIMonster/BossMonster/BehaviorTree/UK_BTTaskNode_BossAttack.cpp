@@ -14,35 +14,47 @@ UUK_BTTaskNode_BossAttack::UUK_BTTaskNode_BossAttack()
 
 EBTNodeResult::Type UUK_BTTaskNode_BossAttack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
+	CurrentTime = 0.f; 
+	
 	AAIController* AICtl = OwnerComp.GetAIOwner();
 	AUK_BossMonsterBase* Boss = Cast<AUK_BossMonsterBase>(AICtl->GetPawn());
 
 	if (!Boss || Boss->bIsAttacking) return EBTNodeResult::Failed;
-	
+
 	AICtl->StopMovement();
 	bool bAttackStarted = Boss->PlayRandomAttackMontage();
-    
-	if (bAttackStarted)
-	{
-		return EBTNodeResult::InProgress;
-	}
-	
-	return EBTNodeResult::Failed;
-}
+	if (!bAttackStarted) return EBTNodeResult::Failed;
 
-void UUK_BTTaskNode_BossAttack::TickTask(UBehaviorTreeComponent& OwnerComp,uint8* NodeMemory,float DeltaSeconds)
-{
-	auto* AICtl = OwnerComp.GetAIOwner();
-	if (!AICtl) return;
-	
-	AUK_BossMonsterBase* Boss = Cast<AUK_BossMonsterBase>(OwnerComp.GetAIOwner()->GetPawn());
-
-	if (Boss && Boss->bIsAttacking)
-	{
-		AICtl->StopMovement();
-	}
-	else if (Boss && Boss->bIsAttacking == false)
+	CachedBoss = Boss;
+	CachedOwnerComp = &OwnerComp;
+	Boss->OnAttackFinished.BindLambda([this, &OwnerComp]()
 	{
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+	});
+
+	return EBTNodeResult::InProgress;
+}
+
+void UUK_BTTaskNode_BossAttack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+{
+	// 폴링 로직 제거 — 델리게이트가 처리
+	// 타임아웃 안전장치만 유지
+	CurrentTime += DeltaSeconds;
+	if (CurrentTime >= AttackDuration)
+	{
+		CurrentTime = 0.f;
+		if (CachedBoss) CachedBoss->OnAttackFinished.Unbind();
+		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 	}
+}
+
+void UUK_BTTaskNode_BossAttack::OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult)
+{
+	CurrentTime = 0.f;
+	if (CachedBoss)
+	{
+		CachedBoss->OnAttackFinished.Unbind();
+		CachedBoss = nullptr;
+	}
+	Super::OnTaskFinished(OwnerComp, NodeMemory, TaskResult);
 }

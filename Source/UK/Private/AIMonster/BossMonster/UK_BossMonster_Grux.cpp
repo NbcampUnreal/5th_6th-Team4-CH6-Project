@@ -16,10 +16,10 @@
 
 AUK_BossMonster_Grux::AUK_BossMonster_Grux()
 {
-	
+	MaxChaseDistance = 5000.f;
 	DetectionRadius = 2500.f;
 	AttackRange = 350.f;
-	AttackCooldown = 3.0f;
+	AttackCooldown = 4.5f;
 	MonsterType = EMonsterType::Grux;
 	SmashRadius = 600.f;
 	CurrentPhase = 1;
@@ -75,7 +75,7 @@ bool AUK_BossMonster_Grux::PlayRandomAttackMontage()
 	AAIController* AICtl = Cast<AAIController>(GetController());
 	if (Target)
 	{
-		GetWorldTimerManager().SetTimer(RotationTimerHandle, this, &AUK_BossMonster_Grux::LookAtTargetSmooth, 0.01f, true);
+		GetWorldTimerManager().SetTimer(RotationTimerHandle, this, &AUK_BossMonster_Grux::LookAtTargetSmooth, 0.033f, true);
 	}
 	
 	if (AICtl && Target)
@@ -89,14 +89,20 @@ bool AUK_BossMonster_Grux::PlayRandomAttackMontage()
 	
 	if (CurrentPhase == 3)
 	{
-		AttackCooldown = 2.0f;
+		AttackCooldown = 1.0f;
 		if (Distance > 350.f && Distance < 1500.f)
 		{
 			if (RandomValue <= 20) return ExecuteRangedAttackAction(CurrentPlayRate);
 			if (RandomValue <= 50) return ExecuteJumpAttackAction(CurrentPlayRate);
 			if (RandomValue <= 85) return ExecuteDashAttackAction(CurrentPlayRate);
+			
+			return false;
 		}
-		return PlayBaseAttackWithSpeed(CurrentPlayRate);
+		
+		if (Distance <= 350.f) 
+			return PlayBaseAttackWithSpeed(CurrentPlayRate);
+		
+		return false;
 	}
 	
 	if (CurrentPhase == 2)
@@ -106,8 +112,14 @@ bool AUK_BossMonster_Grux::PlayRandomAttackMontage()
 			if (RandomValue <= 10) return ExecuteRangedAttackAction(CurrentPlayRate);
 			if (RandomValue > 10 && RandomValue <= 20) return ExecuteJumpAttackAction(CurrentPlayRate);
 			if (RandomValue > 20 && RandomValue <= 25) return ExecuteDashAttackAction(CurrentPlayRate);
+			
 			return false;
 		}
+		
+		if (Distance <= 350.f) 
+				return PlayBaseAttackWithSpeed(CurrentPlayRate);
+		
+		return false;
 	}
 	
 	if (Distance <= 350.f)
@@ -120,7 +132,7 @@ bool AUK_BossMonster_Grux::PlayRandomAttackMontage()
 
 bool AUK_BossMonster_Grux::ExecuteRangedAttackAction(float PlayRate)
 {
-	CurrentAttackType = EMonsterAttackType::Special;
+	CurrentAttackType = EMonsterAttackType::Normal;
 	
 	if (!RangedAttackMontage) return false;
 	bIsAttacking = true;
@@ -210,7 +222,7 @@ bool AUK_BossMonster_Grux::ExecuteDashAttackAction(float PlayRate)
     DashDirection = (GetTargetActor()->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
     SetActorRotation(DashDirection.Rotation());
 
-    GetWorldTimerManager().SetTimer(DashTimerHandle, this, &AUK_BossMonster_Grux::ExecuteDashMove, 0.01f, true);
+    GetWorldTimerManager().SetTimer(DashTimerHandle, this, &AUK_BossMonster_Grux::ExecuteDashMove, 0.033f, true);
     
     float DashDuration = (CurrentPhase == 3) ? 0.4f : 0.7f;
     GetWorldTimerManager().SetTimer(StopDashTimerHandle, this, &AUK_BossMonster_Grux::StopDashMovement, DashDuration, false);
@@ -315,7 +327,7 @@ void AUK_BossMonster_Grux::OnDashFinished(UAnimMontage* Montage, bool bInterrupt
 }
 void AUK_BossMonster_Grux::ExecuteDashMove()
 {
-	float SpeedPerFrame = (CurrentPhase == 3) ? 15.f : 10.f; 
+	float SpeedPerFrame = (CurrentPhase == 3) ? 50.f : 33.f; 
 	FHitResult Hit;
 	AddActorWorldOffset(DashDirection * SpeedPerFrame, true, &Hit);
 
@@ -341,9 +353,30 @@ void AUK_BossMonster_Grux::LookAtTargetSmooth()
 	
 	FVector Dir = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
 	FRotator TargetRot = Dir.Rotation();
-	FRotator SmoothRot = FMath::RInterpTo(GetActorRotation(), TargetRot, 0.01f, 10.0f);
+	FRotator SmoothRot = FMath::RInterpTo(GetActorRotation(), TargetRot, 0.033f, 10.0f);
     
 	SetActorRotation(SmoothRot);
+}
+
+void AUK_BossMonster_Grux::ResetForReturn()
+{
+	Super::ResetForReturn();
+    
+	CurrentPhase = 1;
+	AttackCooldown = 4.5f;
+	AttackDamage /= (BerserkPlayRate > 1.0f ? 1.5f : 1.0f); // 버서크 대미지 원복
+	BerserkPlayRate = 1.0f;
+	GetCharacterMovement()->MaxWalkSpeed = 475.f;
+    
+	if (BerserkComponent)
+	{
+		BerserkComponent->DestroyComponent();
+		BerserkComponent = nullptr;
+	}
+    
+	GetWorldTimerManager().ClearTimer(DashTimerHandle);
+	GetWorldTimerManager().ClearTimer(StopDashTimerHandle);
+	GetWorldTimerManager().ClearTimer(RotationTimerHandle);
 }
 
 bool AUK_BossMonster_Grux::PlayBaseAttackWithSpeed(float PlayRate)

@@ -14,8 +14,8 @@
 
 #define ECC_LockOn ECollisionChannel::ECC_GameTraceChannel2
 
-
 #pragma region Forward Declaration
+class AUK_SoundManager;
 class USpringArmComponent;
 class UCameraComponent;
 class UStatusComponent;
@@ -49,15 +49,6 @@ enum class EInputMode : uint8
 	Dash
 };
 
-// UENUM(BlueprintType)
-// enum class ECustomMovementMode : uint8
-// {
-// 	CMOVE_None UMETA(DisplayName="None"),
-// 	CMOVE_Glide UMETA(DisplayName="Glide"),
-// 	CMOVE_Climb UMETA(DisplayName="Climb"),
-// 	CMOVE_Swim UMETA(DisplayName="Swim")
-// };
-
 UENUM(BlueprintType)
 enum class ECharacterAttribute : uint8
 {
@@ -66,11 +57,10 @@ enum class ECharacterAttribute : uint8
 	Wind
 };
 
-DECLARE_DYNAMIC_DELEGATE(FOnFloorDelagate);
-
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadDelagate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOutOfStamina);
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNormalSkill, float, CoolDown);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUltimateSkill, float, CoolDown);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCharacterAttribute, ECharacterAttribute, CharacterAttribute);
 
 UCLASS()
@@ -93,18 +83,18 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ChangedAttribute(ECharacterAttribute NewAttribute);
+	
 	void UpdateMovementState();
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
+	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	float GetFloorDistance();
 
-	UFUNCTION()
-	void HealStamina();
+
 	//geter, seter
 public:
 	TObjectPtr<USkeletalMeshComponent> GetRightHandWeapon() { return RightHandWeaponComponent; }
@@ -115,8 +105,8 @@ public:
 	ECharacterAttribute GetAttribute() const { return Attribute; }
 
 	// 변수
-protected:
 #pragma region component
+protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USpringArmComponent> SpringArmComp;
@@ -139,54 +129,112 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UAIPerceptionStimuliSourceComponent> StimuliSource;
 #pragma endregion
-	
-	
 public:
-	void OutOfStamina();
 	
-	UPROPERTY(BlueprintAssignable)
-	FOutOfStamina OutOfStaminaHandle;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TSubclassOf<UGameplayEffect> HealStaminaEffect;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	FActiveGameplayEffectHandle HealStaminaEffectHandle;
-	UPROPERTY(editAnywhere, BlueprintReadOnly, Category = "Sound")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
 	TObjectPtr<USoundAttenuation> Attenuation;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY()
+	AUK_SoundManager* SoundManager;
+	
+	UPROPERTY(BlueprintReadOnly)
 	float GlideFallSpeed;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly)
 	float DefualtGravity;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly)
 	float DefualtAirControl;
 
-	UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	float SprintSpeed;
+	
+	UPROPERTY(BlueprintReadWrite)
 	ECharacterAttribute Attribute;
 
 	// UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	// ECustomMovementMode MovementMode;
 
-	UPROPERTY(BlueprintAssignable)
-	FOnCharacterAttribute OnChangedAttribute;
-
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Anim")
 	UHitMontageDataAsset* HitMontageDataAsset;
 	
-	FTimerHandle StaminaHealTimerHandle;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anim")
+	UAnimMontage* DeathMontage;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	UUK_InputConfig* InputMappingConfig;
+	
+	UPROPERTY()
+	AUK_PlayerController* PC;
+
+#pragma region Status
+public:
+	void HealStamina();
+	
+	void OutOfStamina();
+	
+public:
+	UPROPERTY(BlueprintReadWrite)
+	EInputMode InputType;
+	
+protected:
+	
+	UPROPERTY()
+	bool bIsParry;
+	
+	bool bInBattle = false;
 	
 	UPROPERTY(BlueprintReadWrite)
+	bool bIsSprinted = false;
+	
+	UPROPERTY(BlueprintReadWrite)
+	bool bIsFry;
+
+	UPROPERTY(BlueprintReadWrite)
 	bool bInWater = false;	
+	
 	UPROPERTY(BlueprintReadWrite)
 	bool bWallDetected = false;
+	
 	UPROPERTY(BlueprintReadWrite)
 	bool bIsGliding = false;
 	
+	bool bIsClimb = false;
+	
 	bool bInUseStamina = false;
 #pragma endregion
+	
+#pragma region Delegate
+public:
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "CoolDown", meta = ( DisplayNmae = "OnNomalSkillCoolDown" ))
+	FOnNormalSkill OnNormalSkillCoolDownDelegate;
 
+	UPROPERTY(BlueprintAssignable, BlueprintCallable, Category = "CoolDown", meta = ( DisplayNmae = "OnNomalSkillCoolDown" ))
+	FOnUltimateSkill OnUltimateSkillCoolDownDelegate;
+
+	FOnDeadDelagate OnDead;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOutOfStamina OutOfStaminaHandle;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnCharacterAttribute OnChangedAttribute;
+#pragma endregion
+	
+#pragma region TimerHandle
+	FTimerHandle GlidingTimer;
+	
+	FTimerHandle DetectTimer;
+	
+	FTimerHandle LockOnTimer;
+	
+	FTimerHandle StaminaHealTimerHandle;
+	
+	FTimerHandle EndBattleTimerHandle;
+#pragma endregion
+	
+#pragma endregion
+	
 #pragma  region SaveGame
 public:
 	virtual void OnLoadGame(class UUK_InGameSave* SaveGameObject) override;
@@ -216,20 +264,38 @@ protected:
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GB|Abilities")
 	TArray<TSubclassOf<UGameplayAbility>> StartupAbilities;
+#pragma region GameplayEffect
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<UGameplayEffect> HealStaminaEffect;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<UGameplayEffect> WeaponStatEffect;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<UGameplayEffect> EndBattleEffect;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FActiveGameplayEffectHandle HealStaminaEffectHandle;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FActiveGameplayEffectHandle WeaponEffectHandle;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FActiveGameplayEffectHandle EndBattleEffectHandle;
+#pragma endregion
+	
 #pragma endregion
 
 #pragma region Input
+	
 #pragma region MovementFunction
-
 protected:
 	UFUNCTION()
 	void Move(const FInputActionValue& InputActionValue);
 
 	UFUNCTION()
 	void Look(const FInputActionValue& InputActionValue);
-
-	UFUNCTION()
-	void Sprint();
 
 	UFUNCTION()
 	void ZoomIn();
@@ -244,16 +310,13 @@ protected:
 	void HeavyAttack();
 
 	UFUNCTION()
-	void NomalSkill();
+	void NormalSkill();
 
 	UFUNCTION()
 	void UltimateSkill();
 
 	UFUNCTION()
 	void Parry();
-
-	UFUNCTION()
-	void CrouchInput();
 
 	UFUNCTION()
 	void ToggleMouse();
@@ -263,9 +326,6 @@ protected:
 
 	UFUNCTION()
 	void Setting();
-
-	UFUNCTION()
-	void Dash();
 
 #pragma endregion
 public:
@@ -297,10 +357,9 @@ protected:
 	UPROPERTY()
 	TArray<TObjectPtr<AAIMonsterBase>> HitList;
 
-	int32 index;
+	int32 LockOnIndex;
 
-	FTimerHandle LockOnTimer;
-
+	UPROPERTY(EditDefaultsOnly, Category = "LockOn")
 	float MaxLockDistance = 1000.f;
 #pragma endregion
 
@@ -330,8 +389,6 @@ protected:
 	UPROPERTY()
 	FHitResult HitResult;
 	
-	bool bIsClimb = false;
-	
 #pragma endregion
 
 public:
@@ -339,28 +396,6 @@ public:
 	void StartSprintCost();
 	UFUNCTION(BlueprintCallable)
 	void EndSprintCost();
-public:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-	UUK_InputConfig* InputMappingConfig;
-
-	UPROPERTY()
-	AUK_PlayerController* PC;
-
-	UPROPERTY(BlueprintReadWrite)
-	EInputMode InputType;
-protected:
-	bool bIsCrouched;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bIsSprinted = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float SprintSpeed;
-
-
-	FTimerHandle GlidingTimer;
-	
-	
 
 #pragma endregion
 
@@ -386,23 +421,19 @@ public:
 	UUK_StatusAnimData* GetNowWeaponStatus() const { return NowWeapon; }
 
 protected:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TSubclassOf<UGameplayEffect> WeaponStatEffect;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	TObjectPtr<UUK_WeaponData> WeaponList;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	UUK_StatusAnimData* NowWeapon;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon")
 	TObjectPtr<UDataTable> WeaponDataTable;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly)
+	UUK_StatusAnimData* NowWeapon;
+	
+	UPROPERTY(BlueprintReadOnly)
 	int32 WeaponSlotIndex;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	FActiveGameplayEffectHandle WeaponEffectHandle;
 #pragma endregion
 
 #pragma region Battle
@@ -417,12 +448,6 @@ public:
 	UFUNCTION()
 	void Dead();
 
-	UPROPERTY(BlueprintReadWrite)
-	bool bIsFry;
-
-	FOnFloorDelagate OnFloor;
-	FOnDeadDelagate OnDead;
-
 	UFUNCTION()
 	void SetParry(const bool CheckParry) { bIsParry = CheckParry; }
 
@@ -432,19 +457,8 @@ public:
 	void StartBattle();
 	
 	void EndBattle();
+
 protected:
-	UPROPERTY()
-	bool bIsParry;
-	
-	bool bInBattle = false;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TSubclassOf<UGameplayEffect> EndBattleEffect;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	FActiveGameplayEffectHandle EndBattleEffectHandle;
-	
-	FTimerHandle EndBattleTimerHandle;
 
 #pragma endregion
 
@@ -459,8 +473,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "UI/DetactBoundary")
 	float DetectRadius = 1500.0f;
 
-	FTimerHandle DetectTimer;
-
 	bool bDrawDetectRadius = false;
 #pragma endregion
+
 };

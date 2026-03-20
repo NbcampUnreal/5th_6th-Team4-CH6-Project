@@ -17,6 +17,8 @@ class UUK_InventoryComponent;
 class AUK_CharacterBase;
 //struct FOnAttributeChangeData;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNormalSkillCooldown, float, Cooldown);
+
 UCLASS()
 class UK_API UUK_MainHUD : public UUserWidget
 {
@@ -37,16 +39,40 @@ public:
 	// 레벨이 변할 때 실행될 함수
 	//UFUNCTION()
 	void UpdateLevel(const FOnAttributeChangeData& Data);
+	UFUNCTION()
+	void InitNormalSkillCoolDown(const float CoolDown);
+	UFUNCTION()
+	void InitUltimateSkillCoolDown(const float CoolDown);
+	UFUNCTION()
+	void UpdateNormalSkillCoolDown();
+	UFUNCTION()
+	void UpdateUltimateSkillCoolDown();
+	float NormalCurrentCooldown;
+	float UltimateCurrentCooldown;
+	FTimerHandle NormalCooldownTimerHandle;
 	
+	FTimerHandle UltimateCooldownTimerHandle;
 	UPROPERTY(meta = ( BindWidget ))
 	class UProgressBar* HealthBar;
 
+	// 스킬 쿨타임 갱신
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SkillCoolDown")
+	float SkillCoolTime;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Skill")
+	FOnNormalSkillCooldown OnNormalSkillCooldown;
+	
 	// 체력 수치를 표시할 텍스트 
 	UPROPERTY(meta = ( BindWidget ))
 	UTextBlock* CurrentHealthText; // 현재 체력
 
 	UPROPERTY(meta = ( BindWidget ))
-	UTextBlock* MaxHealthText;     // 최대 체력
+	UTextBlock* MaxHealthText;     // 최대 체력	
+	
+	UPROPERTY(meta = ( BindWidget ))
+	UTextBlock* NormalSkillCoolDownText;     // 노말 스킬 쿨다운
+	UPROPERTY(meta = ( BindWidget ))
+	UTextBlock* UltimateSkillCoolDownText;     // 궁극기 쿨다운
 
 
 	UPROPERTY(meta = ( BindWidget ))

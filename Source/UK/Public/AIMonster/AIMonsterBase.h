@@ -435,8 +435,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Monster|Data")
 	float CalculateGold(int32 PlayerLevel) const;
 	
-private:
 	bool bRewardGranted = false;
+private:
 	FName GetRowName() const;
 	const FUK_MonsterStatRow* GetStatRow() const;
 	const FUK_MonsterMetaRow* GetMetaRow() const;
