@@ -396,7 +396,7 @@ void AUK_PlayerController::UpdateStaminaTracking()
 	{
 		// 로딩 중이면 트래킹 계산을 하지 않고 위젯을 숨깁니다.
 		StaminaWidget->SetVisibility(ESlateVisibility::Collapsed);
-		return;
+		return; 
 	}
 
 	APawn* MyPawn = GetPawn();
@@ -493,6 +493,12 @@ void AUK_PlayerController::ShowQuestUI(const FName& QuestID, const FText& NPCNam
 	{
 		return;
 	}
+
+
+	//QuestWidget = ShowOnlyWidget<UUK_Quest>(QuestWidgetClass, 0);
+	//if ( !QuestWidget ) return;
+
+	//QuestWidget->AddToViewport();
 
 	QuestWidget = CreateWidget<UUK_Quest>(this, QuestWidgetClass);
 	if ( !QuestWidget )

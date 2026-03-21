@@ -29,8 +29,8 @@ void UUK_MainHUD::NativeConstruct()
 	
 	if (PlayerPawn)
 	{
-		PlayerPawn->OnNormalSkillCoolDownDelegate.AddDynamic(this, &UUK_MainHUD::InitNormalSkillCoolDown);
-		PlayerPawn->OnUltimateSkillCoolDownDelegate.AddDynamic(this, &UUK_MainHUD::InitUltimateSkillCoolDown);
+		//PlayerPawn->OnNormalSkillCoolDownDelegate.AddDynamic(this, &UUK_MainHUD::InitNormalSkillCoolDown);
+		//PlayerPawn->OnUltimateSkillCoolDownDelegate.AddDynamic(this, &UUK_MainHUD::InitUltimateSkillCoolDown);
 		ASC = PlayerPawn->GetAbilitySystemComponent();
 		if (ASC)
 		{
@@ -201,79 +201,6 @@ void UUK_MainHUD::UpdateLevel(const FOnAttributeChangeData& Data)
 	// {
 	// 	LevelText->SetText(FText::AsNumber(NewLevel));
 	// }
-}
-
-void UUK_MainHUD::InitNormalSkillCoolDown(const float CoolDown)
-{
-	SkillCoolTime = CoolDown;
-	OnNormalSkillCooldown.Broadcast(CoolDown);
-	
-	if (NormalSkillCoolDownText)
-	{
-		GetWorld()->GetTimerManager().ClearTimer(NormalCooldownTimerHandle);
-		NormalCurrentCooldown = CoolDown;
-		NormalSkillCoolDownText->SetText(FText::AsNumber(NormalCurrentCooldown));
-
-		GetWorld()->GetTimerManager().SetTimer(
-			NormalCooldownTimerHandle,
-			this,
-			&UUK_MainHUD::UpdateNormalSkillCoolDown,
-			1.0f,
-			true
-		);
-	}
-}
-
-void UUK_MainHUD::InitUltimateSkillCoolDown(const float CoolDown)
-{
-	if (UltimateSkillCoolDownText)
-	{
-		GetWorld()->GetTimerManager().ClearTimer(UltimateCooldownTimerHandle);
-		UltimateCurrentCooldown = CoolDown;
-		UltimateSkillCoolDownText->SetText(FText::AsNumber(UltimateCurrentCooldown));
-
-		GetWorld()->GetTimerManager().SetTimer(
-			UltimateCooldownTimerHandle,
-			this,
-			&UUK_MainHUD::UpdateUltimateSkillCoolDown,
-			1.0f,
-			true
-		);
-	}
-}
-
-void UUK_MainHUD::UpdateNormalSkillCoolDown()
-{
-	NormalCurrentCooldown -= 1.f;
-
-	if (NormalCurrentCooldown <= 0.f)
-	{
-		NormalCurrentCooldown = 0.f;
-
-		NormalSkillCoolDownText->SetText(FText::AsNumber(NormalCurrentCooldown));
-
-		GetWorld()->GetTimerManager().ClearTimer(NormalCooldownTimerHandle);
-		return;
-	}
-
-	NormalSkillCoolDownText->SetText(FText::AsNumber(NormalCurrentCooldown));
-}
-
-void UUK_MainHUD::UpdateUltimateSkillCoolDown()
-{
-	UltimateCurrentCooldown -= 1.f;
-
-	if (UltimateCurrentCooldown <= 0.f)
-	{
-		UltimateCurrentCooldown = 0.f;
-
-		UltimateSkillCoolDownText->SetText(FText::AsNumber(UltimateCurrentCooldown));
-
-		GetWorld()->GetTimerManager().ClearTimer(UltimateCooldownTimerHandle);
-		return;
-	}
-
-	UltimateSkillCoolDownText->SetText(FText::AsNumber(UltimateCurrentCooldown));
 }
 
 void UUK_MainHUD::OnInventoryButtonClicked()
