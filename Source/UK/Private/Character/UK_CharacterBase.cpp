@@ -30,7 +30,7 @@
 #include "DataAsset/Data/UK_WeaponItemData.h"
 #include "Systems/Data/UK_InGameSave.h"
 #include "Systems/Sound/UK_SoundManager.h"
-
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 
 #pragma region Defualt
 
@@ -617,6 +617,8 @@ void AUK_CharacterBase::Setting()
 
 void AUK_CharacterBase::LockON()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AUK_CharacterBase_LockOn);
+	
 	if (bIsLock == false)
 	{
 		bIsLock = true;
@@ -637,6 +639,7 @@ void AUK_CharacterBase::LockON()
 
 void AUK_CharacterBase::LockONToggle()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AUK_CharacterBase_LockOnToggle);
 	if (bIsLock == false)
 	{
 		AUK_PlayerController* UKPC = Cast<AUK_PlayerController>(GetController());
@@ -721,6 +724,8 @@ void AUK_CharacterBase::LockONToggle()
 
 void AUK_CharacterBase::LockONTick()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AUK_CharacterBase_LockONTick);
+	
 	if (LockOnList.IsEmpty() == false)
 	{
 		if (const int32 Size = LockOnList.Num(); Size <= LockOnIndex)
@@ -803,34 +808,34 @@ bool AUK_CharacterBase::StartGliding()
 	{
 		return false;
 	}
-	//GetCharacterMovement()->StopMovementImmediately();
-	// FVector Vel = GetCharacterMovement()->Velocity;
-	// Vel.Z = -GlideFallSpeed;
-	// GetCharacterMovement()->GravityScale = 0.f;
-	// GetCharacterMovement()->AirControl = 0.8;
-	// GetCharacterMovement()->Velocity = Vel;
+	GetCharacterMovement()->StopMovementImmediately();
+	 FVector Vel = GetCharacterMovement()->Velocity;
+	 Vel.Z = -GlideFallSpeed;
+	 GetCharacterMovement()->GravityScale = 0.f;
+	 GetCharacterMovement()->AirControl = 0.8;
+	 GetCharacterMovement()->Velocity = Vel;
 	bIsGliding = true;
 
 	bInUseStamina = true;
 
-	GetCharacterMovement()->SetMovementMode(MOVE_Custom, (uint8)ECustomMovementMode::CMOVE_Gliding);
+	//GetCharacterMovement()->SetMovementMode(MOVE_Custom, (uint8)ECustomMovementMode::CMOVE_Gliding);
 	return true;
 }
 
 void AUK_CharacterBase::EndGliding()
 {
 	bIsGliding = false;
-	if (GetCharacterMovement()->CurrentFloor.IsWalkableFloor() == false)
-	{
-		GetCharacterMovement()->SetMovementMode(MOVE_Falling);
-	}
-	else
-	{
-		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
-	}
+	// if (GetCharacterMovement()->CurrentFloor.IsWalkableFloor() == false)
+	// {
+	// 	GetCharacterMovement()->SetMovementMode(MOVE_Falling);
+	// }
+	// else
+	// {
+	// 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	// }
 
-	// GetCharacterMovement()->GravityScale = DefualtGravity;
-	// GetCharacterMovement()->AirControl = DefualtAirControl;
+	GetCharacterMovement()->GravityScale = DefualtGravity;
+	GetCharacterMovement()->AirControl = DefualtAirControl;
 	FTimerHandle EndGlidingTimer;
 	GetWorldTimerManager().SetTimer(
 		EndGlidingTimer,
