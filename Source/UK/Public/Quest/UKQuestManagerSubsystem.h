@@ -178,6 +178,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool GetProgress(FName QuestId, FQuestProgress& OutProgress) const;
 
+	UFUNCTION(BlueprintCallable, Category = "UK|Quest")
+	bool AreObjectivesSatisfied(FName QuestId) const;
+
 	//----------------------------------------------------------------------------------------
 
 protected:
