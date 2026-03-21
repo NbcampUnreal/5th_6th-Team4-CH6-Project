@@ -21,13 +21,16 @@
 #include "EnhancedInputSubsystems.h"
 #include "AbilitySystemComponent.h"
 #include "FrameTypes.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/GameplayStatics.h"
 #include "Engine/OverlapResult.h"
 #include "Sound/SoundAttenuation.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
 #include "Components/CapsuleComponent.h"
 #include "DataAsset/Data/UK_WeaponItemData.h"
+#include "Kismet/GameplayStatics.h"
 #include "Systems/Data/UK_InGameSave.h"
 #include "Systems/Sound/UK_SoundManager.h"
 #include "ProfilingDebugging/CpuProfilerTrace.h"
@@ -1178,6 +1181,21 @@ void AUK_CharacterBase::EndBattle()
 	if (SoundManager)
 	{
 		SoundManager->SetCombatState(false);
+	}
+}
+
+void AUK_CharacterBase::HandleLevelUp(float NewLevel)
+{
+	// 1. VFX 재생
+	if (LevelUpVFX)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), LevelUpVFX, GetActorLocation());
+	}
+
+	// 2. 사운드 재생
+	if (LevelUpSound)
+	{
+		UGameplayStatics::PlaySound2D(GetWorld(), LevelUpSound);
 	}
 }
 
