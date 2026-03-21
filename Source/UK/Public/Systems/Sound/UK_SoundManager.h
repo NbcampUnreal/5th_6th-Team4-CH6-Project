@@ -39,10 +39,10 @@ public:
 	AAmbientSound* CurrentSound_cpp;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound|Settings")
-	float FadeOutDuration = 0.5f;
+	float FadeOutDuration = 2.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound|Settings")
-	float FadeInDuration = 0.5f;
+	float FadeInDuration = 2.0f;
 
 	// 지역별 전투 BGM (에디터에서 설정)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound|Combat")
