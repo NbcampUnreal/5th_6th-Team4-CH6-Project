@@ -72,7 +72,6 @@ void UUK_Stamina::UpdateStaminaBar(const FOnAttributeChangeData& Data)
 				UUK_PlayerStatusAttributeSet::GetMaxStaminaAttribute());
 		// 1. 비율 계산
 		Percent = Data.NewValue / MaxStamina;
-		UE_LOG(LogTemp,Display,TEXT("%f, %f"),Data.NewValue, MaxStamina)
 		// 2. 블루프린트 스크립트 실행 (머티리얼 인스턴스 업데이트 로직 트리거)
 		// 헤더에 정의한 BlueprintImplementableEvent를 호출합니다.
 		K2_OnUpdateStaminaPercent(Percent);

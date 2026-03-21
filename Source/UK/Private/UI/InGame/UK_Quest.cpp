@@ -7,6 +7,7 @@
 #include "Quest/UKQuestManagerSubsystem.h"
 #include "UI/InGame/Quest/UK_QuestMain.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Dialogue/UKDialogueSubsystem.h"
 
 UUK_Quest::UUK_Quest(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -28,24 +29,39 @@ void UUK_Quest::NativeConstruct()
 	}
 }
 
-void UUK_Quest::SetQuestUI(FName QuestID,const FText& NPCName,const FText& Dialogue,const FText& QuestDesc,const FText& AcceptText,const FText& ExitText)
+void UUK_Quest::SetQuestUI(FName QuestID, const FText& NPCName, const FText& Dialogue, const FText& QuestDesc, const FText& AcceptText, const FText& ExitText)
 {
 	CurrentQuestId = QuestID;
 
-	if (NPCNameText)
+	if ( NPCNameText )
+	{
 		NPCNameText->SetText(NPCName);
+	}
 
-	if  (DialogueText)
+	if ( DialogueText )
+	{
 		DialogueText->SetText(Dialogue);
+	}
 
-	if (QuestDescText)
+	if ( QuestDescText )
+	{
 		QuestDescText->SetText(QuestDesc);
+	}
 
-	if (AcceptTextBlock)
+	if ( AcceptTextBlock )
+	{
 		AcceptTextBlock->SetText(AcceptText);
+	}
 
-	if (ExitTextBlock)
+	if ( Accept_Button )
+	{
+		Accept_Button->SetVisibility(AcceptText.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+	}
+
+	if ( ExitTextBlock )
+	{
 		ExitTextBlock->SetText(ExitText);
+	}
 }
 
 void UUK_Quest::SetDialogueOnly(const FText& NPCName, const FText& Dialogue)
@@ -75,24 +91,22 @@ void UUK_Quest::RefreshDialogueUI()
 		return;
 	}
 
-	const FText SpeakerName = QuestUIManager->GetCurrentDialogueSpeakerName();
-	const FText CurrentDialogue = QuestUIManager->GetCurrentDialogueText();
+	const FUKCurrentDialogueUIData UIData = QuestUIManager->GetCurrentDialogueUIData();
 
-	if ( NPCNameText )
+	if ( NPCNameText && !UIData.SpeakerName.IsEmpty() )
 	{
-		NPCNameText->SetText(SpeakerName);
+		NPCNameText->SetText(UIData.SpeakerName);
 	}
 
-	if ( DialogueText )
+	if ( DialogueText && !UIData.DialogueText.IsEmpty() )
 	{
-		DialogueText->SetText(CurrentDialogue);
+		DialogueText->SetText(UIData.DialogueText);
 	}
 
 	FText CurrentChoiceText = FText::GetEmpty();
-	const TArray<FText> ChoiceTexts = QuestUIManager->GetCurrentDialogueChoiceTexts();
-	if ( ChoiceTexts.Num() > 0 )
+	if ( UIData.Choices.Num() > 0 )
 	{
-		CurrentChoiceText = ChoiceTexts[ 0 ];
+		CurrentChoiceText = UIData.Choices[ 0 ].ChoiceText;
 	}
 
 	if ( AcceptTextBlock )
@@ -102,7 +116,7 @@ void UUK_Quest::RefreshDialogueUI()
 
 	if ( Accept_Button )
 	{
-		Accept_Button->SetVisibility(ChoiceTexts.Num() > 0 ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+		Accept_Button->SetVisibility(UIData.Choices.Num() > 0 ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	}
 }
 
@@ -126,20 +140,21 @@ void UUK_Quest::OnPlayButtonClicked()
 		return;
 	}
 
-	// 선택 후 현재 대화 상태 확인
-	const FText CurrentDialogue = QuestUIManager->GetCurrentDialogueText();
-	const TArray<FText> ChoiceTexts = QuestUIManager->GetCurrentDialogueChoiceTexts();
+	const FUKCurrentDialogueUIData UIData = QuestUIManager->GetCurrentDialogueUIData();
 
-	const bool bDialogueEnded = CurrentDialogue.IsEmpty() && ChoiceTexts.Num() == 0;
-
-	if ( !bDialogueEnded )
+	// 아직 다음 노드가 남아 있으면 UI 갱신만 하고 유지
+	if ( !UIData.bIsEnd && ( !UIData.DialogueText.IsEmpty() || UIData.Choices.Num() > 0 ) )
 	{
-		// 아직 다음 노드가 남아 있으면 UI만 갱신하고 유지
 		RefreshDialogueUI();
 		return;
 	}
 
-	// 대화가 완전히 끝났을 때만 퀘스트 목록 갱신 + UI 닫기
+	// 여기서부터는 실제 종료
+	if ( UUKDialogueSubsystem* DialogueSys = GI->GetSubsystem<UUKDialogueSubsystem>() )
+	{
+		DialogueSys->EndDialogue();
+	}
+
 	TArray<UUserWidget*> FoundWidgets;
 	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UUK_QuestMain::StaticClass(), false);
 
@@ -163,6 +178,14 @@ void UUK_Quest::OnPlayButtonClicked()
 
 void UUK_Quest::OnExitButtonClicked()
 {
+	if ( UGameInstance* GI = GetGameInstance() )
+	{
+		if ( UUKDialogueSubsystem* DialogueSys = GI->GetSubsystem<UUKDialogueSubsystem>() )
+		{
+			DialogueSys->EndDialogue();
+		}
+	}
+
 	AUK_PlayerController* PlayerCtl = Cast<AUK_PlayerController>(GetOwningPlayer());
 	if ( PlayerCtl )
 	{
@@ -172,4 +195,3 @@ void UUK_Quest::OnExitButtonClicked()
 
 	RemoveFromParent();
 }
-
