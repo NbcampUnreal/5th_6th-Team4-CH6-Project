@@ -640,6 +640,31 @@ bool UUKQuestManagerSubsystem::GetProgress(FName QuestId, FQuestProgress& OutPro
 	return false;
 }
 
+bool UUKQuestManagerSubsystem::AreObjectivesSatisfied(FName QuestId) const
+{
+	const FQuestProgress* Prog = RuntimeProgress.Find(QuestId);
+	if ( !Prog )
+	{
+		return false;
+	}
+
+	const UUKQuestDefinitionAsset* Def = GetQuestDefinition(QuestId);
+	if ( !Def )
+	{
+		return false;
+	}
+
+	for ( const FUKQuestObjectiveDef& Obj : Def->Objectives )
+	{
+		if ( !IsObjectiveComplete(*Prog, Obj, QuestId) )
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 // [7] Item EntityID / ItemDataTable
 void UUKQuestManagerSubsystem::BuildItemIDCache()
 {

@@ -11,6 +11,7 @@
 
 class AUK_CharacterBase;
 class UUKQuestManagerSubsystem;
+class UUKQuestDefinitionAsset;
 
 UCLASS()
 class UK_API AUK_QuestNPC : public AUK_NPCAIBase
@@ -85,7 +86,12 @@ public:
 	FText NPCDescription;
 
 protected:
-	bool IsQuestStarted(const UUKQuestManagerSubsystem* QuestSys, FName InQuestId) const;
-	bool IsQuestCompleted(const UUKQuestManagerSubsystem* QuestSys, FName InQuestId) const;
-	FName ResolveCurrentQuestID(const UUKQuestManagerSubsystem* QuestSys) const;
+	bool IsQuestStarted(UUKQuestManagerSubsystem* QuestSys, FName InQuestId) const;
+	bool IsQuestCompleted(UUKQuestManagerSubsystem* QuestSys, FName InQuestId) const;
+
+	FName ResolveQuestIdToShow(UUKQuestManagerSubsystem* QuestSys) const;
+	FName ResolveDialogueIdForQuest(UUKQuestManagerSubsystem* QuestSys, const UUKQuestDefinitionAsset* Def, FName InQuestId) const;
+
+private:
+	bool TryProcessDelivery(UUKQuestManagerSubsystem* QuestSys, AUK_CharacterBase* Player, FName QuestId) const;
 };
