@@ -384,7 +384,8 @@ void AUK_PlayerController::Setting_UI()
 
 		GetWorldTimerManager().UnPauseTimer(StaminaTrackingTimer);
 	}
-}void AUK_PlayerController::UpdateStaminaTracking()
+}
+void AUK_PlayerController::UpdateStaminaTracking()
 {
 	if ( !IsLocalController() ) return;
 	if ( !StaminaWidget ) return;
@@ -475,26 +476,21 @@ void AUK_PlayerController::ConnectStaminaWidget()
 }
 
 // -------- 퀘스트 UI Interaction (무현 구현중)
- 
+
 void AUK_PlayerController::ShowQuestUI(const FName& QuestID, const FText& NPCName, const FText& Dialogue, const FText& QuestDesc)
 {
-	UE_LOG(LogTemp, Warning, TEXT("[PC] ShowQuestUI 호출됨"));
-
 	if ( !IsLocalController() )
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[PC] LocalController 아님"));
 		return;
 	}
 
 	if ( QuestWidget )
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[PC] QuestWidget 이미 있음"));
 		return;
 	}
 
 	if ( !QuestWidgetClass )
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[PC] QuestWidgetClass 없음"));
 		return;
 	}
 
@@ -507,28 +503,40 @@ void AUK_PlayerController::ShowQuestUI(const FName& QuestID, const FText& NPCNam
 	QuestWidget = CreateWidget<UUK_Quest>(this, QuestWidgetClass);
 	if ( !QuestWidget )
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[PC] CreateWidget 실패"));
 		return;
 	}
 
 	QuestWidget->AddToViewport();
-	UE_LOG(LogTemp, Warning, TEXT("[PC] AddToViewport 성공"));
-
-	UUKQuestUIManagerSubsystem* QuestUIManager = GetGameInstance()->GetSubsystem<UUKQuestUIManagerSubsystem>();
 
 	FText CurrentSpeakerName = NPCName;
 	FText CurrentDialogueText = Dialogue;
-	FText CurrentChoiceText = FText::FromString(TEXT("선택지 글줄"));
+	FText CurrentChoiceText = FText::GetEmpty();
 
+	bool bUseLiveDialogue = false;
+
+	UUKQuestUIManagerSubsystem* QuestUIManager = GetGameInstance()->GetSubsystem<UUKQuestUIManagerSubsystem>();
 	if ( QuestUIManager )
 	{
-		CurrentSpeakerName = QuestUIManager->GetCurrentDialogueSpeakerName();
-		CurrentDialogueText = QuestUIManager->GetCurrentDialogueText();
+		const FUKCurrentDialogueUIData UIData = QuestUIManager->GetCurrentDialogueUIData();
 
-		const TArray<FText> ChoiceTexts = QuestUIManager->GetCurrentDialogueChoiceTexts();
-		if (ChoiceTexts.Num() >0)
+		if ( !UIData.DialogueId.IsNone() )
 		{
-			CurrentChoiceText = ChoiceTexts[0];
+			bUseLiveDialogue = true;
+
+			if ( !UIData.SpeakerName.IsEmpty() )
+			{
+				CurrentSpeakerName = UIData.SpeakerName;
+			}
+
+			if ( !UIData.DialogueText.IsEmpty() )
+			{
+				CurrentDialogueText = UIData.DialogueText;
+			}
+
+			if ( UIData.Choices.Num() > 0 )
+			{
+				CurrentChoiceText = UIData.Choices[ 0 ].ChoiceText;
+			}
 		}
 	}
 
@@ -540,6 +548,11 @@ void AUK_PlayerController::ShowQuestUI(const FName& QuestID, const FText& NPCNam
 		CurrentChoiceText,
 		FText::FromString(TEXT("닫기"))
 	);
+
+	if ( bUseLiveDialogue )
+	{
+		QuestWidget->RefreshDialogueUI();
+	}
 
 	ApplyInputState(EInputState::UI);
 	SetCursorVisible(true);
@@ -592,10 +605,10 @@ void AUK_PlayerController::ShowGameOverUI()
 
 void AUK_PlayerController::ShowShopUI(TSubclassOf<UUserWidget> ShopWidgetClass)
 {
-	if (!ShopWidgetClass) return;
-	
+	if ( !ShopWidgetClass ) return;
+
 	ShopWidget = CreateWidget<UUserWidget>(this, ShopWidgetClass);
-	if (ShopWidget)
+	if ( ShopWidget )
 	{
 		ShopWidget->AddToViewport();
 		bShowMouseCursor = true;
@@ -608,11 +621,11 @@ void AUK_PlayerController::ShowShopUI(TSubclassOf<UUserWidget> ShopWidgetClass)
 
 void AUK_PlayerController::HideShopUI()
 {
-	if (ShopWidget)
+	if ( ShopWidget )
 	{
 		ShopWidget->RemoveFromParent();
 		ShopWidget = nullptr;
-		
+
 		bShowMouseCursor = false;
 		SetInputMode(FInputModeGameOnly());
 	}
