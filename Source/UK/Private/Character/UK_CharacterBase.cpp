@@ -288,6 +288,7 @@ float AUK_CharacterBase::GetFloorDistance()
 
 void AUK_CharacterBase::HealStamina()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AUK_CharacterBase_HealStamina);
 	if (bIsGliding == true)
 	{
 		bInUseStamina = true;
@@ -309,6 +310,12 @@ void AUK_CharacterBase::HealStamina()
 		const UUK_PlayerStatusAttributeSet* Attributes = ASC->GetSet<UUK_PlayerStatusAttributeSet>();
 		const float HealStaminaAmount = Attributes->GetMaxStamina() * 0.01f;
 
+		const float StaminaAmount = Attributes->GetCurrentStamina();
+		if (StaminaAmount >= Attributes->GetMaxStamina())
+		{
+			return;
+		}
+		
 		SpecHandle.Data->SetSetByCallerMagnitude(
 			UK_GameplayTags::Data::EndBattle::HealStamina,
 			HealStaminaAmount
@@ -1184,7 +1191,7 @@ void AUK_CharacterBase::EndBattle()
 	}
 }
 
-void AUK_CharacterBase::HandleLevelUp(float NewLevel)
+void AUK_CharacterBase::HandleLevelUp()
 {
 	// 1. VFX 재생
 	if (LevelUpVFX)

@@ -459,6 +459,8 @@ public:
 	
 	void EndBattle();
 
+	// 레벨업 로직 함수
+	void HandleLevelUp();
 protected:
 	// 레벨업 시 재생할 나이아가라 이펙트
 	UPROPERTY(EditAnywhere, Category = "UK|LevelUp")
@@ -468,8 +470,6 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "UK|LevelUp")
 	TObjectPtr<USoundBase> LevelUpSound;
 
-	// 레벨업 로직 함수
-	void HandleLevelUp(float NewLevel);
 
 #pragma endregion
 
