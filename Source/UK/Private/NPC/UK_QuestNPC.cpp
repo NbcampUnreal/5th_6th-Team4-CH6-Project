@@ -2,11 +2,14 @@
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
 #include "Character/UK_CharacterBase.h"
+#include "Character/UK_PlayerController.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SphereComponent.h"
+#include "Dialogue/UKDialogueSubsystem.h"
 #include "NPC/Component/UK_InteractionComponent.h"
 #include "NPC/Component/UK_QuestComponent.h"
 #include "Quest/UKQuestManagerSubsystem.h"
+#include "ActorComponent/UK_InventoryComponent.h"
 
 #include "Blueprint/UserWidget.h"       
 #include "GameFramework/PlayerController.h"
@@ -139,7 +142,7 @@ void AUK_QuestNPC::UpdateMarkerRotation()
 	QuestMarker->SetWorldRotation(LookAtRotation);
 }
 
-bool AUK_QuestNPC::IsQuestStarted(const UUKQuestManagerSubsystem* QuestSys, FName InQuestId) const
+bool AUK_QuestNPC::IsQuestStarted(UUKQuestManagerSubsystem* QuestSys, FName InQuestId) const
 {
 	if ( !QuestSys || InQuestId.IsNone() )
 	{
@@ -150,7 +153,7 @@ bool AUK_QuestNPC::IsQuestStarted(const UUKQuestManagerSubsystem* QuestSys, FNam
 	return QuestSys->GetProgress(InQuestId, Progress);
 }
 
-bool AUK_QuestNPC::IsQuestCompleted(const UUKQuestManagerSubsystem* QuestSys, FName InQuestId) const
+bool AUK_QuestNPC::IsQuestCompleted(UUKQuestManagerSubsystem* QuestSys, FName InQuestId) const
 {
 	if ( !QuestSys || InQuestId.IsNone() )
 	{
@@ -166,48 +169,178 @@ bool AUK_QuestNPC::IsQuestCompleted(const UUKQuestManagerSubsystem* QuestSys, FN
 	return Progress.bCompleted;
 }
 
-FName AUK_QuestNPC::ResolveCurrentQuestID(const UUKQuestManagerSubsystem* QuestSys) const
+FName AUK_QuestNPC::ResolveQuestIdToShow(UUKQuestManagerSubsystem* QuestSys) const
 {
-	// 1) 체인 배열이 있으면 그걸 우선 사용
-	if ( OfferedQuestIDs.Num() > 0 && QuestSys )
+	TArray<FName> CandidateQuestIds = OfferedQuestIDs;
+
+	if ( CandidateQuestIds.Num() == 0 && !QuestID.IsNone() )
 	{
-		for ( const FName& CandidateQuestId : OfferedQuestIDs )
+		CandidateQuestIds.Add(QuestID);
+	}
+
+	if ( !QuestSys || CandidateQuestIds.Num() == 0 )
+	{
+		return NAME_None;
+	}
+
+	// 1순위: 진행 중(미완료) 퀘스트
+	for ( const FName& CandidateId : CandidateQuestIds )
+	{
+		FQuestProgress Progress;
+		if ( QuestSys->GetProgress(CandidateId, Progress) && !Progress.bCompleted )
 		{
-			if ( CandidateQuestId.IsNone() )
-			{
-				continue;
-			}
-
-			const bool bStarted = IsQuestStarted(QuestSys, CandidateQuestId);
-			const bool bCompleted = IsQuestCompleted(QuestSys, CandidateQuestId);
-
-			// 아직 시작 안 한 퀘스트 -> 다음 제시 퀘스트
-			if ( !bStarted )
-			{
-				return CandidateQuestId;
-			}
-
-			// 시작했지만 아직 안 끝난 퀘스트 -> 현재 진행 퀘스트
-			if ( bStarted && !bCompleted )
-			{
-				return CandidateQuestId;
-			}
-
-			// 완료된 퀘스트는 다음 후보로 넘어감
-		}
-
-		// 전부 완료된 경우: 마지막 퀘스트 반환(완료 대사/엔드 처리용 fallback)
-		for ( int32 i = OfferedQuestIDs.Num() - 1; i >= 0; --i )
-		{
-			if ( !OfferedQuestIDs[ i ].IsNone() )
-			{
-				return OfferedQuestIDs[ i ];
-			}
+			return CandidateId;
 		}
 	}
 
-	// 2) 체인 배열이 없으면 기존 단일 QuestID fallback
-	return QuestID;
+	// 2순위: 아직 시작 안 했지만 시퀀스상 시작 가능한 퀘스트
+	for ( const FName& CandidateId : CandidateQuestIds )
+	{
+		FQuestProgress Progress;
+		if ( !QuestSys->GetProgress(CandidateId, Progress) && QuestSys->CanStartQuestBySequence(CandidateId) )
+		{
+			return CandidateId;
+		}
+	}
+
+	return NAME_None;
+}
+
+FName AUK_QuestNPC::ResolveDialogueIdForQuest(UUKQuestManagerSubsystem* QuestSys, const UUKQuestDefinitionAsset* Def, FName InQuestId) const
+{
+	if ( !QuestSys || !Def || InQuestId.IsNone() )
+	{
+		return NAME_None;
+	}
+
+	FQuestProgress Progress;
+	const bool bStarted = QuestSys->GetProgress(InQuestId, Progress);
+
+	// 아직 시작 안 한 퀘스트 -> Offer 대화
+	if ( !bStarted )
+	{
+		return Def->DialogueId;
+	}
+
+	// 이미 완료됨 -> 여기서는 다루지 않음
+	if ( Progress.bCompleted )
+	{
+		return NAME_None;
+	}
+
+	// 목표를 모두 만족했으면 Complete 대화
+	if ( QuestSys->AreObjectivesSatisfied(InQuestId) )
+	{
+		FString DialogueIdStr = Def->DialogueId.ToString();
+
+		if ( DialogueIdStr.EndsWith(TEXT("_Offer")) )
+		{
+			DialogueIdStr.LeftChopInline(6);
+			DialogueIdStr += TEXT("_Complete");
+			return FName(*DialogueIdStr);
+		}
+
+		return Def->DialogueId;
+	}
+
+	// 진행 중이지만 목표 미달성 -> 정적 문구만 표시
+	return NAME_None;
+}
+
+// DLV 퀘스트에 필요한 세팅
+bool AUK_QuestNPC::TryProcessDelivery(UUKQuestManagerSubsystem* QuestSys, AUK_CharacterBase* Player, FName QuestId) const
+{
+	if ( !QuestSys || !Player || QuestId.IsNone() )
+	{
+		return false;
+	}
+
+	const UUKQuestDefinitionAsset* Def = QuestSys->GetQuestDefinition(QuestId);
+	if ( !Def )
+	{
+		return false;
+	}
+
+	FQuestProgress Progress;
+	if ( !QuestSys->GetProgress(QuestId, Progress) )
+	{
+		return false;
+	}
+
+	// 이미 완료된 퀘스트면 전달 처리 안 함
+	if ( Progress.bCompleted )
+	{
+		return false;
+	}
+
+	// 이미 목표 만족 상태면 다시 전달 처리 안 함
+	if ( QuestSys->AreObjectivesSatisfied(QuestId) )
+	{
+		return false;
+	}
+
+	// 현재는 Objective 1개 기준 처리
+	if ( Def->Objectives.Num() <= 0 )
+	{
+		return false;
+	}
+
+	const FUKQuestObjectiveDef& Obj = Def->Objectives[ 0 ];
+
+	// 전달 퀘스트만 처리
+	if ( Obj.Type != EUKQuestObjectiveType::Delivered )
+	{
+		return false;
+	}
+
+	if ( Obj.TargetId.IsNone() || Obj.RequiredCount <= 0 )
+	{
+		return false;
+	}
+
+	// 플레이어 인벤토리 컴포넌트 찾기
+	UUK_InventoryComponent* InventoryComp = Player->FindComponentByClass<UUK_InventoryComponent>();
+	if ( !InventoryComp )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] InventoryComponent not found."));
+		return false;
+	}
+
+	// 현재 보유 수량 확인
+	const int32 CurrentCount = InventoryComp->GetItemTotalQuantity(Obj.TargetId);
+	if ( CurrentCount < Obj.RequiredCount )
+	{
+		UE_LOG(LogTemp, Log, TEXT("[QuestNPC] Delivery failed. Need=%d Have=%d Item=%s"),
+			Obj.RequiredCount,
+			CurrentCount,
+			*Obj.TargetId.ToString());
+		return false;
+	}
+
+	// 아이템 차감
+	const int32 RemoveResult = InventoryComp->RemoveItem(Obj.TargetId, Obj.RequiredCount);
+	if ( RemoveResult != 0 )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] RemoveItem failed. Item=%s Need=%d RemainNotRemoved=%d"),
+			*Obj.TargetId.ToString(),
+			Obj.RequiredCount,
+			RemoveResult);
+		return false;
+	}
+
+	// 전달 성공 -> Delivered 이벤트를 개수만큼 발사
+	for ( int32 i = 0; i < Obj.RequiredCount; ++i )
+	{
+		const FString EventStr = FString::Printf(TEXT("QuestEvent.Delivered.%s"), *Obj.TargetId.ToString());
+		QuestSys->EmitQuestEvent(FName(*EventStr));
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[QuestNPC] Delivery success. Quest=%s Item=%s Count=%d"),
+		*QuestId.ToString(),
+		*Obj.TargetId.ToString(),
+		Obj.RequiredCount);
+
+	return true;
 }
 
 void AUK_QuestNPC::Interact(AActor* Interactor)
@@ -220,43 +353,78 @@ void AUK_QuestNPC::Interact(AActor* Interactor)
 
 void AUK_QuestNPC::HandleQuestInteract(AUK_CharacterBase* Player)
 {
-	if ( !Player || !bPlayerInRange ) return;
+	if ( !Player || !bPlayerInRange )
+	{
+		return;
+	}
 
 	UWorld* World = GetWorld();
-	if ( !World ) return;
+	if ( !World )
+	{
+		return;
+	}
 
 	UGameInstance* GI = World->GetGameInstance();
-	if ( !GI ) return;
+	if ( !GI )
+	{
+		return;
+	}
 
 	UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>();
-	if ( !QuestSys ) return;
+	if ( !QuestSys )
+	{
+		return;
+	}
 
 	AUK_PlayerController* PlayerCtl = Cast<AUK_PlayerController>(Player->GetController());
-	if ( !PlayerCtl ) return;
+	if ( !PlayerCtl )
+	{
+		return;
+	}
 
-	const FName ActiveQuestId = ResolveCurrentQuestID(QuestSys);
+	const FName ActiveQuestId = ResolveQuestIdToShow(QuestSys);
 	if ( ActiveQuestId.IsNone() )
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] ActiveQuestId is None. NPCID=%s"), *NPCID.ToString());
 		return;
 	}
 
+	// DLV 퀘스트면 여기서 먼저 전달 처리 시도
+	TryProcessDelivery(QuestSys, Player, ActiveQuestId);
+
 	const UUKQuestDefinitionAsset* Def = QuestSys->GetQuestDefinition(ActiveQuestId);
-
-	FText QuestTitle = NPCDisplayName;
-	FText Dialogue = NPCDescription;
-	FText QuestDesc = FText::GetEmpty();
-
-	if ( Def )
+	if ( !Def )
 	{
-		QuestTitle = Def->QuestTitle;
-		Dialogue = Def->NPCDialogue;
-		QuestDesc = Def->QuestDescription;
+		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[QuestNPC] NPC=%s ActiveQuest=%s"),
-		*NPCID.ToString(),
-		*ActiveQuestId.ToString());
+	FText QuestTitle = Def->QuestTitle;
+	FText Dialogue = Def->NPCDialogue;
+	FText QuestDesc = Def->QuestDescription;
+
+	const FName DialogueIdToStart = ResolveDialogueIdForQuest(QuestSys, Def, ActiveQuestId);
+
+	if ( !DialogueIdToStart.IsNone() )
+	{
+		UUKDialogueSubsystem* DialogueSys = GI->GetSubsystem<UUKDialogueSubsystem>();
+		if ( DialogueSys )
+		{
+			FString PackFileName = Def->DialoguePackId.ToString();
+
+			if ( !PackFileName.EndsWith(TEXT(".json")) )
+			{
+				PackFileName += TEXT(".json");
+			}
+
+			const bool bStartedDialogue = DialogueSys->StartDialogue(PackFileName, DialogueIdToStart);
+			if ( !bStartedDialogue )
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] StartDialogue failed. Pack=%s DialogueId=%s"),
+					*PackFileName,
+					*DialogueIdToStart.ToString());
+			}
+		}
+	}
 
 	PlayerCtl->ShowQuestUI(
 		ActiveQuestId,

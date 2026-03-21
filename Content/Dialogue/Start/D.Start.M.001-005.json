@@ -16,13 +16,6 @@
               "emit": [
                 "QuestEvent.Accepted.Q_Start_M_DIA_001"
               ]
-            },
-            {
-              "text": "음... 일단 무슨 일인지부터 들어볼게요.",
-              "next": "N_003",
-              "emit": [
-                "QuestEvent.Accepted.Q_Start_M_DIA_001"
-              ]
             }
           ]
         },
@@ -33,18 +26,10 @@
           "choices": [
             {
               "text": "그 정도라면 괜찮겠네요.",
-              "next": "N_END"
-            }
-          ]
-        },
-        {
-          "id": "N_003",
-          "speaker": "NPC_Start_GuideGirl",
-          "text": "앗, 네! 사실 그렇게 대단한 건 아니에요. 그냥 저와 대화를 끝까지 나누면, 마을에서 첫걸음을 뗀 걸로 보는 거예요!",
-          "choices": [
-            {
-              "text": "알겠어요. 계속 말해 주세요.",
-              "next": "N_END"
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.TalkedTo.NPC_Start_GuideGirl"
+              ]
             }
           ]
         }
@@ -63,8 +48,7 @@
               "text": "다음 일도 해볼게요.",
               "next": "N_END",
               "emit": [
-                "QuestEvent.Completed.Q_Start_M_DIA_001",
-                "QuestEvent.TalkedTo.NPC_Start_GuideGirl"
+                "QuestEvent.Completed.Q_Start_M_DIA_001"
               ]
             }
           ]
