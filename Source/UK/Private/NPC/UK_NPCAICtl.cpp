@@ -4,7 +4,9 @@
 #include "NPC/UK_PatrolNPC.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Systems/Time/UK_TimeSubsystem.h"
 #include "Character/UK_CharacterBase.h"
+#include "NPC/UK_NPCDataTypes.h"
 
 AUK_NPCAICtl::AUK_NPCAICtl()
 {
@@ -54,6 +56,17 @@ void AUK_NPCAICtl::OnPossess(APawn* InPawn)
 		BlackboardComp->InitializeBlackboard(*NPC->BehaviorTree->BlackboardAsset);
 	}
 
+	if (UWorld* World =GetWorld())
+	{
+		UUK_TimeSubsystem* TimeSys = World->GetSubsystem<UUK_TimeSubsystem>();
+		if (TimeSys)
+		{
+			TimeSys->OnHourChanged.AddDynamic(this, &AUK_NPCAICtl::UpdateScheduleByTime);
+			
+			UpdateScheduleByTime(TimeSys->CurrentHour);
+		}
+	}
+	
 	BTComp->StartTree(*NPC->BehaviorTree);
 
 }
@@ -121,4 +134,48 @@ void AUK_NPCAICtl::DrawSightDebug()
 		2.f
 	);
 #endif
+}
+
+void AUK_NPCAICtl::UpdateScheduleByTime(int32 CurrentHour)
+{
+	if (!GetWorld() || HasAnyFlags(RF_ClassDefaultObject)) return;
+	APawn* CurrentPawn = GetPawn();
+	
+	if (!CurrentPawn) 
+	{
+		return;
+	}
+	
+	AUK_NPCAIBase* NPC = Cast<AUK_NPCAIBase>(CurrentPawn);
+	if (!NPC || !NPC->ScheduleTable || !BlackboardComp) 
+	{
+		return;
+	}
+	
+	TArray<FNPCScheduleRow*> AllRows;
+	NPC->ScheduleTable->GetAllRows(TEXT(""), AllRows);
+	
+	for (auto* Row : AllRows)
+	{
+		if (Row->NPC_ID == NPC->MyNPC_ID && Row->StartHour == CurrentHour)
+		{
+			AActor* GoalActor = Row->TargetActor.LoadSynchronous();
+			if (GoalActor)
+			{
+				FVector TargetPos = GoalActor->GetActorLocation();
+				BlackboardComp->SetValueAsVector(TEXT("TargetLocation"), TargetPos);
+				BlackboardComp->SetValueAsEnum(TEXT("CurrentState"), (uint8)Row->ActivityState);
+         
+				UE_LOG(LogTemp, Warning, TEXT("[%s] %d시 출근 완료! 목적지: %s"), 
+					*NPC->MyNPC_ID.ToString(), CurrentHour, *GoalActor->GetName());
+			}
+			else 
+			{
+				UE_LOG(LogTemp, Error, TEXT("[%s] %d시 목적지 액터를 로드할 수 없음!"), *NPC->MyNPC_ID.ToString(), CurrentHour);
+			}
+
+			BlackboardComp->SetValueAsObject(TEXT("ActionMontage"), Row->ActionMontage);
+			break;
+		}
+	}
 }

@@ -4,6 +4,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
 #include "GameFramework/Character.h"
+#include "EngineUtils.h"
 
 UUK_BTTask_FindAvoidPos::UUK_BTTask_FindAvoidPos()
 {
@@ -16,30 +17,48 @@ EBTNodeResult::Type UUK_BTTask_FindAvoidPos::ExecuteTask(UBehaviorTreeComponent&
 	if ( !AI ) return EBTNodeResult::Failed;
 
 	APawn* NPC = AI->GetPawn();
-	if ( !NPC ) return EBTNodeResult::Failed;
+	if (!NPC) return EBTNodeResult::Failed;
 
 	ACharacter* Player = UGameplayStatics::GetPlayerCharacter(NPC->GetWorld(), 0);
 	UNavigationSystemV1* Nav = UNavigationSystemV1::GetCurrent(NPC->GetWorld());
 	
 	if (!Nav) return EBTNodeResult::Failed;
-	if ( !Player ) return EBTNodeResult::Failed;
+	if (!Player) return EBTNodeResult::Failed;
 
-	FVector Dir = (NPC->GetActorLocation() - Player->GetActorLocation()).GetSafeNormal();
-	FVector AvoidPos = NPC->GetActorLocation() + Dir * AvoidDistance;
+	FVector MyLoc = NPC->GetActorLocation();
+	FVector CombinedDir = (MyLoc - Player->GetActorLocation()).GetSafeNormal();
+	for (TActorIterator<APawn> It(NPC->GetWorld()); It; ++It)
+	{
+		APawn* OtherNPC = *It;
+		if (OtherNPC && OtherNPC != NPC && OtherNPC->IsA(NPC->GetClass()))
+		{
+			FVector ToMe = MyLoc - OtherNPC->GetActorLocation();
+			float Distance = ToMe.Size();
+			if (Distance < AvoidDistance && Distance > 0.1f)
+			{
+				CombinedDir += ToMe.GetSafeNormal() * (1.0f - (Distance / AvoidDistance));
+			}
+		}
+	}
 	
+	CombinedDir = CombinedDir.GetSafeNormal();
+	FVector AvoidPos = MyLoc + CombinedDir * AvoidDistance;
+    
 	FNavLocation ResultPos;
-	if (Nav->GetRandomReachablePointInRadius(AvoidPos, 200.0f, ResultPos))
+	FVector QueryExtent(500.f, 500.f, 500.f); 
+    
+	if (Nav->ProjectPointToNavigation(AvoidPos, ResultPos, QueryExtent))
 	{
 		OwnerComp.GetBlackboardComponent()->SetValueAsVector(AvoidLocationKey.SelectedKeyName, ResultPos.Location);
 		return EBTNodeResult::Succeeded;
 	}
-	
-	if (Nav->GetRandomReachablePointInRadius(NPC->GetActorLocation(), AvoidDistance, ResultPos))
+    
+	if (Nav->GetRandomReachablePointInRadius(MyLoc, AvoidDistance, ResultPos))
 	{
 		OwnerComp.GetBlackboardComponent()->SetValueAsVector(AvoidLocationKey.SelectedKeyName, ResultPos.Location);
 		return EBTNodeResult::Succeeded;
 	}
-	OwnerComp.GetBlackboardComponent()->SetValueAsVector(AvoidLocationKey.SelectedKeyName, AvoidPos);
 
+	OwnerComp.GetBlackboardComponent()->SetValueAsVector(AvoidLocationKey.SelectedKeyName, AvoidPos);
 	return EBTNodeResult::Succeeded;
 }
