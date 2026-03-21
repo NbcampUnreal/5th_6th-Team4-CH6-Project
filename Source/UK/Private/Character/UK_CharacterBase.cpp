@@ -21,16 +21,19 @@
 #include "EnhancedInputSubsystems.h"
 #include "AbilitySystemComponent.h"
 #include "FrameTypes.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/GameplayStatics.h"
 #include "Engine/OverlapResult.h"
 #include "Sound/SoundAttenuation.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
 #include "Components/CapsuleComponent.h"
 #include "DataAsset/Data/UK_WeaponItemData.h"
+#include "Kismet/GameplayStatics.h"
 #include "Systems/Data/UK_InGameSave.h"
 #include "Systems/Sound/UK_SoundManager.h"
-
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 
 #pragma region Defualt
 
@@ -285,6 +288,7 @@ float AUK_CharacterBase::GetFloorDistance()
 
 void AUK_CharacterBase::HealStamina()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AUK_CharacterBase_HealStamina);
 	if (bIsGliding == true)
 	{
 		bInUseStamina = true;
@@ -306,6 +310,12 @@ void AUK_CharacterBase::HealStamina()
 		const UUK_PlayerStatusAttributeSet* Attributes = ASC->GetSet<UUK_PlayerStatusAttributeSet>();
 		const float HealStaminaAmount = Attributes->GetMaxStamina() * 0.01f;
 
+		const float StaminaAmount = Attributes->GetCurrentStamina();
+		if (StaminaAmount >= Attributes->GetMaxStamina())
+		{
+			return;
+		}
+		
 		SpecHandle.Data->SetSetByCallerMagnitude(
 			UK_GameplayTags::Data::EndBattle::HealStamina,
 			HealStaminaAmount
@@ -617,6 +627,8 @@ void AUK_CharacterBase::Setting()
 
 void AUK_CharacterBase::LockON()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AUK_CharacterBase_LockOn);
+	
 	if (bIsLock == false)
 	{
 		bIsLock = true;
@@ -637,6 +649,7 @@ void AUK_CharacterBase::LockON()
 
 void AUK_CharacterBase::LockONToggle()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AUK_CharacterBase_LockOnToggle);
 	if (bIsLock == false)
 	{
 		AUK_PlayerController* UKPC = Cast<AUK_PlayerController>(GetController());
@@ -721,6 +734,8 @@ void AUK_CharacterBase::LockONToggle()
 
 void AUK_CharacterBase::LockONTick()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(AUK_CharacterBase_LockONTick);
+	
 	if (LockOnList.IsEmpty() == false)
 	{
 		if (const int32 Size = LockOnList.Num(); Size <= LockOnIndex)
@@ -803,34 +818,34 @@ bool AUK_CharacterBase::StartGliding()
 	{
 		return false;
 	}
-	//GetCharacterMovement()->StopMovementImmediately();
-	// FVector Vel = GetCharacterMovement()->Velocity;
-	// Vel.Z = -GlideFallSpeed;
-	// GetCharacterMovement()->GravityScale = 0.f;
-	// GetCharacterMovement()->AirControl = 0.8;
-	// GetCharacterMovement()->Velocity = Vel;
+	GetCharacterMovement()->StopMovementImmediately();
+	 FVector Vel = GetCharacterMovement()->Velocity;
+	 Vel.Z = -GlideFallSpeed;
+	 GetCharacterMovement()->GravityScale = 0.f;
+	 GetCharacterMovement()->AirControl = 0.8;
+	 GetCharacterMovement()->Velocity = Vel;
 	bIsGliding = true;
 
 	bInUseStamina = true;
 
-	GetCharacterMovement()->SetMovementMode(MOVE_Custom, (uint8)ECustomMovementMode::CMOVE_Gliding);
+	//GetCharacterMovement()->SetMovementMode(MOVE_Custom, (uint8)ECustomMovementMode::CMOVE_Gliding);
 	return true;
 }
 
 void AUK_CharacterBase::EndGliding()
 {
 	bIsGliding = false;
-	if (GetCharacterMovement()->CurrentFloor.IsWalkableFloor() == false)
-	{
-		GetCharacterMovement()->SetMovementMode(MOVE_Falling);
-	}
-	else
-	{
-		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
-	}
+	// if (GetCharacterMovement()->CurrentFloor.IsWalkableFloor() == false)
+	// {
+	// 	GetCharacterMovement()->SetMovementMode(MOVE_Falling);
+	// }
+	// else
+	// {
+	// 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	// }
 
-	// GetCharacterMovement()->GravityScale = DefualtGravity;
-	// GetCharacterMovement()->AirControl = DefualtAirControl;
+	GetCharacterMovement()->GravityScale = DefualtGravity;
+	GetCharacterMovement()->AirControl = DefualtAirControl;
 	FTimerHandle EndGlidingTimer;
 	GetWorldTimerManager().SetTimer(
 		EndGlidingTimer,
@@ -1173,6 +1188,21 @@ void AUK_CharacterBase::EndBattle()
 	if (SoundManager)
 	{
 		SoundManager->SetCombatState(false);
+	}
+}
+
+void AUK_CharacterBase::HandleLevelUp()
+{
+	// 1. VFX 재생
+	if (LevelUpVFX)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), LevelUpVFX, GetActorLocation());
+	}
+
+	// 2. 사운드 재생
+	if (LevelUpSound)
+	{
+		UGameplayStatics::PlaySound2D(GetWorld(), LevelUpSound);
 	}
 }
 

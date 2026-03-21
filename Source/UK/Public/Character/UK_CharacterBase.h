@@ -32,6 +32,7 @@ class UUK_InputConfig;
 class UUK_InteractionComponent;
 class UUK_QuestComponent;
 class USoundAttenuation;
+class UNiagaraSystem;
 struct FInputActionValue;
 struct FUK_WeaponItemData;
 #pragma endregion
@@ -458,7 +459,17 @@ public:
 	
 	void EndBattle();
 
+	// 레벨업 로직 함수
+	void HandleLevelUp();
 protected:
+	// 레벨업 시 재생할 나이아가라 이펙트
+	UPROPERTY(EditAnywhere, Category = "UK|LevelUp")
+	TObjectPtr<UNiagaraSystem> LevelUpVFX;
+
+	// 레벨업 시 재생할 사운드
+	UPROPERTY(EditAnywhere, Category = "UK|LevelUp")
+	TObjectPtr<USoundBase> LevelUpSound;
+
 
 #pragma endregion
 

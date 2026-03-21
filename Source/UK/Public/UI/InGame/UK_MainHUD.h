@@ -128,4 +128,26 @@ public:
 	
 	UPROPERTY()
 	UAbilitySystemComponent* ASC;
+
+//보간
+private:
+
+	FTimerHandle BarInterpTimerHandle;
+
+	//HP
+	float TargetHPPercent = 1.0f;
+	float CurrentHPPercent = 1.0f;
+	//MP
+	float TargetMPPercent = 1.0f;
+	float CurrentMPPercent = 1.0f;
+	//보간 속도
+	const float InterpSpeed = 5.0f;
+	const float TimerSpeed = 0.02f;
+
+	// 보간 실행 함수
+	void UpdateBarInterpolation();
+	// 타이머 시작/정지 제어
+	void StartInterpTimer();
+
+
 };

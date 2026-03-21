@@ -19,6 +19,14 @@ class UK_API AUK_NPCAICtl : public AAIController
 public:
 	AUK_NPCAICtl();
 	void DrawSightDebug();
+	void UpdateSchedule();
+	
+	UPROPERTY(EditDefaultsOnly, Category = "AI|Schedule")
+	class UDataTable* ScheduleTable;
+	
+	UFUNCTION()
+	void UpdateScheduleByTime(int32 CurrentHour);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnPossess(APawn* InPawn) override;
