@@ -19,9 +19,9 @@ public:
 	virtual void Shutdown() override;
 
 protected:
-	// 🔥 MoviePlayer 로딩 함수
-	void BeginLoadingScreen(const FString& MapName);
-	void EndLoadingScreen(UWorld* LoadedWorld);
+	//// 🔥 MoviePlayer 로딩 함수
+	//void BeginLoadingScreen(const FString& MapName);
+	//void EndLoadingScreen(UWorld* LoadedWorld);
 public:
 
 	UFUNCTION(BlueprintCallable)
@@ -53,7 +53,6 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void LoadEntireGame();
-	UFUNCTION(BlueprintCallable)
 	
 	UFUNCTION(BlueprintCallable, Category = "SaveSystem")
 	void RequestSaveAndQuit();

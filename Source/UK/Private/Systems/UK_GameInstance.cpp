@@ -14,8 +14,8 @@ void UUK_GameInstance::Init()
 {
 	Super::Init();
 
-	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UUK_GameInstance::BeginLoadingScreen);
-	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UUK_GameInstance::EndLoadingScreen);
+	/*FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UUK_GameInstance::BeginLoadingScreen);
+	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UUK_GameInstance::EndLoadingScreen);*/
 }
 
 void UUK_GameInstance::Shutdown()
@@ -165,11 +165,6 @@ void UUK_GameInstance::LoadEntireGame()
 			SaveIntf->OnLoadGame(LoadedInstance);
 		}
 	}
-}
-
-void UUK_GameInstance::Shutdown()
-{
-	Super::Shutdown();
 }
 
 void UUK_GameInstance::RequestSaveAndQuit()
