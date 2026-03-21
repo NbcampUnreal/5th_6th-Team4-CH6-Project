@@ -33,12 +33,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|Objectives")
 	TArray<FUKQuestObjectiveDef> Objectives;
 
-	// [D] Conditions (참조만: Cond_...)
+	// [D] Conditions (참조만: Cond_.)
+	// - 비어 있으면 조건 없음 = 허용
+	// - 여러 개면 전부 만족(AND)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|Conditions")
-	FName StartConditionId;    // Cond_Common_... 또는 Cond_<QuestID>_...
+	TArray<FName> StartConditionIds;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|Conditions")
-	FName CompleteConditionId; // (선택)
+	TArray<FName> CompleteConditionIds;
 
 	// [E] Rewards (참조만: R_...)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|Rewards")
