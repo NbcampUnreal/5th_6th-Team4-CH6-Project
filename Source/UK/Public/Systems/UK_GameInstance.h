@@ -14,7 +14,14 @@ UCLASS()
 class UK_API UUK_GameInstance : public UGameInstance
 {
 	GENERATED_BODY()
+public:
+	virtual void Init() override;
+	virtual void Shutdown() override;
 
+protected:
+	// 🔥 MoviePlayer 로딩 함수
+	void BeginLoadingScreen(const FString& MapName);
+	void EndLoadingScreen(UWorld* LoadedWorld);
 public:
 
 	UFUNCTION(BlueprintCallable)
@@ -47,8 +54,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void LoadEntireGame();
 	UFUNCTION(BlueprintCallable)
-	
-	void Shutdown();
 	
 	UFUNCTION(BlueprintCallable, Category = "SaveSystem")
 	void RequestSaveAndQuit();

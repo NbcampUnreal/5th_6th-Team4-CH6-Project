@@ -4,9 +4,27 @@
 #include "Systems/UK_GameInstance.h"
 #include "Systems/Data/UK_SaveInterface.h"
 #include "Kismet/GameplayStatics.h"
-#include "Engine/World.h"
 #include "TimerManager.h"
+#include "Blueprint/UserWidget.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Engine/World.h"
+#include "Engine/Engine.h"
 
+void UUK_GameInstance::Init()
+{
+	Super::Init();
+
+	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UUK_GameInstance::BeginLoadingScreen);
+	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UUK_GameInstance::EndLoadingScreen);
+}
+
+void UUK_GameInstance::Shutdown()
+{
+	FCoreUObjectDelegates::PreLoadMap.RemoveAll(this);
+	FCoreUObjectDelegates::PostLoadMapWithWorld.RemoveAll(this);
+
+	Super::Shutdown();
+}
 
 void UUK_GameInstance::ShowLoading(float Target)
 {
