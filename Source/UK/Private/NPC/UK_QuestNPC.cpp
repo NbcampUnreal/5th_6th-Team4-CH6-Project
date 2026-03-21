@@ -178,6 +178,12 @@ FName AUK_QuestNPC::ResolveQuestIdToShow(UUKQuestManagerSubsystem* QuestSys) con
 		CandidateQuestIds.Add(QuestID);
 	}
 
+	UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] CandidateQuestIds Num=%d"), CandidateQuestIds.Num());
+	for ( const FName& Id : CandidateQuestIds )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] Candidate=%s"), *Id.ToString());
+	}
+
 	if ( !QuestSys || CandidateQuestIds.Num() == 0 )
 	{
 		return NAME_None;
@@ -187,17 +193,29 @@ FName AUK_QuestNPC::ResolveQuestIdToShow(UUKQuestManagerSubsystem* QuestSys) con
 	for ( const FName& CandidateId : CandidateQuestIds )
 	{
 		FQuestProgress Progress;
-		if ( QuestSys->GetProgress(CandidateId, Progress) && !Progress.bCompleted )
+		if ( QuestSys->GetProgress(CandidateId, Progress) )
 		{
-			return CandidateId;
+			UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] Progress Found: %s Completed=%d"),
+				*CandidateId.ToString(), Progress.bCompleted ? 1 : 0);
+
+			if ( !Progress.bCompleted )
+			{
+				return CandidateId;
+			}
 		}
 	}
 
-	// 2순위: 아직 시작 안 했지만 시퀀스상 시작 가능한 퀘스트
+	// 2순위: 아직 시작 안 했지만 조건상 시작 가능한 퀘스트
 	for ( const FName& CandidateId : CandidateQuestIds )
 	{
 		FQuestProgress Progress;
-		if ( !QuestSys->GetProgress(CandidateId, Progress) && QuestSys->CanStartQuestBySequence(CandidateId) )
+		const bool bStarted = QuestSys->GetProgress(CandidateId, Progress);
+		const bool bCanStart = QuestSys->CanStartQuest(CandidateId);
+
+		UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] Check Start: %s Started=%d CanStart=%d"),
+			*CandidateId.ToString(), bStarted ? 1 : 0, bCanStart ? 1 : 0);
+
+		if ( !bStarted && bCanStart )
 		{
 			return CandidateId;
 		}
