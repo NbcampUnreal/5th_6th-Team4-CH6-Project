@@ -12,6 +12,7 @@ class AUK_PlayerController;
 class UUK_Sound;
 class UUK_Screen;
 class UUK_Control;
+class UWidgetSwitcher;
 /**
  * 
  */
@@ -25,6 +26,11 @@ public:
 	virtual void NativeConstruct() override;
 
 	void ClearAllWidgets();
+
+	void SetInputConfig();
+
+	UPROPERTY(BlueprintReadWrite, meta = ( BindWidget ))
+	UWidgetSwitcher* SettingSwitcher;
 
 	UPROPERTY(meta = ( BindWidget ))
 	UButton* Sound;
@@ -40,15 +46,6 @@ public:
 
 	UPROPERTY(meta = ( BindWidget ))
 	UButton* Video;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-	TSubclassOf<UUserWidget> VideoWidgetClass;
-
-	UUK_Sound* SoundWidget;
-
-	UUK_Screen* VideoWidget;
-
-	UUK_Control* ControlWidget;
 
 	UPROPERTY(meta = ( BindWidget ))
 	UButton* Infomation;

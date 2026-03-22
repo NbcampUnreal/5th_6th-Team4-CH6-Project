@@ -6,6 +6,8 @@
 #include "UI/InGame/Setting/UK_Screen.h"
 #include "UI/InGame/Setting/UK_Control.h"
 #include "Character/UK_PlayerController.h"
+#include "Components/WidgetSwitcher.h"
+#include "Blueprint/UserWidget.h"
 
 void UUK_Setting::NativeConstruct()
 {
@@ -35,112 +37,73 @@ void UUK_Setting::NativeConstruct()
 	}
 }
 
+//void UUK_Setting::ClearAllWidgets()
+//{
+//	if ( SoundWidget && SoundWidget->IsInViewport() )
+//	{
+//		SoundWidget->RemoveFromParent();
+//		SoundWidget = nullptr;
+//	}
+//
+//	// 2. 비디오(스크린) 창 제거
+//	if ( ControlWidget && ControlWidget->IsInViewport() )
+//	{
+//		ControlWidget->RemoveFromParent();
+//		ControlWidget = nullptr;
+//	}
+//
+//	// 3. 컨트롤 창 제거
+//	if ( VideoWidget && VideoWidget->IsInViewport() )
+//	{
+//		VideoWidget->RemoveFromParent();
+//		VideoWidget = nullptr;
+//	}
+//}
+
 void UUK_Setting::ClearAllWidgets()
 {
-	if ( SoundWidget && SoundWidget->IsInViewport() )
-	{
-		SoundWidget->RemoveFromParent();
-		SoundWidget = nullptr;
-	}
-
-	// 2. 비디오(스크린) 창 제거
-	if ( ControlWidget && ControlWidget->IsInViewport() )
-	{
-		ControlWidget->RemoveFromParent();
-		ControlWidget = nullptr;
-	}
-
-	// 3. 컨트롤 창 제거
-	if ( VideoWidget && VideoWidget->IsInViewport() )
-	{
-		VideoWidget->RemoveFromParent();
-		VideoWidget = nullptr;
-	}
+	// Switcher를 쓰면 RemoveFromParent를 할 필요가 없습니다.
+	// 필요하다면 기본 화면(인덱스 0번 등)으로 돌리는 로직을 넣으세요.
 }
 
 void UUK_Setting::OnSoundButtonClicked()
 {
-	if ( !SoundWidgetClass ) return;
-
-	if ( !UK_PC ) return;
-	ClearAllWidgets();
-	SoundWidget = CreateWidget<UUK_Sound>(UK_PC, SoundWidgetClass);
-	if ( !SoundWidget ) return;
-
-	SoundWidget->SetParentWidget(this);
-
-	SoundWidget->AddToViewport();
-
-	FInputModeUIOnly InputMode;
-	InputMode.SetWidgetToFocus(SoundWidget->TakeWidget());
-	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-
-	UK_PC->SetInputMode(InputMode);
-	UK_PC->bShowMouseCursor = true;
-
-	this->SetVisibility(ESlateVisibility::Collapsed);
+	SetInputConfig();
 }
 
 void UUK_Setting::OnVideoButtonClicked()
 {
-	if ( !VideoWidgetClass ) return;
-
-	if ( !UK_PC ) return;
-	ClearAllWidgets();
-	VideoWidget = CreateWidget<UUK_Screen>(UK_PC, VideoWidgetClass);
-	if ( !VideoWidget ) return;
-
-	VideoWidget->SetParentWidget(this);
-
-	VideoWidget->AddToViewport();
-
-	FInputModeUIOnly InputMode;
-	InputMode.SetWidgetToFocus(VideoWidget->TakeWidget());
-	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-
-	UK_PC->SetInputMode(InputMode);
-	UK_PC->bShowMouseCursor = true;
-
-	this->SetVisibility(ESlateVisibility::Collapsed);
+	SetInputConfig();
 }
 
 void UUK_Setting::OnControlButtonClicked()
 {
-	if ( !ControlWidgetClass ) return;
+	SetInputConfig();
+}
 
+void UUK_Setting::SetInputConfig()
+{
 	if ( !UK_PC ) return;
-	ClearAllWidgets();
-	ControlWidget = CreateWidget<UUK_Control>(UK_PC, ControlWidgetClass);
-	if ( !ControlWidget )
-	{
-		UE_LOG(LogTemp, Error, TEXT("SoundWidgetClass is NOT assigned in Blueprint!"));
-	}
 
-	ControlWidget->SetParentWidget(this);
+	FInputModeGameAndUI InputMode;
 
-	ControlWidget->AddToViewport();
-
-	FInputModeUIOnly InputMode;
-	InputMode.SetWidgetToFocus(ControlWidget->TakeWidget());
+	InputMode.SetWidgetToFocus(SettingSwitcher->GetActiveWidget()->TakeWidget());
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+
+	InputMode.SetHideCursorDuringCapture(false);
 
 	UK_PC->SetInputMode(InputMode);
 	UK_PC->bShowMouseCursor = true;
-
-	this->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UUK_Setting::OnExitButtonClicked()
 {
 	if ( UK_PC )
 	{
-		ClearAllWidgets();
-		UK_PC->Setting_UI();
+		UK_PC->Setting_UI(); // 토글 기능이 있다면 호출
 	}
 	else
 	{
-		ClearAllWidgets();
 		RemoveFromParent();
 	}
-
 }
