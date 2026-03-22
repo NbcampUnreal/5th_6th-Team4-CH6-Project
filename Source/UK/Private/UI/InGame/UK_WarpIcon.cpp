@@ -6,6 +6,7 @@
 #include "ActorComponent/UK_InventoryComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Character.h"
+#include "UI/Inventory/UK_InvMain.h"
 
 void UUK_WarpIcon::NativeConstruct()
 {
@@ -20,6 +21,16 @@ void UUK_WarpIcon::NativeConstruct()
 	{
 		WarpInfoText->SetVisibility(ESlateVisibility::Hidden);
 	}
+
+	if (!OwnerInvMain)
+	{
+		OwnerInvMain = FindOwnerInvMain();
+	}
+}
+
+UUK_InvMain* UUK_WarpIcon::FindOwnerInvMain() const
+{
+	return GetTypedOuter<UUK_InvMain>();
 }
 
 void UUK_WarpIcon::InitWarpIcon(FName InPointID, bool bInActivated)
@@ -36,8 +47,9 @@ void UUK_WarpIcon::InitWarpIcon(FName InPointID, bool bInActivated)
 	{
 		IconImage->SetBrushFromTexture(Data.MapIcon);
 
-		// 활성화 상태에 따라 아이콘 색상 변경 
-		IconImage->SetColorAndOpacity(bIsActivated ? ActiveColor : InactiveColor);
+		FLinearColor IconTint = FLinearColor::White;
+		IconTint.A = bIsActivated ? ActiveOpacity : InactiveOpacity;
+		IconImage->SetColorAndOpacity(IconTint);
 	}
 
 }
@@ -116,13 +128,22 @@ void UUK_WarpIcon::OnWarpButtonClicked()
 	// subtractionGold(3000) 실행. 성공 시 0 이상의 값 반환.
 	if ( InvComp->subtractionGold(WarpCost) >= 0 )
 	{
+		if (OwnerInvMain)
+		{
+			OwnerInvMain->CloseInvMain();
+		}
 		// 골드 차감 성공 시 세이브 및 워프 실행
 		WarpSubsystem->SaveWarpData();
 		WarpSubsystem->TeleportToWarpPoint(PlayerChar, WarpPointID);
-
+		
 	}
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("골드가 부족하여 워프할 수 없습니다!"));
 	}
+}
+
+void UUK_WarpIcon::SetOwnerInvMain(UUK_InvMain* InInvMain)
+{
+	OwnerInvMain = InInvMain;
 }
