@@ -14,6 +14,23 @@
 #include "Blueprint/UserWidget.h"       
 #include "GameFramework/PlayerController.h"
 
+namespace
+{
+	static FName MakeQuestCounterKey_Local(FName QuestId, FName CounterName)
+	{
+		return FName(*FString::Printf(TEXT("C.%s.%s"),
+			*QuestId.ToString(),
+			*CounterName.ToString()));
+	}
+
+	static FName MakeQuestFlagKey_Local(FName QuestId, FName Category)
+	{
+		return FName(*FString::Printf(TEXT("F.%s.%s"),
+			*QuestId.ToString(),
+			*Category.ToString()));
+	}
+}
+
 AUK_QuestNPC::AUK_QuestNPC()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -224,6 +241,121 @@ FName AUK_QuestNPC::ResolveQuestIdToShow(UUKQuestManagerSubsystem* QuestSys) con
 	return NAME_None;
 }
 
+FName AUK_QuestNPC::MakeDialogueIdBySuffix(const UUKQuestDefinitionAsset* Def, const FString& Suffix) const
+{
+	if ( !Def || Def->DialogueId.IsNone() )
+	{
+		return NAME_None;
+	}
+
+	FString DialogueIdStr = Def->DialogueId.ToString();
+
+	if ( DialogueIdStr.EndsWith(TEXT("_Offer")) )
+	{
+		DialogueIdStr.LeftChopInline(6);
+	}
+	else if ( DialogueIdStr.EndsWith(TEXT("_Complete")) )
+	{
+		DialogueIdStr.LeftChopInline(9);
+	}
+	else if ( DialogueIdStr.EndsWith(TEXT("_InProgress")) )
+	{
+		DialogueIdStr.LeftChopInline(11);
+	}
+
+	DialogueIdStr += Suffix;
+	return FName(*DialogueIdStr);
+}
+
+FText AUK_QuestNPC::BuildInProgressDialogueText(UUKQuestManagerSubsystem* QuestSys, const UUKQuestDefinitionAsset* Def, FName InQuestId) const
+{
+	if ( !QuestSys || !Def || InQuestId.IsNone() )
+	{
+		return FText::FromString(TEXT("아직 목표를 모두 달성하지 못했습니다."));
+	}
+
+	return FText::FromString(TEXT("아직 목표를 모두 달성하지 못했습니다. 진행 상황을 확인해 주세요."));
+}
+
+FText AUK_QuestNPC::BuildInProgressQuestDesc(UUKQuestManagerSubsystem* QuestSys, const UUKQuestDefinitionAsset* Def, FName InQuestId) const
+{
+	if ( !QuestSys || !Def || InQuestId.IsNone() )
+	{
+		return FText::GetEmpty();
+	}
+
+	FQuestProgress Progress;
+	if ( !QuestSys->GetProgress(InQuestId, Progress) )
+	{
+		return Def->QuestDescription;
+	}
+
+	FString Result;
+
+	if ( !Def->QuestDescription.IsEmpty() )
+	{
+		Result += Def->QuestDescription.ToString();
+		Result += TEXT("\n\n");
+	}
+
+	Result += TEXT("[진행 상황]");
+
+	for ( const FUKQuestObjectiveDef& Obj : Def->Objectives )
+	{
+		FString Label;
+
+		if ( !Obj.TargetId.IsNone() )
+		{
+			Label = Obj.TargetId.ToString();
+		}
+		else if ( !Obj.ObjectiveId.IsNone() )
+		{
+			Label = Obj.ObjectiveId.ToString();
+		}
+		else
+		{
+			Label = TEXT("Objective");
+		}
+
+		// Counter 기반 목표
+		if ( !Obj.CounterName.IsNone() && Obj.RequiredCount > 0 )
+		{
+			const FName CounterKey = MakeQuestCounterKey_Local(InQuestId, Obj.CounterName);
+			const int32 CurrentValue = Progress.Counters.FindRef(CounterKey);
+
+			Result += FString::Printf(
+				TEXT("\n- %s : %d / %d"),
+				*Label,
+				CurrentValue,
+				Obj.RequiredCount
+			);
+			continue;
+		}
+
+		// Flag 기반 목표
+		if ( !Obj.CompleteFlagCategory.IsNone() )
+		{
+			const FName FlagKey = MakeQuestFlagKey_Local(InQuestId, Obj.CompleteFlagCategory);
+			const bool bDone = Progress.Flags.Contains(FlagKey);
+
+			Result += FString::Printf(
+				TEXT("\n- %s : %s"),
+				*Label,
+				bDone ? TEXT("완료") : TEXT("미완료")
+			);
+			continue;
+		}
+
+		// 둘 다 없으면 기본 문구
+		Result += FString::Printf(
+			TEXT("\n- %s : 진행 중"),
+			*Label
+		);
+	}
+
+	return FText::FromString(Result);
+}
+
 FName AUK_QuestNPC::ResolveDialogueIdForQuest(UUKQuestManagerSubsystem* QuestSys, const UUKQuestDefinitionAsset* Def, FName InQuestId) const
 {
 	if ( !QuestSys || !Def || InQuestId.IsNone() )
@@ -249,20 +381,11 @@ FName AUK_QuestNPC::ResolveDialogueIdForQuest(UUKQuestManagerSubsystem* QuestSys
 	// 목표를 모두 만족했으면 Complete 대화
 	if ( QuestSys->AreObjectivesSatisfied(InQuestId) )
 	{
-		FString DialogueIdStr = Def->DialogueId.ToString();
-
-		if ( DialogueIdStr.EndsWith(TEXT("_Offer")) )
-		{
-			DialogueIdStr.LeftChopInline(6);
-			DialogueIdStr += TEXT("_Complete");
-			return FName(*DialogueIdStr);
-		}
-
-		return Def->DialogueId;
+		return MakeDialogueIdBySuffix(Def, TEXT("_Complete"));
 	}
 
-	// 진행 중이지만 목표 미달성 -> 정적 문구만 표시
-	return NAME_None;
+	// 진행 중이지만 목표 미달성 -> InProgress 대화 시도
+	return MakeDialogueIdBySuffix(Def, TEXT("_InProgress"));
 }
 
 // DLV 퀘스트에 필요한 세팅
@@ -419,6 +542,18 @@ void AUK_QuestNPC::HandleQuestInteract(AUK_CharacterBase* Player)
 	FText QuestTitle = Def->QuestTitle;
 	FText Dialogue = Def->NPCDialogue;
 	FText QuestDesc = Def->QuestDescription;
+
+	FQuestProgress Progress;
+	const bool bStarted = QuestSys->GetProgress(ActiveQuestId, Progress);
+	const bool bCompleted = bStarted && Progress.bCompleted;
+	const bool bObjectivesSatisfied = QuestSys->AreObjectivesSatisfied(ActiveQuestId);
+
+	// 진행 중 + 미달성 상태에서는 정적 fallback 문구를 강제로 준비
+	if ( bStarted && !bCompleted && !bObjectivesSatisfied )
+	{
+		Dialogue = BuildInProgressDialogueText(QuestSys, Def, ActiveQuestId);
+		QuestDesc = BuildInProgressQuestDesc(QuestSys, Def, ActiveQuestId);
+	}
 
 	const FName DialogueIdToStart = ResolveDialogueIdForQuest(QuestSys, Def, ActiveQuestId);
 

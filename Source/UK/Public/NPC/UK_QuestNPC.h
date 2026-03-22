@@ -92,6 +92,10 @@ protected:
 	FName ResolveQuestIdToShow(UUKQuestManagerSubsystem* QuestSys) const;
 	FName ResolveDialogueIdForQuest(UUKQuestManagerSubsystem* QuestSys, const UUKQuestDefinitionAsset* Def, FName InQuestId) const;
 
+	FName MakeDialogueIdBySuffix(const UUKQuestDefinitionAsset* Def, const FString& Suffix) const;
+	FText BuildInProgressDialogueText(UUKQuestManagerSubsystem* QuestSys, const UUKQuestDefinitionAsset* Def, FName InQuestId) const;
+	FText BuildInProgressQuestDesc(UUKQuestManagerSubsystem* QuestSys, const UUKQuestDefinitionAsset* Def, FName InQuestId) const;
+
 private:
 	bool TryProcessDelivery(UUKQuestManagerSubsystem* QuestSys, AUK_CharacterBase* Player, FName QuestId) const;
 };

@@ -1,0 +1,905 @@
+﻿{
+  "packId": "D.Test.T.001-017",
+  "dialogues": [
+    {
+      "dialogueId": "D_Q_TEST_T_DIA_001_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_1",
+          "text": "1번 퀘스트 시작 대화",
+          "choices": [
+            {
+              "text": "수락한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Accepted.Q_TEST_T_DIA_001"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_DIA_001_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_1",
+          "text": "1번 퀘스트 완료 대화",
+          "choices": [
+            {
+              "text": "완료한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_TEST_T_DIA_001"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_TEST_T_DIA_002_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_2",
+          "text": "2번 퀘스트 시작 대화",
+          "choices": [
+            {
+              "text": "수락한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Accepted.Q_TEST_T_DIA_002"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_DIA_002_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_2",
+          "text": "2번 퀘스트 완료 대화",
+          "choices": [
+            {
+              "text": "완료한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_TEST_T_DIA_002"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_TEST_T_DLV_003_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_2",
+          "text": "3번 퀘스트 시작 대화",
+          "choices": [
+            {
+              "text": "수락한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Accepted.Q_TEST_T_DLV_003"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_DLV_003_InProgress",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_2",
+          "text": "3번 퀘스트 조건 미달성 대화",
+          "choices": [
+            {
+              "text": "계속 진행한다.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_DLV_003_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_2",
+          "text": "3번 퀘스트 완료 대화",
+          "choices": [
+            {
+              "text": "완료한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_TEST_T_DLV_003"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_TEST_T_DIA_004_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_2",
+          "text": "4번 퀘스트 시작 대화",
+          "choices": [
+            {
+              "text": "수락한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Accepted.Q_TEST_T_DIA_004"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_DIA_004_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_1",
+          "text": "4번 퀘스트 완료 대화",
+          "choices": [
+            {
+              "text": "완료한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_TEST_T_DIA_004"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_TEST_T_HNT_005_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_1",
+          "text": "5번 퀘스트 시작 대화",
+          "choices": [
+            {
+              "text": "수락한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Accepted.Q_TEST_T_HNT_005"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_HNT_005_InProgress",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_1",
+          "text": "5번 퀘스트 조건 미달성 대화",
+          "choices": [
+            {
+              "text": "계속 진행한다.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_HNT_005_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_1",
+          "text": "5번 퀘스트 완료 대화",
+          "choices": [
+            {
+              "text": "완료한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_TEST_T_HNT_005"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_TEST_T_WRP_006_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_1",
+          "text": "6번 퀘스트 시작 대화",
+          "choices": [
+            {
+              "text": "수락한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Accepted.Q_TEST_T_WRP_006"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_WRP_006_InProgress",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_1",
+          "text": "6번 퀘스트 조건 미달성 대화",
+          "choices": [
+            {
+              "text": "워프를 해제하러 간다.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_WRP_006_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_1",
+          "text": "6번 퀘스트 완료 대화",
+          "choices": [
+            {
+              "text": "완료한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_TEST_T_WRP_006"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_TEST_T_DLV_007_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_1",
+          "text": "7번 퀘스트 시작 대화",
+          "choices": [
+            {
+              "text": "수락한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Accepted.Q_TEST_T_DLV_007"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_DLV_007_InProgress",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_1",
+          "text": "7번 퀘스트 조건 미달성 대화",
+          "choices": [
+            {
+              "text": "계속 진행한다.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_DLV_007_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_1",
+          "text": "7번 퀘스트 완료 대화",
+          "choices": [
+            {
+              "text": "완료한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_TEST_T_DLV_007"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_TEST_T_HNT_008_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_1",
+          "text": "8번 퀘스트 시작 대화",
+          "choices": [
+            {
+              "text": "수락한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Accepted.Q_TEST_T_HNT_008"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_HNT_008_InProgress",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_1",
+          "text": "8번 퀘스트 조건 미달성 대화",
+          "choices": [
+            {
+              "text": "계속 진행한다.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_HNT_008_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_1",
+          "text": "8번 퀘스트 완료 대화",
+          "choices": [
+            {
+              "text": "완료한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_TEST_T_HNT_008"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_TEST_T_DIA_009_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_1",
+          "text": "9번 퀘스트 시작 대화",
+          "choices": [
+            {
+              "text": "수락한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Accepted.Q_TEST_T_DIA_009"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_DIA_009_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_3",
+          "text": "9번 퀘스트 완료 대화",
+          "choices": [
+            {
+              "text": "완료한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_TEST_T_DIA_009"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_TEST_T_HNT_010_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_3",
+          "text": "10번 퀘스트 시작 대화",
+          "choices": [
+            {
+              "text": "수락한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Accepted.Q_TEST_T_HNT_010"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_HNT_010_InProgress",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_3",
+          "text": "10번 퀘스트 조건 미달성 대화",
+          "choices": [
+            {
+              "text": "계속 진행한다.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_HNT_010_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_3",
+          "text": "10번 퀘스트 완료 대화",
+          "choices": [
+            {
+              "text": "완료한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_TEST_T_HNT_010"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_TEST_T_HNT_011_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_3",
+          "text": "11번 퀘스트 시작 대화",
+          "choices": [
+            {
+              "text": "수락한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Accepted.Q_TEST_T_HNT_011"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_HNT_011_InProgress",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_3",
+          "text": "11번 퀘스트 조건 미달성 대화",
+          "choices": [
+            {
+              "text": "계속 진행한다.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_HNT_011_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_4",
+          "text": "11번 퀘스트 완료 대화",
+          "choices": [
+            {
+              "text": "완료한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_TEST_T_HNT_011"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_TEST_T_HNT_012_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_4",
+          "text": "12번 퀘스트 시작 대화",
+          "choices": [
+            {
+              "text": "수락한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Accepted.Q_TEST_T_HNT_012"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_HNT_012_InProgress",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_4",
+          "text": "12번 퀘스트 조건 미달성 대화",
+          "choices": [
+            {
+              "text": "계속 진행한다.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_HNT_012_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_5",
+          "text": "12번 퀘스트 완료 대화",
+          "choices": [
+            {
+              "text": "완료한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_TEST_T_HNT_012"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_TEST_T_DLV_013_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_5",
+          "text": "13번 퀘스트 시작 대화",
+          "choices": [
+            {
+              "text": "수락한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Accepted.Q_TEST_T_DLV_013"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_DLV_013_InProgress",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_5",
+          "text": "13번 퀘스트 조건 미달성 대화",
+          "choices": [
+            {
+              "text": "계속 진행한다.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_DLV_013_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_5",
+          "text": "13번 퀘스트 완료 대화",
+          "choices": [
+            {
+              "text": "완료한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_TEST_T_DLV_013"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_TEST_T_DIA_014_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_5",
+          "text": "14번 퀘스트 시작 대화",
+          "choices": [
+            {
+              "text": "수락한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Accepted.Q_TEST_T_DIA_014"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_DIA_014_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_6",
+          "text": "14번 퀘스트 완료 대화",
+          "choices": [
+            {
+              "text": "완료한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_TEST_T_DIA_014"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_TEST_T_HNT_015_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_6",
+          "text": "15번 퀘스트 시작 대화",
+          "choices": [
+            {
+              "text": "수락한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Accepted.Q_TEST_T_HNT_015"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_HNT_015_InProgress",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_6",
+          "text": "15번 퀘스트 조건 미달성 대화",
+          "choices": [
+            {
+              "text": "계속 진행한다.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_HNT_015_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_6",
+          "text": "15번 퀘스트 완료 대화",
+          "choices": [
+            {
+              "text": "완료한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_TEST_T_HNT_015"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_TEST_T_CFT_016_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_6",
+          "text": "16번 퀘스트 시작 대화",
+          "choices": [
+            {
+              "text": "수락한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Accepted.Q_TEST_T_CFT_016"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_CFT_016_InProgress",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_6",
+          "text": "16번 퀘스트 조건 미달성 대화",
+          "choices": [
+            {
+              "text": "계속 진행한다.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_CFT_016_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_6",
+          "text": "16번 퀘스트 완료 대화",
+          "choices": [
+            {
+              "text": "완료한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_TEST_T_CFT_016"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "dialogueId": "D_Q_TEST_T_BOS_017_Offer",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_6",
+          "text": "17번 퀘스트 시작 대화",
+          "choices": [
+            {
+              "text": "수락한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Accepted.Q_TEST_T_BOS_017"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_BOS_017_InProgress",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_6",
+          "text": "17번 퀘스트 조건 미달성 대화",
+          "choices": [
+            {
+              "text": "계속 진행한다.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_TEST_T_BOS_017_Complete",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_TEST_6",
+          "text": "17번 퀘스트 완료 대화",
+          "choices": [
+            {
+              "text": "완료한다.",
+              "next": "N_END",
+              "emit": [
+                "QuestEvent.Completed.Q_TEST_T_BOS_017"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
