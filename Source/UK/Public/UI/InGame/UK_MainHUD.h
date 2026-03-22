@@ -66,11 +66,11 @@ public:
 	UTextBlock* LevelText;
 	
 	// 인벤토리 버튼
-	UFUNCTION()
-	void OnInventoryButtonClicked();
+	//UFUNCTION()
+	//void OnInventoryButtonClicked();
 
-	UPROPERTY(meta = ( BindWidget ))
-	UButton* InventoryButton; 
+	//UPROPERTY(meta = ( BindWidget ))
+	//UButton* InventoryButton; 
 
 	//NewText
 	UPROPERTY(meta = (BindWidgetOptional))
