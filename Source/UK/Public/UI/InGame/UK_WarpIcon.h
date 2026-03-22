@@ -3,11 +3,13 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Level/Warp/UK_WarpPointData.h" 
+#include "UI/Inventory/UK_InvMain.h"
 #include "UK_WarpIcon.generated.h"
 
 class UButton;
 class UImage;
 class UTextBlock;
+class UUK_InvMain;
 
 UCLASS()
 class UK_API UUK_WarpIcon : public UUserWidget
@@ -57,4 +59,18 @@ protected:
 	// 워프 비용
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warp")
 	int32 WarpCost = 3000;
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warp", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float InactiveOpacity = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Warp", meta = ( ClampMin = "0.0", ClampMax = "1.0" ))
+	float ActiveOpacity = 1.0f;
+
+	void SetOwnerInvMain(UUK_InvMain* InInvMain);
+
+	UPROPERTY() 
+	TObjectPtr<UUK_InvMain> OwnerInvMain = nullptr;
+
+	UUK_InvMain* FindOwnerInvMain() const;
 };
