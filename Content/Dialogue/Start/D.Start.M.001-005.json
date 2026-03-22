@@ -88,6 +88,23 @@
       ]
     },
     {
+      "dialogueId": "D_Q_Start_M_HNT_002_InProgress",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "아직 늑대가 다 정리되지 않은 것 같아요. 5마리를 처리해야 해요! 너무 무리하지 말고, 끝나면 다시 돌아와 주세요.",
+          "choices": [
+            {
+              "text": "알겠어요. 계속 다녀올게요.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "dialogueId": "D_Q_Start_M_HNT_002_Complete",
       "startNode": "N_001",
       "nodes": [
@@ -133,6 +150,23 @@
           "choices": [
             {
               "text": "정확히 챙겨서 올게요.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_Start_M_DLV_003_InProgress",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "늑대의 털은 아직 3개가 다 모이지 않은 것 같아요. 수량이 중요하니까 꼭 확인하고 다시 가져와 주세요!",
+          "choices": [
+            {
+              "text": "조금만 더 모아볼게요.",
               "next": "N_END"
             }
           ]
@@ -192,6 +226,23 @@
       ]
     },
     {
+      "dialogueId": "D_Q_Start_M_HNT_004_InProgress",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "녹색골렘이 아직 전부 정리되지 않았어요. 5마리를 모두 처리해야 다음으로 넘어갈 수 있어요. 조심해서 다녀오세요!",
+          "choices": [
+            {
+              "text": "네, 조금 더 다녀올게요.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "dialogueId": "D_Q_Start_M_HNT_004_Complete",
       "startNode": "N_001",
       "nodes": [
@@ -237,6 +288,23 @@
           "choices": [
             {
               "text": "걱정하지 마세요.",
+              "next": "N_END"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dialogueId": "D_Q_Start_M_BOS_005_InProgress",
+      "startNode": "N_001",
+      "nodes": [
+        {
+          "id": "N_001",
+          "speaker": "NPC_Start_GuideGirl",
+          "text": "아직 보스 몬스터가 쓰러지지 않았군요... 걱정되지만, 지금까지처럼만 하면 분명 가능할 거예요. 준비를 잘 하고 다시 도전해 주세요!",
+          "choices": [
+            {
+              "text": "다시 준비해서 가볼게요.",
               "next": "N_END"
             }
           ]

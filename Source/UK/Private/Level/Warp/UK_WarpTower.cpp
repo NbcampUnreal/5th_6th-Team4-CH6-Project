@@ -4,6 +4,7 @@
 #include "AbilitySystemComponent.h"
 #include "GameplayEffect.h"
 #include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
+#include "Quest/UKQuestManagerSubsystem.h"
 #include "Level/Warp/UK_WarpSubsystem.h"
 
 AUK_WarpTower::AUK_WarpTower()
@@ -65,6 +66,15 @@ void AUK_WarpTower::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* 
 			if ( UUK_WarpSubsystem* WarpSubsystem = World->GetSubsystem<UUK_WarpSubsystem>() )
 			{
 				WarpSubsystem->RegisterWarpPoint(WarpPointID, GetActorLocation());
+			}
+			
+			// 임시 퀘스트 권한 부여
+			if ( UGameInstance* GI = GetGameInstance() )
+			{
+				if ( UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>() )
+				{
+					QuestSys->EmitQuestEvent(FName(TEXT("QuestEvent.Custom.WarpUnlocked")));
+				}
 			}
 		}
 

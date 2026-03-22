@@ -296,6 +296,7 @@ bool UUKQuestManagerSubsystem::ParseQuestTagFromQuestId(FName QuestId, EUKQuestT
 	if ( TagStr == "SKL" ) { OutTag = EUKQuestTag::SKL; return true; }
 	if ( TagStr == "CFT" ) { OutTag = EUKQuestTag::CFT; return true; }
 	if ( TagStr == "EXP" ) { OutTag = EUKQuestTag::EXP; return true; }
+	if ( TagStr == "WRP" ) { OutTag = EUKQuestTag::WRP; return true; }
 	if ( TagStr == "HNT" ) { OutTag = EUKQuestTag::HNT; return true; }
 	if ( TagStr == "DLV" ) { OutTag = EUKQuestTag::DLV; return true; }
 	if ( TagStr == "DIA" ) { OutTag = EUKQuestTag::DIA; return true; }
