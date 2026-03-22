@@ -16,7 +16,10 @@ public:
 	virtual void Interact(AActor* Interactor);
 	virtual void Interact_Implementation(AActor* Interactor);
 
-
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+	class UDataTable* ScheduleTable;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+	FName MyNPC_ID;
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	class UBehaviorTree* BehaviorTree;
 

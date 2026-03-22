@@ -262,10 +262,13 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 	{
 		if (GetMaxLevel() != NewValue)
 		{
+			if (NewValue == 1)
+				return;
 			SetMaxEXP((NewValue*2) * 10 + 100);
 			SetAttackPower(GetAttackPower() + 10);
 			SetMaxHealth(GetMaxHealth() + 10);
 			SetMaxMp(GetMaxMp() + 10);
+			LevelUp();
 			LevelChanged.Broadcast(OldValue, NewValue);
 		}
 	}
@@ -303,6 +306,16 @@ void UUK_PlayerStatusAttributeSet::HandleOutOStamina()
 		{
 			UE_LOG(LogTemp, Log, TEXT("OutOfStamina"));
 			Player->OutOfStamina();
+		}
+	}
+}
+void UUK_PlayerStatusAttributeSet::LevelUp()
+{
+	if (AActor* Avatar = GetOwningAbilitySystemComponent()->GetAvatarActor())
+	{
+		if (AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(Avatar))
+		{
+			Player->HandleLevelUp();
 		}
 	}
 }
