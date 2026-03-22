@@ -28,9 +28,6 @@ public:
 	UPROPERTY(meta = ( BindWidget ))
 	class UButton* ControlBackButton;
 
-	UFUNCTION()
-	void OnBackButtonClicked();
-
 	void StartRebind(FName MappingName);
 
 	FReply NativeOnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent);

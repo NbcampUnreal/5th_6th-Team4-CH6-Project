@@ -24,10 +24,4 @@ protected:
 public:
 	void SetParentWidget(UUserWidget* InParent) { ParentSettingWidget = InParent; }
 
-	UPROPERTY(meta = ( BindWidget ))
-	class UButton* ScreenBackButton;
-
-	UFUNCTION()
-	void OnBackButtonClicked();
-
 };
