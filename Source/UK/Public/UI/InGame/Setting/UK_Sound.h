@@ -23,10 +23,4 @@ protected:
 	class UUserWidget* ParentSettingWidget;
 public:
 	void SetParentWidget(UUserWidget* InParent) { ParentSettingWidget = InParent; }
-
-	UPROPERTY(meta = ( BindWidget ))
-	class UButton* SoundBackButton;
-
-	UFUNCTION()
-	void OnBackButtonClicked();
 };

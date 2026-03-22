@@ -1,6 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
@@ -19,6 +17,17 @@ public:
 	UUK_Quest(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	void SetQuestUI(FName QuestID,const FText& NPCName,const FText& Dialogue,const FText& QuestDesc,const FText& AcceptText,const FText& ExitText);
+
+	// 현재 대화 데이터를 읽어 UI에 반영
+	UFUNCTION(BlueprintCallable, Category = "Quest|Dialogue")
+	void RefreshDialogueUI();
+
+	// 이름/대사만 대화 기준으로 갱신
+	UFUNCTION(BlueprintCallable, Category = "Quest|Dialogue")
+	void SetDialogueOnly(
+		const FText& NPCName,
+		const FText& Dialogue
+	);
 
 protected:
 

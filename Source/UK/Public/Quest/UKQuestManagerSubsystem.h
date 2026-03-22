@@ -13,6 +13,8 @@
 // [Preset] 추가 include
 #include "Quest/UKQuestPresetAsset.h"
 #include "Quest/UKQuestPresetTypes.h"
+#include "Quest/UKQuestConditionTypes.h"
+#include "Quest/DataAsset/UKQuestConditionAsset.h"
 
 #include "Quest/DataAsset/UKQuestDefinitionAsset.h"
 #include "Quest/UKQuestEventParsing.h"
@@ -54,7 +56,10 @@ public:
 	void EmitQuestEvent(FName EventId);
 
 	UFUNCTION(BlueprintCallable, Category = "UK|Quest")
-	bool CanStartQuestBySequence(FName QuestId) const;
+	bool CanStartQuest(FName QuestId) const;
+
+	UFUNCTION(BlueprintCallable, Category = "UK|Quest")
+	bool CanCompleteQuestByConditions(FName QuestId) const;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UK|Quest|Flow")
@@ -178,14 +183,42 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool GetProgress(FName QuestId, FQuestProgress& OutProgress) const;
 
-	//----------------------------------------------------------------------------------------
+	UFUNCTION(BlueprintCallable, Category = "UK|Quest")
+	bool AreObjectivesSatisfied(FName QuestId) const;
+
+	// Quest Flag / Counter Public API
+	UFUNCTION(BlueprintCallable, Category = "UK|Quest")
+	bool HasQuestFlag(FName QuestId, FName Category) const;
+
+	UFUNCTION(BlueprintCallable, Category = "UK|Quest")
+	bool SetQuestFlag(FName QuestId, FName Category);
+
+	UFUNCTION(BlueprintCallable, Category = "UK|Quest")
+	int32 GetQuestCounterValue(FName QuestId, FName CounterName) const;
+
+	UFUNCTION(BlueprintCallable, Category = "UK|Quest")
+	bool SetQuestCounterValue(FName QuestId, FName CounterName, int32 Value);
+
+	UFUNCTION(BlueprintCallable, Category = "UK|Quest")
+	bool AddQuestCounterValue(FName QuestId, FName CounterName, int32 Delta);
+
 
 protected:
 	// [11] [Quest Definitions]
 	UPROPERTY(Transient)
 	TMap<FName, TObjectPtr<const UUKQuestDefinitionAsset>> QuestDefinitions;
 
+	// Condition Definitions
+	UPROPERTY(Transient)
+	TMap<FName, TObjectPtr<const UUKQuestConditionAsset>> ConditionDefinitions;
+
 public:
+	UFUNCTION(BlueprintCallable, Category = "UK|Quest|Condition")
+	bool RegisterConditionDefinition(const UUKQuestConditionAsset* ConditionAsset);
+
+	UFUNCTION(BlueprintCallable, Category = "UK|Quest|Condition")
+	const UUKQuestConditionAsset* GetConditionDefinition(FName ConditionId) const;
+
 	// 에디터/런타임에서 퀘스트 정의를 등록(DA 인스턴스 전달)
 	UFUNCTION(BlueprintCallable, Category = "UK|Quest|Definition")
 	bool RegisterQuestDefinition(const UUKQuestDefinitionAsset* Definition);
@@ -209,4 +242,13 @@ protected:
 	bool  IsObjectiveComplete(const FQuestProgress& P, const FUKQuestObjectiveDef& Obj, FName QuestId) const;
 	void  TryAutoCompleteQuest(FName QuestId); 
 	 
+	// Condition
+	bool EvaluateConditionGroup(const TArray<FName>& ConditionIds, FName OwnerQuestId) const;
+	bool EvaluateConditionAsset(const UUKQuestConditionAsset* ConditionAsset, FName OwnerQuestId) const;
+	bool EvaluateClause(const FUKQuestConditionClause& Clause, FName OwnerQuestId) const;
+
+	bool EvaluateCompareInt(int32 Lhs, EUKConditionCompareOp Op, int32 Rhs) const;
+	bool EvaluateCompareBool(bool bLhs, EUKConditionCompareOp Op, bool bRhs) const;
+
+	FName ResolveQuestIdForClause(const FUKQuestConditionClause& Clause, FName OwnerQuestId) const;
 }; 

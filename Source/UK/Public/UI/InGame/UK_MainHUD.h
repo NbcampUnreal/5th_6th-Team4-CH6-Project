@@ -17,6 +17,8 @@ class UUK_InventoryComponent;
 class AUK_CharacterBase;
 //struct FOnAttributeChangeData;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNormalSkillCooldown, float, Cooldown);
+
 UCLASS()
 class UK_API UUK_MainHUD : public UUserWidget
 {
@@ -37,34 +39,16 @@ public:
 	// 레벨이 변할 때 실행될 함수
 	//UFUNCTION()
 	void UpdateLevel(const FOnAttributeChangeData& Data);
-	UFUNCTION()
-	void InitNormalSkillCoolDown(const float CoolDown);
-	UFUNCTION()
-	void InitUltimateSkillCoolDown(const float CoolDown);
-	UFUNCTION()
-	void UpdateNormalSkillCoolDown();
-	UFUNCTION()
-	void UpdateUltimateSkillCoolDown();
-	float NormalCurrentCooldown;
-	float UltimateCurrentCooldown;
-	FTimerHandle NormalCooldownTimerHandle;
-	
-	FTimerHandle UltimateCooldownTimerHandle;
+
 	UPROPERTY(meta = ( BindWidget ))
 	class UProgressBar* HealthBar;
-
+	
 	// 체력 수치를 표시할 텍스트 
 	UPROPERTY(meta = ( BindWidget ))
 	UTextBlock* CurrentHealthText; // 현재 체력
 
 	UPROPERTY(meta = ( BindWidget ))
 	UTextBlock* MaxHealthText;     // 최대 체력	
-	
-	UPROPERTY(meta = ( BindWidget ))
-	UTextBlock* NormalSkillCoolDownText;     // 노말 스킬 쿨다운
-	UPROPERTY(meta = ( BindWidget ))
-	UTextBlock* UltimateSkillCoolDownText;     // 궁극기 쿨다운
-
 
 	UPROPERTY(meta = ( BindWidget ))
 	class UProgressBar* MpBar;
@@ -82,11 +66,11 @@ public:
 	UTextBlock* LevelText;
 	
 	// 인벤토리 버튼
-	UFUNCTION()
-	void OnInventoryButtonClicked();
+	//UFUNCTION()
+	//void OnInventoryButtonClicked();
 
-	UPROPERTY(meta = ( BindWidget ))
-	UButton* InventoryButton; 
+	//UPROPERTY(meta = ( BindWidget ))
+	//UButton* InventoryButton; 
 
 	//NewText
 	UPROPERTY(meta = (BindWidgetOptional))
@@ -144,4 +128,26 @@ public:
 	
 	UPROPERTY()
 	UAbilitySystemComponent* ASC;
+
+//보간
+private:
+
+	FTimerHandle BarInterpTimerHandle;
+
+	//HP
+	float TargetHPPercent = 1.0f;
+	float CurrentHPPercent = 1.0f;
+	//MP
+	float TargetMPPercent = 1.0f;
+	float CurrentMPPercent = 1.0f;
+	//보간 속도
+	const float InterpSpeed = 5.0f;
+	const float TimerSpeed = 0.02f;
+
+	// 보간 실행 함수
+	void UpdateBarInterpolation();
+	// 타이머 시작/정지 제어
+	void StartInterpTimer();
+
+
 };

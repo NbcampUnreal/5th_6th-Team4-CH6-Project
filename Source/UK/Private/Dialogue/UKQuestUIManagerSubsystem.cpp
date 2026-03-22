@@ -124,7 +124,7 @@ bool UUKQuestUIManagerSubsystem::CanAcceptQuest(FName QuestId) const
 		return false;
 	}
 
-	return QS->CanStartQuestBySequence(QuestId);
+	return QS->CanStartQuest(QuestId);
 }
 
 bool UUKQuestUIManagerSubsystem::IsQuestInProgress(FName QuestId) const

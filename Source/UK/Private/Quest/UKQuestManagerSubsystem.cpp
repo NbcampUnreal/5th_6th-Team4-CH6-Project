@@ -234,6 +234,43 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		UE_LOG(LogTemp, Log, TEXT("[Quest][DefScan] Done. Found=%d Registered=%d Path=%s"),
 			Assets.Num(), RegisteredCount, *ScanPath.ToString());
 	}
+
+	// [Condition Definitions] Auto Scan & Register
+	{
+		const FName ScanPath = FName(TEXT("/Game/Quests"));
+
+		FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+		IAssetRegistry& Registry = ARM.Get();
+
+		FARFilter Filter;
+		Filter.bRecursivePaths = true;
+		Filter.PackagePaths.Add(ScanPath);
+
+		// UE5 권장: ClassPaths 사용
+		Filter.ClassPaths.Add(UUKQuestConditionAsset::StaticClass()->GetClassPathName());
+
+		TArray<FAssetData> Assets;
+		Registry.GetAssets(Filter, Assets);
+
+		int32 RegisteredCount = 0;
+
+		for ( const FAssetData& AD : Assets )
+		{
+			UObject* LoadedObj = AD.GetAsset();
+			const UUKQuestConditionAsset* Cond = Cast<UUKQuestConditionAsset>(LoadedObj);
+			if ( !Cond ) continue;
+
+			if ( RegisterConditionDefinition(Cond) )
+			{
+				RegisteredCount++;
+				UE_LOG(LogTemp, Log, TEXT("[Quest][ConditionScan] Registered: %s"), *Cond->ConditionId.ToString());
+			}
+		}
+
+		UE_LOG(LogTemp, Log, TEXT("[Quest][ConditionScan] Done. Found=%d Registered=%d Path=%s"),
+			Assets.Num(), RegisteredCount, *ScanPath.ToString());
+	}
+
 	BuildItemIDCache();
 	BuildNPCIDCache();
 	BuildMobIDCache();
@@ -259,6 +296,7 @@ bool UUKQuestManagerSubsystem::ParseQuestTagFromQuestId(FName QuestId, EUKQuestT
 	if ( TagStr == "SKL" ) { OutTag = EUKQuestTag::SKL; return true; }
 	if ( TagStr == "CFT" ) { OutTag = EUKQuestTag::CFT; return true; }
 	if ( TagStr == "EXP" ) { OutTag = EUKQuestTag::EXP; return true; }
+	if ( TagStr == "WRP" ) { OutTag = EUKQuestTag::WRP; return true; }
 	if ( TagStr == "HNT" ) { OutTag = EUKQuestTag::HNT; return true; }
 	if ( TagStr == "DLV" ) { OutTag = EUKQuestTag::DLV; return true; }
 	if ( TagStr == "DIA" ) { OutTag = EUKQuestTag::DIA; return true; }
@@ -271,43 +309,359 @@ bool UUKQuestManagerSubsystem::ParseQuestTagFromQuestId(FName QuestId, EUKQuestT
 	return false;
 }
 
-bool UUKQuestManagerSubsystem::CanStartQuestBySequence(FName QuestId) const
+bool UUKQuestManagerSubsystem::RegisterConditionDefinition(const UUKQuestConditionAsset* ConditionAsset)
+{
+	if ( !ConditionAsset || ConditionAsset->ConditionId.IsNone() )
+	{
+		return false;
+	}
+
+	ConditionDefinitions.Add(ConditionAsset->ConditionId, ConditionAsset);
+	return true;
+}
+
+const UUKQuestConditionAsset* UUKQuestManagerSubsystem::GetConditionDefinition(FName ConditionId) const
+{
+	if ( const TObjectPtr<const UUKQuestConditionAsset>* Found = ConditionDefinitions.Find(ConditionId) )
+	{
+		return Found->Get();
+	}
+
+	return nullptr;
+}
+
+bool UUKQuestManagerSubsystem::EvaluateCompareInt(int32 Lhs, EUKConditionCompareOp Op, int32 Rhs) const
+{
+	switch ( Op )
+	{
+	case EUKConditionCompareOp::Equal:          return Lhs == Rhs;
+	case EUKConditionCompareOp::NotEqual:       return Lhs != Rhs;
+	case EUKConditionCompareOp::Greater:        return Lhs > Rhs;
+	case EUKConditionCompareOp::GreaterOrEqual: return Lhs >= Rhs;
+	case EUKConditionCompareOp::Less:           return Lhs < Rhs;
+	case EUKConditionCompareOp::LessOrEqual:    return Lhs <= Rhs;
+	default:                                    return false;
+	}
+}
+
+bool UUKQuestManagerSubsystem::EvaluateCompareBool(bool bLhs, EUKConditionCompareOp Op, bool bRhs) const
+{
+	switch ( Op )
+	{
+	case EUKConditionCompareOp::Equal:    return bLhs == bRhs;
+	case EUKConditionCompareOp::NotEqual: return bLhs != bRhs;
+	default:                              return false;
+	}
+}
+
+FName UUKQuestManagerSubsystem::ResolveQuestIdForClause(const FUKQuestConditionClause& Clause, FName OwnerQuestId) const
+{
+	if ( !Clause.TargetQuestId.IsNone() )
+	{
+		return Clause.TargetQuestId;
+	}
+
+	return OwnerQuestId;
+}
+
+bool UUKQuestManagerSubsystem::EvaluateClause(const FUKQuestConditionClause& Clause, FName OwnerQuestId) const
+{
+	switch ( Clause.OperandType )
+	{
+	case EUKConditionOperandType::QuestFlag:
+	{
+		const FName TargetQuestId = ResolveQuestIdForClause(Clause, OwnerQuestId);
+		if ( TargetQuestId.IsNone() || Clause.KeyName.IsNone() )
+		{
+			return false;
+		}
+
+		const bool bHas = HasQuestFlag(TargetQuestId, Clause.KeyName);
+		return EvaluateCompareBool(bHas, Clause.CompareOp, Clause.BoolValue);
+	}
+
+	case EUKConditionOperandType::QuestCounter:
+	{
+		const FName TargetQuestId = ResolveQuestIdForClause(Clause, OwnerQuestId);
+		if ( TargetQuestId.IsNone() || Clause.KeyName.IsNone() )
+		{
+			return false;
+		}
+
+		const int32 CurrentValue = GetQuestCounterValue(TargetQuestId, Clause.KeyName);
+		return EvaluateCompareInt(CurrentValue, Clause.CompareOp, Clause.IntValue);
+	}
+
+	case EUKConditionOperandType::QuestState:
+	{
+		const FName TargetQuestId = ResolveQuestIdForClause(Clause, OwnerQuestId);
+		if ( TargetQuestId.IsNone() )
+		{
+			return false;
+		}
+
+		FQuestProgress Progress;
+		const bool bStarted = GetProgress(TargetQuestId, Progress);
+
+		bool bValue = false;
+
+		switch ( Clause.StateField )
+		{
+		case EUKQuestStateField::Accepted:
+			bValue = bStarted;
+			break;
+
+		case EUKQuestStateField::Completed:
+			bValue = ( bStarted && Progress.bCompleted );
+			break;
+
+		case EUKQuestStateField::Failed:
+			bValue = false;
+			break;
+
+		default:
+			bValue = false;
+			break;
+		}
+
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Quest][Clause][QuestState] Owner=%s Target=%s Started=%d Completed=%d StateField=%d Value=%d CompareBool=%d"),
+			*OwnerQuestId.ToString(),
+			*TargetQuestId.ToString(),
+			bStarted ? 1 : 0,
+			( bStarted && Progress.bCompleted ) ? 1 : 0,
+			static_cast< int32 >( Clause.StateField ),
+			bValue ? 1 : 0,
+			Clause.BoolValue ? 1 : 0);
+
+		return EvaluateCompareBool(bValue, Clause.CompareOp, Clause.BoolValue);
+	}
+
+	case EUKConditionOperandType::GlobalFlag:
+		// 1차 구현 보류
+		UE_LOG(LogTemp, Warning, TEXT("[Quest][Condition] GlobalFlag not implemented yet."));
+		return false;
+
+	case EUKConditionOperandType::GlobalCounter:
+		// 1차 구현 보류
+		UE_LOG(LogTemp, Warning, TEXT("[Quest][Condition] GlobalCounter not implemented yet."));
+		return false;
+
+	case EUKConditionOperandType::Custom:
+	default:
+		UE_LOG(LogTemp, Warning, TEXT("[Quest][Condition] Custom / unsupported clause."));
+		return false;
+	}
+}
+
+bool UUKQuestManagerSubsystem::EvaluateConditionAsset(const UUKQuestConditionAsset* ConditionAsset, FName OwnerQuestId) const
+{
+	if ( !ConditionAsset )
+	{
+		return false;
+	}
+
+	// Clause가 없으면 true 처리
+	if ( ConditionAsset->Clauses.Num() == 0 )
+	{
+		return true;
+	}
+
+	if ( ConditionAsset->GroupOp == EUKConditionGroupOp::AllOf )
+	{
+		for ( const FUKQuestConditionClause& Clause : ConditionAsset->Clauses )
+		{
+			if ( !EvaluateClause(Clause, OwnerQuestId) )
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	if ( ConditionAsset->GroupOp == EUKConditionGroupOp::AnyOf )
+	{
+		for ( const FUKQuestConditionClause& Clause : ConditionAsset->Clauses )
+		{
+			if ( EvaluateClause(Clause, OwnerQuestId) )
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	return false;
+}
+
+bool UUKQuestManagerSubsystem::EvaluateConditionGroup(const TArray<FName>& ConditionIds, FName OwnerQuestId) const
+{
+	if ( ConditionIds.Num() == 0 )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Quest][ConditionGroup] Quest=%s No conditions -> true"), *OwnerQuestId.ToString());
+		return true;
+	}
+
+	for ( const FName& ConditionId : ConditionIds )
+	{
+		if ( ConditionId.IsNone() )
+		{
+			continue;
+		}
+
+		UE_LOG(LogTemp, Warning, TEXT("[Quest][ConditionGroup] Quest=%s Checking Condition=%s"),
+			*OwnerQuestId.ToString(), *ConditionId.ToString());
+
+		const UUKQuestConditionAsset* ConditionAsset = GetConditionDefinition(ConditionId);
+		if ( !ConditionAsset )
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Quest][ConditionGroup] Missing ConditionAsset: %s"), *ConditionId.ToString());
+			return false;
+		}
+
+		const bool bPassed = EvaluateConditionAsset(ConditionAsset, OwnerQuestId);
+
+		UE_LOG(LogTemp, Warning, TEXT("[Quest][ConditionGroup] Condition=%s Passed=%d"),
+			*ConditionId.ToString(), bPassed ? 1 : 0);
+
+		if ( !bPassed )
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool UUKQuestManagerSubsystem::CanStartQuest(FName QuestId) const
+{
+	if ( QuestId.IsNone() )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Quest][CanStart] QuestId is None"));
+		return false;
+	}
+
+	if ( RuntimeProgress.Contains(QuestId) )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Quest][CanStart] Already started: %s"), *QuestId.ToString());
+		return false;
+	}
+
+	const UUKQuestDefinitionAsset* Def = GetQuestDefinition(QuestId);
+	if ( !Def )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Quest][CanStart] Missing QuestDefinition: %s"), *QuestId.ToString());
+		return false;
+	}
+
+	const bool bResult = EvaluateConditionGroup(Def->StartConditionIds, QuestId);
+
+	UE_LOG(LogTemp, Warning, TEXT("[Quest][CanStart] Quest=%s StartCondCount=%d Result=%d"),
+		*QuestId.ToString(),
+		Def->StartConditionIds.Num(),
+		bResult ? 1 : 0);
+
+	return bResult;
+}
+
+bool UUKQuestManagerSubsystem::CanCompleteQuestByConditions(FName QuestId) const
 {
 	if ( QuestId.IsNone() )
 	{
 		return false;
 	}
 
-	// 1번은 게임 시작 시 바로 수락 가능
-	if ( QuestId == FName("Q_Start_M_DIA_001") )
+	const UUKQuestDefinitionAsset* Def = GetQuestDefinition(QuestId);
+	if ( !Def )
 	{
-		return true;
+		return false;
 	}
 
-	auto IsCompletedQuest = [ this ] (FName InQuestId) -> bool
-		{
-			const FQuestProgress* P = RuntimeProgress.Find(InQuestId);
-			return ( P && P->bCompleted );
-		};
+	return EvaluateConditionGroup(Def->CompleteConditionIds, QuestId);
+}
 
-	if ( QuestId == FName("Q_Start_M_HNT_002") )
+bool UUKQuestManagerSubsystem::HasQuestFlag(FName QuestId, FName Category) const
+{
+	if ( QuestId.IsNone() || Category.IsNone() )
 	{
-		return IsCompletedQuest(FName("Q_Start_M_DIA_001"));
-	}
-	if ( QuestId == FName("Q_Start_M_DLV_003") )
-	{
-		return IsCompletedQuest(FName("Q_Start_M_HNT_002"));
-	}
-	if ( QuestId == FName("Q_Start_M_HNT_004") )
-	{
-		return IsCompletedQuest(FName("Q_Start_M_DLV_003"));
-	}
-	if ( QuestId == FName("Q_Start_M_BOS_005") )
-	{
-		return IsCompletedQuest(FName("Q_Start_M_HNT_004"));
+		return false;
 	}
 
-	// 이 체인 밖의 퀘스트는 기본 허용
+	const FQuestProgress* P = RuntimeProgress.Find(QuestId);
+	if ( !P )
+	{
+		return false;
+	}
+
+	return HasFlag(*P, MakeFlagKey(QuestId, Category));
+}
+
+bool UUKQuestManagerSubsystem::SetQuestFlag(FName QuestId, FName Category)
+{
+	if ( QuestId.IsNone() || Category.IsNone() )
+	{
+		return false;
+	}
+
+	FQuestProgress* P = RuntimeProgress.Find(QuestId);
+	if ( !P )
+	{
+		return false;
+	}
+
+	SetFlag(*P, MakeFlagKey(QuestId, Category));
+	return true;
+}
+
+int32 UUKQuestManagerSubsystem::GetQuestCounterValue(FName QuestId, FName CounterName) const
+{
+	if ( QuestId.IsNone() || CounterName.IsNone() )
+	{
+		return 0;
+	}
+
+	const FQuestProgress* P = RuntimeProgress.Find(QuestId);
+	if ( !P )
+	{
+		return 0;
+	}
+
+	return GetCounter(*P, MakeCounterKey(QuestId, CounterName));
+}
+
+bool UUKQuestManagerSubsystem::SetQuestCounterValue(FName QuestId, FName CounterName, int32 NewValue)
+{
+	if ( QuestId.IsNone() || CounterName.IsNone() )
+	{
+		return false;
+	}
+
+	FQuestProgress* P = RuntimeProgress.Find(QuestId);
+	if ( !P )
+	{
+		return false;
+	}
+
+	P->Counters.Add(MakeCounterKey(QuestId, CounterName), NewValue);
+	return true;
+}
+
+bool UUKQuestManagerSubsystem::AddQuestCounterValue(FName QuestId, FName CounterName, int32 Delta)
+{
+	if ( QuestId.IsNone() || CounterName.IsNone() )
+	{
+		return false;
+	}
+
+	FQuestProgress* P = RuntimeProgress.Find(QuestId);
+	if ( !P )
+	{
+		return false;
+	}
+
+	const FName CounterKey = MakeCounterKey(QuestId, CounterName);
+	const int32 CurrentValue = P->Counters.FindRef(CounterKey);
+	P->Counters.Add(CounterKey, CurrentValue + Delta);
 	return true;
 }
 
@@ -321,9 +675,9 @@ bool UUKQuestManagerSubsystem::StartQuest(FName QuestId)
 	if ( RuntimeProgress.Contains(QuestId) )
 		return true;
 
-	if ( !CanStartQuestBySequence(QuestId) )
+	if ( !CanStartQuest(QuestId) )
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[Quest] StartQuest blocked by sequence rule: %s"), *QuestId.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("[Quest] StartQuest blocked by condition: %s"), *QuestId.ToString());
 		return false;
 	}
 
@@ -638,6 +992,31 @@ bool UUKQuestManagerSubsystem::GetProgress(FName QuestId, FQuestProgress& OutPro
 		return true;
 	}
 	return false;
+}
+
+bool UUKQuestManagerSubsystem::AreObjectivesSatisfied(FName QuestId) const
+{
+	const FQuestProgress* Prog = RuntimeProgress.Find(QuestId);
+	if ( !Prog )
+	{
+		return false;
+	}
+
+	const UUKQuestDefinitionAsset* Def = GetQuestDefinition(QuestId);
+	if ( !Def )
+	{
+		return false;
+	}
+
+	for ( const FUKQuestObjectiveDef& Obj : Def->Objectives )
+	{
+		if ( !IsObjectiveComplete(*Prog, Obj, QuestId) )
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 // [7] Item EntityID / ItemDataTable
@@ -1137,6 +1516,7 @@ void UUKQuestManagerSubsystem::Deinitialize()
 	MobIDToRowName.Empty();
 	RuntimeProgress.Empty();
 	QuestDefinitions.Empty();
+	ConditionDefinitions.Empty();
 
 	PresetAsset = nullptr;
 	ItemDataTable = nullptr;

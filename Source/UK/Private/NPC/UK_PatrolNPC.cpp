@@ -20,29 +20,28 @@ FVector AUK_PatrolNPC::GetNextPatrolPoint()
 {
 	switch ( PatrolType )
 	{
-	case EPatrolType::RandomArea:
-	{
-		UNavigationSystemV1* NavSys =
-			UNavigationSystemV1::GetCurrent(GetWorld());
+		case EPatrolType::RandomArea:
+		{
+			UNavigationSystemV1* NavSys =
+				UNavigationSystemV1::GetCurrent(GetWorld());
 
-		if ( !NavSys )
-			return GetActorLocation();
+			if ( !NavSys )
+				return GetActorLocation();
 
-		FNavLocation Result;
+			FNavLocation Result;
 
-		NavSys->GetRandomReachablePointInRadius(
-			GetActorLocation(),
-			PatrolRadius,
-			Result
-		);
+			NavSys->GetRandomReachablePointInRadius(
+				GetActorLocation(),
+				PatrolRadius,
+				Result
+			);
 
-		return Result.Location;
-	}
+			return Result.Location;
+		}
 
 	case EPatrolType::FixedRoute:
-	{
+		{
+		}
 	}
-	}
-
 	return GetActorLocation();
 }

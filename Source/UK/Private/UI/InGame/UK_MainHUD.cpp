@@ -29,8 +29,7 @@ void UUK_MainHUD::NativeConstruct()
 	
 	if (PlayerPawn)
 	{
-		PlayerPawn->OnNormalSkillCoolDownDelegate.AddDynamic(this, &UUK_MainHUD::InitNormalSkillCoolDown);
-		PlayerPawn->OnUltimateSkillCoolDownDelegate.AddDynamic(this, &UUK_MainHUD::InitUltimateSkillCoolDown);
+
 		ASC = PlayerPawn->GetAbilitySystemComponent();
 		if (ASC)
 		{
@@ -65,21 +64,7 @@ void UUK_MainHUD::NativeConstruct()
 			     AddUObject(this, &UUK_MainHUD::UpdateLevel);
 			ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetLevelAttribute()).
 			     AddUObject(this, &UUK_MainHUD::UpdateLevel);
-			// AttributeSet->LevelStatusDelegate.AddDynamic(this, &UUK_MainHUD::UpdateLevel);
-			//
-			// 스테미나 바인딩
-			// FStructProperty* StatusProp = FindFieldChecked<FStructProperty>(UStatusComponent::StaticClass(), TEXT("Status"));
-			// if ( StatusProp )
-			// {
-			// 	const FStatus* StatusPtr = StatusProp->ContainerPtrToValuePtr<FStatus>(StatusComp);
-			// 	if ( StatusPtr )
-			// 	{
-			// 		UpdateHealthBar(StatusPtr->CurrentHp, StatusPtr->MaxHp);
-			// 		UpdateMpBar(StatusPtr->CurrentMp, StatusPtr->MaxMp);
-			// 		UpdateLevel(StatusPtr->Level);
-			// 		//UpdateStaminaBar(StatusPtr->CurrentStamina, StatusPtr->MaxStamina); 
-			// 	}
-			// }
+
 			FTimerHandle InitTimer;
 			GetWorld()->GetTimerManager().SetTimer(InitTimer, this, &UUK_MainHUD::RefreshAllStatus, 0.4f, false);
 			for (const FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
@@ -92,10 +77,10 @@ void UUK_MainHUD::NativeConstruct()
 		}
 	}
 
-	if (InventoryButton)
+	/*if (InventoryButton)
 	{
 		InventoryButton->OnClicked.AddDynamic(this, &UUK_MainHUD::OnInventoryButtonClicked);
-	}
+	}*/
 
 	if (PlayerPawn)
 	{
@@ -110,76 +95,94 @@ void UUK_MainHUD::NativeConstruct()
 
 void UUK_MainHUD::UpdateHealthBar(const FOnAttributeChangeData& Data)
 {
-	if (IsValid(PlayerPawn) == false || IsValid(ASC) == false)
-		return;
+	if ( IsValid(PlayerPawn) == false || IsValid(ASC) == false ) return;
 
-	if (Data.Attribute == UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute())
+	if ( Data.Attribute == UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute() )
 	{
-		float CurrentHealth =
-			ASC->GetNumericAttribute(
-				UUK_PlayerStatusAttributeSet::GetHealthAttribute());
-		if (HealthBar && Data.NewValue > 0.f)
+		float CurrentHealth = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetHealthAttribute());
+		if ( Data.NewValue > 0.f )
 		{
-			// 0.0 ~ 1.0 사이의 퍼센트 값으로 변환하여 반영
-			HealthBar->SetPercent(CurrentHealth / Data.NewValue);
-			MaxHealthText->SetText(FText::AsNumber(FMath::FloorToInt(Data.NewValue)));
+			TargetHPPercent = CurrentHealth / Data.NewValue;
+			if ( MaxHealthText ) MaxHealthText->SetText(FText::AsNumber(FMath::FloorToInt(Data.NewValue)));
+			StartInterpTimer(); // 타이머 깨우기
 		}
 	}
-	if (Data.Attribute == UUK_PlayerStatusAttributeSet::GetHealthAttribute())
+	else if ( Data.Attribute == UUK_PlayerStatusAttributeSet::GetHealthAttribute() )
 	{
-		float MaxHealth =
-			ASC->GetNumericAttribute(
-				UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute());
-		if (HealthBar && Data.NewValue >= 0.f)
+		float MaxHealth = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute());
+		if ( MaxHealth > 0.f )
 		{
-			// 0.0 ~ 1.0 사이의 퍼센트 값으로 변환하여 반영
-			HealthBar->SetPercent(Data.NewValue / MaxHealth);
-			CurrentHealthText->SetText(FText::AsNumber(FMath::FloorToInt(Data.NewValue)));
+			TargetHPPercent = Data.NewValue / MaxHealth;
+			if ( CurrentHealthText ) CurrentHealthText->SetText(FText::AsNumber(FMath::FloorToInt(Data.NewValue)));
+			StartInterpTimer(); // 타이머 깨우기
 		}
 	}
 }
 
 void UUK_MainHUD::UpdateMpBar(const FOnAttributeChangeData& Data)
 {
-	if (IsValid(PlayerPawn) == false || IsValid(ASC) == false)
-		return;
+	if ( IsValid(PlayerPawn) == false || IsValid(ASC) == false ) return;
 
-	if (Data.Attribute == UUK_PlayerStatusAttributeSet::GetMaxMpAttribute())
+	if ( Data.Attribute == UUK_PlayerStatusAttributeSet::GetMaxMpAttribute() )
 	{
-		float CurrentMp =
-			ASC->GetNumericAttribute(
-				UUK_PlayerStatusAttributeSet::GetCurrentMpAttribute());
-		if (MpBar && Data.NewValue > 0.f)
+		float CurrentMp = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetCurrentMpAttribute());
+		if ( MpBar && Data.NewValue > 0.f )
 		{
-			// 0.0 ~ 1.0 사이의 퍼센트 값으로 변환하여 반영
-			MpBar->SetPercent(CurrentMp / Data.NewValue);
-			MaxMpText->SetText(FText::AsNumber(FMath::FloorToInt(Data.NewValue)));
+
+			TargetMPPercent = CurrentMp / Data.NewValue;
+			if ( MaxMpText ) MaxMpText->SetText(FText::AsNumber(FMath::FloorToInt(Data.NewValue)));
+			StartInterpTimer();
 		}
 	}
-	if (Data.Attribute == UUK_PlayerStatusAttributeSet::GetCurrentMpAttribute())
+	else if ( Data.Attribute == UUK_PlayerStatusAttributeSet::GetCurrentMpAttribute() )
 	{
-		float MaxMp =
-			ASC->GetNumericAttribute(
-				UUK_PlayerStatusAttributeSet::GetMaxMpAttribute());
-		if (MpBar && Data.NewValue >= 0.f)
+		float MaxMp = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetMaxMpAttribute());
+		if ( MaxMp > 0.f )
 		{
-			// 0.0 ~ 1.0 사이의 퍼센트 값으로 변환하여 반영
-			MpBar->SetPercent(Data.NewValue / MaxMp);
-			CurrentMpText->SetText(FText::AsNumber(FMath::FloorToInt(Data.NewValue)));
+			TargetMPPercent = Data.NewValue / MaxMp;
+			if ( CurrentMpText ) CurrentMpText->SetText(FText::AsNumber(FMath::FloorToInt(Data.NewValue)));
+			StartInterpTimer();
 		}
 	}
-	// if (MpBar && MaxMp > 0.f)
-	// {
-	// 	MpBar->SetPercent(CurrentMp / MaxMp);
-	// }
-	//
-	// if (CurrentMpText)
-	// {
-	// }
-	//
-	// if (MaxMpText)
-	// {
-	// }
+}
+
+void UUK_MainHUD::UpdateBarInterpolation()
+{
+	bool bHpReached = FMath::IsNearlyEqual(CurrentHPPercent, TargetHPPercent, 0.001f);
+	bool bMpReached = FMath::IsNearlyEqual(CurrentMPPercent, TargetMPPercent, 0.001f);
+
+	//HP보간
+	if ( !bHpReached )
+	{
+		CurrentHPPercent = FMath::FInterpTo(CurrentHPPercent, TargetHPPercent, TimerSpeed, InterpSpeed);
+		if ( HealthBar ) HealthBar->SetPercent(CurrentHPPercent);
+	}
+
+	//MP보간
+	if ( !bMpReached )
+	{
+		CurrentMPPercent = FMath::FInterpTo(CurrentMPPercent, TargetMPPercent, TimerSpeed, InterpSpeed);
+		if ( MpBar ) MpBar->SetPercent(CurrentMPPercent);
+	}
+
+	if ( bHpReached && bMpReached )
+	{
+		GetWorld()->GetTimerManager().ClearTimer(BarInterpTimerHandle);
+	}
+}
+
+void UUK_MainHUD::StartInterpTimer()
+{
+	if ( !GetWorld()->GetTimerManager().IsTimerActive(BarInterpTimerHandle) )
+	{
+		GetWorld()->GetTimerManager().SetTimer(
+			BarInterpTimerHandle,
+			this,
+			&UUK_MainHUD::UpdateBarInterpolation,
+			TimerSpeed,
+			true
+		);
+	}
 }
 
 void UUK_MainHUD::UpdateLevel(const FOnAttributeChangeData& Data)
@@ -197,86 +200,12 @@ void UUK_MainHUD::UpdateLevel(const FOnAttributeChangeData& Data)
 			LevelText->SetText(FText::AsNumber(Data.NewValue));
 		}
 	}
-	// if (LevelText)
-	// {
-	// 	LevelText->SetText(FText::AsNumber(NewLevel));
-	// }
 }
 
-void UUK_MainHUD::InitNormalSkillCoolDown(const float CoolDown)
-{
-	if (NormalSkillCoolDownText)
-	{
-		GetWorld()->GetTimerManager().ClearTimer(NormalCooldownTimerHandle);
-		NormalCurrentCooldown = CoolDown;
-		NormalSkillCoolDownText->SetText(FText::AsNumber(NormalCurrentCooldown));
-
-		GetWorld()->GetTimerManager().SetTimer(
-			NormalCooldownTimerHandle,
-			this,
-			&UUK_MainHUD::UpdateNormalSkillCoolDown,
-			1.0f,
-			true
-		);
-	}
-}
-
-void UUK_MainHUD::InitUltimateSkillCoolDown(const float CoolDown)
-{
-	if (UltimateSkillCoolDownText)
-	{
-		GetWorld()->GetTimerManager().ClearTimer(UltimateCooldownTimerHandle);
-		UltimateCurrentCooldown = CoolDown;
-		UltimateSkillCoolDownText->SetText(FText::AsNumber(UltimateCurrentCooldown));
-
-		GetWorld()->GetTimerManager().SetTimer(
-			UltimateCooldownTimerHandle,
-			this,
-			&UUK_MainHUD::UpdateUltimateSkillCoolDown,
-			1.0f,
-			true
-		);
-	}
-}
-
-void UUK_MainHUD::UpdateNormalSkillCoolDown()
-{
-	NormalCurrentCooldown -= 1.f;
-
-	if (NormalCurrentCooldown <= 0.f)
-	{
-		NormalCurrentCooldown = 0.f;
-
-		NormalSkillCoolDownText->SetText(FText::AsNumber(NormalCurrentCooldown));
-
-		GetWorld()->GetTimerManager().ClearTimer(NormalCooldownTimerHandle);
-		return;
-	}
-
-	NormalSkillCoolDownText->SetText(FText::AsNumber(NormalCurrentCooldown));
-}
-
-void UUK_MainHUD::UpdateUltimateSkillCoolDown()
-{
-	UltimateCurrentCooldown -= 1.f;
-
-	if (UltimateCurrentCooldown <= 0.f)
-	{
-		UltimateCurrentCooldown = 0.f;
-
-		UltimateSkillCoolDownText->SetText(FText::AsNumber(UltimateCurrentCooldown));
-
-		GetWorld()->GetTimerManager().ClearTimer(UltimateCooldownTimerHandle);
-		return;
-	}
-
-	UltimateSkillCoolDownText->SetText(FText::AsNumber(UltimateCurrentCooldown));
-}
-
-void UUK_MainHUD::OnInventoryButtonClicked()
-{
-	ToggleInventory();
-}
+//void UUK_MainHUD::OnInventoryButtonClicked()
+//{
+//	ToggleInventory();
+//}
 
 void UUK_MainHUD::HandleItemAdded_ShowNew(FName ItemID, int32 Amount)
 {
