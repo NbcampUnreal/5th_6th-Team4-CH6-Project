@@ -12,6 +12,7 @@ enum class EUKQuestTag : uint8
 	SKL UMETA(DisplayName = "SKL (Skill)"),
 	CFT UMETA(DisplayName = "CFT (Craft)"),
 	EXP UMETA(DisplayName = "EXP (Explore)"),
+	WRP UMETA(DisplayName = "WRP (Warp)"),
 	HNT UMETA(DisplayName = "HNT (Hunt)"),
 	DLV UMETA(DisplayName = "DLV (Deliver)"),
 	DIA UMETA(DisplayName = "DIA (Dialogue)"),
