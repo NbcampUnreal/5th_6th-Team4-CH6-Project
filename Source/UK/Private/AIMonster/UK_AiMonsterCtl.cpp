@@ -200,11 +200,6 @@ void AUK_AiMonsterCtl::UpdateState()
 #pragma endregion
 
 #pragma region Movement
-void AUK_AiMonsterCtl::UpdateFocusOnTarget(AActor* NewTarget)
-{
-	// Focus 사용 안 함
-}
-
 void AUK_AiMonsterCtl::HandleMovement()
 {
 	if (!ControlledMonster) return;

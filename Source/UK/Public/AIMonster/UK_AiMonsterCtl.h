@@ -52,7 +52,6 @@ private:
 	AAIMonsterBase* ControlledMonster;
 
 	void UpdateState();
-	void UpdateFocusOnTarget(AActor* NewTarget);
 #pragma endregion
 
 #pragma region Movement
