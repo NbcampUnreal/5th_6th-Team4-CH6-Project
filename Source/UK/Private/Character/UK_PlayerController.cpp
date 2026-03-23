@@ -290,8 +290,11 @@ void AUK_PlayerController::ApplyInputState(EInputState NewState)
 		SetIgnoreMoveInput(false);
 
 		FInputModeGameOnly Mode;
+		Mode.SetConsumeCaptureMouseDown(false);
 		SetInputMode(Mode);
 		SetCursorVisible(false);
+
+		FSlateApplication::Get().SetAllUserFocusToGameViewport();
 		break;
 	}
 

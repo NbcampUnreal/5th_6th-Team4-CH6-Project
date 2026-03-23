@@ -76,6 +76,9 @@ public:
 	UFUNCTION()
 	void OnCloseButtonClicked();
 
+	UFUNCTION(BlueprintCallable)
+	void CloseInvMain();
+
 protected:
 	UFUNCTION()
 	void RefreshInventoryUI();
