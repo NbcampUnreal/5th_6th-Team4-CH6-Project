@@ -1,6 +1,5 @@
 ﻿#include "AIMonster/BossMonster/UK_BossMonster_Grux.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Kismet/GameplayStatics.h"
 #include "Engine/OverlapResult.h"
 #include "AIMonster/AttibuteSet/UK_MonsterAttributeSet.h"
 #include "AIController.h"
@@ -75,7 +74,10 @@ bool AUK_BossMonster_Grux::PlayRandomAttackMontage()
 	AAIController* AICtl = Cast<AAIController>(GetController());
 	if (Target)
 	{
-		GetWorldTimerManager().SetTimer(RotationTimerHandle, this, &AUK_BossMonster_Grux::LookAtTargetSmooth, 0.05f, true);
+		if (!GetWorldTimerManager().IsTimerActive(RotationTimerHandle))
+		{
+			GetWorldTimerManager().SetTimer(RotationTimerHandle, this, &AUK_BossMonster_Grux::LookAtTargetSmooth, 0.05f, true);
+		}
 	}
 	
 	if (AICtl && Target)

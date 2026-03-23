@@ -1,18 +1,13 @@
 ﻿#include "AIMonster/BossMonster/UK_BossMonsterBase.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "Components/WidgetComponent.h"
-#include "Net/UnrealNetwork.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Animation/AnimInstance.h"
-#include "AIMonster/BossMonster/UK_BossAnimInstance.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "DrawDebugHelpers.h"
-#include "Kismet/GameplayStatics.h"
 #include "Character/UK_CharacterBase.h"
-#include "AbilitySystemComponent.h"
 #include "DataAsset/DataTable/AIMonster/UK_MonsterCombatRow.h"
 #include "Character/AttibuteSet/UK_PlayerStatusAttributeSet.h"
 #include "Tags/UK_GameplayTags.h"
@@ -80,7 +75,7 @@ void AUK_BossMonsterBase::ResetForReturn()
 	bRewardGranted = false;
 	bIsAttacking = false;
 	bIsHit = false;
-    
+	CachedTarget = nullptr; 
 	SetWeaponCollisionEnabled(false);
 	HitActors.Empty();
     
@@ -235,12 +230,22 @@ void AUK_BossMonsterBase::OnWeaponOverlap(UPrimitiveComponent* OverlappedCompone
 
 AActor* AUK_BossMonsterBase::GetTargetActor() const
 {
+	if (CachedTarget.IsValid())
+		return CachedTarget.Get();
+
 	AAIController* AIC = Cast<AAIController>(GetController());
 	if (AIC && AIC->GetBlackboardComponent())
 	{
-		return Cast<AActor>(AIC->GetBlackboardComponent()->GetValueAsObject(TEXT("TargetActor")));
+		AActor* Target = Cast<AActor>(AIC->GetBlackboardComponent()->GetValueAsObject(TEXT("TargetActor")));
+		CachedTarget = Target;
+		return Target;
 	}
 	return nullptr;
+}
+
+void AUK_BossMonsterBase::SetCachedTarget(AActor* NewTarget)
+{
+	CachedTarget = NewTarget;
 }
 
 float AUK_BossMonsterBase::PlayMontage(UAnimMontage* Montage, float InPlayRate)

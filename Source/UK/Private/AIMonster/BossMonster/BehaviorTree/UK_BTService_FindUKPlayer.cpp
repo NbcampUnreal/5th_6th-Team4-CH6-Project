@@ -75,11 +75,13 @@ void UUK_BTService_FindUKPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 		BB->SetValueAsObject(TEXT("TargetActor"), ClosestPlayer);
 		BB->SetValueAsFloat(TEXT("DistanceToTarget"), FMath::Sqrt(BestDistSq));
 		BB->SetValueAsFloat(TEXT("SearchStartTime"), 0.f);
+		if (Boss) Boss->SetCachedTarget(ClosestPlayer);
 	}
 	else
 	{
 		BB->ClearValue(TEXT("TargetActor"));
 		BB->ClearValue(TEXT("DistanceToTarget"));
+		if (Boss) Boss->SetCachedTarget(nullptr);
 
 		const float SearchStartTime = BB->GetValueAsFloat(TEXT("SearchStartTime"));
 
