@@ -356,5 +356,7 @@ void UUK_PlayerStatusAttributeSet::ImportStats(const struct FCharacterStatSaveDa
 
 	HealthChanged.Broadcast(0.f, InData.Health);
 	CurrentMpChanged.Broadcast(0.f, InData.CurrentMp);
+	EXPChanged.Broadcast(0.f, InData.Exp);
+	MaxEXPChanged.Broadcast(0.f, InData.MaxEXP); 
 }
 
