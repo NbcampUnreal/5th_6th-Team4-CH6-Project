@@ -137,7 +137,7 @@ void AUK_MonsterSpawner::InitializeObjectPool()
 		if (UCharacterMovementComponent* MC = Monster->GetCharacterMovement())
 		{
 			MC->DisableMovement();
-			MC->SetComponentTickEnabled(false); 
+			// SetComponentTickEnabled 조작 금지 — Prerequesities 보존
 		}
 
 		if (AController* AutoCtrl = Monster->GetController()) 
@@ -290,7 +290,7 @@ void AUK_MonsterSpawner::DeactivateMonster(AAIMonsterBase* Monster)
 	if (UCharacterMovementComponent* MC = Monster->GetCharacterMovement())
 	{
 		MC->DisableMovement();
-		MC->SetComponentTickEnabled(false);
+		// SetComponentTickEnabled(false) 금지 — 반복 호출 시 Prerequesities가 끊어짐
 	}
 
 	if (AAIController* AICon = Cast<AAIController>(Monster->GetController()))
