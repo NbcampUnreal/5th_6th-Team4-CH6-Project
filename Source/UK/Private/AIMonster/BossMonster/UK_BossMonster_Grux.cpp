@@ -261,7 +261,6 @@ void AUK_BossMonster_Grux::ApplyBerserkBuff()
 		if (BerserkComponent)
 		{
 			BerserkComponent->SetRelativeScale3D(FVector(1.5f));
-			UE_LOG(LogTemp, Warning, TEXT("[Grux] Berserk Effect Activated!"));
 		}
 	}
 	

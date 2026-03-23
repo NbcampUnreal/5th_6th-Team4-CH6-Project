@@ -1,7 +1,6 @@
 ﻿#include "AIMonster/BehaviorTree/BTDecorator_InAttackRange.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "AIMonster/AIMonsterBase.h"
 #include "AIMonster/Monster/UK_EliteMonster.h"
 
 #pragma region Initialization

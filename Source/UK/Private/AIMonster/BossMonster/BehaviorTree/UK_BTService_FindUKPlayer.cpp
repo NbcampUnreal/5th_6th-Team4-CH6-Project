@@ -90,12 +90,10 @@ void UUK_BTService_FindUKPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 		if (SearchStartTime <= 0.f)
 		{
 			BB->SetValueAsFloat(TEXT("SearchStartTime"), Now);
-			UE_LOG(LogTemp, Warning, TEXT("[Boss] 타겟 소실 - %.0f초 수색 시작"), SearchDuration);
 		}
 		else if (Now - SearchStartTime >= SearchDuration)
 		{
 			BB->SetValueAsFloat(TEXT("SearchStartTime"), -1.f);
-			UE_LOG(LogTemp, Warning, TEXT("[Boss] 수색 실패(%.1f초) - 귀환"), Now - SearchStartTime);
 		}
 	}
 }
