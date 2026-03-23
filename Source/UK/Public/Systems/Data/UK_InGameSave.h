@@ -2,15 +2,9 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
+#include "Quest/UKQuestManagerSubsystem.h"
+#include "Quest/UKQuestTypes.h"
 #include "UK_InGameSave.generated.h"
-
-USTRUCT(BlueprintType)
-struct FQuestSaveData
-{
-	GENERATED_BODY()
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TMap<FName, int32> QuestProgress;
-};
 
 USTRUCT(BlueprintType)
 struct FInventorySaveData
@@ -65,12 +59,12 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Inv")
 	FInventorySaveData InventoryDate;
 	
-	UPROPERTY(VisibleAnywhere, Category = "Quest")
-	FQuestSaveData QuestDate;
-	
 	UPROPERTY(VisibleAnywhere, Category = "Meta")
 	FString SaveSlotName;
-
+	
+	UPROPERTY(VisibleAnywhere, Category = "Quest")
+	TMap<FName, FQuestProgress> QuestProgressMap;
+	
 	// 활성화된 워프 포인트의 ID들만 저장
 	UPROPERTY()
 	TArray<FName> ActivatedWarpIDs;
