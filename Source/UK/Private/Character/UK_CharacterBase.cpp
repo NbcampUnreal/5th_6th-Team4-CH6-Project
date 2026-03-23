@@ -56,6 +56,8 @@ AUK_CharacterBase::AUK_CharacterBase(const FObjectInitializer& ObjectInitializer
 		FVector(0.f, 0.f, -90.f),
 		FRotator(0.f, -90.f, 0.f));
 	GetMesh()->SetCollisionProfileName(TEXT("UK_Charactor"));
+	GetMesh()->VisibilityBasedAnimTickOption =
+		EVisibilityBasedAnimTickOption::OnlyTickPoseWhenRendered;
 #pragma region SpringArm
 
 	SpringArmComp = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
@@ -180,7 +182,7 @@ void AUK_CharacterBase::BeginPlay()
 		0.3f,
 		true
 	);
-	
+
 	GetWorldTimerManager().SetTimer(
 		StaminaHealTimerHandle,
 		this,
@@ -315,7 +317,7 @@ void AUK_CharacterBase::HealStamina()
 		{
 			return;
 		}
-		
+
 		SpecHandle.Data->SetSetByCallerMagnitude(
 			UK_GameplayTags::Data::EndBattle::HealStamina,
 			HealStaminaAmount
@@ -346,9 +348,9 @@ void AUK_CharacterBase::OnLoadGame(class UUK_InGameSave* SaveGameObject)
 	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
 	{
 		const UAttributeSet* AS_Base = ASC->GetAttributeSet(UUK_PlayerStatusAttributeSet::StaticClass());
-		if (const UUK_PlayerStatusAttributeSet* MyAS = Cast<UUK_PlayerStatusAttributeSet>(AS_Base))
+		if (const UUK_PlayerStatusAttributeSet* PSAS = Cast<UUK_PlayerStatusAttributeSet>(AS_Base))
 		{
-			const_cast<UUK_PlayerStatusAttributeSet*>(MyAS)->ImportStats(SaveGameObject->PlayerStats);
+			const_cast<UUK_PlayerStatusAttributeSet*>(PSAS)->ImportStats(SaveGameObject->PlayerStats);
 		}
 	}
 
@@ -628,7 +630,7 @@ void AUK_CharacterBase::Setting()
 void AUK_CharacterBase::LockON()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AUK_CharacterBase_LockOn);
-	
+
 	if (bIsLock == false)
 	{
 		bIsLock = true;
@@ -735,7 +737,7 @@ void AUK_CharacterBase::LockONToggle()
 void AUK_CharacterBase::LockONTick()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(AUK_CharacterBase_LockONTick);
-	
+
 	if (LockOnList.IsEmpty() == false)
 	{
 		if (const int32 Size = LockOnList.Num(); Size <= LockOnIndex)
@@ -819,11 +821,11 @@ bool AUK_CharacterBase::StartGliding()
 		return false;
 	}
 	GetCharacterMovement()->StopMovementImmediately();
-	 FVector Vel = GetCharacterMovement()->Velocity;
-	 Vel.Z = -GlideFallSpeed;
-	 GetCharacterMovement()->GravityScale = 0.f;
-	 GetCharacterMovement()->AirControl = 0.8;
-	 GetCharacterMovement()->Velocity = Vel;
+	FVector Vel = GetCharacterMovement()->Velocity;
+	Vel.Z = -GlideFallSpeed;
+	GetCharacterMovement()->GravityScale = 0.f;
+	GetCharacterMovement()->AirControl = 0.8;
+	GetCharacterMovement()->Velocity = Vel;
 	bIsGliding = true;
 
 	bInUseStamina = true;
