@@ -603,16 +603,13 @@ bool AAIMonsterBase::PlayRandomIdleMontage()
 {
 	if (IdleMontages.Num() == 0) return false;
 
-	TArray<int32> ValidIndices;
+	const int32 StartIndex = FMath::RandRange(0, IdleMontages.Num() - 1);
 	for (int32 i = 0; i < IdleMontages.Num(); ++i)
 	{
-		if (IdleMontages[i]) ValidIndices.Add(i);
+		const int32 Idx = (StartIndex + i) % IdleMontages.Num();
+		if (IdleMontages[Idx]) { PlayIdleMontage(Idx); return true; }
 	}
-	if (ValidIndices.Num() == 0) return false;
-
-	const int32 PickedIndex = ValidIndices[FMath::RandRange(0, ValidIndices.Num() - 1)];
-	PlayIdleMontage(PickedIndex);
-	return true;
+	return false;
 }
 
 void AAIMonsterBase::PlayIdleMontage(int32 MontageIndex)
@@ -644,16 +641,13 @@ bool AAIMonsterBase::PlayRandomHitMontage()
 	if (bIsDying) return false;
 	if (HitMontages.Num() == 0) return false;
 
-	TArray<int32> ValidIndices;
+	const int32 StartIndex = FMath::RandRange(0, HitMontages.Num() - 1);
 	for (int32 i = 0; i < HitMontages.Num(); ++i)
 	{
-		if (HitMontages[i]) ValidIndices.Add(i);
+		const int32 Idx = (StartIndex + i) % HitMontages.Num();
+		if (HitMontages[Idx]) { PlayHitMontage(Idx); return true; }
 	}
-	if (ValidIndices.Num() == 0) return false;
-
-	const int32 PickedIndex = ValidIndices[FMath::RandRange(0, ValidIndices.Num() - 1)];
-	PlayHitMontage(PickedIndex);
-	return true;
+	return false;
 }
 
 void AAIMonsterBase::PlayHitMontage(int32 MontageIndex)
@@ -746,48 +740,22 @@ void AAIMonsterBase::Die()
 
 	GrantRewardsToKiller();
 
+	const float TotalDelay = (CorpseLingerTime > 0.f) ? (1.0f + CorpseLingerTime) : 0.1f;
 	FTimerHandle DeathTimer;
-	GetWorldTimerManager().SetTimer(
-		DeathTimer, this,
-		&AAIMonsterBase::FinalizeDeath,
-		CorpseLingerTime > 0.f ? 1.0f : 0.1f,
-		false);
-}
-
-void AAIMonsterBase::FinalizeDeath()
-{
-	if (GetCapsuleComponent())
-	{
-		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	}
-	
-	if (GetMesh())
-	{
-		GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	}
-	
-	if (GetCharacterMovement())
-	{
-		GetCharacterMovement()->DisableMovement();
-	}
-
-	if (CorpseLingerTime > 0.f)
-	{
-		GetWorldTimerManager().SetTimer(
-			CorpseTimerHandle, this,
-			&AAIMonsterBase::HideAndBroadcastDeath,
-			CorpseLingerTime, false);
-	}
-	else
-	{
-		HideAndBroadcastDeath();
-	}
+	GetWorldTimerManager().SetTimer(DeathTimer, this,
+		&AAIMonsterBase::HideAndBroadcastDeath, TotalDelay, false);
 }
 
 void AAIMonsterBase::HideAndBroadcastDeath()
 {
-	HideCorpse();
+	if (GetCapsuleComponent())
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (GetMesh())
+		GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (GetCharacterMovement())
+		GetCharacterMovement()->DisableMovement();
 
+	HideCorpse();
 	OnMonsterKilled.Broadcast(this, MonsterType, LastAttackerController);
 	OnDeath.Broadcast(this);
 }
@@ -977,7 +945,7 @@ void AAIMonsterBase::ShowHPBar()
 		GetWorldTimerManager().SetTimer(
 			HPBarUpdateTimer, this,
 			&AAIMonsterBase::UpdateHPBarWidget,
-			0.1f, true);
+			0.2f, true);
 	}
 }
 
@@ -999,18 +967,17 @@ void AAIMonsterBase::UpdateHPBarWidget()
 {
 	if ( !HPWidgetComponent )	return;
 	
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	if ( !PC )	return;
+	if (!CachedPlayerController)
+		CachedPlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (!CachedPlayerController) return;
 
 	FVector CameraLocation;
 	FRotator CameraRotation;
-	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+	CachedPlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
-	const FVector WidgetLocation = HPWidgetComponent->GetComponentLocation();
-	FVector Direction = CameraLocation - WidgetLocation;
+	FVector Direction = CameraLocation - HPWidgetComponent->GetComponentLocation();
 	Direction.Z = 0.f;
-	FRotator LookAtRotation = Direction.Rotation();
-	HPWidgetComponent->SetWorldRotation(LookAtRotation);
+	HPWidgetComponent->SetWorldRotation(Direction.Rotation());
 	HPWidgetComponent->SetWorldScale3D(FVector(0.5f));
 }
 
@@ -1142,16 +1109,18 @@ float AAIMonsterBase::CalculateGold(int32 PlayerLevel) const
 
 FName AAIMonsterBase::GetRowName() const
 {
-    const UEnum* Enum = StaticEnum<EMonsterType>();
-    if (!Enum) return NAME_None;
+	if (CachedRowName != NAME_None) return CachedRowName;
+	
+	const UEnum* Enum = StaticEnum<EMonsterType>();
+	if (!Enum) return NAME_None;
 
-    FString Full = Enum->GetNameStringByValue((int64)MonsterType);
+	FString Full = Enum->GetNameStringByValue((int64)MonsterType);
+	int32 ColonIdx;
+	CachedRowName = Full.FindLastChar(':', ColonIdx)
+		? FName(*Full.Mid(ColonIdx + 1))
+		: FName(*Full);
 
-    int32 ColonIdx;
-    if (Full.FindLastChar(':', ColonIdx))
-        return FName(*Full.Mid(ColonIdx + 1));
-
-    return FName(*Full);
+	return CachedRowName;
 }
 
 const FUK_MonsterStatRow* AAIMonsterBase::GetStatRow() const

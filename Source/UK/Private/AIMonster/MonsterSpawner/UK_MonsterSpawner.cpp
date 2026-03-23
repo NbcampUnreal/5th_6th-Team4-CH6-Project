@@ -131,6 +131,8 @@ void AUK_MonsterSpawner::InitializeObjectPool()
 		Monster->SetActorHiddenInGame(true);
 		Monster->SetActorEnableCollision(false);
 		Monster->SetActorTickEnabled(false);
+		if (UCharacterMovementComponent* MC = Monster->GetCharacterMovement())
+			MC->DisableMovement();
 
 		if (AController* AutoCtrl = Monster->GetController()) 
 		{
@@ -278,6 +280,8 @@ void AUK_MonsterSpawner::DeactivateMonster(AAIMonsterBase* Monster)
 	Monster->SetActorHiddenInGame(true);
 	Monster->SetActorEnableCollision(false);
 	Monster->SetActorTickEnabled(false);
+	if (UCharacterMovementComponent* MC = Monster->GetCharacterMovement())
+		MC->DisableMovement();
 
 	if (AAIController* AICon = Cast<AAIController>(Monster->GetController()))
 	{

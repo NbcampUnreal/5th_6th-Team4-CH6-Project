@@ -75,7 +75,7 @@ bool AUK_BossMonster_Grux::PlayRandomAttackMontage()
 	AAIController* AICtl = Cast<AAIController>(GetController());
 	if (Target)
 	{
-		GetWorldTimerManager().SetTimer(RotationTimerHandle, this, &AUK_BossMonster_Grux::LookAtTargetSmooth, 0.033f, true);
+		GetWorldTimerManager().SetTimer(RotationTimerHandle, this, &AUK_BossMonster_Grux::LookAtTargetSmooth, 0.05f, true);
 	}
 	
 	if (AICtl && Target)

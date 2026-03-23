@@ -7,6 +7,7 @@ void UUKAIMonsterAnimInstance::NativeInitializeAnimation()
 {
 	Super::NativeInitializeAnimation();
 	OwnerMonster = Cast<AAIMonsterBase>(TryGetPawnOwner());
+	OwnerBurrow  = Cast<AUK_BurrowMonster>(OwnerMonster);
 }
 #pragma endregion
 
@@ -61,13 +62,6 @@ void UUKAIMonsterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
     
     PrevYaw   = CurrentYaw;
 	
-	if (AUK_BurrowMonster* Burrow = Cast<AUK_BurrowMonster>(OwnerMonster))
-	{
-		bIsBurrowed = Burrow->bIsBurrowed;
-	}
-	else
-	{
-		bIsBurrowed = false;
-	}
+	bIsBurrowed = OwnerBurrow ? OwnerBurrow->bIsBurrowed : false;
 }
 #pragma endregion
