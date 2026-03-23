@@ -346,9 +346,9 @@ void AUK_CharacterBase::OnLoadGame(class UUK_InGameSave* SaveGameObject)
 	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
 	{
 		const UAttributeSet* AS_Base = ASC->GetAttributeSet(UUK_PlayerStatusAttributeSet::StaticClass());
-		if (const UUK_PlayerStatusAttributeSet* MyAS = Cast<UUK_PlayerStatusAttributeSet>(AS_Base))
+		if (const UUK_PlayerStatusAttributeSet* PSAS = Cast<UUK_PlayerStatusAttributeSet>(AS_Base))
 		{
-			const_cast<UUK_PlayerStatusAttributeSet*>(MyAS)->ImportStats(SaveGameObject->PlayerStats);
+			const_cast<UUK_PlayerStatusAttributeSet*>(PSAS)->ImportStats(SaveGameObject->PlayerStats);
 		}
 	}
 
