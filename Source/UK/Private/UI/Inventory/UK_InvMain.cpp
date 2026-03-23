@@ -120,6 +120,18 @@ void UUK_InvMain::OnCloseButtonClicked()
 	}
 }
 
+void UUK_InvMain::CloseInvMain()
+{
+	if (OwnerMainHUD)
+	{
+		OwnerMainHUD->CloseInventory();
+	}
+	else
+	{
+		RemoveFromParent();
+	}
+}
+
 void UUK_InvMain::RefreshInventoryUI()
 {
 	if ( InvUI )

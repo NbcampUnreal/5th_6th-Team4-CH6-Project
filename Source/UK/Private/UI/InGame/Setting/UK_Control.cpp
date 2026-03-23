@@ -10,29 +10,6 @@
 void UUK_Control::NativeConstruct()
 {
 	Super::NativeConstruct();
-	if ( ControlBackButton )
-		ControlBackButton->OnClicked.AddDynamic(this, &UUK_Control::OnBackButtonClicked);
-}
-
-void UUK_Control::OnBackButtonClicked()
-{
-	if ( ParentSettingWidget )
-	{
-		ParentSettingWidget->SetVisibility(ESlateVisibility::Visible);
-
-		if ( APlayerController* PC = GetOwningPlayer() )
-		{
-			FInputModeGameAndUI Mode;
-			
-			Mode.SetWidgetToFocus(ParentSettingWidget->TakeWidget());
-			Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-			Mode.SetHideCursorDuringCapture(false);
-
-			PC->SetInputMode(Mode);
-		}
-
-		RemoveFromParent();
-	}
 }
 
 void UUK_Control::StartRebind(FName MappingName)

@@ -23,7 +23,7 @@ public:
 	
 private:
 	float TimeAccumulator = 0.f;
-	const float SecondsPerGameHour = 10.f;
+	const float SecondsPerGameHour = 60.f;
 	
 	
 };
