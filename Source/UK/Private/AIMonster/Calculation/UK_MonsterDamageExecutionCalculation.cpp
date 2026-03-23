@@ -109,10 +109,6 @@ void UUK_MonsterDamageExecutionCalculation::Execute_Implementation(
 	//   FinalDamage = max(0, RawDamage - Defense)
 	const float FinalDamage = FMath::Max(RawDamage - Defense, 0.f);
 
-	UE_LOG(LogTemp, Warning,
-		TEXT("[MonsterDmgExec] Lv=%.0f | ATK=%.1f | DEF=%.1f | Final=%.1f"),
-		PlayerLevel, AttackPower, Defense, FinalDamage);
-
 	if (FinalDamage > 0.f)
 	{
 		// 몬스터 AttributeSet 의 Damage 에 기록 → PostGameplayEffectExecute 에서 Health 차감

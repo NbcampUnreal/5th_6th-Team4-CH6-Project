@@ -246,7 +246,6 @@ public:
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
-	void FinalizeDeath();
 	void PlayAttackMontage(int32 MontageIndex);
 	void HideCorpse();
 	void ResetAppearance();
@@ -309,6 +308,8 @@ private:
 	FTimerHandle CorpseTimerHandle;
 	void HideAndBroadcastDeath();
 	
+	UPROPERTY()
+	APlayerController* CachedPlayerController = nullptr;
 public:
 
 	UUK_MonsterHealthBar* GetHPWidget() const;
@@ -440,7 +441,7 @@ private:
 	FName GetRowName() const;
 	const FUK_MonsterStatRow* GetStatRow() const;
 	const FUK_MonsterMetaRow* GetMetaRow() const;
-
+	mutable FName CachedRowName = NAME_None;
 	void AutoInitStatsFromNearestPlayer();
 #pragma endregion
 	

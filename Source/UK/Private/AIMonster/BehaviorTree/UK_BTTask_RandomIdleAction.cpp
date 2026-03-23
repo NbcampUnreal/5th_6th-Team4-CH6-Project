@@ -4,6 +4,11 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
+namespace
+{
+	constexpr float DefaultRestoreWalkSpeed = 200.f;
+}
+
 #pragma region Initialization
 UUK_BTTask_RandomIdleAction::UUK_BTTask_RandomIdleAction()
 {
@@ -30,18 +35,21 @@ EBTNodeResult::Type UUK_BTTask_RandomIdleAction::ExecuteTask(UBehaviorTreeCompon
 	if (!Character) return EBTNodeResult::Failed;
 
 	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(Character);
+	UCharacterMovementComponent* MoveComp = Character->GetCharacterMovement();
 
 	AIController->StopMovement();
-	Character->GetCharacterMovement()->StopMovementImmediately();
-	Character->GetCharacterMovement()->bOrientRotationToMovement       = false;
-	Character->GetCharacterMovement()->bUseControllerDesiredRotation   = false;
+	MoveComp->StopMovementImmediately();
+	MoveComp->bOrientRotationToMovement     = false;
+	MoveComp->bUseControllerDesiredRotation = false;
 
-	// ── 행동 선택 ────────────────────────────────────────────────────────
+	Memory->CachedWalkSpeed = MoveComp->MaxWalkSpeed > 0.f
+		? MoveComp->MaxWalkSpeed
+		: DefaultRestoreWalkSpeed;
+
 	EIdleActionType Selected = SelectWeightedAction();
 	if (Selected == EIdleActionType::PlayIdleMontage && (!Monster || Monster->IdleMontages.Num() == 0))
-	{
 		Selected = EIdleActionType::Wait;
-	}
+
 	Memory->Action = Selected;
 
 	switch (Memory->Action)
@@ -56,14 +64,14 @@ EBTNodeResult::Type UUK_BTTask_RandomIdleAction::ExecuteTask(UBehaviorTreeCompon
 		Memory->StartYaw    = Character->GetActorRotation().Yaw;
 		const float Delta   = FMath::RandRange(60.f, 130.f) * (FMath::RandBool() ? 1.f : -1.f);
 		Memory->TargetYaw   = Memory->StartYaw + Delta;
-		Memory->MidYaw      = Memory->StartYaw + Delta * 0.35f; // 중간서 잠깐 멈춤
+		Memory->MidYaw      = Memory->StartYaw + Delta * 0.35f;
 		Memory->bReachedMid = false;
 		break;
 	}
 
 	case EIdleActionType::PlayIdleMontage:
 	{
-		Character->GetCharacterMovement()->MaxWalkSpeed = 0.f;
+		MoveComp->MaxWalkSpeed     = 0.f;
 		Memory->TargetTime         = 15.f;
 		Memory->bWaitingForMontage = true;
 
@@ -95,28 +103,24 @@ void UUK_BTTask_RandomIdleAction::TickTask(UBehaviorTreeComponent& OwnerComp, ui
 
 	AAIMonsterBase* Monster = Cast<AAIMonsterBase>(Character);
 
-	// ── LookAround ─────────────────────────────────────────
 	if (Memory->Action == EIdleActionType::LookAround)
 	{
 		FRotator Rot = Character->GetActorRotation();
-
 		const float DestYaw = Memory->bReachedMid ? Memory->TargetYaw : Memory->MidYaw;
-		const float Speed   = Memory->bReachedMid 
-							  ? LookAroundSpeed * 0.13f   // 중간 이후: 빠르게
-							  : LookAroundSpeed * 0.06f;  // 초반: 천천히 시작
+		const float Speed   = Memory->bReachedMid
+							  ? LookAroundSpeed * 0.13f
+							  : LookAroundSpeed * 0.06f;
 
 		Rot.Yaw = FMath::FInterpTo(Rot.Yaw, DestYaw, DeltaSeconds, Speed);
 
 		if (!Memory->bReachedMid && FMath::Abs(FMath::FindDeltaAngleDegrees(Rot.Yaw, Memory->MidYaw)) < 2.f)
 		{
 			Memory->bReachedMid  = true;
-			Memory->TargetTime  += FMath::RandRange(0.4f, 0.9f); // 중간서 잠깐 정지 효과
+			Memory->TargetTime  += FMath::RandRange(0.4f, 0.9f);
 		}
-
 		Character->SetActorRotation(Rot);
 	}
 
-	// ── 몽타주 종료 처리 ─────────────────────────────────────────────────
 	if (Memory->bWaitingForMontage)
 	{
 		if (Memory->bMontageEnded && !Memory->bPostMontageWait)
@@ -129,7 +133,7 @@ void UUK_BTTask_RandomIdleAction::TickTask(UBehaviorTreeComponent& OwnerComp, ui
 
 		if (Memory->bPostMontageWait && Memory->ElapsedTime >= Memory->PostMontageEndTime)
 		{
-			Character->GetCharacterMovement()->MaxWalkSpeed = 200.f;
+			Character->GetCharacterMovement()->MaxWalkSpeed = Memory->CachedWalkSpeed;
 			RestoreRotationSettings(Character);
 			FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 			return;
@@ -138,14 +142,13 @@ void UUK_BTTask_RandomIdleAction::TickTask(UBehaviorTreeComponent& OwnerComp, ui
 		if (Memory->ElapsedTime >= Memory->TargetTime)
 		{
 			if (Monster) Monster->OnIdleMontageFinished.Unbind();
-			Character->GetCharacterMovement()->MaxWalkSpeed = 200.f;
+			Character->GetCharacterMovement()->MaxWalkSpeed = Memory->CachedWalkSpeed;
 			RestoreRotationSettings(Character);
 			FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 		}
 		return;
 	}
 
-	// ── Wait / LookAround 종료 ───────────────────────────────────────────
 	if (Memory->ElapsedTime >= Memory->TargetTime)
 	{
 		RestoreRotationSettings(Character);
@@ -171,16 +174,16 @@ EBTNodeResult::Type UUK_BTTask_RandomIdleAction::AbortTask(UBehaviorTreeComponen
 	{
 		if (Monster) Monster->OnIdleMontageFinished.Unbind();
 		if (UAnimInstance* Anim = Character->GetMesh()->GetAnimInstance())
-		{
 			Anim->StopAllMontages(0.15f);
-		}
 	}
 
 	if (UCharacterMovementComponent* MoveComp = Character->GetCharacterMovement())
 	{
 		if (MoveComp->MaxWalkSpeed <= 0.f)
 		{
-			MoveComp->MaxWalkSpeed = 200.f;
+			MoveComp->MaxWalkSpeed = (Memory && Memory->CachedWalkSpeed > 0.f)
+				? Memory->CachedWalkSpeed
+				: DefaultRestoreWalkSpeed;
 		}
 	}
 

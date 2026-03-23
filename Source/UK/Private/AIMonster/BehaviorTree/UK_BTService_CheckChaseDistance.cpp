@@ -38,11 +38,12 @@ void UUK_BTService_CheckChaseDistance::TickNode(UBehaviorTreeComponent& OwnerCom
 	const FVector MonsterLocation = ControlledPawn->GetActorLocation();
 	const FVector SpawnLocation   = BlackboardComp->GetValueAsVector(SpawnLocationKey.SelectedKeyName);
 
-	const float DistanceToPlayer  = FVector::Dist(MonsterLocation, TargetPlayer->GetActorLocation());
-	const float DistanceFromSpawn = FVector::Dist(MonsterLocation, SpawnLocation);
-	const float ChaseLimit        = Monster->MaxChaseDistance > 0 ? Monster->MaxChaseDistance : MaxChaseDistance;
+	const float ChaseLimit    = Monster->MaxChaseDistance > 0.f ? Monster->MaxChaseDistance : MaxChaseDistance;
+	const float ChastLimitSq  = FMath::Square(ChaseLimit);
 
-	const bool bShouldStopChase = (DistanceFromSpawn > ChaseLimit) || (DistanceToPlayer > ChaseLimit);
+	const bool bShouldStopChase =
+		FVector::DistSquared(MonsterLocation, SpawnLocation)         > ChastLimitSq ||
+		FVector::DistSquared(MonsterLocation, TargetPlayer->GetActorLocation()) > ChastLimitSq;
 	if (!bShouldStopChase) return;
 
 	BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);

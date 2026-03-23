@@ -42,6 +42,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	bool bShouldEmerge = true;
 	
+	UPROPERTY()
+	class AUK_BurrowMonster* OwnerBurrow = nullptr; 
 #pragma endregion
 
 #pragma region Movement Properties

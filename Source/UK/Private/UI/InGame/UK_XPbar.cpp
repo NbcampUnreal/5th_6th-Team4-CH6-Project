@@ -29,6 +29,14 @@ void UUK_XPbar::NativeConstruct()
 		ASC->GetGameplayAttributeValueChangeDelegate(
 			UUK_PlayerStatusAttributeSet::GetMaxEXPAttribute())
 		.AddUObject(this, &UUK_XPbar::UpdateXPBar);
+
+	GetWorld()->GetTimerManager().SetTimer(
+		XPInitTimerHandle,
+		this,
+		&UUK_XPbar::RefreshXPStatus,
+		0.4f,
+		false
+	);
 }
 
 void UUK_XPbar::NativeDestruct()
@@ -47,6 +55,7 @@ void UUK_XPbar::NativeDestruct()
 	if (GetWorld())
 	{
 		GetWorld()->GetTimerManager().ClearTimer(XPInterpTimerHandle);
+		GetWorld()->GetTimerManager().ClearTimer(XPInitTimerHandle);
 	}
 
 	Super::NativeDestruct();
@@ -141,4 +150,11 @@ void UUK_XPbar::UpdateXPText(float Percent)
 
 	const int32 PercentValue = FMath::RoundToInt(Percent * 100.f);
 	XPText->SetText(FText::FromString(FString::Printf(TEXT("%d%%"), PercentValue)));
+}
+
+void UUK_XPbar::RefreshXPStatus()
+{
+	if (!ASC) return;
+
+	InitXPBar();
 }
