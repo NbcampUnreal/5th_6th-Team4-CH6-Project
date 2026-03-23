@@ -126,6 +126,10 @@ void UUK_GameInstance::SaveEntireGame()
 	UUK_InGameSave* SaveInstance = Cast<UUK_InGameSave>(UGameplayStatics::CreateSaveGameObject(UUK_InGameSave::StaticClass()));
 	if (!SaveInstance) return;
 	
+	if (UUKQuestManagerSubsystem* QuestSubsystem = GetSubsystem<UUKQuestManagerSubsystem>())
+	{
+		SaveInstance->QuestProgressMap = QuestSubsystem->RuntimeProgress;
+	}
 	TArray<AActor*> SaveAbleActors;
 	UGameplayStatics::GetAllActorsWithInterface(GetWorld(),UUK_SaveInterface::StaticClass(),SaveAbleActors);
 	
@@ -154,6 +158,10 @@ void UUK_GameInstance::LoadEntireGame()
 	UUK_InGameSave* LoadedInstance = Cast<UUK_InGameSave>(UGameplayStatics::LoadGameFromSlot(MainSaveSlotName,0));
 	if (!LoadedInstance) return;
 	
+	if (UUKQuestManagerSubsystem* QuestSubsystem = GetSubsystem<UUKQuestManagerSubsystem>())
+	{
+		QuestSubsystem->RuntimeProgress = LoadedInstance->QuestProgressMap;
+	}
 	TArray<AActor*> SaveAbleActors;
 	UGameplayStatics::GetAllActorsWithInterface(GetWorld(),UUK_SaveInterface::StaticClass(),SaveAbleActors);
 	
