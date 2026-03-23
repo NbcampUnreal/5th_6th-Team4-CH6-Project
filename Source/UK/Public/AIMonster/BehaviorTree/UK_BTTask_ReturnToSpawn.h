@@ -36,7 +36,6 @@ protected:
 	float StuckRetryInterval = 1.0f;
 
 private:
-	void RequestMoveTo(AAIController* AICon, const FVector& Dest);
 	void RestoreSpeed(APawn* InPawn);
 
 	float OriginalMaxWalkSpeed = 0.f;

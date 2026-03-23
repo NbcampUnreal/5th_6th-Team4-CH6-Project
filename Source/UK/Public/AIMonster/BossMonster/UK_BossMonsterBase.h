@@ -58,6 +58,10 @@ public:
 	
 	virtual void NotifyAttacked(AController* InstigatorController) override;
 	
+	mutable TWeakObjectPtr<AActor> CachedTarget;
+	
+	void SetCachedTarget(AActor* NewTarget);
+	
 protected:
 	// 공격 타입 추적
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")

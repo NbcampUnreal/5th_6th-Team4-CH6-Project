@@ -8,30 +8,34 @@ UUK_BTTaskNode_BossAttack::UUK_BTTaskNode_BossAttack()
 {
 	NodeName = TEXT("Boss Attack");
 	bNotifyTick = true;
+	bCreateNodeInstance = true;
 	AttackDuration = 5.0f;
 	CurrentTime = 0.f;
 }
 
 EBTNodeResult::Type UUK_BTTaskNode_BossAttack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	CurrentTime = 0.f; 
-	
+	CurrentTime = 0.f;
+ 
 	AAIController* AICtl = OwnerComp.GetAIOwner();
+	if (!AICtl) return EBTNodeResult::Failed;
+ 
 	AUK_BossMonsterBase* Boss = Cast<AUK_BossMonsterBase>(AICtl->GetPawn());
-
 	if (!Boss || Boss->bIsAttacking) return EBTNodeResult::Failed;
-
+ 
 	AICtl->StopMovement();
-	bool bAttackStarted = Boss->PlayRandomAttackMontage();
-	if (!bAttackStarted) return EBTNodeResult::Failed;
+	if (!Boss->PlayRandomAttackMontage()) return EBTNodeResult::Failed;
 
 	CachedBoss = Boss;
 	CachedOwnerComp = &OwnerComp;
-	Boss->OnAttackFinished.BindLambda([this, &OwnerComp]()
+	
+	TWeakObjectPtr<UBehaviorTreeComponent> WeakComp(&OwnerComp);
+	Boss->OnAttackFinished.BindLambda([this, WeakComp]()
 	{
-		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+		if (WeakComp.IsValid())
+			FinishLatentTask(*WeakComp.Get(), EBTNodeResult::Succeeded);
 	});
-
+ 
 	return EBTNodeResult::InProgress;
 }
 

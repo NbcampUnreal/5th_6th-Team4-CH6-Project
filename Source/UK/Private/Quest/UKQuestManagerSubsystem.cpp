@@ -22,6 +22,7 @@
 #include "Quest/DataAsset/UKQuestDefinitionAsset.h"
 #include "Quest/UKQuestObjectiveTypes.h"
 #include "Quest/UKQuestEventParsing.h"
+#include "Systems/Data/UK_InGameSave.h"
 
 
 // [1] Subsystem Lifecycle
@@ -945,18 +946,18 @@ void UUKQuestManagerSubsystem::EmitQuestEvent(FName EventId)
 // [5] Save/Load (보존형 저장)
 bool UUKQuestManagerSubsystem::SaveToSlot(const FString& SlotName, int32 UserIndex)
 {
-	UUKSaveGame* SaveObj = nullptr;
+	UUK_InGameSave* SaveObj = nullptr;
 
 	// 1) 기존 슬롯이 있으면 로드해서 기존 필드 보존
 	if ( UGameplayStatics::DoesSaveGameExist(SlotName, UserIndex) )
 	{
-		SaveObj = Cast<UUKSaveGame>(UGameplayStatics::LoadGameFromSlot(SlotName, UserIndex));
+		SaveObj = Cast<UUK_InGameSave>(UGameplayStatics::LoadGameFromSlot(SlotName, UserIndex));
 	}
 
 	// 2) 없거나 로드 실패면 새로 생성
 	if ( !SaveObj )
 	{
-		SaveObj = Cast<UUKSaveGame>(UGameplayStatics::CreateSaveGameObject(UUKSaveGame::StaticClass()));
+		SaveObj = Cast<UUK_InGameSave>(UGameplayStatics::CreateSaveGameObject(UUK_InGameSave::StaticClass()));
 	}
 
 	if ( !SaveObj ) return false;

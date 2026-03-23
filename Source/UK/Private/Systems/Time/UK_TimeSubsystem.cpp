@@ -16,3 +16,5 @@ void UUK_TimeSubsystem::Tick(float DeltaTime)
 		UE_LOG(LogTemp, Warning, TEXT("현재 월드 시간: %d시"), CurrentHour);
 	}
 }
+	
+

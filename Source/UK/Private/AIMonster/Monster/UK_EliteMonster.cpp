@@ -22,10 +22,6 @@ void AUK_EliteMonster::InitializeStatsFromPlayerLevel(int32 PlayerLevel)
 
 	// 엘리트 전용: 광역 공격 데미지 = (PlayerLevel × 3.14) × 1.5
 	SpecialAttackDamage = CalculateAoEDamage(PlayerLevel);
-
-	UE_LOG(LogTemp, Log,
-		TEXT("[EliteMonster] %s | Lv=%d | NormalATK=%.1f | AoEDamage=%.1f"),
-		*GetName(), PlayerLevel, AttackDamage, SpecialAttackDamage);
 }
 #pragma endregion
 
@@ -113,12 +109,6 @@ void AUK_EliteMonster::ApplySpecialAttackAoE()
 
 		DamagedActors.Add(HitActor);
 		//Player->ReceiveDamage(SpecialAttackDamage);
-
-		UE_LOG(LogTemp, Warning,
-			TEXT("[EliteSpecial AoE] %s → %s | Damage: %.1f | Dist: %.1f"),
-			*GetName(), *Player->GetName(),
-			SpecialAttackDamage,
-			FVector::Dist(Center, Player->GetActorLocation()));
 	}
 }
 
