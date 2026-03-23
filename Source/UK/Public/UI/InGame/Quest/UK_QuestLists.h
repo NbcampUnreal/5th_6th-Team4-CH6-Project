@@ -15,7 +15,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void AddQuestItem(FText QuestName, FText QuestDescription);
 
-protected:
 	UPROPERTY(meta = ( BindWidget ))
 	UScrollBox* QuestScrollBox;
 

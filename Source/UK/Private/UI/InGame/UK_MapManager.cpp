@@ -25,6 +25,14 @@ AUK_MapManager::AUK_MapManager()
 
 	MapCaptureComponent->bCaptureEveryFrame = false;
 	MapCaptureComponent->bCaptureOnMovement = false;
+	MapCaptureComponent->PrimaryComponentTick.bCanEverTick = false;
+	MapCaptureComponent->PrimaryComponentTick.bStartWithTickEnabled = false;
+
+	MapCaptureComponent->PrimitiveRenderMode = ESceneCapturePrimitiveRenderMode::PRM_RenderScenePrimitives;
+	MapCaptureComponent->ShowFlags.SetDynamicShadows(false); // 그림자 계산 끄기
+	MapCaptureComponent->ShowFlags.SetFog(true);            // 안개는 날씨니까 유지
+	MapCaptureComponent->ShowFlags.SetSkeletalMeshes(false); 
+	MapCaptureComponent->ShowFlags.SetParticles(false);
 	
 	#if WITH_EDITORONLY_DATA
 	SetIsSpatiallyLoaded(false);

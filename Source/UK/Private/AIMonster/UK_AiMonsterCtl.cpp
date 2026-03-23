@@ -72,7 +72,6 @@ void AUK_AiMonsterCtl::OnPossess(APawn* InPawn)
 
 		if (BB)
 		{
-			FVector CurrentLocation = ControlledMonster->GetActorLocation();
 			BB->SetValueAsVector(TEXT("SpawnLocation"), ControlledMonster->SpawnLocation);
 			BB->SetValueAsVector(TEXT("PatrolLocation"), ControlledMonster->SpawnLocation);
 		}
@@ -85,9 +84,9 @@ void AUK_AiMonsterCtl::OnPossess(APawn* InPawn)
 	// RVO 회피 설정
 	if (bUseRVOAvoidance)
 	{
-		if (ACharacter* Char = Cast<ACharacter>(InPawn))
+		if (ControlledMonster)
 		{
-			if (UCharacterMovementComponent* MoveComp = Char->GetCharacterMovement())
+			if (UCharacterMovementComponent* MoveComp = ControlledMonster->GetCharacterMovement())
 			{
 				MoveComp->bUseRVOAvoidance             = true;
 				MoveComp->SetAvoidanceGroup(AvoidanceGroup);
@@ -121,12 +120,7 @@ void AUK_AiMonsterCtl::OnUnPossess()
 bool AUK_AiMonsterCtl::IsPlayerCharacter(AActor* Actor) const
 {
 	if (!Actor) return false;
-	if (Cast<AUK_CharacterBase>(Actor)) return true;
-	if (APawn* TestPawn = Cast<APawn>(Actor))
-	{
-		if (TestPawn->IsPlayerControlled()) return true;
-	}
-	return false;
+	return Actor->IsA<AUK_CharacterBase>();
 }
 
 void AUK_AiMonsterCtl::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
@@ -200,11 +194,6 @@ void AUK_AiMonsterCtl::UpdateState()
 #pragma endregion
 
 #pragma region Movement
-void AUK_AiMonsterCtl::UpdateFocusOnTarget(AActor* NewTarget)
-{
-	// Focus 사용 안 함
-}
-
 void AUK_AiMonsterCtl::HandleMovement()
 {
 	if (!ControlledMonster) return;
