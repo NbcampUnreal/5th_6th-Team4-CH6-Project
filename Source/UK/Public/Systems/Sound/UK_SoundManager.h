@@ -28,6 +28,16 @@ public:
 	UFUNCTION(blueprintCallable, BlueprintPure, Category = "SoundManager")
 	static AUK_SoundManager* Get(const UObject* WorldContextObject);
 
+	// 전투 상태 변경 시 호출
+	UFUNCTION(BlueprintCallable, Category = "Sound")
+	void SetCombatState(bool bInCombat);
+
+	void PlayBGM(USoundBase* NewSound, bool bFade = true);
+
+	// 파라미터에 NewFieldSound 추가
+	UFUNCTION(BlueprintCallable, Category = "Sound")
+	void SetCurrentRegion(EBKRegion NewRegion, AAmbientSound* NewFieldSound);
+
 protected:
 	virtual void BeginPlay() override;
 	
@@ -60,15 +70,5 @@ private:
 	
 	UPROPERTY()
 	USoundBase* LastFieldBGM; // 전투 종료 후 복귀용
-
-public:
-	// 지역/구역 진입 시 호출
-	UFUNCTION(BlueprintCallable, Category = "Sound")
-	void SetCurrentRegion(EBKRegion NewRegion);
-
-	// 전투 상태 변경 시 호출
-	UFUNCTION(BlueprintCallable, Category = "Sound")
-	void SetCombatState(bool bInCombat);
-
-	void PlayBGM(USoundBase* NewSound, bool bFade = true);
+	
 };

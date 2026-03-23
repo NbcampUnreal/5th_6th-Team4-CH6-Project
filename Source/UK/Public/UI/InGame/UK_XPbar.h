@@ -50,4 +50,9 @@ private:
 	void UpdateXPInterpolation();
 	void StartInterpTimer();
 	void UpdateXPText(float Percent);
+
+
+	FTimerHandle XPInitTimerHandle;
+
+	void RefreshXPStatus();
 };

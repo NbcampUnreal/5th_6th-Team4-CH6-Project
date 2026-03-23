@@ -21,11 +21,31 @@ void AUK_SoundManager::BeginPlay()
 	Super::BeginPlay();
 }
 
-void AUK_SoundManager::SetCurrentRegion(EBKRegion NewRegion)
+void AUK_SoundManager::SetCurrentRegion(EBKRegion NewRegion, AAmbientSound* NewFieldSound)
 {
 	// 지역 정보 업데이트
 	CurrentRegion = NewRegion;
+	
+	// 새로 들어온 사운드가 이미 재생중인 것과 다르면 무시
+	if (CurrentSound_cpp == NewFieldSound) return;
+	
+	// 이전에 나오던 필드 소리가 있다면 페이드 아웃 후 정지
+	if (IsValid(CurrentSound_cpp))
+	{
+		CurrentSound_cpp->GetAudioComponent()->FadeOut(FadeOutDuration, 0.0f);
+	}
+	
+	// 정보 갱신
+	CurrentRegion = NewRegion;
+	CurrentSound_cpp = NewFieldSound;
+	
+	// 전투 중이 아닐 때만 새 필드 브금 페이드 인
+	if (!bIsInCombat && IsValid(CurrentSound_cpp))
+	{
+		CurrentSound_cpp->GetAudioComponent()->FadeIn(FadeInDuration);
+	}
 }
+
 
 void AUK_SoundManager::SetCombatState(bool bInCombat)
 {
