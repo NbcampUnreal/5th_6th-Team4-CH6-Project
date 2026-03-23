@@ -4,6 +4,9 @@
 #include "Engine/GameInstance.h"
 #include "Dialogue/UKQuestUIManagerSubsystem.h"
 #include "Quest/UKQuestManagerSubsystem.h"
+#include <Kismet/GameplayStatics.h>
+#include <Systems/UK_GameInstance.h>
+#include "Components/ScrollBox.h" 
 
 
 void UUK_QuestMain::NativeConstruct()
@@ -22,7 +25,8 @@ void UUK_QuestMain::NativeConstruct()
 void UUK_QuestMain::RefreshQuestList()
 {
 	if (!QuestLists || !QuestUIManager || !QuestManager) return;
-	
+
+	QuestLists->QuestScrollBox->ClearChildren();
 
 	for (const TPair<FName, FQuestProgress>& Pair : QuestManager->RuntimeProgress)
 	{
