@@ -22,6 +22,10 @@ void AUK_EliteMonster::InitializeStatsFromPlayerLevel(int32 PlayerLevel)
 
 	// 엘리트 전용: 광역 공격 데미지 = (PlayerLevel × 3.14) × 1.5
 	SpecialAttackDamage = CalculateAoEDamage(PlayerLevel);
+
+	UE_LOG(LogTemp, Log,
+		TEXT("[EliteMonster] %s | Lv=%d | NormalATK=%.1f | AoEDamage=%.1f"),
+		*GetName(), PlayerLevel, AttackDamage, SpecialAttackDamage);
 }
 #pragma endregion
 
@@ -47,11 +51,9 @@ bool AUK_EliteMonster::PlaySpecialAttack()
 	bIsSpecialAttacking   = true; 
 	LastSpecialAttackTime = GetWorld()->GetTimeSeconds();
 
-	// 몽타주 길이 미리 계산
 	UAnimInstance* AnimInst = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
 	const float MontageLength = AnimInst ? Montage->GetPlayLength() : 1.0f;
 
-	// 임팩트 타이밍: 몽타주 길이의 40% 시점에 광역 데미지 (BP에서 SpecialAttackHitTiming으로 조절)
 	const float HitDelay = MontageLength * SpecialAttackHitTiming;
 	GetWorldTimerManager().SetTimer(
 		SpecialAttackAoETimerHandle, this,
@@ -108,20 +110,40 @@ void AUK_EliteMonster::ApplySpecialAttackAoE()
 		if (!Player) continue;
 
 		DamagedActors.Add(HitActor);
-		//Player->ReceiveDamage(SpecialAttackDamage);
+
+		UE_LOG(LogTemp, Warning,
+			TEXT("[EliteSpecial AoE] %s → %s | Damage: %.1f | Dist: %.1f"),
+			*GetName(), *Player->GetName(),
+			SpecialAttackDamage,
+			FVector::Dist(Center, Player->GetActorLocation()));
 	}
 }
 
 void AUK_EliteMonster::OnSpecialAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	// 어보트 시 타이머 취소
 	if (bInterrupted)
 	{
 		GetWorldTimerManager().ClearTimer(SpecialAttackAoETimerHandle);
 	}
 
-	bIsAttacking = false;
-	bIsSpecialAttacking = false; 
-	OnSpecialAttackFinished.ExecuteIfBound(); 
+	bIsAttacking        = false;
+	bIsSpecialAttacking = false;
+
+	if (!bIsHit)
+	{
+		OnSpecialAttackFinished.ExecuteIfBound();
+	}
+	else
+	{
+		OnSpecialAttackFinished.Unbind();
+	}
+}
+
+void AUK_EliteMonster::HandleParryReaction()
+{
+	GetWorldTimerManager().ClearTimer(SpecialAttackAoETimerHandle);
+	bIsSpecialAttacking = false;
+
+	Super::HandleParryReaction();
 }
 #pragma endregion
