@@ -111,8 +111,6 @@ void AAIMonsterBase::BeginPlay()
 		AlertWidget->SetVisibility(ESlateVisibility::Collapsed);
 		AlertWidgetComponent->SetVisibility(false);
 		AlertWidgetComponent->SetHiddenInGame(true);
-		
-		UE_LOG(LogTemp, Log, TEXT("[Alert] %s: Widget hidden in BeginPlay ✓"), *GetName());
 	}
 
 	// ── 플레이어 레벨 기반 스탯 자동 초기화 ─────────────────────────────
@@ -148,19 +146,7 @@ void AAIMonsterBase::PostInitializeComponents()
 		AlertWidget = AlertWidgetComponent->GetUserWidgetObject();
 		
 		if (AlertWidget)
-		{
 			AlertWidget->SetVisibility(ESlateVisibility::Collapsed);
-			UE_LOG(LogTemp, Log, TEXT("[Alert] %s: Widget initialized ✓"), *GetName());
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("[Alert] %s: Widget initialization failed ✗"), *GetName());
-		}
-	}
-	else
-	{
-		if (!AlertWidgetClass)
-			UE_LOG(LogTemp, Warning, TEXT("[Alert] %s: AlertWidgetClass not set in BP"), *GetName());
 	}
 	
 	USkeletalMeshComponent* MeshComp = GetMesh();
@@ -277,28 +263,11 @@ void AAIMonsterBase::OnAttack()
 #pragma region Combat
 void AAIMonsterBase::ApplyDamage(float DamageAmount, AController* InstigatorController)
 {
-	UE_LOG(LogTemp, Warning, TEXT("[%s] ApplyDamage Called: %.1f"), *GetName(), DamageAmount);
 	
-	if (bIsDying)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] ✗ Already Dying - Ignoring Damage"), *GetName());
-		return;
-	}
+	if (bIsDying) return;
+	if (!AbilitySystemComponent) return;
+	if (!DamageEffectClass)	return;
 	
-	if (!AbilitySystemComponent)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[%s] ✗✗✗ CRITICAL: No AbilitySystemComponent!"), *GetName());
-		return;
-	}
-	
-	if (!DamageEffectClass)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[%s] ✗✗✗ CRITICAL: DamageEffectClass NOT SET!"), *GetName());
-		UE_LOG(LogTemp, Error, TEXT("   → 블루프린트에서 DamageEffectClass를 설정해야 합니다!"));
-		return;
-	}
-	
-	UE_LOG(LogTemp, Log, TEXT("[%s] ✓ ASC Valid, DamageEffectClass Valid"), *GetName());
 
 	// 공격자 정보 없으면 가장 가까운 플레이어 자동 탐지
 	if (!InstigatorController)
@@ -320,11 +289,7 @@ void AAIMonsterBase::ApplyDamage(float DamageAmount, AController* InstigatorCont
 
 	// 공격자 저장
 	if (InstigatorController && InstigatorController->IsA(APlayerController::StaticClass()))
-	{
 		LastAttackerController = Cast<APlayerController>(InstigatorController);
-		UE_LOG(LogTemp, Log, TEXT("[%s] Attacker: %s"), *GetName(), 
-			*LastAttackerController->GetName());
-	}
 
 	// GameplayEffect로 데미지 적용
 	FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
@@ -341,29 +306,10 @@ void AAIMonsterBase::ApplyDamage(float DamageAmount, AController* InstigatorCont
 		// 네이티브 태그 사용 (UK_GameplayTags::Data::Damage)
 		SpecHandle.Data->SetSetByCallerMagnitude(UK_GameplayTags::Data::Damage, DamageAmount);
 		
-		UE_LOG(LogTemp, Warning, TEXT("[%s] ✓ Applying GameplayEffect: %.1f damage"), 
-			*GetName(), DamageAmount);
-		UE_LOG(LogTemp, Log, TEXT("   Current Health: %.1f / %.1f"), 
-			AttributeSet ? AttributeSet->GetHealth() : -1.0f,
-			AttributeSet ? AttributeSet->GetMaxHealth() : -1.0f);
-		
 		FActiveGameplayEffectHandle ActiveHandle = 
 			AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-		
-		if (ActiveHandle.IsValid())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[%s] ✓ GameplayEffect Applied Successfully"), *GetName());
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("[%s] ✗ GameplayEffect Application Failed!"), *GetName());
-		}
 	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("[%s] ✗✗✗ CRITICAL: Invalid SpecHandle!"), *GetName());
-		UE_LOG(LogTemp, Error, TEXT("   → DamageEffectClass가 올바르게 설정되었는지 확인"));
-	}
+	
 	
 	// 히트 애니메이션
 	if (!bIsDying)
@@ -603,16 +549,13 @@ bool AAIMonsterBase::PlayRandomIdleMontage()
 {
 	if (IdleMontages.Num() == 0) return false;
 
-	TArray<int32> ValidIndices;
+	const int32 StartIndex = FMath::RandRange(0, IdleMontages.Num() - 1);
 	for (int32 i = 0; i < IdleMontages.Num(); ++i)
 	{
-		if (IdleMontages[i]) ValidIndices.Add(i);
+		const int32 Idx = (StartIndex + i) % IdleMontages.Num();
+		if (IdleMontages[Idx]) { PlayIdleMontage(Idx); return true; }
 	}
-	if (ValidIndices.Num() == 0) return false;
-
-	const int32 PickedIndex = ValidIndices[FMath::RandRange(0, ValidIndices.Num() - 1)];
-	PlayIdleMontage(PickedIndex);
-	return true;
+	return false;
 }
 
 void AAIMonsterBase::PlayIdleMontage(int32 MontageIndex)
@@ -644,16 +587,13 @@ bool AAIMonsterBase::PlayRandomHitMontage()
 	if (bIsDying) return false;
 	if (HitMontages.Num() == 0) return false;
 
-	TArray<int32> ValidIndices;
+	const int32 StartIndex = FMath::RandRange(0, HitMontages.Num() - 1);
 	for (int32 i = 0; i < HitMontages.Num(); ++i)
 	{
-		if (HitMontages[i]) ValidIndices.Add(i);
+		const int32 Idx = (StartIndex + i) % HitMontages.Num();
+		if (HitMontages[Idx]) { PlayHitMontage(Idx); return true; }
 	}
-	if (ValidIndices.Num() == 0) return false;
-
-	const int32 PickedIndex = ValidIndices[FMath::RandRange(0, ValidIndices.Num() - 1)];
-	PlayHitMontage(PickedIndex);
-	return true;
+	return false;
 }
 
 void AAIMonsterBase::PlayHitMontage(int32 MontageIndex)
@@ -746,48 +686,22 @@ void AAIMonsterBase::Die()
 
 	GrantRewardsToKiller();
 
+	const float TotalDelay = (CorpseLingerTime > 0.f) ? (1.0f + CorpseLingerTime) : 0.1f;
 	FTimerHandle DeathTimer;
-	GetWorldTimerManager().SetTimer(
-		DeathTimer, this,
-		&AAIMonsterBase::FinalizeDeath,
-		CorpseLingerTime > 0.f ? 1.0f : 0.1f,
-		false);
-}
-
-void AAIMonsterBase::FinalizeDeath()
-{
-	if (GetCapsuleComponent())
-	{
-		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	}
-	
-	if (GetMesh())
-	{
-		GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	}
-	
-	if (GetCharacterMovement())
-	{
-		GetCharacterMovement()->DisableMovement();
-	}
-
-	if (CorpseLingerTime > 0.f)
-	{
-		GetWorldTimerManager().SetTimer(
-			CorpseTimerHandle, this,
-			&AAIMonsterBase::HideAndBroadcastDeath,
-			CorpseLingerTime, false);
-	}
-	else
-	{
-		HideAndBroadcastDeath();
-	}
+	GetWorldTimerManager().SetTimer(DeathTimer, this,
+		&AAIMonsterBase::HideAndBroadcastDeath, TotalDelay, false);
 }
 
 void AAIMonsterBase::HideAndBroadcastDeath()
 {
-	HideCorpse();
+	if (GetCapsuleComponent())
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (GetMesh())
+		GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (GetCharacterMovement())
+		GetCharacterMovement()->DisableMovement();
 
+	HideCorpse();
 	OnMonsterKilled.Broadcast(this, MonsterType, LastAttackerController);
 	OnDeath.Broadcast(this);
 }
@@ -827,8 +741,6 @@ void AAIMonsterBase::ResetHealth()
 			HPWidget->BindMonsterAttributes(AbilitySystemComponent, AttributeSet);
 		}
 	}
-	
-	UE_LOG(LogTemp, Log, TEXT("[%s] ResetHealth: HP restored to %.0f"), *GetName(), MaxHP);
 }
 
 void AAIMonsterBase::ResetForRespawn()
@@ -977,7 +889,7 @@ void AAIMonsterBase::ShowHPBar()
 		GetWorldTimerManager().SetTimer(
 			HPBarUpdateTimer, this,
 			&AAIMonsterBase::UpdateHPBarWidget,
-			0.1f, true);
+			0.2f, true);
 	}
 }
 
@@ -999,18 +911,17 @@ void AAIMonsterBase::UpdateHPBarWidget()
 {
 	if ( !HPWidgetComponent )	return;
 	
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	if ( !PC )	return;
+	if (!CachedPlayerController)
+		CachedPlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (!CachedPlayerController) return;
 
 	FVector CameraLocation;
 	FRotator CameraRotation;
-	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+	CachedPlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
-	const FVector WidgetLocation = HPWidgetComponent->GetComponentLocation();
-	FVector Direction = CameraLocation - WidgetLocation;
+	FVector Direction = CameraLocation - HPWidgetComponent->GetComponentLocation();
 	Direction.Z = 0.f;
-	FRotator LookAtRotation = Direction.Rotation();
-	HPWidgetComponent->SetWorldRotation(LookAtRotation);
+	HPWidgetComponent->SetWorldRotation(Direction.Rotation());
 	HPWidgetComponent->SetWorldScale3D(FVector(0.5f));
 }
 
@@ -1142,23 +1053,24 @@ float AAIMonsterBase::CalculateGold(int32 PlayerLevel) const
 
 FName AAIMonsterBase::GetRowName() const
 {
-    const UEnum* Enum = StaticEnum<EMonsterType>();
-    if (!Enum) return NAME_None;
+	if (CachedRowName != NAME_None) return CachedRowName;
+	
+	const UEnum* Enum = StaticEnum<EMonsterType>();
+	if (!Enum) return NAME_None;
 
-    FString Full = Enum->GetNameStringByValue((int64)MonsterType);
+	FString Full = Enum->GetNameStringByValue((int64)MonsterType);
+	int32 ColonIdx;
+	CachedRowName = Full.FindLastChar(':', ColonIdx)
+		? FName(*Full.Mid(ColonIdx + 1))
+		: FName(*Full);
 
-    int32 ColonIdx;
-    if (Full.FindLastChar(':', ColonIdx))
-        return FName(*Full.Mid(ColonIdx + 1));
-
-    return FName(*Full);
+	return CachedRowName;
 }
 
 const FUK_MonsterStatRow* AAIMonsterBase::GetStatRow() const
 {
     if (!MonsterStatTable)
     {
-        UE_LOG(LogTemp, Warning, TEXT("[%s] MonsterStatTable이 할당되지 않았습니다."), *GetName());
         return nullptr;
     }
     return MonsterStatTable->FindRow<FUK_MonsterStatRow>(GetRowName(), TEXT("GetStatRow"));
@@ -1168,7 +1080,6 @@ const FUK_MonsterMetaRow* AAIMonsterBase::GetMetaRow() const
 {
     if (!MonsterMetaTable)
     {
-        UE_LOG(LogTemp, Warning, TEXT("[%s] MonsterMetaTable이 할당되지 않았습니다."), *GetName());
         return nullptr;
     }
     return MonsterMetaTable->FindRow<FUK_MonsterMetaRow>(GetRowName(), TEXT("GetMetaRow"));
@@ -1233,10 +1144,6 @@ void AAIMonsterBase::InitializeStatsFromPlayerLevel(int32 PlayerLevel)
         AbilitySystemComponent->SetNumericAttributeBase(AttributeSet->GetMaxHealthAttribute(), MaxHP);
         AbilitySystemComponent->SetNumericAttributeBase(AttributeSet->GetHealthAttribute(), MaxHP);
         AbilitySystemComponent->SetNumericAttributeBase(AttributeSet->GetDefenseAttribute(), NewDefense);
-
-        UE_LOG(LogTemp, Log,
-            TEXT("[%s] InitStats | Lv=%d | HP=%.0f | ATK=%.1f | DEF=%.1f"),
-            *GetName(), PlayerLevel, MaxHP, AttackDamage, NewDefense);
     }
 }
 
@@ -1300,9 +1207,6 @@ void AAIMonsterBase::GrantRewardsToKiller()
 		LastAttackerController = FallbackPC;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("[Reward] GrantRewardsToKiller - Controller: %s"),
-		LastAttackerController ? *LastAttackerController->GetName() : TEXT("NULL"));
-
 	if (!LastAttackerController) return;
 
     APawn* KillerPawn = LastAttackerController->GetPawn();
@@ -1359,25 +1263,6 @@ void AAIMonsterBase::GrantRewardsToKiller()
 		GoldGain = FMath::RoundToInt(CalculateGold(PlayerLevel));
 		Inventory->AddGold(GoldGain);
 	}
-
-    // ── 로그 ─────────────────────────────────────────────
-    UE_LOG(LogTemp, Warning, TEXT("========= [Monster Killed: %s] ========="), *GetName());
-    UE_LOG(LogTemp, Warning, TEXT("  Player Level : %d"), PlayerLevel);
-	UE_LOG(LogTemp, Warning, TEXT("  Gold Gained  : %d"), GoldGain);
-    UE_LOG(LogTemp, Warning, TEXT("  EXP Gained   : %.1f"), ExpGain);
-
-    if (DroppedItems.Num() == 0)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("  Items        : None"));
-    }
-    else
-    {
-        for (const FString& ItemLog : DroppedItems)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("  Item Drop    : %s"), *ItemLog);
-        }
-    }
-    UE_LOG(LogTemp, Warning, TEXT("========================================="));
 }
 #pragma endregion
 

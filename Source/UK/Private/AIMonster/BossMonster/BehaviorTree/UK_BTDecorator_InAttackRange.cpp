@@ -4,31 +4,24 @@
 
 UUK_BTDecorator_InAttackRange::UUK_BTDecorator_InAttackRange()
 {
-	NodeName = TEXT("In Attack Range");
+	NodeName      = TEXT("In Attack Range");
 	FlowAbortMode = EBTFlowAbortMode::Both;
-	bNotifyTick = true; 
+	bNotifyTick   = false;
 }
 
-bool UUK_BTDecorator_InAttackRange::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp,uint8* NodeMemory) const
+bool UUK_BTDecorator_InAttackRange::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
-	auto* BB = OwnerComp.GetBlackboardComponent();
+	UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
 	if (!BB) return false;
 
-	AActor* Target =
-		Cast<AActor>(BB->GetValueAsObject(TEXT("TargetActor")));
-
+	AActor* Target = Cast<AActor>(BB->GetValueAsObject(TEXT("TargetActor")));
 	if (!Target) return false;
 
-	auto* AI = OwnerComp.GetAIOwner();
+	AAIController* AI = OwnerComp.GetAIOwner();
 	if (!AI) return false;
 
 	APawn* Pawn = AI->GetPawn();
 	if (!Pawn) return false;
 
-	float Dist = FVector::Dist(
-		Pawn->GetActorLocation(),
-		Target->GetActorLocation()
-	);
-
-	return Dist <= AttackRange;
+	return FVector::DistSquared(Pawn->GetActorLocation(), Target->GetActorLocation()) <= FMath::Square(AttackRange);
 }

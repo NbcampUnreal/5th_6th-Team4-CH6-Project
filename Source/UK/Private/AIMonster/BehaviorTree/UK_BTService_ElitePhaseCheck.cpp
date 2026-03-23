@@ -28,6 +28,11 @@ void UUK_BTService_ElitePhaseCheck::TickNode(UBehaviorTreeComponent& OwnerComp, 
 	UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
 	if (!BB) return;
 
-	BB->SetValueAsBool(CanSpecialAttackKey.SelectedKeyName, Elite->CanUseSpecialAttack());
+	const bool bCan      = Elite->CanUseSpecialAttack();
+	const bool bCurrent  = BB->GetValueAsBool(CanSpecialAttackKey.SelectedKeyName);
+	if (bCan != bCurrent)
+	{
+		BB->SetValueAsBool(CanSpecialAttackKey.SelectedKeyName, bCan);
+	}
 }
 #pragma endregion
