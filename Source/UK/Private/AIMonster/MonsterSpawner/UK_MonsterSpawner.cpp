@@ -132,7 +132,10 @@ void AUK_MonsterSpawner::InitializeObjectPool()
 		Monster->SetActorEnableCollision(false);
 		Monster->SetActorTickEnabled(false);
 		if (UCharacterMovementComponent* MC = Monster->GetCharacterMovement())
+		{
 			MC->DisableMovement();
+			MC->SetComponentTickEnabled(false); 
+		}
 
 		if (AController* AutoCtrl = Monster->GetController()) 
 		{
@@ -202,6 +205,7 @@ void AUK_MonsterSpawner::ActivateMonster(AAIMonsterBase* Monster)
 
     if (UCharacterMovementComponent* Movement = Monster->GetCharacterMovement())
     {
+    	Movement->SetComponentTickEnabled(true);
         Movement->SetMovementMode(MOVE_Walking);
         Movement->Velocity = FVector::ZeroVector;
     }
@@ -281,7 +285,10 @@ void AUK_MonsterSpawner::DeactivateMonster(AAIMonsterBase* Monster)
 	Monster->SetActorEnableCollision(false);
 	Monster->SetActorTickEnabled(false);
 	if (UCharacterMovementComponent* MC = Monster->GetCharacterMovement())
+	{
 		MC->DisableMovement();
+		MC->SetComponentTickEnabled(false);
+	}
 
 	if (AAIController* AICon = Cast<AAIController>(Monster->GetController()))
 	{
