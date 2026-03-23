@@ -715,7 +715,7 @@ void AUK_CharacterBase::LockONToggle()
 						LockOnTimer,
 						this,
 						&AUK_CharacterBase::LockONTick,
-						0.01f,
+						1.f,
 						true
 					);
 				}
@@ -1172,17 +1172,27 @@ void AUK_CharacterBase::EndBattle()
 		ASC->MakeOutgoingSpec(EndBattleEffect, 1.f, ASC->MakeEffectContext());
 
 	const UUK_PlayerStatusAttributeSet* Attributes = ASC->GetSet<UUK_PlayerStatusAttributeSet>();
-	const float HealHPAmount = Attributes->GetMaxHealth() * 0.05f;
-	const float HealMPAmount = Attributes->GetMaxMp() * 0.05f;
 
-	SpecHandle.Data->SetSetByCallerMagnitude(
-		UK_GameplayTags::Data::EndBattle::HealHP,
-		HealHPAmount
-	);
-	SpecHandle.Data->SetSetByCallerMagnitude(
-		UK_GameplayTags::Data::EndBattle::HealMP,
-		HealMPAmount
-	);
+	if ((Attributes->GetHealth() >= Attributes->GetMaxHealth()) && (Attributes->GetCurrentMp() >= Attributes->GetMaxMp()))
+		return;
+	
+	if (Attributes->GetHealth() < Attributes->GetMaxHealth())
+	{
+		const float HealHPAmount = Attributes->GetMaxHealth() * 0.05f;
+		SpecHandle.Data->SetSetByCallerMagnitude(
+			UK_GameplayTags::Data::EndBattle::HealHP,
+			HealHPAmount
+		);
+	}
+
+	if (Attributes->GetCurrentMp() < Attributes->GetMaxMp())
+	{
+		const float HealMPAmount = Attributes->GetMaxMp() * 0.05f;
+		SpecHandle.Data->SetSetByCallerMagnitude(
+			UK_GameplayTags::Data::EndBattle::HealMP,
+			HealMPAmount
+		);
+	}
 
 	EndBattleEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 
