@@ -1332,25 +1332,6 @@ void AAIMonsterBase::GrantRewardsToKiller()
 		GoldGain = FMath::RoundToInt(CalculateGold(PlayerLevel));
 		Inventory->AddGold(GoldGain);
 	}
-
-    // ── 로그 ─────────────────────────────────────────────
-    UE_LOG(LogTemp, Warning, TEXT("========= [Monster Killed: %s] ========="), *GetName());
-    UE_LOG(LogTemp, Warning, TEXT("  Player Level : %d"), PlayerLevel);
-	UE_LOG(LogTemp, Warning, TEXT("  Gold Gained  : %d"), GoldGain);
-    UE_LOG(LogTemp, Warning, TEXT("  EXP Gained   : %.1f"), ExpGain);
-
-    if (DroppedItems.Num() == 0)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("  Items        : None"));
-    }
-    else
-    {
-        for (const FString& ItemLog : DroppedItems)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("  Item Drop    : %s"), *ItemLog);
-        }
-    }
-    UE_LOG(LogTemp, Warning, TEXT("========================================="));
 }
 #pragma endregion
 
