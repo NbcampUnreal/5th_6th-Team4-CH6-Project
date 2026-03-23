@@ -254,6 +254,10 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	                        ETriggerEvent::Started, this, &ThisClass::UltimateSkill);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::Parry),
 	                        ETriggerEvent::Started, this, &ThisClass::Parry);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Inventory),
+		                    ETriggerEvent::Started, this, &ThisClass::Inventory);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::WeaponCrafting),
+		                    ETriggerEvent::Started, this, &ThisClass::WeaponCrafting);
 }
 
 // Called when the game starts or when spawned
@@ -621,6 +625,14 @@ void AUK_CharacterBase::Setting()
 		return;
 
 	PC->Setting_UI();
+}
+
+void AUK_CharacterBase::Inventory()
+{
+}
+
+void AUK_CharacterBase::WeaponCrafting()
+{
 }
 
 #pragma endregion

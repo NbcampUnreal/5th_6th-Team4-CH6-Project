@@ -23,6 +23,8 @@ namespace UK_GameplayTags
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Interaction, "Input.Interaction", "Default Movement Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(LockOnToggle, "Input.LockOnToggle", "Default Movement Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Dash, "Input.Dash", "Default Movement Ability")
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory, "Input.Default.Inventory", "Default Movement Ability")
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(WeaponCrafting, "Input.Default.WeaponCrafting", "Default Movement Ability")
 	}
 
 	namespace Movement
