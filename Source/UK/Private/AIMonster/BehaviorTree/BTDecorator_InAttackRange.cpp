@@ -39,20 +39,17 @@ bool UBTDecorator_InAttackRange::CalculateRawConditionValue(UBehaviorTreeCompone
 
 	float AttackRange = 200.f;
 	float AttackAngle = 150.f; // 전방 ±75
-	if (AAIMonsterBase* Monster = Cast<AAIMonsterBase>(Pawn))
-	{
-		AttackRange = Monster->AttackRange;
-		AttackAngle = Monster->AttackAngle;
-	}
+	if (FVector::DistSquared(MonsterLoc, TargetLoc) > FMath::Square(AttackRange)) return false;
 
 	if (Dist > AttackRange) return false;
 
 	// 전방 각도 체크: 몬스터 정면 기준 AttackAngle 이내에 있어야 공격 가능
-	const FVector Forward      = Pawn->GetActorForwardVector();
-	const FVector ToTarget     = (TargetLoc - MonsterLoc).GetSafeNormal2D();
-	const float   DotProduct   = FVector::DotProduct(Forward.GetSafeNormal2D(), ToTarget);
-	const float   CosHalfAngle = FMath::Cos(FMath::DegreesToRadians(AttackAngle * 0.5f));
-
-	return DotProduct >= CosHalfAngle;
+	const FVector RawForward = Pawn->GetActorForwardVector();
+	const FVector Forward2D  = FVector(RawForward.X, RawForward.Y, 0.f).GetSafeNormal();
+	const FVector ToTarget   = (TargetLoc - MonsterLoc).GetSafeNormal2D();
+	const float   DotProduct = FVector::DotProduct(Forward2D, ToTarget);
+	const float   CosHalf    = FMath::Cos(FMath::DegreesToRadians(AttackAngle * 0.5f));
+ 
+	return DotProduct >= CosHalf;
 }
 #pragma endregion

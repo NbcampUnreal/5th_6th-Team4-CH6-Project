@@ -7,7 +7,7 @@
 UUK_BTService_SetWalkSpeed::UUK_BTService_SetWalkSpeed()
 {
 	NodeName = "Set Walk Speed";
-	Interval = 0.f;
+	Interval        = 1.f;
 	RandomDeviation = 0.f;
 }
 #pragma endregion
@@ -25,7 +25,7 @@ void UUK_BTService_SetWalkSpeed::OnBecomeRelevant(UBehaviorTreeComponent& OwnerC
 	UCharacterMovementComponent* MoveComp = Character->GetCharacterMovement();
 	if (!MoveComp) return;
 
-	Memory->CachedOriginalSpeed = MoveComp->MaxWalkSpeed; 
+	Memory->CachedOriginalSpeed = MoveComp->MaxWalkSpeed;
 	MoveComp->MaxWalkSpeed = WanderSpeed;
 }
 
@@ -46,6 +46,6 @@ void UUK_BTService_SetWalkSpeed::OnCeaseRelevant(UBehaviorTreeComponent& OwnerCo
 
 uint16 UUK_BTService_SetWalkSpeed::GetInstanceMemorySize() const
 {
-	return Super::GetInstanceMemorySize();
+	return sizeof(FSetWalkSpeedMemory);
 }
 #pragma endregion
