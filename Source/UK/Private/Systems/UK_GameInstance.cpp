@@ -9,6 +9,8 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "UI/InGame/Quest/UK_QuestMain.h"
 
 void UUK_GameInstance::Init()
 {
@@ -171,6 +173,21 @@ void UUK_GameInstance::LoadEntireGame()
 		if (SaveIntf)
 		{
 			SaveIntf->OnLoadGame(LoadedInstance);
+		}
+	}
+
+	//시작하면 기존에 저장된 값 불러오는 법
+	if ( UWorld* World = GetWorld() )
+	{
+		TArray<UUserWidget*> FoundWidgets;
+		UWidgetBlueprintLibrary::GetAllWidgetsOfClass(World, FoundWidgets, UUK_QuestMain::StaticClass(), false);
+
+		for ( UUserWidget* Widget : FoundWidgets )
+		{
+			if ( UUK_QuestMain* QuestMain = Cast<UUK_QuestMain>(Widget) )
+			{
+				QuestMain->RefreshQuestList();
+			}
 		}
 	}
 }

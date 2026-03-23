@@ -254,6 +254,12 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	                        ETriggerEvent::Started, this, &ThisClass::UltimateSkill);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::Parry),
 	                        ETriggerEvent::Started, this, &ThisClass::Parry);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Inventory),
+		                    ETriggerEvent::Started, this, &ThisClass::Inventory);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::WeaponCrafting),
+		                    ETriggerEvent::Started, this, &ThisClass::WeaponCrafting);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Esc),
+		                    ETriggerEvent::Started, this, &ThisClass::Esc);
 }
 
 // Called when the game starts or when spawned
@@ -623,6 +629,18 @@ void AUK_CharacterBase::Setting()
 	PC->Setting_UI();
 }
 
+void AUK_CharacterBase::Inventory()
+{
+}
+
+void AUK_CharacterBase::WeaponCrafting()
+{
+}
+
+void AUK_CharacterBase::Esc()
+{
+}
+
 #pragma endregion
 
 #pragma region LockOn
@@ -715,7 +733,7 @@ void AUK_CharacterBase::LockONToggle()
 						LockOnTimer,
 						this,
 						&AUK_CharacterBase::LockONTick,
-						0.01f,
+						1.f,
 						true
 					);
 				}
@@ -1172,17 +1190,27 @@ void AUK_CharacterBase::EndBattle()
 		ASC->MakeOutgoingSpec(EndBattleEffect, 1.f, ASC->MakeEffectContext());
 
 	const UUK_PlayerStatusAttributeSet* Attributes = ASC->GetSet<UUK_PlayerStatusAttributeSet>();
-	const float HealHPAmount = Attributes->GetMaxHealth() * 0.05f;
-	const float HealMPAmount = Attributes->GetMaxMp() * 0.05f;
 
-	SpecHandle.Data->SetSetByCallerMagnitude(
-		UK_GameplayTags::Data::EndBattle::HealHP,
-		HealHPAmount
-	);
-	SpecHandle.Data->SetSetByCallerMagnitude(
-		UK_GameplayTags::Data::EndBattle::HealMP,
-		HealMPAmount
-	);
+	if ((Attributes->GetHealth() >= Attributes->GetMaxHealth()) && (Attributes->GetCurrentMp() >= Attributes->GetMaxMp()))
+		return;
+	
+	if (Attributes->GetHealth() < Attributes->GetMaxHealth())
+	{
+		const float HealHPAmount = Attributes->GetMaxHealth() * 0.05f;
+		SpecHandle.Data->SetSetByCallerMagnitude(
+			UK_GameplayTags::Data::EndBattle::HealHP,
+			HealHPAmount
+		);
+	}
+
+	if (Attributes->GetCurrentMp() < Attributes->GetMaxMp())
+	{
+		const float HealMPAmount = Attributes->GetMaxMp() * 0.05f;
+		SpecHandle.Data->SetSetByCallerMagnitude(
+			UK_GameplayTags::Data::EndBattle::HealMP,
+			HealMPAmount
+		);
+	}
 
 	EndBattleEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 

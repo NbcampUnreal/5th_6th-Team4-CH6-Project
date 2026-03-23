@@ -308,17 +308,12 @@ private:
 	FTimerHandle CorpseTimerHandle;
 	void HideAndBroadcastDeath();
 	
-	UPROPERTY()
-	APlayerController* CachedPlayerController = nullptr;
 public:
 
 	UUK_MonsterHealthBar* GetHPWidget() const;
 
-	virtual void UpdateHPBarWidget();
 	virtual void ShowHPBar();
 	virtual void HideHPBar();
-
-	FTimerHandle HPBarUpdateTimer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|HPBar")
 	float MinHPBarScale = 0.5f;
