@@ -35,11 +35,12 @@ void AUK_MonsterSpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void AUK_MonsterSpawner::StartSpawning()
 {
 	TriggerRefCount++;
-	if (TriggerRefCount != 1)	return;
-	
-	
+	if (TriggerRefCount != 1) return;
 	if (bIsSpawning) return;
 	bIsSpawning = true;
+
+	GetWorldTimerManager().SetTimer(LODTimerHandle, this,
+		&AUK_MonsterSpawner::UpdateMonsterLOD, 0.5f, true); 
 	SpawnInitialMonsters();
 }
 
@@ -48,6 +49,8 @@ bool AUK_MonsterSpawner::StopSpawning()
 	if (TriggerRefCount <= 0)	return false;
 	TriggerRefCount = FMath::Max(0, TriggerRefCount - 1);
 	if (TriggerRefCount != 0)	return false;
+	
+	GetWorldTimerManager().ClearTimer(LODTimerHandle);
 	
 	bIsSpawning = false;
 	for (FTimerHandle& Timer : RespawnTimers)
@@ -354,5 +357,54 @@ void AUK_MonsterSpawner::RegisterMonsterToGameMode(AAIMonsterBase* Monster)
 	if (!GameMode) return;
 
 	GameMode->OnMonsterSpawned(Monster);
+}
+#pragma endregion
+
+#pragma region Distance LOD
+void AUK_MonsterSpawner::UpdateMonsterLOD()
+{
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (!PC || !PC->GetPawn()) return;
+
+	const FVector PlayerLocation = PC->GetPawn()->GetActorLocation();
+
+	for (AAIMonsterBase* Monster : ActiveMonsters)
+	{
+		if (!IsValid(Monster) || Monster->IsDead()) continue;
+
+		const bool bInRange = FVector::Dist2D(PlayerLocation, Monster->GetActorLocation()) <= LODDistance;
+
+		UCharacterMovementComponent* MC = Monster->GetCharacterMovement();
+		USkeletalMeshComponent* Mesh = Monster->GetMesh();
+
+		if (bInRange)
+		{
+			// 범위 안 — 활성화
+			if (MC && !MC->IsComponentTickEnabled())
+			{
+				MC->SetComponentTickEnabled(true);
+				MC->SetMovementMode(MOVE_Walking);
+			}
+			if (Mesh && !Mesh->IsComponentTickEnabled())
+			{
+				Mesh->SetComponentTickEnabled(true);
+				Mesh->SetVisibility(true);
+			}
+		}
+		else
+		{
+			// 범위 밖 — 비활성화
+			if (MC && MC->IsComponentTickEnabled())
+			{
+				MC->DisableMovement();
+				MC->SetComponentTickEnabled(false);
+			}
+			if (Mesh && Mesh->IsComponentTickEnabled())
+			{
+				Mesh->SetComponentTickEnabled(false);
+				Mesh->SetVisibility(false);
+			}
+		}
+	}
 }
 #pragma endregion

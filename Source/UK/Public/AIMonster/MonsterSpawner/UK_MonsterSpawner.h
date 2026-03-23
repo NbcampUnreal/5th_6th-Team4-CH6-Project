@@ -105,4 +105,14 @@ private:
 	int32 TotalSpawnCount = 0;
 	int32 TotalDeathCount = 0;
 #pragma endregion
+	
+#pragma region Distance LOD
+private:
+	void UpdateMonsterLOD();
+    
+	UPROPERTY(EditAnywhere, Category = "Spawner|LOD")
+	float LODDistance = 3000.f;
+    
+	FTimerHandle LODTimerHandle;
+#pragma endregion
 };
