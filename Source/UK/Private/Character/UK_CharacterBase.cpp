@@ -258,6 +258,8 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		                    ETriggerEvent::Started, this, &ThisClass::Inventory);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::WeaponCrafting),
 		                    ETriggerEvent::Started, this, &ThisClass::WeaponCrafting);
+	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Esc),
+		                    ETriggerEvent::Started, this, &ThisClass::Esc);
 }
 
 // Called when the game starts or when spawned
@@ -632,6 +634,10 @@ void AUK_CharacterBase::Inventory()
 }
 
 void AUK_CharacterBase::WeaponCrafting()
+{
+}
+
+void AUK_CharacterBase::Esc()
 {
 }
 

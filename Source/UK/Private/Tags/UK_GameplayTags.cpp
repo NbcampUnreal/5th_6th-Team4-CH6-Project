@@ -25,6 +25,7 @@ namespace UK_GameplayTags
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Dash, "Input.Dash", "Default Movement Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Inventory, "Input.Default.Inventory", "Default Movement Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(WeaponCrafting, "Input.Default.WeaponCrafting", "Default Movement Ability")
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Esc, "Input.Default.Esc", "Default Movement Ability")
 	}
 
 	namespace Movement

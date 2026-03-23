@@ -334,6 +334,9 @@ protected:
 	UFUNCTION()
 	void WeaponCrafting();
 
+	UFUNCTION()
+	void Esc();
+
 #pragma endregion
 public:
 #pragma region LockOn
