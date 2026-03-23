@@ -328,6 +328,12 @@ protected:
 	UFUNCTION()
 	void Setting();
 
+	UFUNCTION()
+	void Inventory();
+
+	UFUNCTION()
+	void WeaponCrafting();
+
 #pragma endregion
 public:
 #pragma region LockOn
