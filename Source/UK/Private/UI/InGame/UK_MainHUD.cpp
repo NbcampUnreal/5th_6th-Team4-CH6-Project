@@ -77,10 +77,10 @@ void UUK_MainHUD::NativeConstruct()
 		}
 	}
 
-	/*if (InventoryButton)
+	if (InventoryButton)
 	{
 		InventoryButton->OnClicked.AddDynamic(this, &UUK_MainHUD::OnInventoryButtonClicked);
-	}*/
+	}
 
 	if (PlayerPawn)
 	{
@@ -202,10 +202,10 @@ void UUK_MainHUD::UpdateLevel(const FOnAttributeChangeData& Data)
 	}
 }
 
-//void UUK_MainHUD::OnInventoryButtonClicked()
-//{
-//	ToggleInventory();
-//}
+void UUK_MainHUD::OnInventoryButtonClicked()
+{
+	ToggleInventory();
+}
 
 void UUK_MainHUD::HandleItemAdded_ShowNew(FName ItemID, int32 Amount)
 {

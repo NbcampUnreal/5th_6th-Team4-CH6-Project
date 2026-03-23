@@ -59,6 +59,11 @@ void AUK_PlayerController::BeginPlay()
 		{
 			MainHUD->AddToViewport();
 			MainHUD->SetVisibility(ESlateVisibility::Collapsed);
+
+			if ( UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance()) )
+			{
+				MainHUD->RefreshAllStatus();
+			}
 		}
 	}
 
@@ -307,6 +312,8 @@ void AUK_PlayerController::ApplyInputState(EInputState NewState)
 		FInputModeGameAndUI Mode;
 		Mode.SetHideCursorDuringCapture(false);
 		Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+
+		Mode.SetWidgetToFocus(nullptr);
 
 		SetInputMode(Mode);
 		SetCursorVisible(true);
