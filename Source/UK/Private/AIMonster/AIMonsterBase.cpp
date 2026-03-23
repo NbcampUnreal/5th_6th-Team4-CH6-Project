@@ -46,11 +46,12 @@ AAIMonsterBase::AAIMonsterBase()
 	// HP Widget 설치
 	HPWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HPWidgetComponent"));
 	HPWidgetComponent->SetupAttachment(GetMesh());
-	HPWidgetComponent->SetWidgetSpace(EWidgetSpace::World);
-	HPWidgetComponent->SetDrawAtDesiredSize(true);
+	HPWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	HPWidgetComponent->SetDrawAtDesiredSize(false);
 	HPWidgetComponent->SetDrawSize(FVector2D(180.f, 20.f));
 	HPWidgetComponent->SetRelativeLocation(FVector(0, 0, 120.f));
 	HPWidgetComponent->SetVisibility(false);
+	HPWidgetComponent->SetCullDistance(3000.f);
 	
 	// Alert Icon Widget 설치 (HPBar 바로 위)
 	AlertWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("AlertWidgetComponent"));
@@ -690,7 +691,6 @@ void AAIMonsterBase::Die()
 	bIsAttacking = false;
 	
 	bHPVisible = false;
-	GetWorldTimerManager().ClearTimer(HPBarUpdateTimer);
 	if (HPWidgetComponent)
 	{
 		HPWidgetComponent->SetVisibility(false);
@@ -943,14 +943,6 @@ void AAIMonsterBase::ShowHPBar()
 			MonsterName = EnumPtr->GetDisplayValueAsText(MonsterType);
 		HPWidget->SetMonsterName(MonsterName);
 	}
-
-	if (GetWorld())
-	{
-		GetWorldTimerManager().SetTimer(
-			HPBarUpdateTimer, this,
-			&AAIMonsterBase::UpdateHPBarWidget,
-			0.2f, true);
-	}
 }
 
 void AAIMonsterBase::HideHPBar()
@@ -964,27 +956,7 @@ void AAIMonsterBase::HideHPBar()
 	}
 	HPWidgetComponent->SetVisibility(false);
 	
-	GetWorldTimerManager().ClearTimer(HPBarUpdateTimer);
 }
-
-void AAIMonsterBase::UpdateHPBarWidget()
-{
-	if ( !HPWidgetComponent )	return;
-	
-	if (!CachedPlayerController)
-		CachedPlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	if (!CachedPlayerController) return;
-
-	FVector CameraLocation;
-	FRotator CameraRotation;
-	CachedPlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
-
-	FVector Direction = CameraLocation - HPWidgetComponent->GetComponentLocation();
-	Direction.Z = 0.f;
-	HPWidgetComponent->SetWorldRotation(Direction.Rotation());
-	HPWidgetComponent->SetWorldScale3D(FVector(0.5f));
-}
-
 #pragma endregion
 
 #pragma region Alert Icon
