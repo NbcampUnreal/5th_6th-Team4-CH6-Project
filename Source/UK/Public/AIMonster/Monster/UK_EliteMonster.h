@@ -72,5 +72,7 @@ public:
 	float SpecialAttackHitTiming = 0.4f;
 
 	void ApplySpecialAttackAoE();
+protected:
+	virtual void HandleParryReaction() override;
 #pragma endregion
 };
