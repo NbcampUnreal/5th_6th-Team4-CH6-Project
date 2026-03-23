@@ -64,8 +64,9 @@ private:
 		bool            bMontageEnded      = false;
 		bool            bPostMontageWait   = false;
 		float           PostMontageEndTime = 0.f;
-		float MidYaw      = 0.f;  
-		bool  bReachedMid = false; 
+		float			CachedWalkSpeed = 0.f;
+		float			MidYaw      = 0.f;  
+		bool			bReachedMid = false; 
 	};
 #pragma endregion
 

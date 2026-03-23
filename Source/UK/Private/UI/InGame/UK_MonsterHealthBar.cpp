@@ -82,7 +82,10 @@ void UUK_MonsterHealthBar::SetMonsterName(const FText& InName)
 
 void UUK_MonsterHealthBar::OnHealthChanged(const FOnAttributeChangeData& Data)
 {
-	UpdateHealthDisplay();
+	if (Data.NewValue < Data.OldValue)
+	{
+		UpdateHealthDisplay();
+	}
 }
 
 void UUK_MonsterHealthBar::UpdateHealthDisplay()

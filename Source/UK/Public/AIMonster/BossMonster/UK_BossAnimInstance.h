@@ -4,6 +4,7 @@
 #include "Animation/AnimInstance.h"
 #include "UK_BossAnimInstance.generated.h"
 
+class AUK_BossMonsterBase;
 
 UCLASS()
 class UK_API UUK_BossAnimInstance : public UAnimInstance
@@ -22,6 +23,11 @@ public:
 
 	UFUNCTION()
 	void AnimNotify_EndAttack();
+	
+	virtual void NativeInitializeAnimation() override;
+private:
+	UPROPERTY()
+	AUK_BossMonsterBase* OwnerBoss = nullptr;
 protected:
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 };

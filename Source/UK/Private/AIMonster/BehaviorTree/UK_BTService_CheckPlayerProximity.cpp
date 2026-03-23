@@ -37,12 +37,12 @@ void UUK_BTService_CheckPlayerProximity::TickNode(UBehaviorTreeComponent& OwnerC
 	if (Monster->bIsAggressive) return;
 
 	const FVector MonsterLocation = ControlledPawn->GetActorLocation();
+	const float AlertDistSq = FMath::Square(Monster->AlertDistance);
 
 	// ── 패스트패스: 기존 타겟과 거리만 재확인 ─────────────────────────────
 	if (AActor* ExistingTarget = Cast<AActor>(BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName)))
 	{
-		const float Dist = FVector::Dist(MonsterLocation, ExistingTarget->GetActorLocation());
-		if (Dist <= Monster->AlertDistance)
+		if (FVector::DistSquared(MonsterLocation, ExistingTarget->GetActorLocation()) <= AlertDistSq)
 		{
 			BlackboardComp->SetValueAsBool(IsPlayerCloseKey.SelectedKeyName, true);
 			return;
@@ -59,29 +59,29 @@ void UUK_BTService_CheckPlayerProximity::TickNode(UBehaviorTreeComponent& OwnerC
 		return;
 	}
 
-	AActor* ClosestPlayer   = nullptr;
-	float   ClosestDistance = MAX_FLT;
+	AActor* ClosestPlayer    = nullptr;
+	float   ClosestDistSq    = MAX_FLT;
 
 	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
 	{
 		APlayerController* PC = It->Get();
 		if (!PC || !PC->GetPawn()) continue;
-
-		const float Distance = FVector::Dist(MonsterLocation, PC->GetPawn()->GetActorLocation());
-		if (Distance < ClosestDistance)
+ 
+		const float DistSq = FVector::DistSquared(MonsterLocation, PC->GetPawn()->GetActorLocation());
+		if (DistSq < ClosestDistSq)
 		{
-			ClosestDistance = Distance;
-			ClosestPlayer   = PC->GetPawn();
+			ClosestDistSq = DistSq;
+			ClosestPlayer = PC->GetPawn();
 		}
 	}
-
+ 
 	if (!ClosestPlayer)
 	{
 		BlackboardComp->SetValueAsBool(IsPlayerCloseKey.SelectedKeyName, false);
 		return;
 	}
 
-	if (ClosestDistance <= Monster->AlertDistance)
+	if (ClosestDistSq <= AlertDistSq)
 	{
 		BlackboardComp->SetValueAsBool(IsPlayerCloseKey.SelectedKeyName, true);
 		BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, ClosestPlayer);
