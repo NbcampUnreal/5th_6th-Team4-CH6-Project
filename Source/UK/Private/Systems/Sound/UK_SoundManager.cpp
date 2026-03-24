@@ -62,7 +62,6 @@ void AUK_SoundManager::SetCombatState(bool bInCombat)
 		// 2. 현재 지역(CurrentRegion)에 맞는 전투 음악 찾아서 재생
 		if (USoundBase** CombatBGM = CombatBGMMappings.Find(CurrentRegion))
 		{
-			UE_LOG(LogTemp, Display, TEXT("CombatBGMStart"))
 			PlayBGM(*CombatBGM);
 		}
 	}

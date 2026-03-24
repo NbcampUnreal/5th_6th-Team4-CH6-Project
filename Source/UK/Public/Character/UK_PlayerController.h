@@ -18,6 +18,8 @@ class UInputAction;
 class UUK_MainHUD;
 class UUK_GameOver;
 class UAbilitySystemComponent;
+class UUK_InvMain;
+class UUserWidget;
 #pragma endregion
 
 UENUM(BlueprintType)
@@ -164,4 +166,37 @@ public:
 	
 	void ShowShopUI(TSubclassOf<UUserWidget>ShopWidgetClass);
 	void HideShopUI();
+
+public:
+	UFUNCTION()
+	bool CloseOpenWidget();
+
+	UFUNCTION(BlueprintCallable)
+	void OpenSettingAndCloseOtherUI();
+
+	// ----- Inventory ----- //추가
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UUK_InvMain> InventoryWidgetClass;
+
+	UPROPERTY(BlueprintReadWrite, Category = "UI")
+	UUK_InvMain* InventoryWidget;
+
+	UFUNCTION(BlueprintCallable)
+	void Inventory_UI();
+
+	UFUNCTION(BlueprintCallable)
+	void CloseInventoryUI();
+
+	// ----- Weapon Crafting ----- //추가
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UUserWidget> WeaponCraftingWidgetClass;
+
+	UPROPERTY(BlueprintReadWrite, Category = "UI")
+	UUserWidget* WeaponCraftingWidget;
+
+	UFUNCTION(BlueprintCallable)
+	void WeaponCrafting_UI();
+
+	UFUNCTION(BlueprintCallable)
+	void CloseWeaponCraftingUI();
 };

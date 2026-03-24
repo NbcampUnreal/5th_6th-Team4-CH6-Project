@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "ActorComponent/UK_InventoryComponent.h"
+#include "Input/Reply.h"
 #include "UK_InvMain.generated.h"
 
 class UWidgetSwitcher;
@@ -52,6 +53,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inv")
 	TArray<TObjectPtr<UDataTable>> ItemDataTables;
+
+	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual FReply NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent);
 
 	virtual void NativeConstruct() override;
 

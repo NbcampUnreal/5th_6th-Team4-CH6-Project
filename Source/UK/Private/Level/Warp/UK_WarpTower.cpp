@@ -26,7 +26,7 @@ void AUK_WarpTower::BeginPlay()
 	Super::BeginPlay();
 
 	// 델리게이트 바인딩
-	CollisionSphere->OnComponentBeginOverlap.AddDynamic(this, &AUK_WarpTower::OnOverlapBegin);
+	CollisionSphere->OnComponentBeginOverlap.AddUniqueDynamic(this, &AUK_WarpTower::OnOverlapBegin);
 
 	// 게임 시작 시 서브시스템에서 활성화 여부 확인
 		if ( UWorld* World = GetWorld() )

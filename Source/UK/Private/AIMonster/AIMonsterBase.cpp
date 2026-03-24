@@ -27,6 +27,8 @@ AAIMonsterBase::AAIMonsterBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	
 	// Ability System Component
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(false); 
@@ -118,6 +120,8 @@ void AAIMonsterBase::BeginPlay()
 
 	// ── 플레이어 레벨 기반 스탯 자동 초기화 ─────────────────────────────
 	AutoInitStatsFromNearestPlayer();
+	
+	ApplyOutlineMaterial();
 }
 
 
@@ -1371,4 +1375,44 @@ void AAIMonsterBase::SpawnFloatingDamage(float InDamage)
 	}
 
 	DamageActor->SetDamageAmount(InDamage);
+}
+
+void AAIMonsterBase::ApplyOutlineMaterial()
+{
+	if (!OutlineMaterial || !GetMesh()) return;
+
+	OutlineMID = UMaterialInstanceDynamic::Create(OutlineMaterial, this);
+	if (!OutlineMID) return;
+
+	FLinearColor OutlineColor = FLinearColor(1.f, 0.85f, 0.f, 1.f); 
+	if (!MonsterMetaTable)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Outline] %s - MonsterMetaTable 없음"), *GetName());
+	}
+	else
+	{
+		const FName RowName = GetRowName(); 
+		const FUK_MonsterMetaRow* Meta = MonsterMetaTable->FindRow<FUK_MonsterMetaRow>(RowName, TEXT(""));
+		
+		UE_LOG(LogTemp, Warning, TEXT("[Outline] %s - RowName: %s, Meta: %s"),
+		   *GetName(), *RowName.ToString(), Meta ? TEXT("찾음") : TEXT("못찾음"));
+
+		if (Meta)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Outline] Rank: %d"), (int32)Meta->Rank);
+			switch (Meta->Rank)
+			{
+			case EMonsterRank::Boss:
+				OutlineColor = FLinearColor(1.f, 0.15f, 0.05f, 1.f);
+				break;
+			case EMonsterRank::Elite:
+				OutlineColor =  FLinearColor(1.f, 0.4f, 0.f, 1.f);  
+				break;
+			default: break; 
+			}
+		}
+	}
+
+	OutlineMID->SetVectorParameterValue(FName("OutlineColor"), OutlineColor);
+	GetMesh()->SetOverlayMaterial(OutlineMID);
 }

@@ -206,12 +206,14 @@ void AUK_MonsterSpawner::ActivateMonster(AAIMonsterBase* Monster)
         Mesh->SetAllBodiesSimulatePhysics(false);
     }
 
-    if (UCharacterMovementComponent* Movement = Monster->GetCharacterMovement())
-    {
-    	Movement->SetComponentTickEnabled(true);
-        Movement->SetMovementMode(MOVE_Walking);
-        Movement->Velocity = FVector::ZeroVector;
-    }
+	if (UCharacterMovementComponent* Movement = Monster->GetCharacterMovement())
+	{
+		Movement->SetComponentTickEnabled(true);
+		Movement->SetMovementMode(MOVE_Walking);
+		Movement->Velocity = FVector::ZeroVector;
+		Movement->bOrientRotationToMovement     = true;   
+		Movement->bUseControllerDesiredRotation = false; 
+	}
 	
 	Monster->ResetAppearance();  
 	Monster->ResetHealth();
@@ -389,6 +391,7 @@ void AUK_MonsterSpawner::UpdateMonsterLOD()
 			{
 				Mesh->SetComponentTickEnabled(true);
 				Mesh->SetVisibility(true);
+				Mesh->SetOverlayMaterial(Monster->GetOutlineMID());
 			}
 		}
 		else
@@ -403,6 +406,7 @@ void AUK_MonsterSpawner::UpdateMonsterLOD()
 			{
 				Mesh->SetComponentTickEnabled(false);
 				Mesh->SetVisibility(false);
+				Mesh->SetOverlayMaterial(nullptr);
 			}
 		}
 	}
