@@ -188,52 +188,47 @@ bool AUK_QuestNPC::IsQuestCompleted(UUKQuestManagerSubsystem* QuestSys, FName In
 
 FName AUK_QuestNPC::ResolveQuestIdToShow(UUKQuestManagerSubsystem* QuestSys) const
 {
-	TArray<FName> CandidateQuestIds = OfferedQuestIDs;
-
-	if ( CandidateQuestIds.Num() == 0 && !QuestID.IsNone() )
-	{
-		CandidateQuestIds.Add(QuestID);
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] CandidateQuestIds Num=%d"), CandidateQuestIds.Num());
-	for ( const FName& Id : CandidateQuestIds )
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] Candidate=%s"), *Id.ToString());
-	}
-
-	if ( !QuestSys || CandidateQuestIds.Num() == 0 )
+	if ( !QuestSys )
 	{
 		return NAME_None;
 	}
 
-	// 1순위: 진행 중(미완료) 퀘스트
-	for ( const FName& CandidateId : CandidateQuestIds )
+	// 0) fallback 단일 퀘스트
+	if ( !QuestID.IsNone() )
 	{
-		FQuestProgress Progress;
-		if ( QuestSys->GetProgress(CandidateId, Progress) )
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] Progress Found: %s Completed=%d"),
-				*CandidateId.ToString(), Progress.bCompleted ? 1 : 0);
+		FQuestProgress FallbackProgress;
+		const bool bStarted = QuestSys->GetProgress(QuestID, FallbackProgress);
+		const bool bCanStart = QuestSys->CanStartQuest(QuestID);
 
-			if ( !Progress.bCompleted )
-			{
-				return CandidateId;
-			}
+		if ( ( bStarted && !FallbackProgress.bCompleted ) || ( !bStarted && bCanStart ) )
+		{
+			return QuestID;
 		}
 	}
 
-	// 2순위: 아직 시작 안 했지만 조건상 시작 가능한 퀘스트
-	for ( const FName& CandidateId : CandidateQuestIds )
+	// 1) 보고/완료 담당 퀘스트 우선
+	for ( const FName& CandidateId : ReportQuestIDs )
+	{
+		FQuestProgress Progress;
+		if ( QuestSys->GetProgress(CandidateId, Progress) && !Progress.bCompleted )
+		{
+			UE_LOG(LogTemp, Log, TEXT("[QuestNPC] ReportQuest picked. NPCID=%s Quest=%s"),
+				*NPCID.ToString(), *CandidateId.ToString());
+			return CandidateId;
+		}
+	}
+
+	// 2) 새로 발급 가능한 퀘스트
+	for ( const FName& CandidateId : OfferQuestIDs )
 	{
 		FQuestProgress Progress;
 		const bool bStarted = QuestSys->GetProgress(CandidateId, Progress);
 		const bool bCanStart = QuestSys->CanStartQuest(CandidateId);
 
-		UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] Check Start: %s Started=%d CanStart=%d"),
-			*CandidateId.ToString(), bStarted ? 1 : 0, bCanStart ? 1 : 0);
-
 		if ( !bStarted && bCanStart )
 		{
+			UE_LOG(LogTemp, Log, TEXT("[QuestNPC] OfferQuest picked. NPCID=%s Quest=%s"),
+				*NPCID.ToString(), *CandidateId.ToString());
 			return CandidateId;
 		}
 	}

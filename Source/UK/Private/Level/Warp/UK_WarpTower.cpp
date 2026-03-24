@@ -74,6 +74,7 @@ void AUK_WarpTower::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* 
 				if ( UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>() )
 				{
 					QuestSys->EmitQuestEvent(FName(TEXT("QuestEvent.Custom.WarpUnlocked")));
+					UE_LOG(LogTemp, Warning, TEXT("[Warp][Quest] Emit WarpUnlocked. Actor=%s"), *GetName());
 				}
 			}
 		}
