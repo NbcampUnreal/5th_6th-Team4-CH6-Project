@@ -111,7 +111,7 @@ protected:
 	TSubclassOf<UUK_WarpIcon> WarpIconClass;
 
 	// 생성된 워프 아이콘들을 관리할 배열
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|Warp")
 	TArray<TObjectPtr<UUK_WarpIcon>> WarpIconWidgets;
 
 	// 월드 좌표 -> 맵 로컬 좌표 변환 (기존 로직 통합)
