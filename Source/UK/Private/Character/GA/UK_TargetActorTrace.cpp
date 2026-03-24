@@ -38,9 +38,12 @@ void AUK_TargetActorTrace::ConfirmTargetingAndContinue()
 		TargetDataReadyDelegate.Broadcast(DataHandle);
 	}
 }
+	DECLARE_CYCLE_STAT(TEXT("GetTraceResult"), GetTraceResult, STATGROUP_UK_Character);
 
 TArray<TWeakObjectPtr<AActor>> AUK_TargetActorTrace::GetTraceResult(AActor* InSourceActor)
 {
+	SCOPE_CYCLE_COUNTER(GetTraceResult);
+	
 	TArray<TWeakObjectPtr<AActor>> TargetActors;
 	AUK_CharacterBase* OwnerCharactor = Cast<AUK_CharacterBase>(SourceActor);
 	if (IsValid(OwnerCharactor) == false)
