@@ -171,6 +171,9 @@ public:
 	UFUNCTION()
 	bool CloseOpenWidget();
 
+	UFUNCTION(BlueprintCallable)
+	void OpenSettingAndCloseOtherUI();
+
 	// ----- Inventory ----- //추가
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UUK_InvMain> InventoryWidgetClass;
