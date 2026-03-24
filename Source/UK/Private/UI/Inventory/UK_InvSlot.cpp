@@ -7,7 +7,10 @@
 #include "UI/Inventory/UK_DraggedItem.h"
 #include "UI/Inventory/UK_InvDragDropOperation.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Kismet/GameplayStatics.h"
 #include "UI/Inventory/UK_ItemTableHelper.h"
+#include "Sound/SoundCue.h"
+#include "Components/Button.h"
 
 void UUK_InvSlot::NativePreConstruct()
 {
@@ -29,6 +32,18 @@ void UUK_InvSlot::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
 {
 	Super::NativeOnMouseLeave(InMouseEvent);
 	OnSlotUnhovered.Broadcast();
+}
+
+void UUK_InvSlot::NativeConstruct()
+{
+	Super::NativeConstruct();
+	
+	if (Item_Button)
+	{
+		Item_Button->OnClicked.AddDynamic(this, &UUK_InvSlot::OnClick);
+		Item_Button->OnHovered.AddDynamic(this, &UUK_InvSlot::OnHovered);
+		Item_Button->OnUnhovered.AddDynamic(this, &UUK_InvSlot::OnUnhovered);
+	}
 }
 
 void UUK_InvSlot::UpdateSlot()
@@ -130,4 +145,28 @@ bool UUK_InvSlot::IsWeaponItem() const
 	}
 
 	return false;
+}
+
+void UUK_InvSlot::OnClick()
+{
+	if (ClickSound)
+	{
+		UGameplayStatics::PlaySound2D(this, ClickSound);
+	}
+}
+
+void UUK_InvSlot::OnHovered()
+{
+	if (HoverSound)
+	{
+		UGameplayStatics::PlaySound2D(this, HoverSound);
+	}
+}
+
+void UUK_InvSlot::OnUnhovered()
+{
+	if (UnhoverSound)
+	{
+		UGameplayStatics::PlaySound2D(this, UnhoverSound);
+	}
 }

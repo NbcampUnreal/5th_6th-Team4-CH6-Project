@@ -13,6 +13,8 @@ class UImage;
 class USizeBox;
 class UTextBlock;
 class UDataTable;
+class USoundCue;
+class UButton;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInvSlotHovered, const FInventorySlot&, SlotData);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInvSlotUnhovered);
@@ -23,6 +25,7 @@ class UK_API UUK_InvSlot : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	virtual void NativeConstruct() override;
 
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	UImage* ItemImage;
@@ -71,9 +74,30 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ItemSlot", meta = ( ExposeOnSpawn = "true" ))
 	TObjectPtr<UUK_InventoryComponent> InventoryComp;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+	USoundCue* ClickSound;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+	USoundCue* HoverSound;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+	USoundCue* UnhoverSound;
+	
+	UPROPERTY(meta = (BindWidget))
+	UButton* Item_Button;
 
 protected:
 	virtual void NativePreConstruct() override;
 	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
+	
+	UFUNCTION()
+	void OnClick();
+	
+	UFUNCTION()
+	void OnHovered();
+	
+	UFUNCTION()
+	void OnUnhovered();
 };
