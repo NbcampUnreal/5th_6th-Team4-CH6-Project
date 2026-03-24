@@ -723,7 +723,7 @@ void AUK_CharacterBase::Setting()
 	if (PC == nullptr)
 		return;
 
-	PC->Setting_UI();
+	PC->OpenSettingAndCloseOtherUI();
 }
 
 DECLARE_CYCLE_STAT(TEXT("Inventory"), Inventory, STATGROUP_UK_Character);
@@ -1429,6 +1429,12 @@ void AUK_CharacterBase::EndBattle()
 	SCOPE_CYCLE_COUNTER(EndBattle);
 
 	bInBattle = false;
+	
+	// 사운드 매니저를 찾아서 전투 상태를 False로 변경
+	if (SoundManager)
+	{
+		SoundManager->SetCombatState(false);
+	}
 
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (IsValid(ASC) == false)
@@ -1462,12 +1468,6 @@ void AUK_CharacterBase::EndBattle()
 	}
 
 	EndBattleEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-
-	// 사운드 매니저를 찾아서 전투 상태를 False로 변경
-	if (SoundManager)
-	{
-		SoundManager->SetCombatState(false);
-	}
 }
 
 DECLARE_CYCLE_STAT(TEXT("HandleLevelUp"), HandleLevelUp, STATGROUP_UK_Character);

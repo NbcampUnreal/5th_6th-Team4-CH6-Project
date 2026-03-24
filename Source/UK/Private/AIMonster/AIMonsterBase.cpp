@@ -27,6 +27,8 @@ AAIMonsterBase::AAIMonsterBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	
 	// Ability System Component
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(false); 

@@ -312,13 +312,10 @@ void AUK_PlayerController::ApplyInputState(EInputState NewState)
 		SetIgnoreLookInput(true);
 		SetIgnoreMoveInput(true);
 
-		FInputModeGameAndUI Mode;
-		Mode.SetHideCursorDuringCapture(false);
+		FInputModeUIOnly Mode; 
 		Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-
-		Mode.SetWidgetToFocus(nullptr);
-
 		SetInputMode(Mode);
+
 		SetCursorVisible(true);
 		break;
 	}
@@ -675,6 +672,42 @@ bool AUK_PlayerController::CloseOpenWidget()
 	return false;
 }
 
+void AUK_PlayerController::OpenSettingAndCloseOtherUI()
+{
+	//세팅이 이미 열려 있으면 닫기
+	if (SettingWidget &&
+		SettingWidget->IsInViewport() &&
+		SettingWidget->GetVisibility() != ESlateVisibility::Collapsed )
+	{
+		bIsSetting = true;
+		Setting_UI();
+		return;
+	}
+
+	//다른 UI 닫기
+	if (InventoryWidget && InventoryWidget->IsInViewport())
+	{
+		CloseInventoryUI();
+	}
+
+	if (WeaponCraftingWidget && WeaponCraftingWidget->IsInViewport())
+	{
+		CloseWeaponCraftingUI();
+	}
+
+	if (QuestWidget && QuestWidget->IsInViewport())
+	{
+		HideQuestUI();
+	}
+
+	//세팅 열기
+	if (SettingWidget)
+	{
+		bIsSetting = false; 
+		Setting_UI();
+	}
+}
+
 void AUK_PlayerController::Inventory_UI()
 {
 	if ( !IsLocalController() ) return;
@@ -702,13 +735,13 @@ void AUK_PlayerController::Inventory_UI()
 	InventoryWidget = CreateWidget<UUK_InvMain>(this, InventoryWidgetClass);
 	if ( !InventoryWidget ) return;
 
-	InventoryWidget->AddToViewport(50);
+	InventoryWidget->AddToViewport(0);
 
 	ApplyInputState(EInputState::UI);
 	SetCursorVisible(true);
 
 	FInputModeGameAndUI Mode;
-	Mode.SetWidgetToFocus(InventoryWidget->TakeWidget());
+	Mode.SetWidgetToFocus(SettingWidget->TakeWidget());
 	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	SetInputMode(Mode);
 
@@ -754,13 +787,13 @@ void AUK_PlayerController::WeaponCrafting_UI()
 	WeaponCraftingWidget = CreateWidget<UUserWidget>(this, WeaponCraftingWidgetClass);
 	if (!WeaponCraftingWidget) return;
 
-	WeaponCraftingWidget->AddToViewport(50);
+	WeaponCraftingWidget->AddToViewport(0);
 
 	ApplyInputState(EInputState::UI);
 	SetCursorVisible(true);
 
 	FInputModeGameAndUI Mode;
-	Mode.SetWidgetToFocus(WeaponCraftingWidget->TakeWidget());
+	Mode.SetWidgetToFocus(SettingWidget->TakeWidget());
 	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	SetInputMode(Mode);
 }
