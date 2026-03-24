@@ -730,18 +730,54 @@ DECLARE_CYCLE_STAT(TEXT("Inventory"), Inventory, STATGROUP_UK_Character);
 
 void AUK_CharacterBase::Inventory()
 {
+	if ( GEngine )
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			2.0f,
+			FColor::Green,
+			TEXT("B 누름")
+		);
+	}
+	if ( PC == nullptr ) return;
+
+	PC->Inventory_UI();
 }
 
 DECLARE_CYCLE_STAT(TEXT("WeaponCrafting"), WeaponCrafting, STATGROUP_UK_Character);
 
 void AUK_CharacterBase::WeaponCrafting()
 {
+	if ( GEngine )
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			2.0f,
+			FColor::Green,
+			TEXT("U 누름")
+		);
+	}
+	if ( PC == nullptr ) return;
+
+	PC->WeaponCrafting_UI();
 }
 
 DECLARE_CYCLE_STAT(TEXT("Esc"), Esc, STATGROUP_UK_Character);
 
 void AUK_CharacterBase::Esc()
 {
+	if ( GEngine )
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			2.0f,
+			FColor::Green,
+			TEXT("Esc 누름")
+		);
+	}
+
+	if ( PC == nullptr ) return;
+	if ( PC->CloseOpenWidget() ) return;
 }
 
 #pragma endregion
