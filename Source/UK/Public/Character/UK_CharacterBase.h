@@ -13,6 +13,7 @@
 #include "UK_CharacterBase.generated.h"
 
 #define ECC_LockOn ECollisionChannel::ECC_GameTraceChannel2
+DECLARE_STATS_GROUP(TEXT("UK_Character"), STATGROUP_UK_Character, STATCAT_Advanced);
 
 #pragma region Forward Declaration
 class AUK_SoundManager;
@@ -276,14 +277,20 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<UGameplayEffect> EndBattleEffect;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	FActiveGameplayEffectHandle HealStaminaEffectHandle;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<UGameplayEffect> ResurrectionEffect;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly)
+	FActiveGameplayEffectHandle HealStaminaEffectHandle;	
+	
+	UPROPERTY(BlueprintReadOnly)
 	FActiveGameplayEffectHandle WeaponEffectHandle;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly)
 	FActiveGameplayEffectHandle EndBattleEffectHandle;
+	
+	UPROPERTY(BlueprintReadOnly)
+	FActiveGameplayEffectHandle ResurrectionEffectHandle;
 #pragma endregion
 	
 #pragma endregion
@@ -327,6 +334,15 @@ protected:
 
 	UFUNCTION()
 	void Setting();
+
+	UFUNCTION()
+	void Inventory();
+
+	UFUNCTION()
+	void WeaponCrafting();
+
+	UFUNCTION()
+	void Esc();
 
 #pragma endregion
 public:
@@ -447,7 +463,9 @@ public:
 	void EndComboAttack();
 
 	UFUNCTION()
-	void Dead();
+	void Dead();	
+	UFUNCTION()
+	void Resurrection();
 
 	UFUNCTION()
 	void SetParry(const bool CheckParry) { bIsParry = CheckParry; }
