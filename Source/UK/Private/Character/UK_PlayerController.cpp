@@ -17,6 +17,7 @@
 #include "GameplayEffectTypes.h"
 #include "Dialogue/UKQuestUIManagerSubsystem.h"
 #include "Systems/UK_GameInstance.h"
+#include "UI/Inventory/UK_InvMain.h"
 
 AUK_PlayerController::AUK_PlayerController()
 	: bMouseCursorEnabled(false)
@@ -641,4 +642,136 @@ void AUK_PlayerController::HideShopUI()
 		bShowMouseCursor = false;
 		SetInputMode(FInputModeGameOnly());
 	}
+}
+
+bool AUK_PlayerController::CloseOpenWidget()
+{
+	bool bCloseAnyWidget = false;
+	
+	if (SettingWidget && SettingWidget->IsInViewport() && SettingWidget->GetVisibility() != ESlateVisibility::Collapsed)
+	{
+		SettingWidget->SetVisibility(ESlateVisibility::Collapsed);
+		bIsSetting = false;
+		ApplyInputState(EInputState::Game);
+		SetCursorVisible(false);
+		return true;
+	}
+	if (InventoryWidget && InventoryWidget->IsInViewport())
+	{
+		CloseInventoryUI();
+		return true;
+	}
+	if (WeaponCraftingWidget && WeaponCraftingWidget->IsInViewport())
+	{
+		CloseWeaponCraftingUI();
+		return true;
+	}
+	if (QuestWidget && QuestWidget->IsInViewport())
+	{
+		HideQuestUI();
+		return true;
+	}
+
+	return false;
+}
+
+void AUK_PlayerController::Inventory_UI()
+{
+	if ( !IsLocalController() ) return;
+	if ( !InventoryWidgetClass ) return;
+
+	//이미 열려있으면 닫기
+	if ( InventoryWidget && InventoryWidget->IsInViewport() )
+	{
+		CloseInventoryUI();
+		return;
+	}
+
+	//다른 UI가 열려있으면 먼저 닫기
+	if ( SettingWidget && SettingWidget->GetVisibility() != ESlateVisibility::Collapsed )
+	{
+		SettingWidget->SetVisibility(ESlateVisibility::Collapsed);
+		bIsSetting = false;
+	}
+
+	if ( WeaponCraftingWidget && WeaponCraftingWidget->IsInViewport() )
+	{
+		CloseWeaponCraftingUI();
+	}
+
+	InventoryWidget = CreateWidget<UUK_InvMain>(this, InventoryWidgetClass);
+	if ( !InventoryWidget ) return;
+
+	InventoryWidget->AddToViewport(50);
+
+	ApplyInputState(EInputState::UI);
+	SetCursorVisible(true);
+
+	FInputModeGameAndUI Mode;
+	Mode.SetWidgetToFocus(InventoryWidget->TakeWidget());
+	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(Mode);
+
+	InventoryWidget->SetIsFocusable(true);
+	InventoryWidget->SetKeyboardFocus();
+}
+
+void AUK_PlayerController::CloseInventoryUI()
+{
+	if (!InventoryWidget) return;
+
+	InventoryWidget->RemoveFromParent();
+	InventoryWidget = nullptr;
+
+	ApplyInputState(EInputState::Game);
+	SetCursorVisible(false);
+}
+
+void AUK_PlayerController::WeaponCrafting_UI()
+{
+	if (!IsLocalController()) return;
+	if (!WeaponCraftingWidgetClass) return;
+
+	//이미 열려있으면 닫기
+	if (WeaponCraftingWidget && WeaponCraftingWidget->IsInViewport())
+	{
+		CloseWeaponCraftingUI();
+		return;
+	}
+
+	//다른 UI 닫기
+	if (SettingWidget && SettingWidget->GetVisibility() != ESlateVisibility::Collapsed)
+	{
+		SettingWidget->SetVisibility(ESlateVisibility::Collapsed);
+		bIsSetting = false;
+	}
+
+	if (InventoryWidget && InventoryWidget->IsInViewport())
+	{
+		CloseInventoryUI();
+	}
+
+	WeaponCraftingWidget = CreateWidget<UUserWidget>(this, WeaponCraftingWidgetClass);
+	if (!WeaponCraftingWidget) return;
+
+	WeaponCraftingWidget->AddToViewport(50);
+
+	ApplyInputState(EInputState::UI);
+	SetCursorVisible(true);
+
+	FInputModeGameAndUI Mode;
+	Mode.SetWidgetToFocus(WeaponCraftingWidget->TakeWidget());
+	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(Mode);
+}
+
+void AUK_PlayerController::CloseWeaponCraftingUI()
+{
+	if (!WeaponCraftingWidget) return;
+
+	WeaponCraftingWidget->RemoveFromParent();
+	WeaponCraftingWidget = nullptr;
+
+	ApplyInputState(EInputState::Game);
+	SetCursorVisible(false);
 }
