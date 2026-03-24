@@ -723,7 +723,7 @@ void AUK_CharacterBase::Setting()
 	if (PC == nullptr)
 		return;
 
-	PC->Setting_UI();
+	PC->OpenSettingAndCloseOtherUI();
 }
 
 DECLARE_CYCLE_STAT(TEXT("Inventory"), Inventory, STATGROUP_UK_Character);
