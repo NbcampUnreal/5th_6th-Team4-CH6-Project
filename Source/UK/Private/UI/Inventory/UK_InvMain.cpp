@@ -10,11 +10,28 @@
 
 #include "Components/Button.h"
 #include "UI/InGame/UK_MainHUD.h"
+#include "InputCoreTypes.h"
+#include "Input/Reply.h"
+#include "Engine/Engine.h"
+
+FReply UUK_InvMain::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	if ( InKeyEvent.GetKey() == EKeys::Escape )
+	{
+		if (AUK_PlayerController* PC = Cast<AUK_PlayerController>(GetOwningPlayer()))
+		{
+			PC->CloseInventoryUI();
+			return FReply::Handled();
+		}
+	}
+
+	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+}
 
 void UUK_InvMain::NativeConstruct()
 {
 	Super::NativeConstruct();
-
+	SetIsFocusable(true);
 	if (InvInfo)
 	{
 		InvInfo->ItemDataTables = ItemDataTables;

@@ -6,6 +6,7 @@
 
 class UTextBlock;
 class UButton;
+class USoundCue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 	FOnInvTapButtonClicked, UUK_InvTapbutton*, OnButtonTap
@@ -42,4 +43,19 @@ public:
 
 	UFUNCTION()
 	void ButtonTapClicked();
+	
+	UFUNCTION()
+	void OnHovered();
+	
+	UFUNCTION()
+	void OnUnHovered();
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+	USoundCue* ClickSound;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+	USoundCue* HoverSound;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+	USoundCue* UnHoverSound;
 };

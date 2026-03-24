@@ -8,6 +8,7 @@
 
 class UUKQuestUIManagerSubsystem;
 class UUK_QuestMain;
+class SoundCue;
 
 UCLASS()
 class UK_API UUK_Quest : public UUserWidget
@@ -38,6 +39,12 @@ protected:
 
 	UFUNCTION()
 	void OnExitButtonClicked();
+	
+	UFUNCTION()
+	void OnPlayButtonHovered();
+	
+	UFUNCTION()
+	void OnPlayButtonUnHovered();
 
 private:
 	// 현재 표시 중인 퀘스트 ID
@@ -63,5 +70,15 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* ExitTextBlock;
+	
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+	USoundCue* ClickSound;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+	USoundCue* HoveredSound;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+	USoundCue* UnHoveredSound;
 
 };
