@@ -6,6 +6,7 @@
 #include "DataAsset/Data/UK_WeaponItemData.h"
 #include "UI/Inventory/UK_InvUI.h"
 #include "Systems/Data/UK_InGameSave.h"
+#include "Character/UK_CharacterBase.h"
 
 // Sets default values for this component's properties
 UUK_InventoryComponent::UUK_InventoryComponent() :
@@ -189,7 +190,6 @@ bool UUK_InventoryComponent::RemoveWeapon(FName ItemID, int32 index)
 	{
 		return false;
 	}
-
 	FInventorySlot* WeaponSlot = &WeaponSlots[ index ];
 
 	if ( WeaponSlot == nullptr || WeaponSlot->isEmpty() ) //수정
@@ -202,9 +202,9 @@ bool UUK_InventoryComponent::RemoveWeapon(FName ItemID, int32 index)
 		return false;
 	}
 
-	OnChangedWeapon.Broadcast(index);
 	WeaponSlot->Clear();
-	OnInventoryUpdate.Broadcast(); //수정
+	OnChangedWeapon.Broadcast(index);
+	OnInventoryUpdate.Broadcast(); //수정 
 	return true;
 }
 
