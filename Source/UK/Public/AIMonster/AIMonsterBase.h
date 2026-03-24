@@ -457,4 +457,18 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FloatingDamage", meta = ( AllowPrivateAccess = "true" ))
 	float FloatingDamageZOffset = 120.f;
 #pragma endregion
+	
+#pragma region Outline
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "Outline")
+	UMaterialInterface* OutlineMaterial;
+
+	void ApplyOutlineMaterial();
+	
+	UPROPERTY()
+	UMaterialInstanceDynamic* OutlineMID = nullptr; 
+
+public:
+	UMaterialInstanceDynamic* GetOutlineMID() const { return OutlineMID; }
+#pragma endregion
 };
