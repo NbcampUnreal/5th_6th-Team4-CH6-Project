@@ -37,7 +37,7 @@
 
 #pragma region Defualt
 DECLARE_CYCLE_STAT(TEXT("UK Character Logic"), STAT_UKCharacter, STATGROUP_UK_Character);
-DECLARE_CYCLE_STAT(TEXT("UK Character Logic"), Constructor, STATGROUP_UK_Character);
+DECLARE_CYCLE_STAT(TEXT("Constructor"), Constructor, STATGROUP_UK_Character);
 
 // 무현님 대머리 ㅋㅋ
 // Sets default values
@@ -101,33 +101,48 @@ AUK_CharacterBase::AUK_CharacterBase(const FObjectInitializer& ObjectInitializer
 }
 
 // Called every frame
+DECLARE_CYCLE_STAT(TEXT("Tick"), Tick, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::Tick(float DeltaTime)
 {
+	SCOPE_CYCLE_COUNTER(Tick);
 	Super::Tick(DeltaTime);
 	//UpdateMovementState();
 }
 
+DECLARE_CYCLE_STAT(TEXT("PossessedBy"), PossessedBy, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::PossessedBy(AController* NewController)
 {
+	SCOPE_CYCLE_COUNTER(PossessedBy);
 	Super::PossessedBy(NewController);
 }
 
+DECLARE_CYCLE_STAT(TEXT("Landed"), Landed, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::Landed(const FHitResult& Hit)
 {
+	SCOPE_CYCLE_COUNTER(Landed);
 	Super::Landed(Hit);
 	FGameplayEventData EventData;
 	EventData.EventTag = UK_GameplayTags::Action::DropAttack;
 	GetAbilitySystemComponent()->HandleGameplayEvent(EventData.EventTag, &EventData);
 }
 
+DECLARE_CYCLE_STAT(TEXT("ChangedAttribute"), ChangedAttribute, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::ChangedAttribute(ECharacterAttribute NewAttribute)
 {
+	SCOPE_CYCLE_COUNTER(ChangedAttribute);
 	Attribute = NewAttribute;
 	OnChangedAttribute.Broadcast(NewAttribute);
 }
 
+DECLARE_CYCLE_STAT(TEXT("UpdateMovementState"), UpdateMovementState, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::UpdateMovementState()
 {
+	SCOPE_CYCLE_COUNTER(UpdateMovementState);
 	ActorTrace();
 	// UCharacterMovementComponent* MoveComp = GetCharacterMovement();
 	//
@@ -160,7 +175,8 @@ void AUK_CharacterBase::UpdateMovementState()
 	// }
 }
 
-DECLARE_CYCLE_STAT(TEXT("UK Character Logic"), BeginPlay, STATGROUP_UK_Character);
+
+DECLARE_CYCLE_STAT(TEXT("BeginPlay"), BeginPlay, STATGROUP_UK_Character);
 
 void AUK_CharacterBase::BeginPlay()
 {
@@ -214,8 +230,12 @@ void AUK_CharacterBase::BeginPlay()
 	}
 }
 
+DECLARE_CYCLE_STAT(TEXT("SetupPlayerInputComponent"), SetupPlayerInputComponent, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
+	SCOPE_CYCLE_COUNTER(SetupPlayerInputComponent);
+
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	UEnhancedInputComponent* UKInputComp = Cast<UEnhancedInputComponent>(PlayerInputComponent);
@@ -262,15 +282,15 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Action::Parry),
 	                        ETriggerEvent::Started, this, &ThisClass::Parry);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Inventory),
-		                    ETriggerEvent::Started, this, &ThisClass::Inventory);
+	                        ETriggerEvent::Started, this, &ThisClass::Inventory);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::WeaponCrafting),
-		                    ETriggerEvent::Started, this, &ThisClass::WeaponCrafting);
+	                        ETriggerEvent::Started, this, &ThisClass::WeaponCrafting);
 	UKInputComp->BindAction(InputMappingConfig->FindNativeInputActionByTag(UK_GameplayTags::Input::Esc),
-		                    ETriggerEvent::Started, this, &ThisClass::Esc);
+	                        ETriggerEvent::Started, this, &ThisClass::Esc);
 }
 
 // Called when the game starts or when spawned
-DECLARE_CYCLE_STAT(TEXT("UK Character Logic"), GetFloorDistance, STATGROUP_UK_Character);
+DECLARE_CYCLE_STAT(TEXT("GetFloorDistance"), GetFloorDistance, STATGROUP_UK_Character);
 
 float AUK_CharacterBase::GetFloorDistance()
 {
@@ -304,7 +324,8 @@ float AUK_CharacterBase::GetFloorDistance()
 }
 
 
-DECLARE_CYCLE_STAT(TEXT("UK Character Logic"), HealStamina, STATGROUP_UK_Character);
+DECLARE_CYCLE_STAT(TEXT("HealStamina"), HealStamina, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::HealStamina()
 {
 	SCOPE_CYCLE_COUNTER(HealStamina);
@@ -346,17 +367,23 @@ void AUK_CharacterBase::HealStamina()
 	}
 }
 
+DECLARE_CYCLE_STAT(TEXT("OutOfStamina"), OutOfStamina, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::OutOfStamina()
 {
+	SCOPE_CYCLE_COUNTER(OutOfStamina);
 	OutOfStaminaHandle.Broadcast();
 }
 
 #pragma endregion
 
 #pragma  region SaveGame
+DECLARE_CYCLE_STAT(TEXT("OnLoadGame"), OnLoadGame, STATGROUP_UK_Character);
 
 void AUK_CharacterBase::OnLoadGame(class UUK_InGameSave* SaveGameObject)
 {
+	SCOPE_CYCLE_COUNTER(OnLoadGame);
+
 	if (!SaveGameObject) return;
 
 	GetCharacterMovement()->StopMovementImmediately();
@@ -379,8 +406,12 @@ void AUK_CharacterBase::OnLoadGame(class UUK_InGameSave* SaveGameObject)
 	}
 }
 
+DECLARE_CYCLE_STAT(TEXT("OnSaveGame"), OnSaveGame, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::OnSaveGame(class UUK_InGameSave* SaveGameObject)
 {
+	SCOPE_CYCLE_COUNTER(OnSaveGame);
+
 	if (!SaveGameObject) return;
 
 	SaveGameObject->PlayerLocation = GetActorLocation();
@@ -402,9 +433,12 @@ void AUK_CharacterBase::OnSaveGame(class UUK_InGameSave* SaveGameObject)
 #pragma endregion
 
 #pragma region GAS
+DECLARE_CYCLE_STAT(TEXT("GetAbilitySystemComponent"), GetAbilitySystemComponent, STATGROUP_UK_Character);
 
 UAbilitySystemComponent* AUK_CharacterBase::GetAbilitySystemComponent() const
 {
+	SCOPE_CYCLE_COUNTER(GetAbilitySystemComponent);
+
 	const AUK_PlayerState* UKPS = Cast<AUK_PlayerState>(GetPlayerState());
 	if (!IsValid(UKPS))
 		return nullptr;
@@ -412,8 +446,12 @@ UAbilitySystemComponent* AUK_CharacterBase::GetAbilitySystemComponent() const
 	return UKPS->GetAbilitySystemComponent();
 }
 
+DECLARE_CYCLE_STAT(TEXT("GiveStartupAbilities"), GiveStartupAbilities, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::GiveStartupAbilities()
 {
+	SCOPE_CYCLE_COUNTER(GiveStartupAbilities);
+
 	if (!IsValid(GetAbilitySystemComponent()))
 		return;
 
@@ -428,8 +466,12 @@ void AUK_CharacterBase::GiveStartupAbilities()
 #pragma region Input
 #pragma region MovementFunction
 
+DECLARE_CYCLE_STAT(TEXT("Move"), Move, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::Move(const FInputActionValue& InputActionValue)
 {
+	SCOPE_CYCLE_COUNTER(Move);
+
 	// bool bIsClimbTrace = ActorTrace();
 	// if (bIsClimbTrace == true)
 	// {
@@ -509,8 +551,11 @@ void AUK_CharacterBase::Move(const FInputActionValue& InputActionValue)
 	}
 }
 
+DECLARE_CYCLE_STAT(TEXT("Look"), Look, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::Look(const FInputActionValue& InputActionValue)
 {
+	SCOPE_CYCLE_COUNTER(Look);
 	const FVector2D LookAxisVector = InputActionValue.Get<FVector2D>();
 
 	if (FMath::IsNearlyZero(LookAxisVector.Y) == false)
@@ -527,8 +572,12 @@ void AUK_CharacterBase::Look(const FInputActionValue& InputActionValue)
 	}
 }
 
+DECLARE_CYCLE_STAT(TEXT("ZoomIn"), ZoomIn, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::ZoomIn()
 {
+	SCOPE_CYCLE_COUNTER(ZoomIn);
+
 	if (!IsValid(SpringArmComp))
 	{
 		return;
@@ -544,8 +593,12 @@ void AUK_CharacterBase::ZoomIn()
 	);
 }
 
+DECLARE_CYCLE_STAT(TEXT("ZoomOut"), ZoomOut, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::ZoomOut()
 {
+	SCOPE_CYCLE_COUNTER(ZoomOut);
+
 	if (!IsValid(SpringArmComp))
 	{
 		return;
@@ -561,7 +614,8 @@ void AUK_CharacterBase::ZoomOut()
 	);
 }
 
-	DECLARE_CYCLE_STAT(TEXT("UK Character Logic"), LightAttack, STATGROUP_UK_Character);
+DECLARE_CYCLE_STAT(TEXT("UK Character Logic"), LightAttack, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::LightAttack()
 {
 	SCOPE_CYCLE_COUNTER(LightAttack);
@@ -587,48 +641,72 @@ void AUK_CharacterBase::LightAttack()
 	}
 }
 
+DECLARE_CYCLE_STAT(TEXT("HeavyAttack"), HeavyAttack, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::HeavyAttack()
 {
+	SCOPE_CYCLE_COUNTER(HeavyAttack);
+
 	InputType = EInputMode::Heavy;
 	FGameplayTagContainer Container;
 	Container.AddTag(UK_GameplayTags::Action::HeavyAttack);
 	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
 }
 
+DECLARE_CYCLE_STAT(TEXT("NormalSkill"), NormalSkill, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::NormalSkill()
 {
+	SCOPE_CYCLE_COUNTER(NormalSkill);
+
 	InputType = EInputMode::NormalSkill;
 	FGameplayTagContainer Container;
 	Container.AddTag(UK_GameplayTags::Input::NomalSkill);
 	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
 }
 
+DECLARE_CYCLE_STAT(TEXT("UltimateSkill"), UltimateSkill, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::UltimateSkill()
 {
+	SCOPE_CYCLE_COUNTER(UltimateSkill);
+
 	InputType = EInputMode::UltimateSkill;
 	FGameplayTagContainer Container;
 	Container.AddTag(UK_GameplayTags::Input::UltimateSkill);
 	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
 }
 
+DECLARE_CYCLE_STAT(TEXT("Parry"), Parry, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::Parry()
 {
+	SCOPE_CYCLE_COUNTER(Parry);
+
 	InputType = EInputMode::Parry;
 	FGameplayTagContainer Container;
 	Container.AddTag(UK_GameplayTags::Action::Parry);
 	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
 }
 
+DECLARE_CYCLE_STAT(TEXT("ToggleMouse"), ToggleMouse, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::ToggleMouse()
 {
+	SCOPE_CYCLE_COUNTER(ToggleMouse);
+
 	if (PC == nullptr)
 		return;
 
 	PC->ToggleMouseCursor();
 }
 
+DECLARE_CYCLE_STAT(TEXT("Interaction"), Interaction, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::Interaction()
 {
+	SCOPE_CYCLE_COUNTER(Interaction);
+
 	if (InteractionComp)
 	{
 		InteractionComp->TryInteract();
@@ -636,21 +714,31 @@ void AUK_CharacterBase::Interaction()
 	UE_LOG(LogTemp, Log, TEXT("상호 작용 시도"));
 }
 
+DECLARE_CYCLE_STAT(TEXT("Setting"), Setting, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::Setting()
 {
+	SCOPE_CYCLE_COUNTER(Setting);
+
 	if (PC == nullptr)
 		return;
 
 	PC->Setting_UI();
 }
 
+DECLARE_CYCLE_STAT(TEXT("Inventory"), Inventory, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::Inventory()
 {
 }
 
+DECLARE_CYCLE_STAT(TEXT("WeaponCrafting"), WeaponCrafting, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::WeaponCrafting()
 {
 }
+
+DECLARE_CYCLE_STAT(TEXT("Esc"), Esc, STATGROUP_UK_Character);
 
 void AUK_CharacterBase::Esc()
 {
@@ -660,8 +748,12 @@ void AUK_CharacterBase::Esc()
 
 #pragma region LockOn
 
+DECLARE_CYCLE_STAT(TEXT("LockON"), LockON, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::LockON()
 {
+	SCOPE_CYCLE_COUNTER(LockON);
+
 	TRACE_CPUPROFILER_EVENT_SCOPE(AUK_CharacterBase_LockOn);
 
 	if (bIsLock == false)
@@ -682,8 +774,12 @@ void AUK_CharacterBase::LockON()
 	}
 }
 
+DECLARE_CYCLE_STAT(TEXT("LockONToggle"), LockONToggle, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::LockONToggle()
 {
+	SCOPE_CYCLE_COUNTER(LockONToggle);
+
 	TRACE_CPUPROFILER_EVENT_SCOPE(AUK_CharacterBase_LockOnToggle);
 	if (bIsLock == false)
 	{
@@ -767,8 +863,12 @@ void AUK_CharacterBase::LockONToggle()
 	}
 }
 
+DECLARE_CYCLE_STAT(TEXT("LockONTick"), LockONTick, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::LockONTick()
 {
+	SCOPE_CYCLE_COUNTER(LockONTick);
+
 	TRACE_CPUPROFILER_EVENT_SCOPE(AUK_CharacterBase_LockONTick);
 
 	if (LockOnList.IsEmpty() == false)
@@ -834,8 +934,12 @@ void AUK_CharacterBase::LockONTick()
 	}
 }
 
+DECLARE_CYCLE_STAT(TEXT("AddTarget"), AddTarget, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::AddTarget(const TObjectPtr<AAIMonsterBase> Monster)
 {
+	SCOPE_CYCLE_COUNTER(AddTarget);
+
 	LockOnList.AddUnique(Monster);
 }
 
@@ -843,8 +947,12 @@ void AUK_CharacterBase::AddTarget(const TObjectPtr<AAIMonsterBase> Monster)
 
 #pragma region Gliding
 
+DECLARE_CYCLE_STAT(TEXT("StartGliding"), StartGliding, STATGROUP_UK_Character);
+
 bool AUK_CharacterBase::StartGliding()
 {
+	SCOPE_CYCLE_COUNTER(StartGliding);
+
 	if (GetCharacterMovement()->IsFalling() == false)
 		return false;
 	if (bIsGliding == true)
@@ -867,8 +975,12 @@ bool AUK_CharacterBase::StartGliding()
 	return true;
 }
 
+DECLARE_CYCLE_STAT(TEXT("EndGliding"), EndGliding, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::EndGliding()
 {
+	SCOPE_CYCLE_COUNTER(EndGliding);
+
 	bIsGliding = false;
 	// if (GetCharacterMovement()->CurrentFloor.IsWalkableFloor() == false)
 	// {
@@ -896,9 +1008,12 @@ void AUK_CharacterBase::EndGliding()
 #pragma endregion
 
 #pragma region Climb
+DECLARE_CYCLE_STAT(TEXT("ActorTrace"), ActorTrace, STATGROUP_UK_Character);
 
 bool AUK_CharacterBase::ActorTrace()
 {
+	SCOPE_CYCLE_COUNTER(ActorTrace);
+
 	FVector Start = SkeletalMeshComp->GetSocketLocation("LookAt");
 	FVector End = Start + (GetActorForwardVector() * TraceDist);
 
@@ -930,8 +1045,12 @@ bool AUK_CharacterBase::ActorTrace()
 	// }
 }
 
+DECLARE_CYCLE_STAT(TEXT("Climb"), Climb, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::Climb(FHitResult& Hit)
 {
+	SCOPE_CYCLE_COUNTER(Climb);
+
 	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
 	MoveComp->SetMovementMode(MOVE_Flying);
 	MoveComp->bOrientRotationToMovement = false;
@@ -957,8 +1076,12 @@ void AUK_CharacterBase::Climb(FHitResult& Hit)
 	);
 }
 
+DECLARE_CYCLE_STAT(TEXT("StartSprintCost"), StartSprintCost, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::StartSprintCost()
 {
+	SCOPE_CYCLE_COUNTER(StartSprintCost);
+
 	bIsSprinted = true;
 	bInUseStamina = true;
 	FGameplayTagContainer TagContainer;
@@ -966,8 +1089,12 @@ void AUK_CharacterBase::StartSprintCost()
 	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(TagContainer);
 }
 
+DECLARE_CYCLE_STAT(TEXT("EndSprintCost"), EndSprintCost, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::EndSprintCost()
 {
+	SCOPE_CYCLE_COUNTER(EndSprintCost);
+
 	bIsSprinted = false;
 	FTimerHandle EndSprintTimer;
 	GetWorldTimerManager().SetTimer(
@@ -988,8 +1115,12 @@ void AUK_CharacterBase::EndSprintCost()
 
 #pragma region Weapon
 
+DECLARE_CYCLE_STAT(TEXT("ChangeWeaponStat"), ChangeWeaponStat, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::ChangeWeaponStat(const FUK_WeaponItemData* WeaponStat)
 {
+	SCOPE_CYCLE_COUNTER(ChangeWeaponStat);
+
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (IsValid(ASC) == false)
 		return;
@@ -1015,8 +1146,12 @@ void AUK_CharacterBase::ChangeWeaponStat(const FUK_WeaponItemData* WeaponStat)
 	WeaponEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 }
 
+DECLARE_CYCLE_STAT(TEXT("EquipWeapon"), EquipWeapon, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 {
+	SCOPE_CYCLE_COUNTER(EquipWeapon);
+
 	if (NewWeapon == UK_GameplayTags::Weapon::WeaponRoot)
 	{
 		RightHandWeaponComponent->SetSkeletalMesh(nullptr);
@@ -1051,8 +1186,12 @@ void AUK_CharacterBase::EquipWeapon(FGameplayTag NewWeapon)
 	}
 }
 
+DECLARE_CYCLE_STAT(TEXT("SlotWeaponOne"), SlotWeaponOne, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::SlotWeaponOne()
 {
+	SCOPE_CYCLE_COUNTER(SlotWeaponOne);
+
 	if (WeaponSlotIndex == 1)
 	{
 		WeaponSlotIndex = 0;
@@ -1067,8 +1206,12 @@ void AUK_CharacterBase::SlotWeaponOne()
 	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
 }
 
+DECLARE_CYCLE_STAT(TEXT("SlotWeaponTwo"), SlotWeaponTwo, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::SlotWeaponTwo()
 {
+	SCOPE_CYCLE_COUNTER(SlotWeaponTwo);
+
 	if (WeaponSlotIndex == 2)
 	{
 		WeaponSlotIndex = 0;
@@ -1083,8 +1226,12 @@ void AUK_CharacterBase::SlotWeaponTwo()
 	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
 }
 
+DECLARE_CYCLE_STAT(TEXT("SlotWeaponThree"), SlotWeaponThree, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::SlotWeaponThree()
 {
+	SCOPE_CYCLE_COUNTER(SlotWeaponThree);
+
 	if (WeaponSlotIndex == 3)
 	{
 		WeaponSlotIndex = 0;
@@ -1100,8 +1247,12 @@ void AUK_CharacterBase::SlotWeaponThree()
 	GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Container);
 }
 
+DECLARE_CYCLE_STAT(TEXT("SwapWeapon"), SwapWeapon, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::SwapWeapon(int32 Index)
 {
+	SCOPE_CYCLE_COUNTER(SwapWeapon);
+
 	if (WeaponSlotIndex != Index + 1)
 		return;
 	if (IsValid(WeaponDataTable) == false)
@@ -1137,8 +1288,12 @@ void AUK_CharacterBase::SwapWeapon(int32 Index)
 
 #pragma region Battle
 
+DECLARE_CYCLE_STAT(TEXT("StopJumpAndFly"), StopJumpAndFly, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::StopJumpAndFly()
 {
+	SCOPE_CYCLE_COUNTER(StopJumpAndFly);
+
 	bIsFry = true;
 	UCharacterMovementComponent* PlayerMovement = GetCharacterMovement();
 	StopJumping();
@@ -1148,8 +1303,12 @@ void AUK_CharacterBase::StopJumpAndFly()
 	PlayerMovement->SetJumpAllowed(false);
 }
 
+DECLARE_CYCLE_STAT(TEXT("EndComboAttack"), EndComboAttack, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::EndComboAttack()
 {
+	SCOPE_CYCLE_COUNTER(EndComboAttack);
+
 	if (bIsFry == false)
 		return;
 	UCharacterMovementComponent* PlayerMovement = GetCharacterMovement();
@@ -1159,8 +1318,12 @@ void AUK_CharacterBase::EndComboAttack()
 	bIsFry = false;
 }
 
+DECLARE_CYCLE_STAT(TEXT("Dead"), Dead, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::Dead()
 {
+	SCOPE_CYCLE_COUNTER(Dead);
+
 	if (GetAbilitySystemComponent()->HasMatchingGameplayTag(UK_GameplayTags::Status::Dead))
 		return;
 
@@ -1178,8 +1341,38 @@ void AUK_CharacterBase::Dead()
 	OnDead.Broadcast();
 }
 
+DECLARE_CYCLE_STAT(TEXT("Resurrection"), Resurrection, STATGROUP_UK_Character);
+
+void AUK_CharacterBase::Resurrection()
+{
+	SCOPE_CYCLE_COUNTER(Resurrection);
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (IsValid(ASC) == false)
+		return;
+	const UUK_PlayerStatusAttributeSet* Attributes = ASC->GetSet<UUK_PlayerStatusAttributeSet>();
+	if (Attributes == nullptr)
+		return;
+
+	ASC->SetNumericAttributeBase(
+		UUK_PlayerStatusAttributeSet::GetHealthAttribute(),
+		100.f
+	);
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && DeathMontage)
+	{
+		if (AnimInstance->Montage_IsPlaying(DeathMontage))
+		{
+			AnimInstance->Montage_Stop(0.2f, DeathMontage);
+		}
+	}
+}
+
+DECLARE_CYCLE_STAT(TEXT("StartBattle"), StartBattle, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::StartBattle()
 {
+	SCOPE_CYCLE_COUNTER(HeavyAttack);
+
 	bInBattle = true;
 	if (GetWorldTimerManager().IsTimerActive(EndBattleTimerHandle))
 	{
@@ -1193,8 +1386,12 @@ void AUK_CharacterBase::StartBattle()
 	}
 }
 
+DECLARE_CYCLE_STAT(TEXT("EndBattle"), EndBattle, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::EndBattle()
 {
+	SCOPE_CYCLE_COUNTER(EndBattle);
+
 	bInBattle = false;
 
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
@@ -1237,8 +1434,12 @@ void AUK_CharacterBase::EndBattle()
 	}
 }
 
+DECLARE_CYCLE_STAT(TEXT("HandleLevelUp"), HandleLevelUp, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::HandleLevelUp()
 {
+	SCOPE_CYCLE_COUNTER(HandleLevelUp);
+
 	// 1. VFX 재생
 	if (LevelUpVFX)
 	{
@@ -1256,8 +1457,12 @@ void AUK_CharacterBase::HandleLevelUp()
 
 #pragma region FindMonsterHPBar
 
+DECLARE_CYCLE_STAT(TEXT("UpdateMonsterDetection"), UpdateMonsterDetection, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::UpdateMonsterDetection()
 {
+	SCOPE_CYCLE_COUNTER(UpdateMonsterDetection);
+
 	if (!IsLocallyControlled())
 		return;
 	TArray<FOverlapResult> Results;

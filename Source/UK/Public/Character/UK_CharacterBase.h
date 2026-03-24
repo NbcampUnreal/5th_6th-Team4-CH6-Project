@@ -277,14 +277,20 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<UGameplayEffect> EndBattleEffect;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	FActiveGameplayEffectHandle HealStaminaEffectHandle;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<UGameplayEffect> ResurrectionEffect;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly)
+	FActiveGameplayEffectHandle HealStaminaEffectHandle;	
+	
+	UPROPERTY(BlueprintReadOnly)
 	FActiveGameplayEffectHandle WeaponEffectHandle;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly)
 	FActiveGameplayEffectHandle EndBattleEffectHandle;
+	
+	UPROPERTY(BlueprintReadOnly)
+	FActiveGameplayEffectHandle ResurrectionEffectHandle;
 #pragma endregion
 	
 #pragma endregion
@@ -457,7 +463,9 @@ public:
 	void EndComboAttack();
 
 	UFUNCTION()
-	void Dead();
+	void Dead();	
+	UFUNCTION()
+	void Resurrection();
 
 	UFUNCTION()
 	void SetParry(const bool CheckParry) { bIsParry = CheckParry; }
