@@ -139,12 +139,14 @@ void AAIMonsterBase::PostInitializeComponents()
 	{
 		HPWidgetComponent->SetWidgetClass(HPWidgetClass);
 		HPWidgetComponent->InitWidget();
+		HPWidgetComponent->SetComponentTickEnabled(false);  // 전투 진입 전까지 틱 OFF
 	}
 	
 	if (AlertWidgetComponent && AlertWidgetClass)
 	{
 		AlertWidgetComponent->SetWidgetClass(AlertWidgetClass);
 		AlertWidgetComponent->InitWidget();
+		AlertWidgetComponent->SetComponentTickEnabled(false);  // ShowAlertIcon 전까지 틱 OFF
 		
 		AlertWidget = AlertWidgetComponent->GetUserWidgetObject();
 		
@@ -930,6 +932,7 @@ void AAIMonsterBase::ShowHPBar()
 	}
 	
 	bHPVisible = true;
+	HPWidgetComponent->SetComponentTickEnabled(true);  // 전투 진입 시 틱 ON
 	HPWidgetComponent->SetVisibility(true);
 	
 	if (HPWidget)
@@ -950,6 +953,7 @@ void AAIMonsterBase::HideHPBar()
 	if (!bHPVisible || !HPWidgetComponent) return;
 	bHPVisible = false;
 
+	HPWidgetComponent->SetComponentTickEnabled(false);  // 비전투 시 틱 OFF
 	if (UUserWidget* Widget = HPWidgetComponent->GetUserWidgetObject())
 	{
 		Widget->SetVisibility(ESlateVisibility::Collapsed);
@@ -967,6 +971,7 @@ void AAIMonsterBase::ShowAlertIcon()
 
 	bIsAlerting = true;
 
+	AlertWidgetComponent->SetComponentTickEnabled(true);  // 알림 표시 시 틱 ON
 	AlertWidgetComponent->SetVisibility(true);
 	AlertWidgetComponent->SetHiddenInGame(false);
 	AlertWidget->SetVisibility(ESlateVisibility::Visible);
@@ -980,6 +985,7 @@ void AAIMonsterBase::HideAlertIcon()
 	bIsAlerting = false;
 
 	AlertWidget->SetVisibility(ESlateVisibility::Collapsed);
+	AlertWidgetComponent->SetComponentTickEnabled(false);  // 알림 종료 시 틱 OFF
 	AlertWidgetComponent->SetVisibility(false);
 	AlertWidgetComponent->SetHiddenInGame(true);
 }
