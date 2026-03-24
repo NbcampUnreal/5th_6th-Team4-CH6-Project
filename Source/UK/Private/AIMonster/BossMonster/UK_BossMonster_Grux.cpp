@@ -40,6 +40,7 @@ AUK_BossMonster_Grux::AUK_BossMonster_Grux()
 void AUK_BossMonster_Grux::BeginPlay()
 {
 	Super::BeginPlay();
+	BaseAttackDamage = AttackDamage;
 }
 
 void AUK_BossMonster_Grux::UpdatePhase()
@@ -164,10 +165,14 @@ bool AUK_BossMonster_Grux::ExecuteJumpAttackAction(float PlayRate)
 	CurrentAttackType = EMonsterAttackType::Special;
 	
     if (!JumpAttack) return false;
-    bIsAttacking = true;
 	
 	FVector StartLoc = GetActorLocation();
-	FVector TargetLoc = GetTargetActor()->GetActorLocation();
+	AActor* Target = GetTargetActor();
+	if (!Target) return false;
+	
+    bIsAttacking = true;
+	
+	FVector TargetLoc = Target->GetActorLocation();
 	
 	if (JumpTargetDecal)
 	{
@@ -219,10 +224,14 @@ bool AUK_BossMonster_Grux::ExecuteDashAttackAction(float PlayRate)
 	CurrentAttackType = EMonsterAttackType::Special;
 	
     if (!DashAttack) return false;
-    bIsAttacking = true;
 
-    DashDirection = (GetTargetActor()->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
-    SetActorRotation(DashDirection.Rotation());
+	AActor* Target = GetTargetActor();
+	if (!Target) return false;
+	
+    bIsAttacking = true;
+	
+	DashDirection = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
+	SetActorRotation(DashDirection.Rotation());
 
     GetWorldTimerManager().SetTimer(DashTimerHandle, this, &AUK_BossMonster_Grux::ExecuteDashMove, 0.033f, true);
     
@@ -354,7 +363,8 @@ void AUK_BossMonster_Grux::LookAtTargetSmooth()
 	
 	FVector Dir = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
 	FRotator TargetRot = Dir.Rotation();
-	FRotator SmoothRot = FMath::RInterpTo(GetActorRotation(), TargetRot, 0.033f, 10.0f);
+	float DeltaTime = GetWorld()->GetDeltaSeconds();
+	FRotator SmoothRot = FMath::RInterpTo(GetActorRotation(), TargetRot, DeltaTime, 10.0f);
     
 	SetActorRotation(SmoothRot);
 }
@@ -365,7 +375,7 @@ void AUK_BossMonster_Grux::ResetForReturn()
     
 	CurrentPhase = 1;
 	AttackCooldown = 4.5f;
-	AttackDamage /= (BerserkPlayRate > 1.0f ? 1.5f : 1.0f); // 버서크 대미지 원복
+	AttackDamage = BaseAttackDamage; 
 	BerserkPlayRate = 1.0f;
 	GetCharacterMovement()->MaxWalkSpeed = 475.f;
     

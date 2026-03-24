@@ -40,6 +40,13 @@ void AUK_BossMonsterBase::BeginPlay()
 	
 	WeaponCollision_R->SetCollisionResponseToAllChannels(ECR_Overlap);
 	WeaponCollision_L->SetCollisionResponseToAllChannels(ECR_Overlap);
+	
+	if (MonsterCombatTable)
+	{
+		FString RowStr;
+		UEnum::GetValueAsString(MonsterType).Split(TEXT("::"), nullptr, &RowStr);
+		CachedCombatRow = MonsterCombatTable->FindRow<FUK_MonsterCombatRow>(FName(*RowStr), TEXT(""));
+	}
 }
 
 void AUK_BossMonsterBase::StartAttack()
@@ -50,17 +57,11 @@ void AUK_BossMonsterBase::StartAttack()
 	SetWeaponCollisionEnabled(true);
 	
 	CachedHitType = EHitReactionType::None;
-	if (MonsterCombatTable)
+	if (CachedCombatRow)
 	{
-		FString RowStr;
-		UEnum::GetValueAsString(MonsterType).Split(TEXT("::"), nullptr, &RowStr);
-		if (FUK_MonsterCombatRow* Row = MonsterCombatTable->FindRow<FUK_MonsterCombatRow>(FName(*RowStr), TEXT("")))
-		{
-			CachedHitType = (CurrentAttackType == EMonsterAttackType::Normal)
-				? Row->NormalAttackHit : Row->SpecialAttackHit;
-		}
+		CachedHitType = (CurrentAttackType == EMonsterAttackType::Normal)
+			? CachedCombatRow->NormalAttackHit : CachedCombatRow->SpecialAttackHit;
 	}
-
 }
 
 void AUK_BossMonsterBase::EndAttack() 
