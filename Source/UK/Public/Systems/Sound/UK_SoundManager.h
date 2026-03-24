@@ -64,10 +64,11 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound|Combat")
 	bool bIsInCombat = false;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
+	EBKRegion CurrentRegion = EBKRegion::None;
 
 private:
-	EBKRegion CurrentRegion = EBKRegion::None;
-	
 	UPROPERTY()
 	USoundBase* LastFieldBGM; // 전투 종료 후 복귀용
 	

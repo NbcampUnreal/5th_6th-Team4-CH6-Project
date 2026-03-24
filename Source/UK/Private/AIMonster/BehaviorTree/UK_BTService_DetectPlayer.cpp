@@ -145,6 +145,7 @@ void UUK_BTService_DetectPlayer::TickPeacefulMode(UBehaviorTreeComponent& OwnerC
 	if (IsValid(Monster->Aggressor))
 	{
 		BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, Monster->Aggressor);
+		AIController->SetFocus(Monster->Aggressor); 
 		return;
 	}
 

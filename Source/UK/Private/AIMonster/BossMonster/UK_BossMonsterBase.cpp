@@ -91,7 +91,7 @@ void AUK_BossMonsterBase::ResetForReturn()
 	// 메시 콜리전 복구 ← 추가
 	if (USkeletalMeshComponent* SKMesh = GetMesh())
 	{
-		SKMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		SKMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		SKMesh->SetAllBodiesSimulatePhysics(false);
 	}
 
