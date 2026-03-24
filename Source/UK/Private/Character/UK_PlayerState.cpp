@@ -37,4 +37,6 @@ void AUK_PlayerState::InitializeAttributes() const
 	ASC->SetNumericAttributeBase(StatusAttributeSet->GetLevelAttribute(), 1.f);
 	ASC->SetNumericAttributeBase(StatusAttributeSet->GetMaxEXPAttribute(), 10.f);
 	ASC->SetNumericAttributeBase(StatusAttributeSet->GetDefenceAttribute(), 1.f);
+	ASC->SetNumericAttributeBase(StatusAttributeSet->GetCriticalChanceAttribute(), 15.f);
+	ASC->SetNumericAttributeBase(StatusAttributeSet->GetCriticalDamageAttribute(), 50.f);
 }

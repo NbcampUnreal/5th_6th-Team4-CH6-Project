@@ -464,7 +464,7 @@ public:
 
 	UFUNCTION()
 	void Dead();	
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void Resurrection();
 
 	UFUNCTION()
