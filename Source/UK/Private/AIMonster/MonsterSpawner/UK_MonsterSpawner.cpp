@@ -389,6 +389,7 @@ void AUK_MonsterSpawner::UpdateMonsterLOD()
 			{
 				Mesh->SetComponentTickEnabled(true);
 				Mesh->SetVisibility(true);
+				Mesh->SetOverlayMaterial(Monster->GetOutlineMID());
 			}
 		}
 		else
@@ -403,6 +404,7 @@ void AUK_MonsterSpawner::UpdateMonsterLOD()
 			{
 				Mesh->SetComponentTickEnabled(false);
 				Mesh->SetVisibility(false);
+				Mesh->SetOverlayMaterial(nullptr);
 			}
 		}
 	}
