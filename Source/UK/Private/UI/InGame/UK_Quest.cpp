@@ -8,6 +8,8 @@
 #include "UI/InGame/Quest/UK_QuestMain.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Dialogue/UKDialogueSubsystem.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
 
 UUK_Quest::UUK_Quest(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -22,6 +24,8 @@ void UUK_Quest::NativeConstruct()
 	if (Accept_Button)
 	{
 		Accept_Button->OnClicked.AddDynamic(this,&UUK_Quest::OnPlayButtonClicked);
+		Accept_Button->OnHovered.AddDynamic(this,&UUK_Quest::OnPlayButtonHovered);
+		Accept_Button->OnUnhovered.AddDynamic(this,&UUK_Quest::OnPlayButtonUnHovered);
 	}
 	if (Exit_Button)
 	{
@@ -172,6 +176,11 @@ void UUK_Quest::OnPlayButtonClicked()
 		PlayerCtl->ApplyInputState(EInputState::Game);
 		PlayerCtl->SetCursorVisible(false);
 	}
+	
+	if (ClickSound)
+	{
+		UGameplayStatics::PlaySound2D(this, ClickSound);
+	}
 
 	RemoveFromParent();
 }
@@ -194,4 +203,20 @@ void UUK_Quest::OnExitButtonClicked()
 	}
 
 	RemoveFromParent();
+}
+
+void UUK_Quest::OnPlayButtonHovered()
+{
+	if (HoveredSound)
+	{
+		UGameplayStatics::PlaySound2D(this, HoveredSound);
+	}
+}
+
+void UUK_Quest::OnPlayButtonUnHovered()
+{
+	if (UnHoveredSound)
+	{
+		UGameplayStatics::PlaySound2D(this, UnHoveredSound);
+	}
 }

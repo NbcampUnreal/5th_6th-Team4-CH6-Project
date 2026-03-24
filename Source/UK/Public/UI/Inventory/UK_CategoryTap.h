@@ -5,6 +5,7 @@
 #include "UK_CategoryTap.generated.h"
 
 class UButton;
+class USoundCue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 	FOnCategoryTapClicked, UUK_CategoryTap*, OnCategoryTap
@@ -41,4 +42,20 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetSelected(bool bInSelected);
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+	USoundCue* ClickSound;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+	USoundCue* HoverSound;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+	USoundCue* UnHoverSound;
+	
+protected:
+	UFUNCTION()
+	void OnHovered();
+	
+	UFUNCTION()
+	void OnUnHovered();
 };
