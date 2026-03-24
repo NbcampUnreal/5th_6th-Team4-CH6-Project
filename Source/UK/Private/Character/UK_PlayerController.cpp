@@ -180,6 +180,8 @@ void AUK_PlayerController::OnPossess(APawn* pawn)
 
 	MyCharacter->OnDead.RemoveAll(this);
 	MyCharacter->OnDead.AddDynamic(this, &ThisClass::ShowGameOverUI);
+
+	SetViewTargetWithBlend(pawn);
 	//UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 }
 
