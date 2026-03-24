@@ -109,6 +109,7 @@ void UUK_DamageExecutionCalculation::Execute_Implementation(
 	if (RandomValue <= CriticalChance)
 	{
 		FinalDamage = FMath::Max(FinalDamage * CriticalDamage, 0.f);
+		UE_LOG(LogTemp, Display, TEXT("FinalDamage : %f"), FinalDamage);
 	}
 
 	if (FinalDamage > 0.f)
