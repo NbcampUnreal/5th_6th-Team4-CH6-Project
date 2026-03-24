@@ -26,6 +26,7 @@ namespace UK_GameplayTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dash);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Inventory);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(WeaponCrafting);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Esc);
 	}
 
 	namespace Movement
