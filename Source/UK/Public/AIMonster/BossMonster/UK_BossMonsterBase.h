@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "AIMonster/AIMonsterBase.h"
 #include "GameplayTagContainer.h"
+#include "DataAsset/DataTable/AIMonster/UK_MonsterCombatRow.h"
 #include "UK_BossMonsterBase.generated.h"
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FBossPhaseChanged,const FGameplayTag&);
@@ -40,7 +41,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Boss|Combat")
 	void SetWeaponCollisionEnabled(bool bEnabled);
-
+	
 	void StartAttack();
 	void EndAttack();
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Phase")
@@ -90,5 +91,7 @@ protected:
 private:
 	UPROPERTY()
 	TArray<AActor*> HitActors;
+	
+	FUK_MonsterCombatRow* CachedCombatRow = nullptr;
 #pragma endregion
 };

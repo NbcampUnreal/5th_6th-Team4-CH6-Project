@@ -22,6 +22,9 @@ protected:
 	virtual void BeginPlay() override;
 	virtual bool PlayRandomAttackMontage() override;
 	
+	UPROPERTY(EditDefaultsOnly, Category = "Grux")
+	float BaseAttackDamage;
+	
 	UPROPERTY(EditDefaultsOnly, Category = "Grux|Patterns")
 	UAnimMontage* SmashAttack;    // 광역 내려찍기 (페이즈 2)
 
