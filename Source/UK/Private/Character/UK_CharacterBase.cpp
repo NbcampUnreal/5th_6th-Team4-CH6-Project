@@ -36,6 +36,8 @@
 #include "ProfilingDebugging/CpuProfilerTrace.h"
 
 #pragma region Defualt
+DECLARE_CYCLE_STAT(TEXT("UK Character Logic"), STAT_UKCharacter, STATGROUP_UK_Character);
+DECLARE_CYCLE_STAT(TEXT("UK Character Logic"), Constructor, STATGROUP_UK_Character);
 
 // 무현님 대머리 ㅋㅋ
 // Sets default values
@@ -48,8 +50,9 @@ AUK_CharacterBase::AUK_CharacterBase(const FObjectInitializer& ObjectInitializer
 	NowWeapon(nullptr),
 	WeaponSlotIndex(0)
 {
+	SCOPE_CYCLE_COUNTER(Constructor);
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = false;
 	bIsClimb = false;
 	GetMesh()->SetRelativeLocationAndRotation(
@@ -157,8 +160,12 @@ void AUK_CharacterBase::UpdateMovementState()
 	// }
 }
 
+DECLARE_CYCLE_STAT(TEXT("UK Character Logic"), BeginPlay, STATGROUP_UK_Character);
+
 void AUK_CharacterBase::BeginPlay()
 {
+	SCOPE_CYCLE_COUNTER(BeginPlay);
+
 	Super::BeginPlay();
 
 	InventoryComponent->OnChangedWeapon.AddDynamic(this, &ThisClass::SwapWeapon);
@@ -257,9 +264,11 @@ void AUK_CharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 }
 
 // Called when the game starts or when spawned
+DECLARE_CYCLE_STAT(TEXT("UK Character Logic"), GetFloorDistance, STATGROUP_UK_Character);
 
 float AUK_CharacterBase::GetFloorDistance()
 {
+	SCOPE_CYCLE_COUNTER(GetFloorDistance);
 	float FloorDist = 0.f;
 	constexpr float TraceDistance = 1000.f;
 
@@ -288,8 +297,12 @@ float AUK_CharacterBase::GetFloorDistance()
 	return FloorDist;
 }
 
+
+DECLARE_CYCLE_STAT(TEXT("UK Character Logic"), HealStamina, STATGROUP_UK_Character);
 void AUK_CharacterBase::HealStamina()
 {
+	SCOPE_CYCLE_COUNTER(HealStamina);
+
 	TRACE_CPUPROFILER_EVENT_SCOPE(AUK_CharacterBase_HealStamina);
 	if (bIsGliding == true)
 	{
@@ -542,8 +555,10 @@ void AUK_CharacterBase::ZoomOut()
 	);
 }
 
+	DECLARE_CYCLE_STAT(TEXT("UK Character Logic"), LightAttack, STATGROUP_UK_Character);
 void AUK_CharacterBase::LightAttack()
 {
+	SCOPE_CYCLE_COUNTER(LightAttack);
 	float Dist = 0.f;
 	FGameplayTagContainer Container;
 	if (GetCharacterMovement()->IsFalling() == true)
@@ -1173,9 +1188,10 @@ void AUK_CharacterBase::EndBattle()
 
 	const UUK_PlayerStatusAttributeSet* Attributes = ASC->GetSet<UUK_PlayerStatusAttributeSet>();
 
-	if ((Attributes->GetHealth() >= Attributes->GetMaxHealth()) && (Attributes->GetCurrentMp() >= Attributes->GetMaxMp()))
+	if ((Attributes->GetHealth() >= Attributes->GetMaxHealth()) && (Attributes->GetCurrentMp() >= Attributes->
+		GetMaxMp()))
 		return;
-	
+
 	if (Attributes->GetHealth() < Attributes->GetMaxHealth())
 	{
 		const float HealHPAmount = Attributes->GetMaxHealth() * 0.05f;

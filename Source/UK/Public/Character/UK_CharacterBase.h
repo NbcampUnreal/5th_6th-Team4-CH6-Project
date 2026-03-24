@@ -13,6 +13,7 @@
 #include "UK_CharacterBase.generated.h"
 
 #define ECC_LockOn ECollisionChannel::ECC_GameTraceChannel2
+DECLARE_STATS_GROUP(TEXT("UK_Character"), STATGROUP_UK_Character, STATCAT_Advanced);
 
 #pragma region Forward Declaration
 class AUK_SoundManager;
