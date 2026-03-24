@@ -108,6 +108,7 @@ void UUK_DamageExecutionCalculation::Execute_Implementation(
 	float FinalDamage = FMath::Max(FinalAttack * SkillDamagePercent, 0.0f);
 	if (RandomValue <= CriticalChance)
 	{
+		ue_log
 		FinalDamage = FMath::Max(FinalDamage * CriticalDamage, 0.f);
 	}
 
