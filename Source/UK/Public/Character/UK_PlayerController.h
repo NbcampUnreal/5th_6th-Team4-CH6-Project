@@ -20,6 +20,7 @@ class UUK_GameOver;
 class UAbilitySystemComponent;
 class UUK_InvMain;
 class UUserWidget;
+class UUK_Crafting;
 #pragma endregion
 
 UENUM(BlueprintType)
@@ -47,11 +48,10 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ClearAllWidgets();
 
-	template <typename T>
-	T* ShowOnlyWidget(TSubclassOf<T> WidgetClass, int32 ZOrder = 0);
-
 	//UFUNCTION()
 	void OnHealthChanged(const FOnAttributeChangeData& Data);
+
+	void CloseAllExceptSetting();
 
 private:
 	UFUNCTION(Client, Reliable)
@@ -59,6 +59,9 @@ private:
 
 public:
 	// ----- Input -----
+
+	bool InputKey_Check(const FInputKeyParams& Params);
+
 	UFUNCTION(BlueprintCallable)
 	void ApplyInputState(EInputState NewState);
 
@@ -84,6 +87,8 @@ public:
 
 	bool bIsSetting = false;
 	void Setting_UI();
+
+	void CloseSettingUI();
 
 	void SetAllGameUIInputVisibility(bool bVisible);
 
@@ -189,10 +194,10 @@ public:
 
 	// ----- Weapon Crafting ----- //추가
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-	TSubclassOf<UUserWidget> WeaponCraftingWidgetClass;
+	TSubclassOf<UUK_Crafting> WeaponCraftingWidgetClass;
 
 	UPROPERTY(BlueprintReadWrite, Category = "UI")
-	UUserWidget* WeaponCraftingWidget;
+	UUK_Crafting* WeaponCraftingWidget;
 
 	UFUNCTION(BlueprintCallable)
 	void WeaponCrafting_UI();

@@ -23,11 +23,11 @@ public:
 	EUKQuestTag Tag = EUKQuestTag::DIA;
 
 	// [B] UI Meta (선택)
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|UI")
-	FText Title;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+	FText QuestTitle;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|UI")
-	FText Description;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+	FText QuestDescription;
 
 	// [C] Objectives (핵심)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|Objectives")
@@ -60,14 +60,4 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|Dialogue")
 	FName DialogueId;     // 예: D_Q_Start_S_DLV_001_Offer
 
-
-	// UI <- Definition <- Data 구조 설계중 (무현)
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
-	FText QuestTitle;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
-	FText QuestDescription;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
-	FText NPCDialogue;
 };
