@@ -29,7 +29,4 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Glide")
 	float GlideFallSpeed;
 #pragma endregion
-	
-	virtual bool IsWalkable(const FHitResult& Hit) const override;
-	
 };
