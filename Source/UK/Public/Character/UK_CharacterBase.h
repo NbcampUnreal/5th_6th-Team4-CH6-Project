@@ -10,6 +10,7 @@
 #include "AIMonster/AIMonsterBase.h"
 #include "DataAsset/HitMontageDataAsset.h"
 #include "Systems/Data/UK_SaveInterface.h"
+#include "Character/UK_CharacterTypes.h"
 #include "UK_CharacterBase.generated.h"
 
 #define ECC_LockOn ECollisionChannel::ECC_GameTraceChannel2
@@ -38,26 +39,6 @@ struct FInputActionValue;
 struct FUK_WeaponItemData;
 #pragma endregion
 
-UENUM(BlueprintType)
-enum class EInputMode : uint8
-{
-	None,
-	Light,
-	Heavy,
-	Air,
-	NormalSkill,
-	UltimateSkill,
-	Parry,
-	Dash
-};
-
-UENUM(BlueprintType)
-enum class ECharacterAttribute : uint8
-{
-	None,
-	Fire,
-	Wind
-};
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadDelagate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOutOfStamina);
