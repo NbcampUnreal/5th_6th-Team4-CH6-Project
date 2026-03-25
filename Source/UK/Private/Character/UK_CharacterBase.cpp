@@ -1477,9 +1477,17 @@ void AUK_CharacterBase::HandleLevelUp()
 	SCOPE_CYCLE_COUNTER(HandleLevelUp);
 
 	// 1. VFX 재생
-	if (LevelUpVFX)
+	if (LevelUpVFX && GetMesh())
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), LevelUpVFX, GetActorLocation());
+		UNiagaraFunctionLibrary::SpawnSystemAttached(
+					LevelUpVFX,               // 재생할 이펙트
+					GetMesh(),                // 부착할 대상 (캐릭터 메쉬)
+					FName("spine_04"),        // 따라다닐 소켓/본 이름
+					FVector(0.f, 0.f, 0.f),   // 위치 오프셋 (필요시 수정)
+					FRotator::ZeroRotator,    // 회전 오프셋
+					EAttachLocation::SnapToTarget, // 소켓 위치에 딱 붙이기
+					true                      // 이펙트 종료 시 자동 제거
+				);
 	}
 
 	// 2. 사운드 재생

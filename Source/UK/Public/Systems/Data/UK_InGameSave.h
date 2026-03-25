@@ -69,6 +69,9 @@ public:
 	UPROPERTY()
 	TArray<FName> ActivatedWarpIDs;
 	
+	UPROPERTY()
+	TArray<FName> OpenedChestIDs;
+	
 	UUK_InGameSave()
 	{
 		SaveSlotName = TEXT("UK_InGameSave");
