@@ -7,11 +7,11 @@
       "nodes": [
         {
           "id": "N_001",
-          "speaker": "NPC_TEST_1",
-          "text": "1번 퀘스트 진행 대화",
+          "speaker": "안나",
+          "text": "어디서 오셨는지는 모르겠지만 환영해요! 마을을 구경 시켜드리고 싶은데 일이 많아서... 혹시 도와 주실수 있으면 준비 하고 다시 말 걸어주실래요?! ",
           "choices": [
             {
-              "text": "대화한다.",
+              "text": "알겠습니다.",
               "next": "N_END",
               "emit": [
                 "QuestEvent.TalkedTo.NPC_TEST_1"
@@ -27,11 +27,11 @@
       "nodes": [
         {
           "id": "N_001",
-          "speaker": "NPC_TEST_1",
-          "text": "1번 퀘스트 완료 대화",
+          "speaker": "안나",
+          "text": "좋아요 ! 마을을 돌아다니면서 도움이 필요한분들이 계신데 시장쪽에 카니 아줌마 좀 도와주시겠어요 ?",
           "choices": [
             {
-              "text": "완료한다.",
+              "text": "알겠습니다.",
               "next": "N_END",
               "emit": [
                 "QuestEvent.Completed.Q_TEST_T_DIA_001"
@@ -48,8 +48,8 @@
       "nodes": [
         {
           "id": "N_001",
-          "speaker": "NPC_TEST_1",
-          "text": "2번 퀘스트 시작 대화",
+          "speaker": "카니",
+          "text": "안나가 보낸 사람이군요~ 내가 급한일이 있는데 나를 좀 도와주면 보수는 두둑하게 챙겨줄게요!!",
           "choices": [
             {
               "text": "수락한다.",
