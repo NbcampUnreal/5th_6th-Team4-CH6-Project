@@ -34,6 +34,7 @@
 #include "Systems/Data/UK_InGameSave.h"
 #include "Systems/Sound/UK_SoundManager.h"
 #include "ProfilingDebugging/CpuProfilerTrace.h"
+#include "Components/SceneCaptureComponent2D.h"
 
 #pragma region Defualt
 DECLARE_CYCLE_STAT(TEXT("UK Character Logic"), STAT_UKCharacter, STATGROUP_UK_Character);
@@ -74,6 +75,33 @@ AUK_CharacterBase::AUK_CharacterBase(const FObjectInitializer& ObjectInitializer
 
 #pragma endregion
 
+#pragma region UI2DRenderCapture
+
+	FrontCaptureSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("FrontCaptureSpringArm"));
+	FrontCaptureSpringArm->SetupAttachment(GetCapsuleComponent());
+
+	FrontCaptureSpringArm->TargetArmLength = 150.f;
+	FrontCaptureSpringArm->SetRelativeLocation(FVector(0.f, 0.f, 80.f));
+
+	FrontCaptureSpringArm->bUsePawnControlRotation = false;
+	FrontCaptureSpringArm->bDoCollisionTest = false;
+	FrontCaptureSpringArm->bEnableCameraLag = false;
+	FrontCaptureSpringArm->bInheritPitch = false;
+	FrontCaptureSpringArm->bInheritYaw = false;
+	FrontCaptureSpringArm->bInheritRoll = false;
+	FrontCaptureSpringArm->SetUsingAbsoluteRotation(true);
+
+	FrontSceneCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("FrontSceneCapture"));
+	FrontSceneCapture->SetupAttachment(FrontCaptureSpringArm, USpringArmComponent::SocketName);
+
+	FrontSceneCapture->ProjectionType = ECameraProjectionMode::Orthographic;
+	FrontSceneCapture->OrthoWidth = 250.f;
+
+	FrontSceneCapture->bCaptureEveryFrame = true;
+	FrontSceneCapture->bCaptureOnMovement = true;
+
+#pragma endregion
+
 #pragma region Camera
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
@@ -98,6 +126,8 @@ AUK_CharacterBase::AUK_CharacterBase(const FObjectInitializer& ObjectInitializer
 	InventoryComponent = CreateDefaultSubobject<UUK_InventoryComponent>(TEXT("InventoryComponent"));
 	InteractionComp = CreateDefaultSubobject<UUK_InteractionComponent>(TEXT("InteractionComponent"));
 	QuestComp = CreateDefaultSubobject<UUK_QuestComponent>(TEXT("QuestComponent"));
+
+	UpdateFrontCaputre();
 }
 
 // Called every frame
@@ -228,6 +258,8 @@ void AUK_CharacterBase::BeginPlay()
 	else
 	{
 	}
+
+	UpdateFrontCaputre();
 }
 
 DECLARE_CYCLE_STAT(TEXT("SetupPlayerInputComponent"), SetupPlayerInputComponent, STATGROUP_UK_Character);
@@ -549,6 +581,8 @@ void AUK_CharacterBase::Move(const FInputActionValue& InputActionValue)
 	{
 		AddMovementInput(RightDirection, MovementVector.Y);
 	}
+
+	UpdateFrontCaputre();
 }
 
 DECLARE_CYCLE_STAT(TEXT("Look"), Look, STATGROUP_UK_Character);
@@ -1557,6 +1591,18 @@ void AUK_CharacterBase::UpdateMonsterDetection()
 		}
 	}
 	NearbyMonsters = NewSet;
+}
+
+#pragma endregion
+
+#pragma region UI2DRenderCapture
+
+void AUK_CharacterBase::UpdateFrontCaputre()
+{
+	if ( !FrontCaptureSpringArm ) return;
+
+	const float ActorYaw = GetActorRotation().Yaw;
+	FrontCaptureSpringArm->SetWorldRotation(FRotator(0.f, ActorYaw + 180.f, 0.f));
 }
 
 #pragma endregion
