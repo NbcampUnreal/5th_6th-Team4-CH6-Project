@@ -210,12 +210,10 @@ FName AUK_QuestNPC::ResolveQuestIdToShow(UUKQuestManagerSubsystem* QuestSys) con
 	for ( const FName& CandidateId : ReportQuestIDs )
 	{
 		FQuestProgress Progress;
-		if ( QuestSys->GetProgress(CandidateId, Progress) && !Progress.bCompleted )
-		{
+		const bool bReportStarted = QuestSys->GetProgress(CandidateId, Progress);
 			UE_LOG(LogTemp, Log, TEXT("[QuestNPC] ReportQuest picked. NPCID=%s Quest=%s"),
 				*NPCID.ToString(), *CandidateId.ToString());
 			return CandidateId;
-		}
 	}
 
 	// 2) 새로 발급 가능한 퀘스트
@@ -481,6 +479,10 @@ bool AUK_QuestNPC::TryProcessDelivery(UUKQuestManagerSubsystem* QuestSys, AUK_Ch
 
 void AUK_QuestNPC::Interact(AActor* Interactor)
 {
+	if ( GEngine )
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 1.0F, FColor::Red, TEXT("F-상호작용(NPC::Interact) 입력됨"));
+	}
 	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(Interactor);
 	if ( !Player ) return;
 
