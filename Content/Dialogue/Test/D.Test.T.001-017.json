@@ -2,19 +2,19 @@
   "packId": "D.Test.T.001-017",
   "dialogues": [
     {
-      "dialogueId": "D_Q_TEST_T_DIA_001_Offer",
+      "dialogueId": "D_Q_TEST_T_DIA_001_InProgress",
       "startNode": "N_001",
       "nodes": [
         {
           "id": "N_001",
           "speaker": "NPC_TEST_1",
-          "text": "1번 퀘스트 시작 대화",
+          "text": "1번 퀘스트 진행 대화",
           "choices": [
             {
-              "text": "수락한다.",
+              "text": "대화한다.",
               "next": "N_END",
               "emit": [
-                "QuestEvent.Accepted.Q_TEST_T_DIA_001"
+                "QuestEvent.TalkedTo.NPC_TEST_1"
               ]
             }
           ]
@@ -48,14 +48,15 @@
       "nodes": [
         {
           "id": "N_001",
-          "speaker": "NPC_TEST_2",
+          "speaker": "NPC_TEST_1",
           "text": "2번 퀘스트 시작 대화",
           "choices": [
             {
               "text": "수락한다.",
               "next": "N_END",
               "emit": [
-                "QuestEvent.Accepted.Q_TEST_T_DIA_002"
+                "QuestEvent.Accepted.Q_TEST_T_DIA_002",
+                "QuestEvent.TalkedTo.NPC_TEST_2"
               ]
             }
           ]
@@ -154,7 +155,8 @@
               "text": "수락한다.",
               "next": "N_END",
               "emit": [
-                "QuestEvent.Accepted.Q_TEST_T_DIA_004"
+                "QuestEvent.Accepted.Q_TEST_T_DIA_004",
+                "QuestEvent.TalkedTo.NPC_TEST_1"
               ]
             }
           ]
@@ -427,7 +429,8 @@
               "text": "수락한다.",
               "next": "N_END",
               "emit": [
-                "QuestEvent.Accepted.Q_TEST_T_DIA_009"
+                "QuestEvent.Accepted.Q_TEST_T_DIA_009",
+                "QuestEvent.TalkedTo.NPC_TEST_3"
               ]
             }
           ]
@@ -700,7 +703,8 @@
               "text": "수락한다.",
               "next": "N_END",
               "emit": [
-                "QuestEvent.Accepted.Q_TEST_T_DIA_014"
+                "QuestEvent.Accepted.Q_TEST_T_DIA_014",
+                "QuestEvent.TalkedTo.NPC_TEST_6"
               ]
             }
           ]

@@ -1,7 +1,8 @@
-#include "DataAsset/DataTable/UK_CraftingSubsystem.h"
+﻿#include "DataAsset/DataTable/UK_CraftingSubsystem.h"
 #include "DataAsset/DataTable/UK_CraftingRecipeRow.h"
 #include "ActorComponent/UK_InventoryComponent.h"
 #include "DataAsset/Data/UK_ItemData.h"
+#include "Quest/UKQuestManagerSubsystem.h"
 
 void UUK_CraftingSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -69,6 +70,16 @@ bool UUK_CraftingSubsystem::TryCraftItem(FName RecipeRowName)
 	//결과물 지급
 	PlayerInv->AddItem(Recipe->TargetItemId, 1);
     
+	// 임시 퀘스트 권한 부여
+	if ( UGameInstance* GI = GetGameInstance() )
+	{
+		if ( UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>() )
+		{
+			QuestSys->EmitQuestEvent(FName(TEXT("QuestEvent.Custom.CraftCompleted")));
+			UE_LOG(LogTemp, Warning, TEXT("[Craft][Quest] Emit CraftCompleted. Actor=%s"), *GetName());
+		}
+	}
+
 	UE_LOG(LogTemp, Log, TEXT("%s 제작 완료!"), *Recipe->RecipeDisplayName.ToString());
 	return true;
 }

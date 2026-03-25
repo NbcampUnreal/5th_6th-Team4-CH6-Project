@@ -65,8 +65,13 @@ public:
 	FName QuestID;
 
 	// 중장기 구조: 이 NPC가 순서대로 담당하는 퀘스트 목록
+	// 이 NPC가 새로 "발급"하는 퀘스트 목록
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
-	TArray<FName> OfferedQuestIDs;
+	TArray<FName> OfferQuestIDs;
+
+	// 이 NPC가 "진행 / 완료 보고"를 받는 퀘스트 목록
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
+	TArray<FName> ReportQuestIDs;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
 	TSubclassOf<UUK_Quest> QuestUIClass;

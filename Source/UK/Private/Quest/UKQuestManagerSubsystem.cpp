@@ -272,6 +272,47 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 			Assets.Num(), RegisteredCount, *ScanPath.ToString());
 	}
 
+	// [Startup AlreadyGet] Auto Start
+	{
+		int32 AutoStartedCount = 0;
+
+		for ( const TPair<FName, TObjectPtr<const UUKQuestDefinitionAsset>>& Pair : QuestDefinitions )
+		{
+			const UUKQuestDefinitionAsset* Def = Pair.Value;
+			if ( !Def )
+			{
+				continue;
+			}
+
+			if ( !Def->bStartAlreadyGet )
+			{
+				continue;
+			}
+
+			if ( Def->QuestId.IsNone() )
+			{
+				continue;
+			}
+
+			const bool bStarted = StartQuest(Def->QuestId);
+
+			UE_LOG(
+				LogTemp,
+				Log,
+				TEXT("[Quest][AlreadyGet] Quest=%s bStartAlreadyGet=1 Result=%d"),
+				*Def->QuestId.ToString(),
+				bStarted ? 1 : 0
+			);
+
+			if ( bStarted )
+			{
+				AutoStartedCount++;
+			}
+		}
+
+		UE_LOG(LogTemp, Log, TEXT("[Quest][AlreadyGet] AutoStartedCount=%d"), AutoStartedCount);
+	}
+
 	BuildItemIDCache();
 	BuildNPCIDCache();
 	BuildMobIDCache();
