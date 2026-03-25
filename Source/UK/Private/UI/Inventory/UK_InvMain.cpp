@@ -39,6 +39,15 @@ FReply UUK_InvMain::NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FK
 		}
 	}
 
+	if ( AUK_PlayerController* PC = Cast<AUK_PlayerController>(GetOwningPlayer()) )
+	{
+		if ( InKeyEvent.GetKey() == EKeys::U )
+		{
+			PC->WeaponCrafting_UI();
+			return FReply::Handled();
+		}
+	}
+
 	return Super::NativeOnPreviewKeyDown(InGeometry, InKeyEvent);
 }
 

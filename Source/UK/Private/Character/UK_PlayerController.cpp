@@ -18,6 +18,7 @@
 #include "Dialogue/UKQuestUIManagerSubsystem.h"
 #include "Systems/UK_GameInstance.h"
 #include "UI/Inventory/UK_InvMain.h"
+#include <UI/InGame/CreftWeaponUI/UK_Crafting.h>
 
 AUK_PlayerController::AUK_PlayerController()
 	: bMouseCursorEnabled(false)
@@ -53,12 +54,13 @@ void AUK_PlayerController::BeginPlay()
 		0.005f,
 		true
 	);
+
 	if ( MainHUDClass )
 	{
 		MainHUD = CreateWidget<UUK_MainHUD>(this, MainHUDClass);
 		if ( MainHUD )
 		{
-			MainHUD->AddToViewport();
+			MainHUD->AddToViewport(0);
 			MainHUD->SetVisibility(ESlateVisibility::Collapsed);
 
 			if ( UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance()) )
@@ -73,7 +75,7 @@ void AUK_PlayerController::BeginPlay()
 		StaminaWidget = CreateWidget<UUK_Stamina>(this, StaminaWidgetClass);
 		if ( StaminaWidget )
 		{
-			StaminaWidget->AddToViewport();
+			StaminaWidget->AddToViewport(0);
 			StaminaWidget->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
@@ -89,40 +91,6 @@ void AUK_PlayerController::BeginPlay()
 				}, 0.3f, false);
 		}
 	}
-
-	//FOnAttributeChangeData Data;
-	//// 		//UpdateStaminaBar(StatusPtr->CurrentStamina, StatusPtr->MaxStamina);
-	//// HP 초기값 세팅 및 바인딩
-	//Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute());
-	//OnHealthChanged(Data);
-	//Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetHealthAttribute());
-	//OnHealthChanged(Data);
-
-	//ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetMaxHealthAttribute()).
-	//	AddUObject(this, &AUK_PlayerController::OnHealthChanged);
-	//ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetHealthAttribute()).
-	//	AddUObject(this, &AUK_PlayerController::OnHealthChanged);
-
-	//FOnAttributeChangeData Data;
-	//if ( ASC )
-	//{
-	//	// 현재 체력 값 가져와서 초기 체크
-
-	//	/*Data.NewValue = ASC->GetNumericAttribute(UUK_PlayerStatusAttributeSet::GetHealthAttribute());
-	//	OnHealthChanged(Data);
-
-	//	ASC->GetGameplayAttributeValueChangeDelegate(UUK_PlayerStatusAttributeSet::GetHealthAttribute()).
-	//		AddUObject(this, &AUK_PlayerController::OnHealthChanged);*/
-
-	//}
-
-	//if ( UUK_PlayerStatusAttributeSet* AttributeSet = ASC->GetSet<UUK_PlayerStatusAttributeSet>() )
-	//{
-	//	// Health 변화 바인딩
-	//	ASC->GetGameplayAttributeValueChangeDelegate(
-	//		UUK_PlayerStatusAttributeSet::GetHealthAttribute()
-	//	).AddUObject(this, &AUK_PlayerController::OnHealthChanged);
-	//}
 }
 
 void AUK_PlayerController::PostSeamlessTravel()
@@ -131,23 +99,16 @@ void AUK_PlayerController::PostSeamlessTravel()
 
 	if ( !IsLocalController() ) return;
 
-	// 맵 이동 후 게임 상태
 	ApplyInputState(EInputState::Game);
-	SetCursorVisible(false);
 }
 
 void AUK_PlayerController::OnPossess(APawn* pawn)
 {
 	Super::OnPossess(pawn);
 
-	if ( !IsLocalController() )
-		return;
+	if ( !IsLocalController() ) return;
 
-	if ( IsLocalController() )
-	{
-		ConnectStaminaWidget();
-	}
-
+	ConnectStaminaWidget();
 
 	AUK_CharacterBase* MyCharacter = Cast<AUK_CharacterBase>(pawn);
 	if ( !MyCharacter ) return;
@@ -163,7 +124,6 @@ void AUK_PlayerController::OnPossess(APawn* pawn)
 
 	UEnhancedInputLocalPlayerSubsystem* Subsystem =
 		LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
-
 	if ( !Subsystem ) return;
 
 	Subsystem->ClearAllMappings();
@@ -182,112 +142,40 @@ void AUK_PlayerController::OnPossess(APawn* pawn)
 	MyCharacter->OnDead.AddDynamic(this, &ThisClass::ShowGameOverUI);
 
 	SetViewTargetWithBlend(pawn);
-	//UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 }
 
-void AUK_PlayerController::ClearAllWidgets()
-{
-		// 메인 HUD
-	if ( MainHUD && MainHUD->IsInViewport() )
-	{
-		MainHUD->SetVisibility(ESlateVisibility::Collapsed);
-		MainHUD = nullptr;
-	}
-
-		//// 스태미나
-	if ( StaminaWidget && StaminaWidget->IsInViewport() )
-	{
-		StaminaWidget->SetVisibility(ESlateVisibility::Collapsed);
-		StaminaWidget = nullptr;
-	}
-
-		// 세팅
-	if ( SettingWidget && SettingWidget->IsInViewport() )
-	{
-		SettingWidget->SetVisibility(ESlateVisibility::Collapsed);
-		SettingWidget = nullptr;
-	}
-
-		// 퀘스트
-	if ( QuestWidget && QuestWidget->IsInViewport() )
-	{
-		QuestWidget->SetVisibility(ESlateVisibility::Collapsed);
-		QuestWidget = nullptr;
-	}
-
-		// 상점
-	if ( ShopWidget && ShopWidget->IsInViewport() )
-	{
-		ShopWidget->SetVisibility(ESlateVisibility::Collapsed);
-		ShopWidget = nullptr;
-	}
-
-		// 게임오버
-	if ( GameOverWidget && GameOverWidget->IsInViewport() )
-	{
-		GameOverWidget->SetVisibility(ESlateVisibility::Collapsed);
-		GameOverWidget = nullptr;
-	}
-}
-
-template <typename T>
-T* AUK_PlayerController::ShowOnlyWidget(TSubclassOf<T> WidgetClass, int32 ZOrder)
-{
-	if ( !WidgetClass ) return nullptr;
-
-	ClearAllWidgets();
-
-	T* NewWidget = CreateWidget<T>(this, WidgetClass);
-	if ( NewWidget )
-	{
-		NewWidget->AddToViewport(ZOrder);
-	}
-
-	return NewWidget;
-	//if ( Subsystem )
-	//{
-	//	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-
-}
-
-// -----  UI 생성 -----
+// ===== UI 생성 =====
 
 void AUK_PlayerController::Client_CreatePlayerUI_Implementation()
 {
 	if ( !IsLocalController() ) return;
 
-	//// ----- Stamina UI -----
-	//if ( StaminaWidgetClass )
-	//{
-	//	StaminaWidget = CreateWidget<UUK_Stamina>(this, StaminaWidgetClass);
-
-	//	if ( StaminaWidget )
-	//	{
-	//		StaminaWidget->AddToViewport();
-	//		StaminaWidget->SetVisibility(ESlateVisibility::Collapsed);
-	//	}
-	//}
-	// ----- Setting UI -----
 	if ( SettingWidgetClass )
 	{
 		SettingWidget = CreateWidget<UUK_Setting>(this, SettingWidgetClass);
-
 		if ( SettingWidget )
 		{
-			SettingWidget->AddToViewport(99);
+			SettingWidget->AddToViewport(10); // 다른 UI보다 위에
 			SettingWidget->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
 }
 
-// ----- 입력 상태 관리 -----
+// ===== 입력 상태 관리 =====
+
+bool AUK_PlayerController::InputKey_Check(const FInputKeyParams& Params)
+{
+	if ( Params.Key == EKeys::Escape && Params.Event == IE_Pressed )
+	{
+		CloseOpenWidget();
+		return true;
+	}
+	return Super::InputKey(Params);
+}
 
 void AUK_PlayerController::ApplyInputState(EInputState NewState)
 {
 	CurrentInputState = NewState;
-
-	SetAllGameUIInputVisibility(false);
 
 	switch ( CurrentInputState )
 	{
@@ -305,21 +193,18 @@ void AUK_PlayerController::ApplyInputState(EInputState NewState)
 		FSlateApplication::Get().SetAllUserFocusToGameViewport();
 		break;
 	}
-
 	case EInputState::UI:
 	{
 		SetAllGameUIInputVisibility(false);
 		SetIgnoreLookInput(true);
 		SetIgnoreMoveInput(true);
 
-		FInputModeUIOnly Mode; 
+		FInputModeUIOnly Mode;
 		Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 		SetInputMode(Mode);
-
 		SetCursorVisible(true);
 		break;
 	}
-
 	case EInputState::Cutscene:
 	{
 		SetIgnoreLookInput(true);
@@ -332,51 +217,56 @@ void AUK_PlayerController::ApplyInputState(EInputState NewState)
 	}
 }
 
-// 커서 표시만 담당 (입력 상태랑 분리)
 void AUK_PlayerController::SetCursorVisible(bool bVisible)
 {
 	bShowMouseCursor = bVisible;
-
 	bEnableClickEvents = bVisible;
 	bEnableMouseOverEvents = bVisible;
 }
 
-//  게임 중 커서 토글 (카메라 안 멈춤)
 void AUK_PlayerController::ToggleMouseCursor()
 {
 	bMouseCursorEnabled = !bMouseCursorEnabled;
-
 	SetCursorVisible(bMouseCursorEnabled);
-
-	// 캐릭터 움직임은 가능하게 + 화면 회전은 불가
 	SetIgnoreLookInput(bMouseCursorEnabled);
 }
-
-//  Setting UI (카메라 멈춤 모드)
 
 void AUK_PlayerController::SetAllGameUIInputVisibility(bool bVisible)
 {
 	ESlateVisibility NewVisibility = bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
 
-	// 개별 위젯들 가시성 조절
 	if ( MainHUD ) MainHUD->SetVisibility(NewVisibility);
 	if ( StaminaWidget ) StaminaWidget->SetVisibility(NewVisibility);
-
-	// 퀘스트나 상점 위젯이 떠 있다면 그것들도 숨김/제거
-	/*if ( QuestWidget ) QuestWidget->SetVisibility(NewVisibility);
-	if ( ShopWidget ) ShopWidget->SetVisibility(NewVisibility);*/
 }
+
+// ===== 다른 UI 모두 닫기 (Setting 제외) =====
+
+void AUK_PlayerController::CloseAllExceptSetting()
+{
+	if ( InventoryWidget && InventoryWidget->IsInViewport() )
+		CloseInventoryUI();
+
+	if ( WeaponCraftingWidget && WeaponCraftingWidget->IsInViewport() )
+		CloseWeaponCraftingUI();
+
+	if ( QuestWidget && QuestWidget->IsInViewport() )
+		HideQuestUI();
+}
+
+// ===== Setting UI =====
 
 void AUK_PlayerController::Setting_UI()
 {
 	if ( !SettingWidget ) return;
+
+	// 다른 UI 먼저 닫기
+	CloseAllExceptSetting();
 
 	bIsSetting = !bIsSetting;
 
 	if ( bIsSetting )
 	{
 		ApplyInputState(EInputState::UI);
-
 		SettingWidget->SetVisibility(ESlateVisibility::Visible);
 
 		FInputModeGameAndUI Mode;
@@ -389,196 +279,259 @@ void AUK_PlayerController::Setting_UI()
 	else
 	{
 		SettingWidget->SetVisibility(ESlateVisibility::Collapsed);
-
 		ApplyInputState(EInputState::Game);
-
 		GetWorldTimerManager().UnPauseTimer(StaminaTrackingTimer);
 	}
 }
-void AUK_PlayerController::UpdateStaminaTracking()
+
+void AUK_PlayerController::CloseSettingUI()
+{
+	if ( !SettingWidget ) return;
+
+	SettingWidget->SetVisibility(ESlateVisibility::Collapsed);
+	bIsSetting = false;
+
+	ApplyInputState(EInputState::Game);
+	GetWorldTimerManager().UnPauseTimer(StaminaTrackingTimer);
+}
+
+void AUK_PlayerController::OpenSettingAndCloseOtherUI()
+{
+	// 세팅이 이미 열려있으면 닫기
+	if ( SettingWidget &&
+		SettingWidget->IsInViewport() &&
+		SettingWidget->GetVisibility() != ESlateVisibility::Collapsed )
+	{
+		bIsSetting = true;
+		Setting_UI();
+		return;
+	}
+
+	// 세팅 열기 (Setting_UI 내부에서 다른 UI 닫음)
+	if ( SettingWidget )
+	{
+		bIsSetting = false;
+		Setting_UI();
+	}
+}
+
+bool AUK_PlayerController::CloseOpenWidget()
+{
+	if ( SettingWidget && SettingWidget->GetVisibility() != ESlateVisibility::Collapsed )
+	{
+		CloseSettingUI();
+		return true;
+	}
+	/*if ( SettingWidget &&
+		SettingWidget->IsInViewport() &&
+		SettingWidget->GetVisibility() != ESlateVisibility::Collapsed )
+	{
+		SettingWidget->SetVisibility(ESlateVisibility::Collapsed);
+		bIsSetting = false;
+		ApplyInputState(EInputState::Game);
+		GetWorldTimerManager().UnPauseTimer(StaminaTrackingTimer);
+		return true;
+	}*/
+	if ( InventoryWidget && InventoryWidget->IsInViewport() )
+	{
+		CloseInventoryUI();
+		return true;
+	}
+	if ( WeaponCraftingWidget && WeaponCraftingWidget->IsInViewport() )
+	{
+		CloseWeaponCraftingUI();
+		return true;
+	}
+	if ( QuestWidget && QuestWidget->IsInViewport() )
+	{
+		HideQuestUI();
+		return true;
+	}
+
+	return false;
+}
+
+// ===== Inventory UI =====
+
+void AUK_PlayerController::Inventory_UI()
 {
 	if ( !IsLocalController() ) return;
-	if ( !StaminaWidget ) return;
-	if ( !PlayerCameraManager ) return;
+	if ( !InventoryWidgetClass ) return;
 
-	UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
-	if ( GI && GI->PersistentLoadingWidget )
+	// 이미 열려있으면 닫기
+	if ( InventoryWidget && InventoryWidget->IsInViewport() )
 	{
-		// 로딩 중이면 트래킹 계산을 하지 않고 위젯을 숨깁니다.
-		StaminaWidget->SetVisibility(ESlateVisibility::Collapsed);
-		return; 
-	}
-
-	APawn* MyPawn = GetPawn();
-	if ( !MyPawn )
-	{
-		StaminaWidget->SetTrackingPosition(FVector2D::ZeroVector, 1.f, false);
+		CloseInventoryUI();
 		return;
 	}
 
-	// 카메라 정보
-	FVector CamLoc = PlayerCameraManager->GetCameraLocation();
-	FRotator CamRot = PlayerCameraManager->GetCameraRotation();
-
-	FVector CamRight = FRotationMatrix(CamRot).GetUnitAxis(EAxis::Y);
-	FVector CamForward = FRotationMatrix(CamRot).GetUnitAxis(EAxis::X);
-
-	// 스태미나 UI가 붙을 월드 위치 계산
-	FVector BaseLocation = MyPawn->GetActorLocation() + Stemina_Location;
-	FVector TargetWorldPos = BaseLocation + ( CamRight * SideDistance );
-
-	// 월드를 스크린 좌표 변환
-	FVector2D ScreenPos;
-	bool bProjected = ProjectWorldLocationToScreen(TargetWorldPos, ScreenPos, true);
-
-	if ( !bProjected )
+	// 다른 UI 닫기
+	if ( SettingWidget && SettingWidget->GetVisibility() != ESlateVisibility::Collapsed )
 	{
-		StaminaWidget->SetTrackingPosition(ScreenPos, 1.f, false);
-		return;
+		CloseSettingUI();
 	}
 
-	// 카메라 뒤쪽에 있으면 숨김
-	FVector ToTarget = ( TargetWorldPos - CamLoc ).GetSafeNormal();
-	float Dot = FVector::DotProduct(CamForward, ToTarget);
+	if ( WeaponCraftingWidget && WeaponCraftingWidget->IsInViewport() )
+		CloseWeaponCraftingUI();
+	if ( QuestWidget && QuestWidget->IsInViewport() )
+		HideQuestUI();
 
-	if ( Dot < 0.15f )
-	{
-		StaminaWidget->SetTrackingPosition(ScreenPos, 1.f, false);
-		return;
-	}
+	InventoryWidget = CreateWidget<UUK_InvMain>(this, InventoryWidgetClass);
+	if ( !InventoryWidget ) return;
 
-	// 거리 기반 스케일 계산
-	float Dist = FVector::Dist(CamLoc, TargetWorldPos);
+	InventoryWidget->AddToViewport(0);
+	ApplyInputState(EInputState::UI);
 
-	float Scale = FMath::GetMappedRangeValueClamped(
-		FVector2D(DistanceMin, DistanceMax),
-		FVector2D(ScaleNear, ScaleFar),
-		Dist
-	);
-
-	// 화면 안에 있는지 체크
-	int32 SizeX, SizeY;
-	GetViewportSize(SizeX, SizeY);
-
-	bool bInside =
-		ScreenPos.X > -50 && ScreenPos.X < SizeX + 50 &&
-		ScreenPos.Y > -50 && ScreenPos.Y < SizeY + 50;
-
-	StaminaWidget->SetTrackingPosition(ScreenPos, Scale, bInside);
+	FInputModeUIOnly Mode;
+	Mode.SetWidgetToFocus(InventoryWidget->TakeWidget());
+	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(Mode);
 }
 
-//  ----- 스태미나 -----
-
-void AUK_PlayerController::ConnectStaminaWidget()
+void AUK_PlayerController::CloseInventoryUI()
 {
-	if ( !StaminaWidget ) return;
+	if ( !InventoryWidget ) return;
 
-	APawn* MyPawn = GetPawn();
-	if ( !MyPawn ) return;
+	InventoryWidget->RemoveFromParent();
+	InventoryWidget = nullptr;
 
-	// UStatusComponent* StatusComp =
-	// 	MyPawn->FindComponentByClass<UStatusComponent>();
-	//
-	// if ( StatusComp )
-	// {
-	// 	StaminaWidget->BindStatusComponent(StatusComp);
-	// }
+	ApplyInputState(EInputState::Game);
 }
 
-// -------- 퀘스트 UI Interaction (무현 구현중)
+// ===== WeaponCrafting UI =====
+
+void AUK_PlayerController::WeaponCrafting_UI()
+{
+	if ( !IsLocalController() ) return;
+	if ( !WeaponCraftingWidgetClass ) return;
+
+	// 이미 열려있으면 닫기
+	if ( WeaponCraftingWidget && WeaponCraftingWidget->IsInViewport() )
+	{
+		CloseWeaponCraftingUI();
+		return;
+	}
+
+	// 다른 UI 닫기
+	if ( SettingWidget && SettingWidget->GetVisibility() != ESlateVisibility::Collapsed )
+	{
+		CloseSettingUI();
+	}
+	if ( InventoryWidget && InventoryWidget->IsInViewport() )
+		CloseInventoryUI();
+	if ( QuestWidget && QuestWidget->IsInViewport() )
+		HideQuestUI();
+
+	WeaponCraftingWidget = CreateWidget<UUK_Crafting>(this, WeaponCraftingWidgetClass);
+	if ( !WeaponCraftingWidget ) return;
+
+	WeaponCraftingWidget->AddToViewport(0);
+	ApplyInputState(EInputState::UI);
+
+	FInputModeUIOnly Mode;
+	Mode.SetWidgetToFocus(WeaponCraftingWidget->TakeWidget());
+	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(Mode);
+}
+
+void AUK_PlayerController::CloseWeaponCraftingUI()
+{
+	if ( !WeaponCraftingWidget ) return;
+
+	WeaponCraftingWidget->RemoveFromParent();
+	WeaponCraftingWidget = nullptr;
+
+	ApplyInputState(EInputState::Game);
+}
+
+// ===== Quest UI =====
 
 void AUK_PlayerController::ShowQuestUI(const FName& QuestID, const FText& NPCName, const FText& Dialogue, const FText& QuestDesc)
 {
-	if ( !IsLocalController() )
-	{
-		return;
-	}
-
-	if ( QuestWidget )
-	{
-		return;
-	}
-
-	if ( !QuestWidgetClass )
-	{
-		return;
-	}
-
-
-	//QuestWidget = ShowOnlyWidget<UUK_Quest>(QuestWidgetClass, 0);
-	//if ( !QuestWidget ) return;
-
-	//QuestWidget->AddToViewport();
+	if ( !IsLocalController() ) return;
+	if ( QuestWidget ) return;
+	if ( !QuestWidgetClass ) return;
 
 	QuestWidget = CreateWidget<UUK_Quest>(this, QuestWidgetClass);
-	if ( !QuestWidget )
-	{
-		return;
-	}
+	if ( !QuestWidget ) return;
 
-	QuestWidget->AddToViewport();
+	QuestWidget->AddToViewport(0);
 
 	FText CurrentSpeakerName = NPCName;
 	FText CurrentDialogueText = Dialogue;
 	FText CurrentChoiceText = FText::GetEmpty();
-
 	bool bUseLiveDialogue = false;
 
 	UUKQuestUIManagerSubsystem* QuestUIManager = GetGameInstance()->GetSubsystem<UUKQuestUIManagerSubsystem>();
 	if ( QuestUIManager )
 	{
 		const FUKCurrentDialogueUIData UIData = QuestUIManager->GetCurrentDialogueUIData();
-
 		if ( !UIData.DialogueId.IsNone() )
 		{
 			bUseLiveDialogue = true;
-
-			if ( !UIData.SpeakerName.IsEmpty() )
-			{
-				CurrentSpeakerName = UIData.SpeakerName;
-			}
-
-			if ( !UIData.DialogueText.IsEmpty() )
-			{
-				CurrentDialogueText = UIData.DialogueText;
-			}
-
-			if ( UIData.Choices.Num() > 0 )
-			{
-				CurrentChoiceText = UIData.Choices[ 0 ].ChoiceText;
-			}
+			if ( !UIData.SpeakerName.IsEmpty() ) CurrentSpeakerName = UIData.SpeakerName;
+			if ( !UIData.DialogueText.IsEmpty() ) CurrentDialogueText = UIData.DialogueText;
+			if ( UIData.Choices.Num() > 0 ) CurrentChoiceText = UIData.Choices[ 0 ].ChoiceText;
 		}
 	}
 
-	QuestWidget->SetQuestUI(
-		QuestID,
-		CurrentSpeakerName,
-		CurrentDialogueText,
-		QuestDesc,
-		CurrentChoiceText,
-		FText::FromString(TEXT("닫기"))
-	);
+	QuestWidget->SetQuestUI(QuestID, CurrentSpeakerName, CurrentDialogueText, QuestDesc, CurrentChoiceText, FText::FromString(TEXT("닫기")));
 
 	if ( bUseLiveDialogue )
-	{
 		QuestWidget->RefreshDialogueUI();
-	}
 
 	ApplyInputState(EInputState::UI);
-	SetCursorVisible(true);
+	FInputModeUIOnly Mode;
+	Mode.SetWidgetToFocus(QuestWidget->TakeWidget());
+	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(Mode);
 }
 
 void AUK_PlayerController::HideQuestUI()
 {
 	if ( !IsLocalController() ) return;
-
 	if ( !QuestWidget ) return;
 
 	QuestWidget->RemoveFromParent();
 	QuestWidget = nullptr;
 
 	ApplyInputState(EInputState::Game);
-	SetCursorVisible(false);
+}
+
+// ===== 기타 =====
+
+void AUK_PlayerController::ClearAllWidgets()
+{
+	if ( MainHUD && MainHUD->IsInViewport() )
+	{
+		MainHUD->SetVisibility(ESlateVisibility::Collapsed);
+		MainHUD = nullptr;
+	}
+	if ( StaminaWidget && StaminaWidget->IsInViewport() )
+	{
+		StaminaWidget->SetVisibility(ESlateVisibility::Collapsed);
+		StaminaWidget = nullptr;
+	}
+	if ( SettingWidget && SettingWidget->IsInViewport() )
+	{
+		SettingWidget->SetVisibility(ESlateVisibility::Collapsed);
+		SettingWidget = nullptr;
+	}
+	if ( QuestWidget && QuestWidget->IsInViewport() )
+	{
+		QuestWidget->SetVisibility(ESlateVisibility::Collapsed);
+		QuestWidget = nullptr;
+	}
+	if ( ShopWidget && ShopWidget->IsInViewport() )
+	{
+		ShopWidget->SetVisibility(ESlateVisibility::Collapsed);
+		ShopWidget = nullptr;
+	}
+	if ( GameOverWidget && GameOverWidget->IsInViewport() )
+	{
+		GameOverWidget->SetVisibility(ESlateVisibility::Collapsed);
+		GameOverWidget = nullptr;
+	}
 }
 
 void AUK_PlayerController::OnHealthChanged(const FOnAttributeChangeData& Data)
@@ -587,9 +540,7 @@ void AUK_PlayerController::OnHealthChanged(const FOnAttributeChangeData& Data)
 	UE_LOG(LogTemp, Log, TEXT("Health Changed: %f"), CurrentHealth);
 
 	if ( CurrentHealth <= 190.f )
-	{
 		ShowGameOverUI();
-	}
 }
 
 void AUK_PlayerController::ShowGameOverUI()
@@ -597,15 +548,11 @@ void AUK_PlayerController::ShowGameOverUI()
 	if ( !GameOverWidgetClass ) return;
 
 	if ( !GameOverWidget )
-	{
 		GameOverWidget = CreateWidget<UUK_GameOver>(this, GameOverWidgetClass);
-	}
 
 	if ( GameOverWidget && !GameOverWidget->IsInViewport() )
 	{
-		GameOverWidget->AddToViewport();
-
-		// 게임 오버 UI가 떴으니 마우스 커서와 입력 모드 설정
+		GameOverWidget->AddToViewport(20);
 		bShowMouseCursor = true;
 		FInputModeUIOnly InputModeData;
 		InputModeData.SetWidgetToFocus(GameOverWidget->TakeWidget());
@@ -620,7 +567,7 @@ void AUK_PlayerController::ShowShopUI(TSubclassOf<UUserWidget> ShopWidgetClass)
 	ShopWidget = CreateWidget<UUserWidget>(this, ShopWidgetClass);
 	if ( ShopWidget )
 	{
-		ShopWidget->AddToViewport();
+		ShopWidget->AddToViewport(0);
 		bShowMouseCursor = true;
 		FInputModeGameAndUI InputMode;
 		InputMode.SetWidgetToFocus(ShopWidget->TakeWidget());
@@ -635,176 +582,78 @@ void AUK_PlayerController::HideShopUI()
 	{
 		ShopWidget->RemoveFromParent();
 		ShopWidget = nullptr;
-
 		bShowMouseCursor = false;
 		SetInputMode(FInputModeGameOnly());
 	}
 }
 
-bool AUK_PlayerController::CloseOpenWidget()
+void AUK_PlayerController::ConnectStaminaWidget()
 {
-	bool bCloseAnyWidget = false;
-	
-	if (SettingWidget && SettingWidget->IsInViewport() && SettingWidget->GetVisibility() != ESlateVisibility::Collapsed)
-	{
-		SettingWidget->SetVisibility(ESlateVisibility::Collapsed);
-		bIsSetting = false;
-		ApplyInputState(EInputState::Game);
-		SetCursorVisible(false);
-		return true;
-	}
-	if (InventoryWidget && InventoryWidget->IsInViewport())
-	{
-		CloseInventoryUI();
-		return true;
-	}
-	if (WeaponCraftingWidget && WeaponCraftingWidget->IsInViewport())
-	{
-		CloseWeaponCraftingUI();
-		return true;
-	}
-	if (QuestWidget && QuestWidget->IsInViewport())
-	{
-		HideQuestUI();
-		return true;
-	}
+	if ( !StaminaWidget ) return;
 
-	return false;
+	APawn* MyPawn = GetPawn();
+	if ( !MyPawn ) return;
 }
 
-void AUK_PlayerController::OpenSettingAndCloseOtherUI()
-{
-	//세팅이 이미 열려 있으면 닫기
-	if (SettingWidget &&
-		SettingWidget->IsInViewport() &&
-		SettingWidget->GetVisibility() != ESlateVisibility::Collapsed )
-	{
-		bIsSetting = true;
-		Setting_UI();
-		return;
-	}
-
-	//다른 UI 닫기
-	if (InventoryWidget && InventoryWidget->IsInViewport())
-	{
-		CloseInventoryUI();
-	}
-
-	if (WeaponCraftingWidget && WeaponCraftingWidget->IsInViewport())
-	{
-		CloseWeaponCraftingUI();
-	}
-
-	if (QuestWidget && QuestWidget->IsInViewport())
-	{
-		HideQuestUI();
-	}
-
-	//세팅 열기
-	if (SettingWidget)
-	{
-		bIsSetting = false; 
-		Setting_UI();
-	}
-}
-
-void AUK_PlayerController::Inventory_UI()
+void AUK_PlayerController::UpdateStaminaTracking()
 {
 	if ( !IsLocalController() ) return;
-	if ( !InventoryWidgetClass ) return;
+	if ( !StaminaWidget ) return;
+	if ( !PlayerCameraManager ) return;
 
-	//이미 열려있으면 닫기
-	if ( InventoryWidget && InventoryWidget->IsInViewport() )
+	UUK_GameInstance* GI = Cast<UUK_GameInstance>(GetGameInstance());
+	if ( GI && GI->PersistentLoadingWidget )
 	{
-		CloseInventoryUI();
+		StaminaWidget->SetVisibility(ESlateVisibility::Collapsed);
 		return;
 	}
 
-	//다른 UI가 열려있으면 먼저 닫기
-	if ( SettingWidget && SettingWidget->GetVisibility() != ESlateVisibility::Collapsed )
+	APawn* MyPawn = GetPawn();
+	if ( !MyPawn )
 	{
-		SettingWidget->SetVisibility(ESlateVisibility::Collapsed);
-		bIsSetting = false;
-	}
-
-	if ( WeaponCraftingWidget && WeaponCraftingWidget->IsInViewport() )
-	{
-		CloseWeaponCraftingUI();
-	}
-
-	InventoryWidget = CreateWidget<UUK_InvMain>(this, InventoryWidgetClass);
-	if ( !InventoryWidget ) return;
-
-	InventoryWidget->AddToViewport(0);
-
-	ApplyInputState(EInputState::UI);
-	SetCursorVisible(true);
-
-	FInputModeGameAndUI Mode;
-	Mode.SetWidgetToFocus(SettingWidget->TakeWidget());
-	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-	SetInputMode(Mode);
-
-	InventoryWidget->SetIsFocusable(true);
-	InventoryWidget->SetKeyboardFocus();
-}
-
-void AUK_PlayerController::CloseInventoryUI()
-{
-	if (!InventoryWidget) return;
-
-	InventoryWidget->RemoveFromParent();
-	InventoryWidget = nullptr;
-
-	ApplyInputState(EInputState::Game);
-	SetCursorVisible(false);
-}
-
-void AUK_PlayerController::WeaponCrafting_UI()
-{
-	if (!IsLocalController()) return;
-	if (!WeaponCraftingWidgetClass) return;
-
-	//이미 열려있으면 닫기
-	if (WeaponCraftingWidget && WeaponCraftingWidget->IsInViewport())
-	{
-		CloseWeaponCraftingUI();
+		StaminaWidget->SetTrackingPosition(FVector2D::ZeroVector, 1.f, false);
 		return;
 	}
 
-	//다른 UI 닫기
-	if (SettingWidget && SettingWidget->GetVisibility() != ESlateVisibility::Collapsed)
+	FVector CamLoc = PlayerCameraManager->GetCameraLocation();
+	FRotator CamRot = PlayerCameraManager->GetCameraRotation();
+	FVector CamRight = FRotationMatrix(CamRot).GetUnitAxis(EAxis::Y);
+	FVector CamForward = FRotationMatrix(CamRot).GetUnitAxis(EAxis::X);
+
+	FVector BaseLocation = MyPawn->GetActorLocation() + Stemina_Location;
+	FVector TargetWorldPos = BaseLocation + ( CamRight * SideDistance );
+
+	FVector2D ScreenPos;
+	bool bProjected = ProjectWorldLocationToScreen(TargetWorldPos, ScreenPos, true);
+
+	if ( !bProjected )
 	{
-		SettingWidget->SetVisibility(ESlateVisibility::Collapsed);
-		bIsSetting = false;
+		StaminaWidget->SetTrackingPosition(ScreenPos, 1.f, false);
+		return;
 	}
 
-	if (InventoryWidget && InventoryWidget->IsInViewport())
+	FVector ToTarget = ( TargetWorldPos - CamLoc ).GetSafeNormal();
+	float Dot = FVector::DotProduct(CamForward, ToTarget);
+
+	if ( Dot < 0.15f )
 	{
-		CloseInventoryUI();
+		StaminaWidget->SetTrackingPosition(ScreenPos, 1.f, false);
+		return;
 	}
 
-	WeaponCraftingWidget = CreateWidget<UUserWidget>(this, WeaponCraftingWidgetClass);
-	if (!WeaponCraftingWidget) return;
+	float Dist = FVector::Dist(CamLoc, TargetWorldPos);
+	float Scale = FMath::GetMappedRangeValueClamped(
+		FVector2D(DistanceMin, DistanceMax),
+		FVector2D(ScaleNear, ScaleFar),
+		Dist
+	);
 
-	WeaponCraftingWidget->AddToViewport(0);
+	int32 SizeX, SizeY;
+	GetViewportSize(SizeX, SizeY);
 
-	ApplyInputState(EInputState::UI);
-	SetCursorVisible(true);
+	bool bInside =
+		ScreenPos.X > -50 && ScreenPos.X < SizeX + 50 &&
+		ScreenPos.Y > -50 && ScreenPos.Y < SizeY + 50;
 
-	FInputModeGameAndUI Mode;
-	Mode.SetWidgetToFocus(SettingWidget->TakeWidget());
-	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-	SetInputMode(Mode);
-}
-
-void AUK_PlayerController::CloseWeaponCraftingUI()
-{
-	if (!WeaponCraftingWidget) return;
-
-	WeaponCraftingWidget->RemoveFromParent();
-	WeaponCraftingWidget = nullptr;
-
-	ApplyInputState(EInputState::Game);
-	SetCursorVisible(false);
+	StaminaWidget->SetTrackingPosition(ScreenPos, Scale, bInside);
 }
