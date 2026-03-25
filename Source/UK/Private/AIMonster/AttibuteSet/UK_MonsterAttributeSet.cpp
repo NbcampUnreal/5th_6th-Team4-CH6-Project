@@ -31,9 +31,15 @@ void UUK_MonsterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectMod
 	//   여기서 받는 값은 이미 방어력이 적용된 최종 데미지
 	if (Data.EvaluatedData.Attribute == GetDamageAttribute())
 	{
-		const float FinalDamage = GetDamage();
+		const float RawDamage = GetDamage();
 		
 		SetDamage(0.0f);
+		
+		const float MonsterDefense = FMath::Max(GetDefense(), 0.f);
+		const float FinalDamage = FMath::Max(RawDamage / (1.f + MonsterDefense), 0.f);
+
+		UE_LOG(LogTemp, Warning, TEXT("[Monster] RawDmg=%.1f | DEF=%.1f | FinalDmg=%.1f | HP=%.1f"),
+			RawDamage, MonsterDefense, FinalDamage, GetHealth());
 		
 		if (FinalDamage > 0.0f)
 		{
