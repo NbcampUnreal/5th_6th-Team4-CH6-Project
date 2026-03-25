@@ -65,15 +65,12 @@ FText UUKQuestUIManagerSubsystem::GetQuestTitleText(FName QuestId) const
 		return FText::GetEmpty();
 	}
 
-	// 우선순위:
-	// 1) QuestTitle
-	// 2) Title
 	if ( !Def->QuestTitle.IsEmpty() )
 	{
 		return Def->QuestTitle;
 	}
 
-	return Def->Title;
+	return FText::GetEmpty();
 }
 
 FText UUKQuestUIManagerSubsystem::GetQuestDescriptionText(FName QuestId) const
@@ -84,26 +81,12 @@ FText UUKQuestUIManagerSubsystem::GetQuestDescriptionText(FName QuestId) const
 		return FText::GetEmpty();
 	}
 
-	// 우선순위:
-	// 1) QuestDescription
-	// 2) Description
 	if ( !Def->QuestDescription.IsEmpty() )
 	{
 		return Def->QuestDescription;
 	}
 
-	return Def->Description;
-}
-
-FText UUKQuestUIManagerSubsystem::GetQuestNPCDialogueText(FName QuestId) const
-{
-	const UUKQuestDefinitionAsset* Def = GetQuestDefinitionSafe(QuestId);
-	if ( !Def )
-	{
-		return FText::GetEmpty();
-	}
-
-	return Def->NPCDialogue;
+	return FText::GetEmpty();
 }
 
 
