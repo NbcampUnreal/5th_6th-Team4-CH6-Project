@@ -42,6 +42,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|Conditions")
 	TArray<FName> CompleteConditionIds;
 
+	// [D-1] Startup
+	// - 체크하면 PIE / 게임 시작 시 이미 받은 퀘스트로 자동 시작
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|Startup")
+	bool bStartAlreadyGet = false;
+
 	// [E] Rewards (참조만: R_...)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest|Rewards")
 	FName RewardId; // R_<QuestID>_<Name> 또는 R_Common_<Name>

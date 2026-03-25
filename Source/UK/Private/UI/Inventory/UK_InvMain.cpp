@@ -28,6 +28,20 @@ FReply UUK_InvMain::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent
 	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
 }
 
+FReply UUK_InvMain::NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	if ( AUK_PlayerController* PC = Cast<AUK_PlayerController>(GetOwningPlayer()) )
+	{
+		if ( InKeyEvent.GetKey() == EKeys::Tab )
+		{
+			PC->OpenSettingAndCloseOtherUI();
+			return FReply::Handled();
+		}
+	}
+
+	return Super::NativeOnPreviewKeyDown(InGeometry, InKeyEvent);
+}
+
 void UUK_InvMain::NativeConstruct()
 {
 	Super::NativeConstruct();
