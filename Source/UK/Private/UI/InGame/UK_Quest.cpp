@@ -175,14 +175,13 @@ void UUK_Quest::OnPlayButtonClicked()
 	{
 		PlayerCtl->ApplyInputState(EInputState::Game);
 		PlayerCtl->SetCursorVisible(false);
+		PlayerCtl->HideQuestUI();
 	}
 	
 	if (ClickSound)
 	{
 		UGameplayStatics::PlaySound2D(this, ClickSound);
 	}
-
-	RemoveFromParent();
 }
 
 void UUK_Quest::OnExitButtonClicked()
@@ -200,9 +199,8 @@ void UUK_Quest::OnExitButtonClicked()
 	{
 		PlayerCtl->ApplyInputState(EInputState::Game);
 		PlayerCtl->SetCursorVisible(false);
+		PlayerCtl->HideQuestUI();
 	}
-
-	RemoveFromParent();
 }
 
 void UUK_Quest::OnPlayButtonHovered()
