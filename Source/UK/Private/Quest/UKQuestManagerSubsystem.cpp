@@ -206,6 +206,10 @@ void UUKQuestManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		FAssetRegistryModule& ARM = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 		IAssetRegistry& Registry = ARM.Get();
 
+		TArray<FString> PathsToScan;
+		PathsToScan.Add(TEXT("/Game/Quests"));
+		Registry.ScanPathsSynchronous(PathsToScan, true);
+
 		FARFilter Filter;
 		Filter.bRecursivePaths = true;
 		Filter.PackagePaths.Add(ScanPath);

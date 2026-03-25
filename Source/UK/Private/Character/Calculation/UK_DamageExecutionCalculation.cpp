@@ -89,6 +89,7 @@ void UUK_DamageExecutionCalculation::Execute_Implementation(
 	float CriticalDamage = 0.f;
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(
 		FDamageCapture().CriticalDamageDef, EvalParams, CriticalDamage);
+	CriticalDamage /= 100;
 	CriticalDamage += 1.f;
 	
 	// 스킬의 데미지 퍼센트

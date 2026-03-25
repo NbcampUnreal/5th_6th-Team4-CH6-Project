@@ -210,7 +210,9 @@ FName AUK_QuestNPC::ResolveQuestIdToShow(UUKQuestManagerSubsystem* QuestSys) con
 	for ( const FName& CandidateId : ReportQuestIDs )
 	{
 		FQuestProgress Progress;
-		if ( QuestSys->GetProgress(CandidateId, Progress) && !Progress.bCompleted )
+		const bool bReportStarted = QuestSys->GetProgress(CandidateId, Progress);
+
+		if ( bReportStarted && !Progress.bCompleted )
 		{
 			UE_LOG(LogTemp, Log, TEXT("[QuestNPC] ReportQuest picked. NPCID=%s Quest=%s"),
 				*NPCID.ToString(), *CandidateId.ToString());
@@ -539,7 +541,7 @@ void AUK_QuestNPC::HandleQuestInteract(AUK_CharacterBase* Player)
 	}
 
 	FText QuestTitle = Def->QuestTitle;
-	FText Dialogue = Def->NPCDialogue;
+	FText Dialogue = FText::GetEmpty();
 	FText QuestDesc = Def->QuestDescription;
 
 	FQuestProgress Progress;

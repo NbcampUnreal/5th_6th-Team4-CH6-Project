@@ -13,6 +13,7 @@
 #include "InputCoreTypes.h"
 #include "Input/Reply.h"
 #include "Engine/Engine.h"
+#include "Character/UK_PlayerController.h"
 
 FReply UUK_InvMain::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
@@ -35,6 +36,15 @@ FReply UUK_InvMain::NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FK
 		if ( InKeyEvent.GetKey() == EKeys::Tab )
 		{
 			PC->OpenSettingAndCloseOtherUI();
+			return FReply::Handled();
+		}
+	}
+
+	if ( AUK_PlayerController* PC = Cast<AUK_PlayerController>(GetOwningPlayer()) )
+	{
+		if ( InKeyEvent.GetKey() == EKeys::U )
+		{
+			PC->WeaponCrafting_UI();
 			return FReply::Handled();
 		}
 	}
@@ -145,17 +155,17 @@ void UUK_InvMain::SetMainTab(EMainTab NewTab)
 
 void UUK_InvMain::OnCloseButtonClicked()
 {
-	if (OwnerMainHUD)
+	if ( AUK_PlayerController* PC = Cast<AUK_PlayerController>(GetOwningPlayer()) )
 	{
-		OwnerMainHUD->CloseInventory();
+		PC->CloseInventoryUI(); //수정
 	}
 }
 
 void UUK_InvMain::CloseInvMain()
 {
-	if (OwnerMainHUD)
+	if ( AUK_PlayerController* PC = Cast<AUK_PlayerController>(GetOwningPlayer()) )
 	{
-		OwnerMainHUD->CloseInventory();
+		PC->CloseInventoryUI(); //수정
 	}
 	else
 	{

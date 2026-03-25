@@ -10,6 +10,7 @@
 #include "AIMonster/AIMonsterBase.h"
 #include "DataAsset/HitMontageDataAsset.h"
 #include "Systems/Data/UK_SaveInterface.h"
+#include "Character/UK_CharacterTypes.h"
 #include "UK_CharacterBase.generated.h"
 
 #define ECC_LockOn ECollisionChannel::ECC_GameTraceChannel2
@@ -36,28 +37,10 @@ class USoundAttenuation;
 class UNiagaraSystem;
 struct FInputActionValue;
 struct FUK_WeaponItemData;
+class USceneCaptureComponent2D;
+class UPointLightComponent;
 #pragma endregion
 
-UENUM(BlueprintType)
-enum class EInputMode : uint8
-{
-	None,
-	Light,
-	Heavy,
-	Air,
-	NormalSkill,
-	UltimateSkill,
-	Parry,
-	Dash
-};
-
-UENUM(BlueprintType)
-enum class ECharacterAttribute : uint8
-{
-	None,
-	Fire,
-	Wind
-};
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadDelagate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOutOfStamina);
@@ -505,4 +488,18 @@ public:
 	bool bDrawDetectRadius = false;
 #pragma endregion
 
+#pragma region UI2DRenderCapture
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FrontCapture")
+	TObjectPtr<USpringArmComponent> FrontCaptureSpringArm;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FrontCapture")
+	TObjectPtr<USceneCaptureComponent2D> FrontSceneCapture;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FrontCapture")
+	TObjectPtr<UPointLightComponent> FrontCaptureLight;
+
+	void UpdateFrontCaputre();
+#pragma endregion
 };

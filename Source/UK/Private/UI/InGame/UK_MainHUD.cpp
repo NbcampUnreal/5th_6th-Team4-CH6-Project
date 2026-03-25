@@ -204,7 +204,11 @@ void UUK_MainHUD::UpdateLevel(const FOnAttributeChangeData& Data)
 
 void UUK_MainHUD::OnInventoryButtonClicked()
 {
-	ToggleInventory();
+	if ( AUK_PlayerController* PC = Cast<AUK_PlayerController>(GetOwningPlayer()) )
+	{
+		PC->Inventory_UI(); //수정
+		SetInventoryNewVisible(false); //추가
+	}
 }
 
 void UUK_MainHUD::HandleItemAdded_ShowNew(FName ItemID, int32 Amount)
@@ -298,69 +302,26 @@ void UUK_MainHUD::NotifyChildren()
 
 void UUK_MainHUD::OpenInventory()
 {
-	if (!InvMainClass) return;
-
-	APlayerController* PC = GetOwningPlayer();
-	if (!PC) return;
-
-	if (!InvMainWidget)
+	if ( AUK_PlayerController* PC = Cast<AUK_PlayerController>(GetOwningPlayer()) )
 	{
-		InvMainWidget = CreateWidget<UUK_InvMain>(GetWorld(), InvMainClass);
-
-
-		if (InvMainWidget)
-		{
-			InvMainWidget->OwnerMainHUD = this;
-		}
-	}
-
-	if (InvMainWidget)
-	{
-		if (!InvMainWidget->IsInViewport())
-		{
-			InvMainWidget->AddToViewport();
-			SetInventoryNewVisible(false);
-
-			PC->SetShowMouseCursor(true);
-
-			FInputModeUIOnly InputMode;
-			InputMode.SetWidgetToFocus(InvMainWidget->TakeWidget());
-			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-
-			PC->SetInputMode(InputMode);
-
-			if (PlayerPawn)
-			{
-				PlayerPawn->GetCharacterMovement()->StopMovementImmediately();
-			}
-		}
+		PC->Inventory_UI(); //수정
+		SetInventoryNewVisible(false); //추가
 	}
 }
 
 void UUK_MainHUD::CloseInventory()
 {
-	APlayerController* PC = GetOwningPlayer();
-	if (!PC) return;
-
-	if (InvMainWidget && InvMainWidget->IsInViewport())
+	if ( AUK_PlayerController* PC = Cast<AUK_PlayerController>(GetOwningPlayer()) )
 	{
-		InvMainWidget->RemoveFromParent();
+		PC->CloseInventoryUI(); //수정
 	}
-
-	PC->SetShowMouseCursor(false);
-
-	FInputModeGameOnly InputMode;
-	PC->SetInputMode(InputMode);
 }
 
 void UUK_MainHUD::ToggleInventory()
 {
-	if (InvMainWidget && InvMainWidget->IsInViewport())
+	if ( AUK_PlayerController* PC = Cast<AUK_PlayerController>(GetOwningPlayer()) )
 	{
-		CloseInventory();
-	}
-	else
-	{
-		OpenInventory();
+		PC->Inventory_UI(); //수정
+		SetInventoryNewVisible(false); //추가
 	}
 }

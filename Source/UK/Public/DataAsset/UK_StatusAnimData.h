@@ -5,24 +5,13 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "GameplayTagContainer.h"
+#include "Character/UK_CharacterTypes.h"
+
 #include "UK_StatusAnimData.generated.h"
 
 #pragma region Forward Declaration
 class UUK_AnimData;
 #pragma endregion
-UENUM()
-enum class EComboAttackType : uint8
-{
-	None,
-	AttackOnAir,
-	LightAttackOnGround,
-	HeavyAttackOnGround,
-	DropAttack,
-	NomalSkill,
-	UltimateSkill,
-	Parry,
-	Dash
-};
 
 USTRUCT(BlueprintType)
 struct FWeaponStatus

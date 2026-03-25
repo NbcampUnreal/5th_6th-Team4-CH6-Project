@@ -56,15 +56,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UK|QuestUI")
 	FText GetQuestDescriptionText(FName QuestId) const;
 
-	/*
-		[UI 용도]
-		- NPC가 퀘스트를 소개할 때 보여줄 기본 멘트 텍스트에 사용
-		- 대화 UI 시작 전, 퀘스트 제안창/수락창의 NPC 멘트 영역에 사용 가능
-		- 기획 담당은 QuestDefinitionAsset의 NPCDialogue에 넣어두면 됨
-	*/
-	UFUNCTION(BlueprintCallable, Category = "UK|QuestUI")
-	FText GetQuestNPCDialogueText(FName QuestId) const;
-
 public:
 	
 	// [5] Quest State Bool Getter
