@@ -24,12 +24,17 @@ void UUK_QuestMain::NativeConstruct()
 
 void UUK_QuestMain::RefreshQuestList()
 {
-	if (!QuestLists || !QuestUIManager || !QuestManager) return;
+	if ( !QuestLists || !QuestUIManager || !QuestManager ) return;
 
 	QuestLists->QuestScrollBox->ClearChildren();
 
-	for (const TPair<FName, FQuestProgress>& Pair : QuestManager->RuntimeProgress)
+	for ( const TPair<FName, FQuestProgress>& Pair : QuestManager->RuntimeProgress )
 	{
+		if ( Pair.Value.bCompleted )
+		{
+			continue;
+		}
+
 		const FName QuestId = Pair.Key;
 		const FText QuestTitle = QuestUIManager->GetQuestTitleText(QuestId);
 		const FText QuestDescription = QuestUIManager->GetQuestDescriptionText(QuestId);
