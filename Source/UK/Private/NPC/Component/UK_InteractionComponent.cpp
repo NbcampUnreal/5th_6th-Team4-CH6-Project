@@ -2,6 +2,7 @@
 #include "NPC/UK_QuestNPC.h"
 #include "NPC/UK_Shop_NPC.h"
 #include "GameFramework/Actor.h"
+#include "Actor/UK_TreasureBox.h"
 #include "Character/UK_CharacterBase.h"
 #include "Character/UK_PlayerController.h"
 
@@ -64,6 +65,12 @@ void UUK_InteractionComponent::TryInteract()
 	if (ShopNPC)
 	{
 		ShopNPC->Interact(Player);
+		return;
+	}
+	AUK_TreasureBox* TreasureBox = Cast<AUK_TreasureBox>(NearActor);
+	if (TreasureBox)
+	{	
+		TreasureBox->TryOpen(Player);
 		return;
 	}
 }
