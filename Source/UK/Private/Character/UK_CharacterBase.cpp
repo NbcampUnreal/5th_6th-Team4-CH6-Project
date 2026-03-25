@@ -79,10 +79,13 @@ AUK_CharacterBase::AUK_CharacterBase(const FObjectInitializer& ObjectInitializer
 
 	FrontCaptureSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("FrontCaptureSpringArm"));
 	FrontCaptureSpringArm->SetupAttachment(GetCapsuleComponent());
+
+	FrontCaptureSpringArm->TargetArmLength = 150.f;
+	FrontCaptureSpringArm->SetRelativeLocation(FVector(0.f, 0.f, 80.f));
+
 	FrontCaptureSpringArm->bUsePawnControlRotation = false;
 	FrontCaptureSpringArm->bDoCollisionTest = false;
 	FrontCaptureSpringArm->bEnableCameraLag = false;
-	FrontCaptureSpringArm->bUsePawnControlRotation = false;
 	FrontCaptureSpringArm->bInheritPitch = false;
 	FrontCaptureSpringArm->bInheritYaw = false;
 	FrontCaptureSpringArm->bInheritRoll = false;
@@ -90,6 +93,12 @@ AUK_CharacterBase::AUK_CharacterBase(const FObjectInitializer& ObjectInitializer
 
 	FrontSceneCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("FrontSceneCapture"));
 	FrontSceneCapture->SetupAttachment(FrontCaptureSpringArm, USpringArmComponent::SocketName);
+
+	FrontSceneCapture->ProjectionType = ECameraProjectionMode::Orthographic;
+	FrontSceneCapture->OrthoWidth = 250.f;
+
+	FrontSceneCapture->bCaptureEveryFrame = true;
+	FrontSceneCapture->bCaptureOnMovement = true;
 
 #pragma endregion
 
