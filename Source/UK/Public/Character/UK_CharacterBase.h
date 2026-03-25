@@ -37,6 +37,8 @@ class USoundAttenuation;
 class UNiagaraSystem;
 struct FInputActionValue;
 struct FUK_WeaponItemData;
+class USceneCaptureComponent2D;
+class UPointLightComponent;
 #pragma endregion
 
 
@@ -486,4 +488,18 @@ public:
 	bool bDrawDetectRadius = false;
 #pragma endregion
 
+#pragma region UI2DRenderCapture
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FrontCapture")
+	TObjectPtr<USpringArmComponent> FrontCaptureSpringArm;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FrontCapture")
+	TObjectPtr<USceneCaptureComponent2D> FrontSceneCapture;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FrontCapture")
+	TObjectPtr<UPointLightComponent> FrontCaptureLight;
+
+	void UpdateFrontCaputre();
+#pragma endregion
 };
