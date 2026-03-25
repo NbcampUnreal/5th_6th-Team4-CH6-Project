@@ -535,7 +535,7 @@ void AUK_QuestNPC::HandleQuestInteract(AUK_CharacterBase* Player)
 	}
 
 	FText QuestTitle = Def->QuestTitle;
-	FText Dialogue = Def->NPCDialogue;
+	FText Dialogue = FText::GetEmpty();
 	FText QuestDesc = Def->QuestDescription;
 
 	FQuestProgress Progress;
