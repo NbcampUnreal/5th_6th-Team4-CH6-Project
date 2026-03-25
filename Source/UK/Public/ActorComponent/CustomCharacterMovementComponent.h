@@ -30,4 +30,6 @@ protected:
 	float GlideFallSpeed;
 #pragma endregion
 	
+	virtual bool IsWalkable(const FHitResult& Hit) const override;
+	
 };
