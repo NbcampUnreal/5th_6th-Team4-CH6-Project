@@ -4,19 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Character/UK_CharacterTypes.h"
 #include "CustomCharacterMovementComponent.generated.h"
 
 /**
  * 
  */
 
-UENUM(BlueprintType)
-enum class ECustomMovementMode : uint8
-{
-	CMOVE_None UMETA(DisplayName="None"),
-	CMOVE_Climb UMETA(DisplayName="Climb"),
-	CMOVE_Gliding UMETA(DisplayName="Gliding")
-};
+
 
 UCLASS()
 class UK_API UCustomCharacterMovementComponent : public UCharacterMovementComponent
@@ -34,5 +29,4 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Glide")
 	float GlideFallSpeed;
 #pragma endregion
-	
 };

@@ -355,12 +355,12 @@ void UUK_MainHUD::CloseInventory()
 
 void UUK_MainHUD::ToggleInventory()
 {
-	if (InvMainWidget && InvMainWidget->IsInViewport())
+	APlayerController* PC = GetOwningPlayer();
+	if ( !PC ) return;
+
+	AUK_PlayerController* UKPC = Cast<AUK_PlayerController>(PC);
+	if ( UKPC )
 	{
-		CloseInventory();
-	}
-	else
-	{
-		OpenInventory();
+		UKPC->Inventory_UI();
 	}
 }

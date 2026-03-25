@@ -64,6 +64,8 @@ AAIMonsterBase::AAIMonsterBase()
 	AlertWidgetComponent->SetVisibility(false);
 	AlertWidgetComponent->SetCullDistance(AlertWidgetCullDistance);
 	AlertWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, 225.f));
+	
+	GetCapsuleComponent()->CanCharacterStepUpOn = ECB_No;
 }
 
 void AAIMonsterBase::BeginPlay()
@@ -1158,7 +1160,7 @@ float AAIMonsterBase::CalculateDefense(int32 PlayerLevel) const
 {
     const FUK_MonsterStatRow* Row = GetStatRow();
     if (!Row) return 0.f;
-    return (PlayerLevel / 2.f) + Row->BaseDefense;
+	return (PlayerLevel * 5.f) + Row->BaseDefense;
 }
 
 // ────────────────────────────────────────────────
