@@ -15,6 +15,10 @@ struct FUK_MonsterStatRow : public FTableRowBase
 	float HPPerLevel = 10.f;
 
 	// ── 공격력 ─────────────────────────────────
+	/** 기본 공격력 (레벨 무관 고정값) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats|Attack")
+	float BaseAttack = 5.f; 
+	
 	/** 일반 공격: PlayerLevel × AttackMultiplier */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats|Attack")
 	float AttackMultiplier = 3.14f;

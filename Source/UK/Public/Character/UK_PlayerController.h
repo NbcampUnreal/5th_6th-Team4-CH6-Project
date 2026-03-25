@@ -58,6 +58,8 @@ private:
 	void Client_CreatePlayerUI();
 
 public:
+
+	UUK_MainHUD* GetMainHUD() const { return MainHUD; }
 	// ----- Input -----
 
 	bool InputKey_Check(const FInputKeyParams& Params);

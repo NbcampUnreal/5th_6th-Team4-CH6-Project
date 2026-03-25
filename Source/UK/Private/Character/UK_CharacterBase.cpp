@@ -35,6 +35,7 @@
 #include "Systems/Sound/UK_SoundManager.h"
 #include "ProfilingDebugging/CpuProfilerTrace.h"
 #include "Components/SceneCaptureComponent2D.h"
+#include "Components/PointLightComponent.h"
 
 #pragma region Defualt
 DECLARE_CYCLE_STAT(TEXT("UK Character Logic"), STAT_UKCharacter, STATGROUP_UK_Character);
@@ -79,10 +80,11 @@ AUK_CharacterBase::AUK_CharacterBase(const FObjectInitializer& ObjectInitializer
 
 	FrontCaptureSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("FrontCaptureSpringArm"));
 	FrontCaptureSpringArm->SetupAttachment(GetCapsuleComponent());
+	FrontCaptureSpringArm->TargetArmLength = 150.f;
+	FrontCaptureSpringArm->SetRelativeLocation(FVector(0.f, 0.f, 80.f));
 	FrontCaptureSpringArm->bUsePawnControlRotation = false;
 	FrontCaptureSpringArm->bDoCollisionTest = false;
 	FrontCaptureSpringArm->bEnableCameraLag = false;
-	FrontCaptureSpringArm->bUsePawnControlRotation = false;
 	FrontCaptureSpringArm->bInheritPitch = false;
 	FrontCaptureSpringArm->bInheritYaw = false;
 	FrontCaptureSpringArm->bInheritRoll = false;
@@ -90,6 +92,33 @@ AUK_CharacterBase::AUK_CharacterBase(const FObjectInitializer& ObjectInitializer
 
 	FrontSceneCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("FrontSceneCapture"));
 	FrontSceneCapture->SetupAttachment(FrontCaptureSpringArm, USpringArmComponent::SocketName);
+	FrontSceneCapture->ProjectionType = ECameraProjectionMode::Orthographic;
+	FrontSceneCapture->OrthoWidth = 250.f;
+
+	//밝기 관련
+	FrontSceneCapture->bCaptureEveryFrame = true;
+	FrontSceneCapture->bCaptureOnMovement = true;
+
+	FrontSceneCapture->PostProcessBlendWeight = 1.0f;
+	FrontSceneCapture->PostProcessSettings.bOverride_AutoExposureMethod = true;
+	FrontSceneCapture->PostProcessSettings.AutoExposureMethod = EAutoExposureMethod::AEM_Manual;
+	FrontSceneCapture->PostProcessSettings.bOverride_AutoExposureBias = true;
+	FrontSceneCapture->PostProcessSettings.AutoExposureBias = 2.0f;
+	FrontSceneCapture->PostProcessSettings.bOverride_AutoExposureMinBrightness = true;
+	FrontSceneCapture->PostProcessSettings.bOverride_AutoExposureMaxBrightness = true;
+	FrontSceneCapture->PostProcessSettings.AutoExposureMinBrightness = 1.0f;
+	FrontSceneCapture->PostProcessSettings.AutoExposureMaxBrightness = 1.0f;
+
+	FrontCaptureLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("FrontCaptureLight"));
+	FrontCaptureLight->SetupAttachment(FrontCaptureSpringArm, USpringArmComponent::SocketName);
+	FrontCaptureLight->SetRelativeLocation(FVector(30.f, 0.f, -120.f));
+	FrontCaptureLight->Intensity = 0.f;
+	FrontCaptureLight->AttenuationRadius = 800.f;
+	FrontCaptureLight->SetCastShadows(false);
+	FrontCaptureLight->SetLightColor(FLinearColor(1.0f, 1.0f, 1.0f));
+	FrontCaptureLight->LightingChannels.bChannel0 = false;
+	FrontCaptureLight->LightingChannels.bChannel1 = true;
+	FrontCaptureLight->LightingChannels.bChannel2 = false;
 
 #pragma endregion
 
@@ -113,6 +142,23 @@ AUK_CharacterBase::AUK_CharacterBase(const FObjectInitializer& ObjectInitializer
 	LeftHandWeaponComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftHandWeaponComponent"));
 	LeftHandWeaponComponent->SetupAttachment(SkeletalMeshComp, TEXT("Weapon_lSocket"));
 	LeftHandWeaponComponent->SetLeaderPoseComponent(SkeletalMeshComp);
+
+	//밝기 관련
+	GetMesh()->LightingChannels.bChannel0 = true;
+	GetMesh()->LightingChannels.bChannel1 = true;
+	GetMesh()->LightingChannels.bChannel2 = false;
+
+	SkeletalMeshComp->LightingChannels.bChannel0 = true;
+	SkeletalMeshComp->LightingChannels.bChannel1 = true;
+	SkeletalMeshComp->LightingChannels.bChannel2 = false;
+
+	RightHandWeaponComponent->LightingChannels.bChannel0 = true;
+	RightHandWeaponComponent->LightingChannels.bChannel1 = true;
+	RightHandWeaponComponent->LightingChannels.bChannel2 = false;
+
+	LeftHandWeaponComponent->LightingChannels.bChannel0 = true;
+	LeftHandWeaponComponent->LightingChannels.bChannel1 = true;
+	LeftHandWeaponComponent->LightingChannels.bChannel2 = false;
 
 	InventoryComponent = CreateDefaultSubobject<UUK_InventoryComponent>(TEXT("InventoryComponent"));
 	InteractionComp = CreateDefaultSubobject<UUK_InteractionComponent>(TEXT("InteractionComponent"));
