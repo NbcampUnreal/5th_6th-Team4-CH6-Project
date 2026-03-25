@@ -64,6 +64,8 @@ AAIMonsterBase::AAIMonsterBase()
 	AlertWidgetComponent->SetVisibility(false);
 	AlertWidgetComponent->SetCullDistance(AlertWidgetCullDistance);
 	AlertWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, 225.f));
+	
+	GetCapsuleComponent()->CanCharacterStepUpOn = ECB_No;
 }
 
 void AAIMonsterBase::BeginPlay()
