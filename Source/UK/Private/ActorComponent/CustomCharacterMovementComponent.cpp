@@ -35,3 +35,15 @@ void UCustomCharacterMovementComponent::PhysGlide(float deltaTime, int32 Iterati
 	GravityScale = SavedGravity;
 	AirControl = SavedAirControl;
 }
+
+bool UCustomCharacterMovementComponent::IsWalkable(const FHitResult& Hit) const
+{
+	if (const AUK_CharacterBase* Owner = Cast<AUK_CharacterBase>(GetOwner()))
+	{
+		if (Owner->IsFrying() && Hit.GetActor() && Hit.GetActor()->IsA<APawn>())
+		{
+			return false;
+		}
+	}
+	return Super::IsWalkable(Hit);
+}

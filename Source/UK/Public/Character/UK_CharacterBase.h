@@ -456,6 +456,8 @@ protected:
 #pragma region Battle
 
 public:
+	bool IsFrying() const { return bIsFry; }
+	
 	UFUNCTION(BlueprintCallable)
 	void StopJumpAndFly();
 
