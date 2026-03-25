@@ -7,6 +7,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 
 AUK_TreasureBox::AUK_TreasureBox()
 {
@@ -81,15 +82,27 @@ void AUK_TreasureBox::TryOpen(AActor* InteractingPlayer)
 	if (OpenVFX)
 	{
 		FVector SpawnLocation = GetActorLocation() + FVector(0.f, 0.f, 50.f);
-		
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			GetWorld(),
-			OpenVFX,
-			SpawnLocation,
+        
+		UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(), 
+			OpenVFX, 
+			SpawnLocation, 
 			GetActorRotation(),
-			FVector(15.0f),
+			FVector(13.0f),
 			true
-			);
+		);
+
+		if (NiagaraComp)
+		{
+			FTimerHandle VFXTimerHandle;
+			GetWorld()->GetTimerManager().SetTimer(VFXTimerHandle, [NiagaraComp]() 
+			{
+				if (IsValid(NiagaraComp))
+				{
+					NiagaraComp->DestroyComponent(); // 3초 후 강제 삭제 실행
+				}
+			}, 5.0f, false);
+		}
 	}
 	
 	UUK_InventoryComponent* InvComp = InteractingPlayer->FindComponentByClass<UUK_InventoryComponent>();
