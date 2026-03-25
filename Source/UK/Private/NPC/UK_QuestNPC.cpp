@@ -211,9 +211,13 @@ FName AUK_QuestNPC::ResolveQuestIdToShow(UUKQuestManagerSubsystem* QuestSys) con
 	{
 		FQuestProgress Progress;
 		const bool bReportStarted = QuestSys->GetProgress(CandidateId, Progress);
+
+		if ( bReportStarted && !Progress.bCompleted )
+		{
 			UE_LOG(LogTemp, Log, TEXT("[QuestNPC] ReportQuest picked. NPCID=%s Quest=%s"),
 				*NPCID.ToString(), *CandidateId.ToString());
 			return CandidateId;
+		}
 	}
 
 	// 2) 새로 발급 가능한 퀘스트
