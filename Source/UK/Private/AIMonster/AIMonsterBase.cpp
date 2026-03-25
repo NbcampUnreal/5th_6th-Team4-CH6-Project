@@ -1118,7 +1118,9 @@ const FUK_MonsterStatRow* AAIMonsterBase::GetStatRow() const
         UE_LOG(LogTemp, Warning, TEXT("[%s] MonsterStatTable이 할당되지 않았습니다."), *GetName());
         return nullptr;
     }
-    return MonsterStatTable->FindRow<FUK_MonsterStatRow>(GetRowName(), TEXT("GetStatRow"));
+	UE_LOG(LogTemp, Warning, TEXT("[%s] DT 참조중: %s"), *GetName(), *MonsterStatTable->GetPathName());
+
+	return MonsterStatTable->FindRow<FUK_MonsterStatRow>(GetRowName(), TEXT("GetStatRow"));
 }
 
 const FUK_MonsterMetaRow* AAIMonsterBase::GetMetaRow() const
@@ -1137,16 +1139,21 @@ const FUK_MonsterMetaRow* AAIMonsterBase::GetMetaRow() const
 
 float AAIMonsterBase::CalculateMaxHealth(int32 PlayerLevel) const
 {
-    const FUK_MonsterStatRow* Row = GetStatRow();
-    if (!Row) return 100.f;
-    return Row->BaseHP + (PlayerLevel * Row->HPPerLevel);
+	const FUK_MonsterStatRow* Row = GetStatRow();
+	if (!Row) return 100.f;
+
+	UE_LOG(LogTemp, Warning, 
+		TEXT("[RowValue] %s | BaseHP=%.1f | HPPerLevel=%.1f | BaseAttack=%.1f | AtkMult=%.1f | BaseDef=%.1f"),
+		*GetName(), Row->BaseHP, Row->HPPerLevel, Row->BaseAttack, Row->AttackMultiplier, Row->BaseDefense);
+
+	return Row->BaseHP + (PlayerLevel * Row->HPPerLevel);
 }
 
 float AAIMonsterBase::CalculateAttackDamage(int32 PlayerLevel) const
 {
     const FUK_MonsterStatRow* Row = GetStatRow();
     if (!Row) return 0.f;
-    return PlayerLevel * Row->AttackMultiplier;
+	return Row->BaseAttack + (PlayerLevel * Row->AttackMultiplier);
 }
 
 float AAIMonsterBase::CalculateAoEDamage(int32 PlayerLevel) const
