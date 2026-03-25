@@ -6,6 +6,7 @@
 #include "Actor/Subsystem/UK_BoxManagerSubsystem.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "NiagaraFunctionLibrary.h"
 
 AUK_TreasureBox::AUK_TreasureBox()
 {
@@ -70,7 +71,26 @@ void AUK_TreasureBox::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* 
 
 void AUK_TreasureBox::TryOpen(AActor* InteractingPlayer)
 { 
-	if (!InteractingPlayer) return;
+	if (!InteractingPlayer || bIsOpened) return;
+	
+	if (OpenSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, OpenSound, GetActorLocation());
+	}
+	
+	if (OpenVFX)
+	{
+		FVector SpawnLocation = GetActorLocation() + FVector(0.f, 0.f, 50.f);
+		
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(),
+			OpenVFX,
+			SpawnLocation,
+			GetActorRotation(),
+			FVector(15.0f),
+			true
+			);
+	}
 	
 	UUK_InventoryComponent* InvComp = InteractingPlayer->FindComponentByClass<UUK_InventoryComponent>();
 	if (!InvComp) return;
