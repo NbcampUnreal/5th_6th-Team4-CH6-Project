@@ -3,3 +3,11 @@
 
 #include "DataAsset/UK_AnimData.h"
 
+UAnimMontage* UUK_AnimData::FindMontageByAttribute(ECharacterAttribute Attribute)
+{
+	if (UAnimMontage* FoundMontage = *ComboMontageMap.Find(Attribute))
+	{
+		return FoundMontage;
+	}
+	return nullptr;
+}
