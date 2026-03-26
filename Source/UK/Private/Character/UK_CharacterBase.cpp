@@ -920,16 +920,6 @@ void AUK_CharacterBase::LockONToggle()
 		FColor DrawColor = bHit ? FColor::Green : FColor::Red;
 
 		FQuat CapsuleRot = FRotationMatrix::MakeFromZ(Start - End).ToQuat();
-		DrawDebugCapsule(
-			GetWorld(),
-			(Start + End) / 2,
-			(End - Start).Size(),
-			CapsuleRadius,
-			CapsuleRot,
-			DrawColor,
-			false,
-			1.f
-		);
 		if (bHit)
 		{
 			for (const FHitResult& Hit : LockOnResult)
@@ -1230,7 +1220,7 @@ void AUK_CharacterBase::ChangeWeaponStat(const FUK_WeaponItemData* WeaponStat)
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (IsValid(ASC) == false)
 		return;
-
+	
 	FGameplayEffectSpecHandle SpecHandle =
 		ASC->MakeOutgoingSpec(WeaponStatEffect, 1.f, ASC->MakeEffectContext());
 	// 기존 무기 효과 제거

@@ -33,7 +33,7 @@ void AUK_PlayerState::InitializeAttributes() const
 	ASC->SetNumericAttributeBase(StatusAttributeSet->GetAttackPowerAttribute(), 100.f);
 	ASC->SetNumericAttributeBase(StatusAttributeSet->GetMaxMpAttribute(), 100.f);
 	ASC->SetNumericAttributeBase(StatusAttributeSet->GetMaxStaminaAttribute(), 100.f);
-	ASC->SetNumericAttributeBase(StatusAttributeSet->GetMaxLevelAttribute(), 20.f);
+	ASC->SetNumericAttributeBase(StatusAttributeSet->GetMaxLevelAttribute(), 50.f);
 	ASC->SetNumericAttributeBase(StatusAttributeSet->GetLevelAttribute(), 1.f);
 	ASC->SetNumericAttributeBase(StatusAttributeSet->GetMaxEXPAttribute(), 10.f);
 	ASC->SetNumericAttributeBase(StatusAttributeSet->GetDefenceAttribute(), 1.f);
