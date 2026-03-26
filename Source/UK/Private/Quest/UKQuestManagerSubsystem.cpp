@@ -655,7 +655,14 @@ bool UUKQuestManagerSubsystem::SetQuestFlag(FName QuestId, FName Category)
 		return false;
 	}
 
-	SetFlag(*P, MakeFlagKey(QuestId, Category));
+	const FName FlagKey = MakeFlagKey(QuestId, Category);
+	SetFlag(*P, FlagKey);
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[Quest][Marker] Broadcast from SetQuestFlag: QuestId=%s FlagKey=%s"),
+		*QuestId.ToString(),
+		*FlagKey.ToString());
+
 	OnQuestStateChanged.Broadcast(QuestId);
 	return true;
 }
@@ -689,7 +696,15 @@ bool UUKQuestManagerSubsystem::SetQuestCounterValue(FName QuestId, FName Counter
 		return false;
 	}
 
-	P->Counters.Add(MakeCounterKey(QuestId, CounterName), NewValue);
+	const FName CounterKey = MakeCounterKey(QuestId, CounterName);
+	P->Counters.Add(CounterKey, NewValue);
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[Quest][Marker] Broadcast from SetQuestCounterValue: QuestId=%s CounterKey=%s NewValue=%d"),
+		*QuestId.ToString(),
+		*CounterKey.ToString(),
+		NewValue);
+
 	OnQuestStateChanged.Broadcast(QuestId);
 	return true;
 }
@@ -709,7 +724,17 @@ bool UUKQuestManagerSubsystem::AddQuestCounterValue(FName QuestId, FName Counter
 
 	const FName CounterKey = MakeCounterKey(QuestId, CounterName);
 	const int32 CurrentValue = P->Counters.FindRef(CounterKey);
-	P->Counters.Add(CounterKey, CurrentValue + Delta);
+	const int32 NewCounterValue = CurrentValue + Delta;
+	P->Counters.Add(CounterKey, NewCounterValue);
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[Quest][Marker] Broadcast from AddQuestCounterValue: QuestId=%s CounterKey=%s Current=%d Delta=%d NewValue=%d"),
+		*QuestId.ToString(),
+		*CounterKey.ToString(),
+		CurrentValue,
+		Delta,
+		NewCounterValue);
+
 	OnQuestStateChanged.Broadcast(QuestId);
 	return true;
 }
@@ -793,6 +818,8 @@ bool UUKQuestManagerSubsystem::StartQuest(FName QuestId)
 	RuntimeProgress.Add(QuestId, NewProgress);
 
 	// 퀘스트 상태 변경 알림
+	UE_LOG(LogTemp, Warning, TEXT("[Quest][Marker] Broadcast from StartQuest: %s"), *QuestId.ToString());
+	
 	OnQuestStateChanged.Broadcast(QuestId);
 
 	return true;
@@ -827,6 +854,8 @@ bool UUKQuestManagerSubsystem::CompleteQuest(FName QuestId)
 	}
 
 	// 퀘스트 상태 변경 알림(UI마커 관련)
+	UE_LOG(LogTemp, Warning, TEXT("[Quest][Marker] Broadcast from CompleteQuest: %s"), *QuestId.ToString());
+	
 	OnQuestStateChanged.Broadcast(QuestId);
 
 	return true;

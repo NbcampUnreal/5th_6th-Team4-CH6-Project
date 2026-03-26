@@ -48,7 +48,6 @@ void UUK_VFXAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBa
         UE_LOG(LogTemp, Warning, TEXT("VFX Notify: [%s] 소켓을 찾을 수 없어 캐릭터 메쉬에 소환합니다!"), *SocketName.ToString());
         FinalTarget = MeshComp;
     }
-	
 	// 4. 이펙트 부착 소환 (다시 따라오게 설정)
 	UNiagaraComponent* SpawnedVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
 		NiagaraVFX,

@@ -439,6 +439,11 @@ protected:
 #pragma region Battle
 
 public:
+	bool bIsDead = false;
+
+	UFUNCTION(BlueprintPure)
+	bool IsDead() const { return bIsDead; }
+	
 	UFUNCTION(BlueprintCallable)
 	void StopJumpAndFly();
 
