@@ -18,7 +18,8 @@ class UAbilitySystemComponent;
 class UUK_MonsterAttributeSet;
 class UGameplayEffect;
 class USoundCue;
-class AUK_FloatingDamageActor;   // 추가
+class AUK_FloatingDamageActor;
+class AUK_CharacterBase; 
 
 /* ───────────────────── Enums & Delegates ───────────────────── */
 
@@ -260,9 +261,18 @@ public:
 	
 	virtual void NotifyAttacked(AController* InstigatorController);
 
-	// 추가
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void SetChaseTarget(AActor* NewTarget);
+
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void ClearChaseTarget();
+	
 	UFUNCTION(BlueprintCallable, Category = "FloatingDamage")
 	void SpawnFloatingDamage(float InDamage);
+protected:
+	UPROPERTY()
+	TWeakObjectPtr<AUK_CharacterBase> TrackedTargetPlayer;
+
 #pragma endregion
 
 #pragma region Idle Animation
