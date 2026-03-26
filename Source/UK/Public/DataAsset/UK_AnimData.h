@@ -15,6 +15,9 @@ class UK_API UUK_AnimData : public UDataAsset
 {
 	GENERATED_BODY()
 public:
+	
+	UAnimMontage* FindMontageByAttribute(ECharacterAttribute Attribute);
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation | Montage")
 	TObjectPtr<UAnimMontage> ComboMantage;
 	

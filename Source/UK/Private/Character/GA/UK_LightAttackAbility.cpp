@@ -4,6 +4,7 @@
 #include "Character/GA/UK_LightAttackAbility.h"
 #include "Character/UK_CharacterBase.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "Character/UK_CharacterTypes.h"
 #include "DataAsset/UK_AnimData.h"
 
 UUK_LightAttackAbility::UUK_LightAttackAbility() : index(1)
@@ -42,13 +43,12 @@ UAnimMontage* UUK_LightAttackAbility::StartCombo(EComboAttackType InStatus)
 
 	SectionString = AnimData->MontageSectionName;
 	FName SectionName = *FString::Printf(TEXT("%s%d"), *AnimData->MontageSectionName, index);
-
-	if ( IsValid(AnimData->ComboMantage) == false )
+	UAnimMontage* Anim = AnimData->FindMontageByAttribute(UKPC->Attribute);
+	if ( IsValid(Anim) == false )
 	{
-		EndCombo();
 		return nullptr;
 	}
-	return AnimData->ComboMantage;
+	return Anim;
 
 }
 void UUK_LightAttackAbility::ResetInput()
