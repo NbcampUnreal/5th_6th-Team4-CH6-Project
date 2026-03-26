@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "Character/UK_CharacterTypes.h"
 #include "UK_AnimData.generated.h"
 
 /**
@@ -16,6 +17,9 @@ class UK_API UUK_AnimData : public UDataAsset
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation | Montage")
 	TObjectPtr<UAnimMontage> ComboMantage;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation | Montage")
+	TMap<ECharacterAttribute, UAnimMontage*> ComboMontageMap;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Animation | Data")
 	TObjectPtr<UBlendSpace> BlendSpace;
