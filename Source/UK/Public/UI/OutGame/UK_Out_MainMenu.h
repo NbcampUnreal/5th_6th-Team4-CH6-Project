@@ -8,6 +8,7 @@
 
 class UButton;
 class UEditableText;
+class USoundCue;
 /**
  * 
  */
@@ -27,6 +28,9 @@ protected:
 
 	UFUNCTION()
 	void OnExitButtonClicked();
+	
+	UFUNCTION()
+	void OnHoveredButtonClicked();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UUserWidget> CharacterSelectWidgetClass;
@@ -44,4 +48,10 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = USLobbyLevelUI, Meta = ( AllowPrivateAccess, BindWidget ))
 	TObjectPtr<UEditableText> ServerIPEditableText;
 	
+	public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+	USoundCue* HoveredSound;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sounds")
+	USoundCue* ClickSound;
 };
