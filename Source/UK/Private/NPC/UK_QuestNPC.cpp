@@ -10,6 +10,8 @@
 #include "NPC/Component/UK_QuestComponent.h"
 #include "Quest/UKQuestManagerSubsystem.h"
 #include "ActorComponent/UK_InventoryComponent.h"
+#include "Dialogue/UKQuestUIManagerSubsystem.h"
+#include "UI/InGame/UK_CheckPoint.h"
 
 #include "Blueprint/UserWidget.h"       
 #include "GameFramework/PlayerController.h"
@@ -49,6 +51,9 @@ AUK_QuestNPC::AUK_QuestNPC()
 	QuestMarker->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
 	QuestMarker->SetVisibility(false);
 
+	MarkerComp = CreateDefaultSubobject<UChildActorComponent>("MarkerComp");
+	MarkerComp->SetupAttachment(RootComponent);
+
 }
 
 void AUK_QuestNPC::BeginPlay()
@@ -56,6 +61,21 @@ void AUK_QuestNPC::BeginPlay()
 	Super::BeginPlay();
 
 	bPlayerInRange = false;
+
+	// 체크포인트(거리측정) 관련
+	if ( SelectMarker )
+	{
+		MarkerComp->SetChildActorClass(SelectMarker);
+		MarkerComp->CreateChildActor();
+
+		NPCMarker = Cast<AUK_CheckPoint>(MarkerComp->GetChildActor());
+		if ( NPCMarker )
+		{
+			FVector CheckLocation = GetActorLocation() + FVector(0.0f, 0.0f, 150.0f);
+			NPCMarker->SetActorLocation(CheckLocation);
+		}
+
+	}
 
 	// NPCID는 BP 기본값 또는 배치된 액터에서 미리 지정되어 있어야 함
 	if ( NPCID.IsNone() )
@@ -97,10 +117,34 @@ void AUK_QuestNPC::BeginPlay()
 	NPCDisplayName = Row->NPCName;
 	NPCDescription = Row->NPCDescription;
 
-	UE_LOG(LogTemp, Log, TEXT("[NPC] Loaded from DT. NPCID=%s"),
-		*NPCID.ToString());
+	UE_LOG(LogTemp, Log, TEXT("[NPC] Loaded from DT. NPCID=%s"),*NPCID.ToString());
+
+	// 추가: 퀘스트 상태 변화 바인딩
+	QuestSys->OnQuestStateChanged.AddDynamic(this, &AUK_QuestNPC::HandleQuestStateChanged);
+
+	UE_LOG(LogTemp, Warning, TEXT("[QuestMarker] Bound OnQuestStateChanged | NPC=%s | NPCID=%s"),*GetName(),*NPCID.ToString());
+
+	// 추가: 시작 시점 마커 상태 초기화
+	RefreshQuestMarker();
 }
 
+void AUK_QuestNPC::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if ( UWorld* World = GetWorld() )
+	{
+		if ( UGameInstance* GI = World->GetGameInstance() )
+		{
+			if ( UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>() )
+			{
+				QuestSys->OnQuestStateChanged.RemoveDynamic(this, &AUK_QuestNPC::HandleQuestStateChanged);
+			}
+		}
+	}
+
+	GetWorldTimerManager().ClearTimer(MarkerTimerHandle);
+
+	Super::EndPlay(EndPlayReason);
+}
 
 void AUK_QuestNPC::OnPlayerEnter(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -112,17 +156,7 @@ void AUK_QuestNPC::OnPlayerEnter(UPrimitiveComponent* OverlappedComp, AActor* Ot
 
 		Player->InteractionComp->SetNearActor(this);
 
-		if ( QuestMarker )
-		{
-			QuestMarker->SetVisibility(true);
-			GetWorldTimerManager().SetTimer(
-				MarkerTimerHandle,
-				this,
-				&AUK_QuestNPC::UpdateMarkerRotation,
-				0.03f,
-				true
-			);
-		}
+		RefreshQuestMarker();
 	}
 }
 
@@ -131,32 +165,34 @@ void AUK_QuestNPC::OnPlayerExit(UPrimitiveComponent* OverlappedComp, AActor* Oth
 	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(OtherActor);
 
 	if ( Player && Player->InteractionComp )
-
 	{
 		bPlayerInRange = false;
 
 		Player->InteractionComp->ClearNearActor();
 
-		if ( QuestMarker )
-		{
-			QuestMarker->SetVisibility(false);
-			GetWorldTimerManager().ClearTimer(MarkerTimerHandle);
-		}
+		RefreshQuestMarker();
 	}
 }
 
 void AUK_QuestNPC::UpdateMarkerRotation()
 {
-	if ( !QuestMarker ) return;
+	if ( !NPCMarker )
+	{
+		return;
+	}
 
 	ACharacter* PlayerChar = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
-	if ( !PlayerChar ) return;
+	if ( !PlayerChar )
+	{
+		return;
+	}
 
-	FVector ToPlayer = PlayerChar->GetActorLocation() - QuestMarker->GetComponentLocation();
+	FVector ToPlayer = PlayerChar->GetActorLocation() - NPCMarker->GetActorLocation();
 	FRotator LookAtRotation = ToPlayer.Rotation();
 	LookAtRotation.Pitch = 0.f;
 	LookAtRotation.Yaw += 90.f;
-	QuestMarker->SetWorldRotation(LookAtRotation);
+
+	NPCMarker->SetActorRotation(LookAtRotation);
 }
 
 bool AUK_QuestNPC::IsQuestStarted(UUKQuestManagerSubsystem* QuestSys, FName InQuestId) const
@@ -586,4 +622,161 @@ void AUK_QuestNPC::HandleQuestInteract(AUK_CharacterBase* Player)
 		Dialogue,
 		QuestDesc
 	);
+}
+
+bool AUK_QuestNPC::IsRelevantQuestId(FName QuestId) const
+{
+	if ( QuestId.IsNone() )
+	{
+		return false;
+	}
+
+	if ( !QuestID.IsNone() && QuestID == QuestId )
+	{
+		return true;
+	}
+
+	if ( OfferQuestIDs.Contains(QuestId) )
+	{
+		return true;
+	}
+
+	if ( ReportQuestIDs.Contains(QuestId) )
+	{
+		return true;
+	}
+
+	return false;
+}
+
+void AUK_QuestNPC::HandleQuestStateChanged(FName QuestId)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[QuestMarker] HandleQuestStateChanged called | NPC=%s | NPCID=%s | QuestId=%s"),
+		*GetName(),*NPCID.ToString(),*QuestId.ToString());
+
+	if ( !IsRelevantQuestId(QuestId) )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[QuestMarker] Irrelevant QuestId ignored | NPC=%s | NPCID=%s | QuestId=%s"),*GetName(),*NPCID.ToString(),*QuestId.ToString());
+		
+		return;
+	}
+
+	if ( bPlayerInRange )
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if ( !World )
+	{
+		return;
+	}
+
+	UGameInstance* GI = World->GetGameInstance();
+	if ( !GI )
+	{
+		return;
+	}
+
+	UUKQuestUIManagerSubsystem* QuestUIManager = GI->GetSubsystem<UUKQuestUIManagerSubsystem>();
+	if ( !QuestUIManager )
+	{
+		return;
+	}
+
+	const EUKQuestMarkerState MarkerState = QuestUIManager->GetQuestMarkerState(QuestId);
+	ApplyMarkerState(MarkerState);
+}
+
+void AUK_QuestNPC::ApplyMarkerState(EUKQuestMarkerState MarkerState)
+{
+	if ( !MarkerComp || !NPCMarker )
+	{
+		return;
+	}
+
+	switch ( MarkerState )
+	{
+	case EUKQuestMarkerState::Hidden:
+		MarkerComp->SetVisibility(false, true);
+		NPCMarker->SetActorHiddenInGame(true);
+		GetWorldTimerManager().ClearTimer(MarkerTimerHandle);
+		break;
+
+	case EUKQuestMarkerState::InProgress:
+		MarkerComp->SetVisibility(true, true);
+		NPCMarker->SetActorHiddenInGame(false);
+		GetWorldTimerManager().SetTimer(
+			MarkerTimerHandle,
+			this,
+			&AUK_QuestNPC::UpdateMarkerRotation,
+			0.03f,
+			true
+		);
+		break;
+
+	case EUKQuestMarkerState::ReadyToTurnIn:
+		MarkerComp->SetVisibility(true, true);
+		NPCMarker->SetActorHiddenInGame(false);
+		GetWorldTimerManager().SetTimer(
+			MarkerTimerHandle,
+			this,
+			&AUK_QuestNPC::UpdateMarkerRotation,
+			0.03f,
+			true
+		);
+		break;
+
+	default:
+		MarkerComp->SetVisibility(false, true);
+		NPCMarker->SetActorHiddenInGame(true);
+		GetWorldTimerManager().ClearTimer(MarkerTimerHandle);
+		break;
+	}
+}
+
+void AUK_QuestNPC::RefreshQuestMarker()
+{
+	if ( !MarkerComp || !NPCMarker )
+	{
+		return;
+	}
+
+	if ( bPlayerInRange )
+	{
+		MarkerComp->SetVisibility(false, true);
+		NPCMarker->SetActorHiddenInGame(true);
+		GetWorldTimerManager().ClearTimer(MarkerTimerHandle);
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if ( !World )
+	{
+		return;
+	}
+
+	UGameInstance* GI = World->GetGameInstance();
+	if ( !GI )
+	{
+		return;
+	}
+
+	UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>();
+	UUKQuestUIManagerSubsystem* QuestUIManager = GI->GetSubsystem<UUKQuestUIManagerSubsystem>();
+
+	if ( !QuestSys || !QuestUIManager )
+	{
+		return;
+	}
+
+	const FName CurrentQuestId = ResolveQuestIdToShow(QuestSys);
+	if ( CurrentQuestId.IsNone() )
+	{
+		ApplyMarkerState(EUKQuestMarkerState::Hidden);
+		return;
+	}
+
+	const EUKQuestMarkerState MarkerState = QuestUIManager->GetQuestMarkerState(CurrentQuestId);
+	ApplyMarkerState(MarkerState);
 }
