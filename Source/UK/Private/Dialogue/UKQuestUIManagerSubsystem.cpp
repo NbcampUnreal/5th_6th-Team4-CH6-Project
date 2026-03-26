@@ -213,6 +213,33 @@ bool UUKQuestUIManagerSubsystem::AreObjectivesSatisfied(FName QuestId) const
 }
 
 
+//[UI/Marker 용도]
+//퀘스트 추적 마커 상태를 한 번에 반환
+//Hidden        : 완료했거나, 아직 진행 중이 아님. 즉, 추적대상 아님
+//InProgress    : 진행 중이지만 아직 완료 보고 단계는 아님
+//ReadyToTurnIn : 진행 중이며 목표를 모두 달성해 완료 보고 가능
+
+
+EUKQuestMarkerState UUKQuestUIManagerSubsystem::GetQuestMarkerState(FName QuestId) const
+{
+	if (IsQuestCompleted(QuestId))
+	{
+		return EUKQuestMarkerState::Hidden;
+	}
+
+	if (!IsQuestInProgress(QuestId))
+	{
+		return EUKQuestMarkerState::Hidden;
+	}
+
+	if (AreObjectivesSatisfied(QuestId))
+	{
+		return EUKQuestMarkerState::ReadyToTurnIn;
+	}
+	return EUKQuestMarkerState::InProgress;
+}
+
+
 // [6] Dialogue UI Getter
 
 FText UUKQuestUIManagerSubsystem::GetCurrentDialogueSpeakerName() const
