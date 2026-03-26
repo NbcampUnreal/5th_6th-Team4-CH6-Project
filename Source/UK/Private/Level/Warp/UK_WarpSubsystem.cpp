@@ -109,6 +109,7 @@ void UUK_WarpSubsystem::TeleportToWarpPoint(ACharacter* PlayerChar, FName PointI
 			// 실제 워프 좌표 적용 
 			FVector TargetLoc = RowData.WorldLocation; // 데이터테이블의 좌표 사용
 			TargetLoc.X += 250.0f; 
+			TargetLoc.Z += 100.0f;
 
 			PlayerChar->SetActorLocation(TargetLoc);
 
