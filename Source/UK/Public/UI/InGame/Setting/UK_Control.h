@@ -25,9 +25,6 @@ protected:
 public:
 	void SetParentWidget(UUserWidget* InParent) { ParentSettingWidget = InParent; }
 
-	UPROPERTY(meta = ( BindWidget ))
-	class UButton* ControlBackButton;
-
 	void StartRebind(FName MappingName);
 
 	FReply NativeOnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent);

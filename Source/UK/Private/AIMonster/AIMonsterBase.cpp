@@ -414,7 +414,7 @@ void AAIMonsterBase::ApplyDamage(float DamageAmount, AController* InstigatorCont
 			{
 				if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
 				{
-					BB->SetValueAsObject(TEXT("TargetPlayer"), Attacker);
+					SetChaseTarget(Attacker);
 				}
 			}
 
@@ -473,7 +473,7 @@ void AAIMonsterBase::NotifyAttacked(AController* InstigatorController)
 	{
 		if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
 		{
-			BB->SetValueAsObject(TEXT("TargetPlayer"), Attacker);  // TargetPlayer 직접 설정
+			SetChaseTarget(Attacker);
 		}
 		if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AIC->GetBrainComponent()))
 		{
@@ -484,6 +484,41 @@ void AAIMonsterBase::NotifyAttacked(AController* InstigatorController)
 	CallNearbyAllies(Attacker);
 	OnAttacked.Broadcast(this, Attacker);
 	RequestState(EMonsterState::Aggressive);
+}
+
+void AAIMonsterBase::SetChaseTarget(AActor* NewTarget)
+{
+	TrackedTargetPlayer = Cast<AUK_CharacterBase>(NewTarget);
+
+	if (AAIController* AIC = Cast<AAIController>(GetController()))
+	{
+		if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
+		{
+			BB->SetValueAsObject(TEXT("TargetPlayer"), NewTarget);
+		}
+	}
+}
+
+void AAIMonsterBase::ClearChaseTarget()
+{
+	TrackedTargetPlayer = nullptr;
+	bIsAggressive = false;
+	Aggressor      = nullptr;
+
+	if (AAIController* AIC = Cast<AAIController>(GetController()))
+	{
+		if (UBlackboardComponent* BB = AIC->GetBlackboardComponent())
+		{
+			BB->ClearValue(TEXT("TargetPlayer"));
+			BB->ClearValue(TEXT("PendingTarget"));
+		}
+		if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AIC->GetBrainComponent()))
+		{
+			BTComp->RestartTree();
+		}
+	}
+
+	RequestState(EMonsterState::Patrol);
 }
 
 void AAIMonsterBase::OnParryGameplayEvent(const FGameplayEventData* Payload)
@@ -899,7 +934,7 @@ void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
 
 		Ally->bIsAggressive = true;
 		Ally->Aggressor     = Enemy;
-		Ally->RequestState(EMonsterState::Aggressive);
+		Ally->RequestState(EMonsterState::Chase);
 
 		if (AUK_AiMonsterCtl* AllyCtl = Cast<AUK_AiMonsterCtl>(Ally->GetController()))
 		{
