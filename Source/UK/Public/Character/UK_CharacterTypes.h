@@ -23,7 +23,11 @@ enum class ECharacterAttribute : uint8
 {
 	None,
 	Fire,
-	Wind
+	Ice,
+	Poizon,
+	Sand,
+	Basic,
+	Black
 };
 UENUM()
 enum class EComboAttackType : uint8
