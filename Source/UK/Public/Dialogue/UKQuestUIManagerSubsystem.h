@@ -9,6 +9,14 @@ class UUKQuestManagerSubsystem;
 class UUKDialogueSubsystem;
 class UUKQuestDefinitionAsset;
 
+UENUM(BlueprintType) //UI마커 활용용도. 추후 정리할것임
+enum class EUKQuestMarkerState : uint8
+{
+	Hidden        UMETA(DisplayName = "Hidden"),
+	InProgress    UMETA(DisplayName = "InProgress"),
+	ReadyToTurnIn UMETA(DisplayName = "ReadyToTurnIn")
+};
+
 UCLASS(BlueprintType, Blueprintable)
 class UK_API UUKQuestUIManagerSubsystem : public UGameInstanceSubsystem
 {
@@ -90,6 +98,16 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, Category = "UK|QuestUI")
 	bool AreObjectivesSatisfied(FName QuestId) const;
+
+	/*
+	[UI/Marker 용도]
+	- 퀘스트 추적 마커 상태를 한 번에 반환
+	- Hidden        : 완료했거나, 아직 진행 중이 아님
+	- InProgress    : 진행 중이지만 아직 완료 보고 단계는 아님
+	- ReadyToTurnIn : 진행 중이며 목표를 모두 달성해 완료 보고 가능
+	*/
+	UFUNCTION(BlueprintCallable, Category = "UK|QuestUI")
+	EUKQuestMarkerState GetQuestMarkerState(FName QuestId) const;
 
 public:
 	

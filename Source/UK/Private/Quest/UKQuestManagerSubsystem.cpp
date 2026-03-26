@@ -656,6 +656,7 @@ bool UUKQuestManagerSubsystem::SetQuestFlag(FName QuestId, FName Category)
 	}
 
 	SetFlag(*P, MakeFlagKey(QuestId, Category));
+	OnQuestStateChanged.Broadcast(QuestId);
 	return true;
 }
 
@@ -689,6 +690,7 @@ bool UUKQuestManagerSubsystem::SetQuestCounterValue(FName QuestId, FName Counter
 	}
 
 	P->Counters.Add(MakeCounterKey(QuestId, CounterName), NewValue);
+	OnQuestStateChanged.Broadcast(QuestId);
 	return true;
 }
 
@@ -708,6 +710,7 @@ bool UUKQuestManagerSubsystem::AddQuestCounterValue(FName QuestId, FName Counter
 	const FName CounterKey = MakeCounterKey(QuestId, CounterName);
 	const int32 CurrentValue = P->Counters.FindRef(CounterKey);
 	P->Counters.Add(CounterKey, CurrentValue + Delta);
+	OnQuestStateChanged.Broadcast(QuestId);
 	return true;
 }
 
@@ -788,6 +791,10 @@ bool UUKQuestManagerSubsystem::StartQuest(FName QuestId)
 
 	// 3) 런타임 등록
 	RuntimeProgress.Add(QuestId, NewProgress);
+
+	// 퀘스트 상태 변경 알림
+	OnQuestStateChanged.Broadcast(QuestId);
+
 	return true;
 }
 
@@ -818,6 +825,9 @@ bool UUKQuestManagerSubsystem::CompleteQuest(FName QuestId)
 	{
 		UE_LOG(LogTemp, Log, TEXT("[Quest][Reward] Quest=%s (no RewardId)"), *QuestId.ToString());
 	}
+
+	// 퀘스트 상태 변경 알림(UI마커 관련)
+	OnQuestStateChanged.Broadcast(QuestId);
 
 	return true;
 }

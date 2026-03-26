@@ -5,6 +5,7 @@
 #include "Actor/UK_TreasureBox.h"
 #include "Character/UK_CharacterBase.h"
 #include "Character/UK_PlayerController.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 UUK_InteractionComponent::UUK_InteractionComponent()
 {
@@ -48,29 +49,47 @@ void UUK_InteractionComponent::ClearNearActor()
 
 void UUK_InteractionComponent::TryInteract()
 {
-	if (!NearActor)	return;
-
-
 	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(GetOwner());
 	if (!Player) return;
+	
+	TArray<AActor*> OverlappingActors;
+	Player->GetOverlappingActors(OverlappingActors);
 
-	AUK_QuestNPC* NPC = Cast<AUK_QuestNPC>(NearActor);
-	if (NPC)
+	for (AActor* Actor : OverlappingActors)
 	{
-		NPC->Interact(Player);
-		return;
+		if (AUK_QuestNPC* QuestNPC = Cast<AUK_QuestNPC>(Actor))
+		{
+			QuestNPC->Interact(Player); 
+			return;
+		}
+		if (AUK_Shop_NPC* ShopNPC = Cast<AUK_Shop_NPC>(Actor))
+		{
+			ShopNPC->Interact(Player);
+			return;
+		}
+		if (AUK_TreasureBox* TBox = Cast<AUK_TreasureBox>(Actor))
+		{
+			TBox->TryOpen(Player);
+			return;
+		}
 	}
-
-	AUK_Shop_NPC* ShopNPC = Cast<AUK_Shop_NPC>(NearActor);
-	if (ShopNPC)
+	
+	if (NearActor)
 	{
-		ShopNPC->Interact(Player);
-		return;
-	}
-	AUK_TreasureBox* TreasureBox = Cast<AUK_TreasureBox>(NearActor);
-	if (TreasureBox)
-	{	
-		TreasureBox->TryOpen(Player);
-		return;
+		if (AUK_QuestNPC* NPC = Cast<AUK_QuestNPC>(NearActor))
+		{
+			NPC->Interact(Player);
+			return;
+		}
+		if (AUK_Shop_NPC* ShopNPC = Cast<AUK_Shop_NPC>(NearActor))
+		{
+			ShopNPC->Interact(Player);
+			return;
+		}
+		if (AUK_TreasureBox* TreasureBox = Cast<AUK_TreasureBox>(NearActor))
+		{
+			TreasureBox->TryOpen(Player);
+			return;
+		}
 	}
 }
