@@ -1452,6 +1452,8 @@ DECLARE_CYCLE_STAT(TEXT("Resurrection"), Resurrection, STATGROUP_UK_Character);
 
 void AUK_CharacterBase::Resurrection()
 {
+	bIsDead = false;
+	
 	SCOPE_CYCLE_COUNTER(Resurrection);
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	GetController()->SetIgnoreMoveInput(false);
