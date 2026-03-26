@@ -66,6 +66,9 @@ public:
 	void UpdateAttackWeapon(float OldValue, float NewValue);
 
 	UFUNCTION()
+	void UpdateLevel(float OldValue, float NewValue);
+
+	UFUNCTION()
 	void ProcessStatUpdate(UTextBlock* TargetText, class UImage* ArrowImage, float OldValue, float NewValue);
 
 
@@ -101,6 +104,9 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* StateAttackWeapon;
 
+	UPROPERTY(meta = ( BindWidget ))
+	UTextBlock* LevelText;
+
 	UPROPERTY(meta = (BindWidget))
 	UImage* Arrow_Health;
 	UPROPERTY(meta = (BindWidget))
@@ -121,4 +127,7 @@ public:
 	UImage* Arrow_Stamina;
 	UPROPERTY(meta = (BindWidget))
 	UImage* Arrow_AttackWeapon;
+
+	UPROPERTY(meta = ( BindWidget ))
+	UImage* Arrow_Level;
 };
