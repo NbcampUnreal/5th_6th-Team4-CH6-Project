@@ -817,6 +817,7 @@ void AAIMonsterBase::ResetHealth()
 		if (HPWidget)
 		{
 			HPWidget->BindMonsterAttributes(AbilitySystemComponent, AttributeSet);
+			HPWidget->UpdateHealthDisplay();
 		}
 	}
 	
