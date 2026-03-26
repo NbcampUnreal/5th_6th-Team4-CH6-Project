@@ -527,11 +527,11 @@ void AUK_PlayerController::ClearAllWidgets()
 		ShopWidget->SetVisibility(ESlateVisibility::Collapsed);
 		ShopWidget = nullptr;
 	}
-	if ( GameOverWidget && GameOverWidget->IsInViewport() )
-	{
-		GameOverWidget->SetVisibility(ESlateVisibility::Collapsed);
-		GameOverWidget = nullptr;
-	}
+	//if ( GameOverWidget && GameOverWidget->IsInViewport() )
+	//{
+	//	GameOverWidget->RemoveFromParent();
+	//	GameOverWidget = nullptr;
+	//}
 }
 
 void AUK_PlayerController::OnHealthChanged(const FOnAttributeChangeData& Data)
@@ -545,6 +545,23 @@ void AUK_PlayerController::OnHealthChanged(const FOnAttributeChangeData& Data)
 
 void AUK_PlayerController::ShowGameOverUI()
 {
+
+	if ( WeaponCraftingWidget && WeaponCraftingWidget->IsInViewport() )
+	{
+		CloseWeaponCraftingUI();
+		return;
+	}
+
+	// 다른 UI 닫기
+	if ( SettingWidget && SettingWidget->GetVisibility() != ESlateVisibility::Collapsed )
+	{
+		CloseSettingUI();
+	}
+	if ( InventoryWidget && InventoryWidget->IsInViewport() )
+		CloseInventoryUI();
+	if ( QuestWidget && QuestWidget->IsInViewport() )
+		HideQuestUI();
+
 	if ( !GameOverWidgetClass ) return;
 
 	if ( !GameOverWidget )
@@ -552,12 +569,22 @@ void AUK_PlayerController::ShowGameOverUI()
 
 	if ( GameOverWidget && !GameOverWidget->IsInViewport() )
 	{
-		GameOverWidget->AddToViewport(20);
-		bShowMouseCursor = true;
-		FInputModeUIOnly InputModeData;
-		InputModeData.SetWidgetToFocus(GameOverWidget->TakeWidget());
-		SetInputMode(InputModeData);
+		GameOverWidget->AddToViewport(0);
+
+		ApplyInputState(EInputState::UI);
 	}
+}
+
+void AUK_PlayerController::HideGameOverUI()
+{
+	if ( !GameOverWidget ) return;
+
+	// 화면에서 제거
+	GameOverWidget->RemoveFromParent();
+	GameOverWidget = nullptr;
+
+	// 입력 상태를 다시 게임으로 복구
+	ApplyInputState(EInputState::Game);
 }
 
 void AUK_PlayerController::ShowShopUI(TSubclassOf<UUserWidget> ShopWidgetClass)
