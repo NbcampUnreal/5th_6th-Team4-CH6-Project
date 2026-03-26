@@ -756,6 +756,18 @@ void AAIMonsterBase::Die()
 	FTimerHandle DeathTimer;
 	GetWorldTimerManager().SetTimer(DeathTimer, this,
 		&AAIMonsterBase::HideAndBroadcastDeath, TotalDelay, false);
+	
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->bOrientRotationToMovement     = false;
+		MoveComp->bUseControllerDesiredRotation = false;
+	}
+
+	if (AAIController* AICon = Cast<AAIController>(GetController()))
+	{
+		AICon->ClearFocus(EAIFocusPriority::Gameplay);
+		AICon->ClearFocus(EAIFocusPriority::Default);
+	}
 }
 
 void AAIMonsterBase::HideAndBroadcastDeath()
@@ -805,6 +817,7 @@ void AAIMonsterBase::ResetHealth()
 		if (HPWidget)
 		{
 			HPWidget->BindMonsterAttributes(AbilitySystemComponent, AttributeSet);
+			HPWidget->UpdateHealthDisplay();
 		}
 	}
 	
