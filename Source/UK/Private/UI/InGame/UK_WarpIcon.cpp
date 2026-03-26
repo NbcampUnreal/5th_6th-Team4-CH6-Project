@@ -7,6 +7,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Character.h"
 #include "UI/Inventory/UK_InvMain.h"
+#include "Character/UK_PlayerController.h"
+#include "UI/InGame/UK_GameOverMap.h"
+#include "Character/UK_CharacterBase.h"
 
 void UUK_WarpIcon::NativeConstruct()
 {
@@ -37,6 +40,11 @@ void UUK_WarpIcon::InitWarpIcon(FName InPointID, bool bInActivated)
 {
 	WarpPointID = InPointID;
 	bIsActivated = bInActivated;
+
+	if ( Cast<UUK_GameOverMap>(GetTypedOuter<UUK_GameOverMap>()) )
+	{
+		WarpCost = 0;
+	}
 
 	UUK_WarpSubsystem* WarpSubsystem = GetWorld()->GetSubsystem<UUK_WarpSubsystem>();
 	if ( !WarpSubsystem ) return;
@@ -116,22 +124,38 @@ void UUK_WarpIcon::OnWarpButtonClicked()
 		UE_LOG(LogTemp, Warning, TEXT("이 워프 타워는 아직 활성화되지 않았습니다!"));
 		return;
 	}
-
 	ACharacter* PlayerChar = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
 	if ( !PlayerChar ) return;
 
 	UUK_InventoryComponent* InvComp = PlayerChar->FindComponentByClass<UUK_InventoryComponent>();
 	UUK_WarpSubsystem* WarpSubsystem = GetWorld()->GetSubsystem<UUK_WarpSubsystem>();
+	AUK_PlayerController* PC = Cast<AUK_PlayerController>(PlayerChar->GetController());
 
 	if ( !InvComp || !WarpSubsystem ) return;
 
 	// subtractionGold(3000) 실행. 성공 시 0 이상의 값 반환.
 	if ( InvComp->subtractionGold(WarpCost) >= 0 )
 	{
-		if (OwnerInvMain)
+		if ( OwnerInvMain ) OwnerInvMain->CloseInvMain();
+		if ( PC ) PC->CloseOpenWidget();
+
+		UUK_GameOverMap* ParentMap = Cast<UUK_GameOverMap>(GetTypedOuter<UUK_GameOverMap>());
+		if ( IsValid(ParentMap) )
 		{
-			OwnerInvMain->CloseInvMain();
+			ParentMap->CloseGameOverMap();
+			WarpCost = 3000;
 		}
+
+		if ( AUK_CharacterBase* MyCharacter = Cast<AUK_CharacterBase>(PlayerChar) )
+		{
+			MyCharacter->Resurrection();
+		}
+
+		if ( PC )
+		{
+			PC->ApplyInputState(EInputState::Game);
+		}
+
 		// 골드 차감 성공 시 세이브 및 워프 실행
 		WarpSubsystem->SaveWarpData();
 		WarpSubsystem->TeleportToWarpPoint(PlayerChar, WarpPointID);
