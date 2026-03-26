@@ -31,6 +31,7 @@ void UUK_InvSystem::NativeConstruct()
 			MutableAS->CriticalDamageChanged.AddDynamic(this, &UUK_InvSystem::UpdateCriticalDamage);
 			MutableAS->MaxStaminaChanged.AddDynamic(this, &UUK_InvSystem::UpdateMaxStamina);
 			MutableAS->CurrentPowerChanged.AddDynamic(this, &UUK_InvSystem::UpdateAttackWeapon);
+			MutableAS->LevelChanged.AddDynamic(this, &UUK_InvSystem::UpdateLevel);
 
 			//초기 값 설정
 			ProcessStatUpdate(StateHealth, Arrow_Health, 0.f, AS->GetHealth());
@@ -42,6 +43,7 @@ void UUK_InvSystem::NativeConstruct()
 			ProcessStatUpdate(StateCriticalChance, Arrow_CritChance, 0.f, AS->GetCriticalChance());
 			ProcessStatUpdate(StateCriticalDamage, Arrow_CritDamage, 0.f, AS->GetCriticalDamage());
 			ProcessStatUpdate(StateMaxStamina, Arrow_Stamina, 0.f, AS->GetMaxStamina());
+			ProcessStatUpdate(LevelText, Arrow_Level, 0.f, AS->GetLevel());
 
 			float WeaponPower = AS->GetCurrentPower();
 			ProcessStatUpdate(StateAttackWeapon, Arrow_AttackWeapon, 0.f, WeaponPower);
@@ -91,19 +93,21 @@ void UUK_InvSystem::UpdateAttackWeapon(float OldValue, float NewValue)
 	ProcessStatUpdate(StateAttackWeapon, Arrow_AttackWeapon, OldValue, NewValue);
 }
 
+void UUK_InvSystem::UpdateLevel(float OldValue, float NewValue)
+{
+	ProcessStatUpdate(LevelText, Arrow_Level, OldValue, NewValue);
+}
+
 void UUK_InvSystem::ProcessStatUpdate(UTextBlock* TargetText, UImage* ArrowImage, float OldValue, float NewValue)
 {
 	if (!TargetText) return;
 
-	FSlateFontInfo FontInfo = TargetText->GetFont();
-
 	if (OldValue <= 0.f)
 	{
-		FontInfo.Size = NormalFontSize;
-		TargetText->SetFont(FontInfo);
+
 		TargetText->SetColorAndOpacity(FSlateColor(NormalColor));
 
-		FString NormalStr = FString::Printf(TEXT("[ %d ]"), FMath::FloorToInt(NewValue));
+		FString NormalStr = FString::Printf(TEXT("%d "), FMath::FloorToInt(NewValue));
 		TargetText->SetText(FText::FromString(NormalStr));
 
 		if (ArrowImage) ArrowImage->SetVisibility(ESlateVisibility::Hidden);
@@ -117,11 +121,10 @@ void UUK_InvSystem::ProcessStatUpdate(UTextBlock* TargetText, UImage* ArrowImage
 	//상승 회복, 레벨업 등
 	if (bIsIncreased)
 	{
-		FontInfo.Size = ChangedFontSize;
-		TargetText->SetFont(FontInfo);
+
 		TargetText->SetColorAndOpacity(FSlateColor(IncreaseColor));
 
-		FString UpdateStr = FString::Printf(TEXT("[ %d -> %d ]"), FMath::FloorToInt(OldValue), FMath::FloorToInt(NewValue));
+		FString UpdateStr = FString::Printf(TEXT("%d"), FMath::FloorToInt(NewValue));
 		TargetText->SetText(FText::FromString(UpdateStr));
 
 		if (ArrowImage)
@@ -134,11 +137,10 @@ void UUK_InvSystem::ProcessStatUpdate(UTextBlock* TargetText, UImage* ArrowImage
 	//하락 피격, 마나 소비 등
 	else if (bIsDecreased)
 	{
-		FontInfo.Size = ChangedFontSize;
-		TargetText->SetFont(FontInfo);
+
 		TargetText->SetColorAndOpacity(FSlateColor(DecreaseColor));
 
-		FString UpdateStr = FString::Printf(TEXT("[ %d -> %d ]"), FMath::FloorToInt(OldValue), FMath::FloorToInt(NewValue));
+		FString UpdateStr = FString::Printf(TEXT("%d"), FMath::FloorToInt(NewValue));
 		TargetText->SetText(FText::FromString(UpdateStr));
 
 		if (ArrowImage)
