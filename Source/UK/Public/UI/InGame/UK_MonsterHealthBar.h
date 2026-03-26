@@ -40,11 +40,11 @@ protected:
 	
 	void OnHealthChanged(const FOnAttributeChangeData& Data);
 
-	void UpdateHealthDisplay();
 
 public:
 	//UFUNCTION(BlueprintCallable, Category = "UI")
 	//void BindMonsterStats(UAI_MonsterStatComponent* StatComp);
+	void UpdateHealthDisplay();
 
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void BindMonsterAttributes(UAbilitySystemComponent* ASC, UUK_MonsterAttributeSet* Attributes);
