@@ -920,16 +920,6 @@ void AUK_CharacterBase::LockONToggle()
 		FColor DrawColor = bHit ? FColor::Green : FColor::Red;
 
 		FQuat CapsuleRot = FRotationMatrix::MakeFromZ(Start - End).ToQuat();
-		DrawDebugCapsule(
-			GetWorld(),
-			(Start + End) / 2,
-			(End - Start).Size(),
-			CapsuleRadius,
-			CapsuleRot,
-			DrawColor,
-			false,
-			1.f
-		);
 		if (bHit)
 		{
 			for (const FHitResult& Hit : LockOnResult)
