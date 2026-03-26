@@ -899,7 +899,7 @@ void AAIMonsterBase::CallNearbyAllies(AActor* Enemy)
 
 		Ally->bIsAggressive = true;
 		Ally->Aggressor     = Enemy;
-		Ally->RequestState(EMonsterState::Aggressive);
+		Ally->RequestState(EMonsterState::Chase);
 
 		if (AUK_AiMonsterCtl* AllyCtl = Cast<AUK_AiMonsterCtl>(Ally->GetController()))
 		{
