@@ -107,7 +107,7 @@ void UUK_MonsterDamageExecutionCalculation::Execute_Implementation(
 
 	// ── 8. 최종 데미지 ────────────────────────────────────────────────────
 	//   FinalDamage = max(0, RawDamage - Defense)
-	const float FinalDamage = FMath::Max(RawDamage - Defense, 0.f);
+	const float FinalDamage = FMath::Max(RawDamage / (1.f + Defense), 0.f);
 
 	if (FinalDamage > 0.f)
 	{
@@ -118,4 +118,7 @@ void UUK_MonsterDamageExecutionCalculation::Execute_Implementation(
 			FinalDamage
 		));
 	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("[DmgCalc] ATK=%.1f | SkillPct=%.2f | RawDmg=%.1f | Defense=%.1f | FinalDmg=%.1f"),
+	AttackPower, SkillDamagePercent, RawDamage, Defense, FinalDamage);
 }

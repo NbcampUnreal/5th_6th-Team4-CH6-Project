@@ -5,6 +5,9 @@
 #include "Components/SphereComponent.h"
 #include "UK_TreasureBox.generated.h"
 
+class UNigaraSystem;
+class USoundBase;
+
 UCLASS()
 class UK_API AUK_TreasureBox : public AActor
 {
@@ -49,4 +52,13 @@ public:
 	
 	UPROPERTY(VisibleAnywhere)
 	class UStaticMeshComponent* BoxMesh;
+	
+	UPROPERTY(EditAnywhere, Category = "UK|Effects")
+	class UNiagaraSystem* OpenVFX;
+	
+	UPROPERTY(EditAnywhere, Category = "UK|Effects")
+	class USoundBase* OpenSound;
+	
+	UPROPERTY(EditAnywhere, Category = "UK|Effects")
+	FVector VFXLocationOffset = FVector(0.0f, 0.0f, 50.0f);
 };
