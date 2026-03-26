@@ -21,6 +21,8 @@
 
 #include "UKQuestManagerSubsystem.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnQuestStateChanged, FName, QuestId);
+
 UCLASS(BlueprintType, Blueprintable)
 class UK_API UUKQuestManagerSubsystem : public UGameInstanceSubsystem
 {
@@ -40,6 +42,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TMap<FName, FQuestProgress> RuntimeProgress;
 
+	UPROPERTY(BlueprintAssignable, Category = "UK|Quest")
+	FOnQuestStateChanged OnQuestStateChanged;
 
 	// [3] Quest 기본 API
 	UFUNCTION(BlueprintCallable)

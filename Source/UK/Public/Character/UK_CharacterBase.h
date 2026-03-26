@@ -38,6 +38,7 @@ class UNiagaraSystem;
 struct FInputActionValue;
 struct FUK_WeaponItemData;
 class USceneCaptureComponent2D;
+class UPointLightComponent;
 #pragma endregion
 
 
@@ -495,6 +496,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FrontCapture")
 	TObjectPtr<USceneCaptureComponent2D> FrontSceneCapture;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FrontCapture")
+	TObjectPtr<UPointLightComponent> FrontCaptureLight;
 
 	void UpdateFrontCaputre();
 #pragma endregion
