@@ -10,6 +10,7 @@
 #include "UI/OutGame/UK_Out_CharacterSelect.h"
 #include "Systems/Data/UK_SaveGame.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
 #include "Systems/UK_GameInstance.h"
 #include "UI/OutGame/UK_Out_Loading.h"
 
@@ -25,11 +26,13 @@ void UUK_Out_MainMenu::NativeConstruct()
 	if (StartButton)
 	{
 		StartButton->OnClicked.AddDynamic(this, &ThisClass::OnPlayButtonClicked);
+		StartButton->OnHovered.AddDynamic(this, &ThisClass::OnHoveredButtonClicked);
 		UE_LOG(LogTemp, Warning, TEXT("StartButton Bound"));
 	}
 	if (ExitButton)
 	{
 		ExitButton->OnClicked.AddDynamic(this, &ThisClass::OnExitButtonClicked);
+		ExitButton->OnHovered.AddDynamic(this, &ThisClass::OnHoveredButtonClicked);
 	}
 }
 
@@ -71,6 +74,11 @@ void UUK_Out_MainMenu::OnPlayButtonClicked()
 
 			RemoveFromParent();
 		}
+	}
+	
+	if (ClickSound)
+	{
+		UGameplayStatics::PlaySound2D(this, ClickSound);
 	}
 }
 
@@ -142,4 +150,17 @@ void UUK_Out_MainMenu::OnPlayButtonClicked()
 void UUK_Out_MainMenu::OnExitButtonClicked()
 {
 	UKismetSystemLibrary::QuitGame(this, GetOwningPlayer(), EQuitPreference::Quit, false);
+	
+	if (ClickSound)
+	{
+		UGameplayStatics::PlaySound2D(this, ClickSound);
+	}
+}
+
+void UUK_Out_MainMenu::OnHoveredButtonClicked()
+{
+	if (HoveredSound)
+	{
+		UGameplayStatics::PlaySound2D(this, HoveredSound);
+	}
 }
