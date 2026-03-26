@@ -60,6 +60,7 @@ void UAnimNotifyState_UKMonsterMeleeTrace::NotifyEnd(
 
 #pragma region Hit Detection
 void UAnimNotifyState_UKMonsterMeleeTrace::NotifyTick(
+
 	USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 	float FrameDeltaTime, const FAnimNotifyEventReference& EventReference)
 {
