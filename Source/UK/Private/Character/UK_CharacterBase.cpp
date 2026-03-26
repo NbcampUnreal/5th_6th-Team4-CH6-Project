@@ -41,7 +41,6 @@
 DECLARE_CYCLE_STAT(TEXT("UK Character Logic"), STAT_UKCharacter, STATGROUP_UK_Character);
 DECLARE_CYCLE_STAT(TEXT("Constructor"), Constructor, STATGROUP_UK_Character);
 
-// 무현님 대머리 ㅋㅋ
 // Sets default values
 AUK_CharacterBase::AUK_CharacterBase(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer.SetDefaultSubobjectClass<UCustomCharacterMovementComponent>(
@@ -801,15 +800,15 @@ DECLARE_CYCLE_STAT(TEXT("Inventory"), Inventory, STATGROUP_UK_Character);
 
 void AUK_CharacterBase::Inventory()
 {
-	if ( GEngine )
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			2.0f,
-			FColor::Green,
-			TEXT("B 누름")
-		);
-	}
+	//if ( GEngine )
+	//{
+	//	GEngine->AddOnScreenDebugMessage(
+	//		-1,
+	//		2.0f,
+	//		FColor::Green,
+	//		TEXT("B 누름")
+	//	);
+	//}
 	if ( PC == nullptr ) return;
 
 	PC->Inventory_UI();
@@ -819,15 +818,15 @@ DECLARE_CYCLE_STAT(TEXT("WeaponCrafting"), WeaponCrafting, STATGROUP_UK_Characte
 
 void AUK_CharacterBase::WeaponCrafting()
 {
-	if ( GEngine )
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			2.0f,
-			FColor::Green,
-			TEXT("U 누름")
-		);
-	}
+	//if ( GEngine )
+	//{
+	//	GEngine->AddOnScreenDebugMessage(
+	//		-1,
+	//		2.0f,
+	//		FColor::Green,
+	//		TEXT("U 누름")
+	//	);
+	//}
 	if ( PC == nullptr ) return;
 
 	PC->WeaponCrafting_UI();
@@ -837,15 +836,15 @@ DECLARE_CYCLE_STAT(TEXT("Esc"), Esc, STATGROUP_UK_Character);
 
 void AUK_CharacterBase::Esc()
 {
-	if ( GEngine )
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			2.0f,
-			FColor::Green,
-			TEXT("Esc 누름")
-		);
-	}
+	//if ( GEngine )
+	//{
+	//	GEngine->AddOnScreenDebugMessage(
+	//		-1,
+	//		2.0f,
+	//		FColor::Green,
+	//		TEXT("Esc 누름")
+	//	);
+	//}
 
 	if ( PC == nullptr ) return;
 	if ( PC->CloseOpenWidget() ) return;
