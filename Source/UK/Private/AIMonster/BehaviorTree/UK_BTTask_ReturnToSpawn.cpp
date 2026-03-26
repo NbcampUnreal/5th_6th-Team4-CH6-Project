@@ -36,6 +36,7 @@ EBTNodeResult::Type UUK_BTTask_ReturnToSpawn::ExecuteTask(UBehaviorTreeComponent
 
 	BB->ClearValue(TargetPlayerKey.SelectedKeyName);
 	AICon->ClearFocus(EAIFocusPriority::Gameplay);
+	AICon->ClearFocus(EAIFocusPriority::Default);
 
 	if (FVector::DistSquared(ControlledPawn->GetActorLocation(), SpawnLocation) < FMath::Square(ArrivalDistance))
 	{
@@ -46,8 +47,8 @@ EBTNodeResult::Type UUK_BTTask_ReturnToSpawn::ExecuteTask(UBehaviorTreeComponent
 
 	if (UCharacterMovementComponent* MoveComp = Monster->GetCharacterMovement())
 	{
-		MoveComp->bOrientRotationToMovement     = true;
 		MoveComp->bUseControllerDesiredRotation = false;
+		MoveComp->bOrientRotationToMovement     = true;
 		MoveComp->SetMovementMode(MOVE_Walking);
 
 		if (MoveComp->MaxWalkSpeed <= 0.f)
@@ -74,6 +75,16 @@ void UUK_BTTask_ReturnToSpawn::TickTask(UBehaviorTreeComponent& OwnerComp, uint8
 	APawn* ControlledPawn = AICon->GetPawn();
 	if (!ControlledPawn) { RestoreSpeed(nullptr); FinishLatentTask(OwnerComp, EBTNodeResult::Failed); return; }
 
+	if (AAIMonsterBase* Monster = Cast<AAIMonsterBase>(ControlledPawn))
+	{
+		if (UCharacterMovementComponent* MoveComp = Monster->GetCharacterMovement())
+		{
+			MoveComp->bUseControllerDesiredRotation = false;
+			MoveComp->bOrientRotationToMovement     = true;
+		}
+	}
+	AICon->ClearFocus(EAIFocusPriority::Gameplay);
+	
 	UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
 	if (!BB) { RestoreSpeed(ControlledPawn); FinishLatentTask(OwnerComp, EBTNodeResult::Failed); return; }
 

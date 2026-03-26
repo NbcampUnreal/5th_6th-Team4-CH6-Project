@@ -1446,6 +1446,7 @@ void AUK_CharacterBase::Dead()
 		PlayAnimMontage(DeathMontage);
 	}
 	OnDead.Broadcast();
+	bIsDead = true;
 }
 
 DECLARE_CYCLE_STAT(TEXT("Resurrection"), Resurrection, STATGROUP_UK_Character);

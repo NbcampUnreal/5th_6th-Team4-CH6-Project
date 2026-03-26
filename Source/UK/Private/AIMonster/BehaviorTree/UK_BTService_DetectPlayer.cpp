@@ -3,6 +3,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "AIMonster/AIMonsterBase.h"
 #include "AIMonster/UK_AiMonsterCtl.h"
+#include "Character/UK_CharacterBase.h"
 
 #pragma region Initialization
 UUK_BTService_DetectPlayer::UUK_BTService_DetectPlayer()
@@ -57,6 +58,25 @@ void UUK_BTService_DetectPlayer::TickNormalMode(UBehaviorTreeComponent& OwnerCom
 
 	const bool bHasTarget  = (BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName)  != nullptr);
 	const bool bHasPending = (BlackboardComp->GetValueAsObject(PendingTargetKey.SelectedKeyName) != nullptr);
+	
+	if (bHasTarget)
+	{
+		AActor* CurrentTarget = Cast<AActor>(BlackboardComp->GetValueAsObject(TargetPlayerKey.SelectedKeyName));
+		if (AUK_CharacterBase* TargetChar = Cast<AUK_CharacterBase>(CurrentTarget))
+		{
+			if (TargetChar->IsDead())
+			{
+				BlackboardComp->ClearValue(TargetPlayerKey.SelectedKeyName);
+				BlackboardComp->ClearValue(PendingTargetKey.SelectedKeyName);
+				AIController->ClearFocus(EAIFocusPriority::Gameplay);
+				Memory->bHadTarget = false;
+				Memory->bReturning = true;
+
+				if (Monster) Monster->ClearChaseTarget();
+				return;
+			}
+		}
+	}
 
 	if (Memory->bHadTarget && !bHasTarget && !bHasPending)
 	{
@@ -144,9 +164,19 @@ void UUK_BTService_DetectPlayer::TickPeacefulMode(UBehaviorTreeComponent& OwnerC
 
 	if (IsValid(Monster->Aggressor))
 	{
-		BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, Monster->Aggressor);
-		AIController->SetFocus(Monster->Aggressor); 
-		return;
+		if (AUK_CharacterBase* AggressorChar = Cast<AUK_CharacterBase>(Monster->Aggressor))
+		{
+			if (AggressorChar->IsDead())
+			{
+				Monster->ClearChaseTarget();
+			}
+			else
+			{
+				BlackboardComp->SetValueAsObject(TargetPlayerKey.SelectedKeyName, Monster->Aggressor);
+				AIController->SetFocus(Monster->Aggressor);
+				return;
+			}
+		}
 	}
 
 	AActor* DetectedPlayer = TryGetPerceptionTarget(AIController);
@@ -186,6 +216,11 @@ AActor* UUK_BTService_DetectPlayer::FindClosestPlayer(const FVector& Location, f
 
 		APawn* PlayerPawn = PC->GetPawn();
 		if (!PlayerPawn) continue;
+
+		if (AUK_CharacterBase* PlayerChar = Cast<AUK_CharacterBase>(PlayerPawn))
+		{
+			if (PlayerChar->IsDead()) continue;
+		}
 
 		const float DistSq = FVector::DistSquared(Location, PlayerPawn->GetActorLocation());
 		if (DistSq < BestDistSq)

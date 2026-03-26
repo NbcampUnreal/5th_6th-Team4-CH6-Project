@@ -151,6 +151,9 @@ public:
 	UFUNCTION()
 	void ShowGameOverUI();
 
+	UFUNCTION()
+	void HideGameOverUI();
+
 	//UFUNCTION()
 	
 	//  ------ Interaction ------ (무현 수정중)
