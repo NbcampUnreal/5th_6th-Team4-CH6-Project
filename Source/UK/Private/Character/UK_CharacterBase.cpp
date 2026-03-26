@@ -1220,7 +1220,7 @@ void AUK_CharacterBase::ChangeWeaponStat(const FUK_WeaponItemData* WeaponStat)
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (IsValid(ASC) == false)
 		return;
-
+	
 	FGameplayEffectSpecHandle SpecHandle =
 		ASC->MakeOutgoingSpec(WeaponStatEffect, 1.f, ASC->MakeEffectContext());
 	// 기존 무기 효과 제거
