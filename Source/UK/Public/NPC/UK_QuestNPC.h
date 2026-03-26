@@ -7,11 +7,14 @@
 #include "UI/InGame/UK_Quest.h"
 #include "DataAsset/NPCData/UK_NPCData.h"
 #include "Engine/DataTable.h"
+#include "Dialogue/UKQuestUIManagerSubsystem.h"
 #include "UK_QuestNPC.generated.h"
 
 class AUK_CharacterBase;
 class UUKQuestManagerSubsystem;
 class UUKQuestDefinitionAsset;
+class UUKQuestUIManagerSubsystem;
+class AUK_CheckPoint;
 
 UCLASS()
 class UK_API AUK_QuestNPC : public AUK_NPCAIBase
@@ -20,6 +23,7 @@ class UK_API AUK_QuestNPC : public AUK_NPCAIBase
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
 	AUK_QuestNPC();
@@ -30,10 +34,6 @@ public:
 	// 퀘스트 마커를 표시할 영역
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC")
 	USphereComponent* InteractionSphere;
-
-	// 퀘스트가 있는 NPC일 때 표시할 마커
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
-	UStaticMeshComponent* QuestMarker;
 
 	FTimerHandle MarkerTimerHandle;
 
@@ -59,6 +59,25 @@ public:
 	);
 
 	void UpdateMarkerRotation();
+
+public:
+	// 체크포인트(거리측정) 관련
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	class UChildActorComponent* MarkerComp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup")
+	TSubclassOf<AUK_CheckPoint> SelectMarker;
+
+	AUK_CheckPoint* NPCMarker;
+
+
+	UFUNCTION()
+	void HandleQuestStateChanged(FName QuestId);
+
+protected:
+	void RefreshQuestMarker();                   
+	void ApplyMarkerState(EUKQuestMarkerState MarkerState); 
+	bool IsRelevantQuestId(FName QuestId) const; 
 
 	// 하위 호환용 / 단일 퀘스트 fallback
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
