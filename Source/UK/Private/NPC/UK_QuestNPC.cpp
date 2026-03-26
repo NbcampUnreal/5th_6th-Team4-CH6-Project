@@ -10,6 +10,8 @@
 #include "NPC/Component/UK_QuestComponent.h"
 #include "Quest/UKQuestManagerSubsystem.h"
 #include "ActorComponent/UK_InventoryComponent.h"
+#include "Dialogue/UKQuestUIManagerSubsystem.h"
+#include "UI/InGame/UK_CheckPoint.h"
 
 #include "Blueprint/UserWidget.h"       
 #include "GameFramework/PlayerController.h"
@@ -39,15 +41,14 @@ AUK_QuestNPC::AUK_QuestNPC()
 
 	InteractionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionSphere"));
 	InteractionSphere->SetupAttachment(RootComponent);
-	InteractionSphere->SetSphereRadius(1000.f); // 마커 띄울 범위 임시 설정
+	InteractionSphere->SetSphereRadius(500.f); // 마커 띄울 범위 임시 설정
 
 	InteractionSphere->OnComponentBeginOverlap.AddDynamic(this, &AUK_QuestNPC::OnPlayerEnter);
 	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &AUK_QuestNPC::OnPlayerExit);
 
-	QuestMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("QuestMarker"));
-	QuestMarker->SetupAttachment(RootComponent);
-	QuestMarker->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
-	QuestMarker->SetVisibility(false);
+	MarkerComp = CreateDefaultSubobject<UChildActorComponent>("MarkerComp");
+	MarkerComp->SetupAttachment(RootComponent);
+	MarkerComp->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
 
 }
 
@@ -56,6 +57,21 @@ void AUK_QuestNPC::BeginPlay()
 	Super::BeginPlay();
 
 	bPlayerInRange = false;
+
+	// 체크포인트(거리측정) 관련
+	if ( SelectMarker )
+	{
+		MarkerComp->SetChildActorClass(SelectMarker);
+		MarkerComp->CreateChildActor();
+
+		NPCMarker = Cast<AUK_CheckPoint>(MarkerComp->GetChildActor());
+		if ( NPCMarker )
+		{
+			FVector CheckLocation = GetActorLocation() + FVector(0.0f, 0.0f, 60.0f);
+			NPCMarker->SetActorLocation(CheckLocation);
+		}
+
+	}
 
 	// NPCID는 BP 기본값 또는 배치된 액터에서 미리 지정되어 있어야 함
 	if ( NPCID.IsNone() )
@@ -97,10 +113,34 @@ void AUK_QuestNPC::BeginPlay()
 	NPCDisplayName = Row->NPCName;
 	NPCDescription = Row->NPCDescription;
 
-	UE_LOG(LogTemp, Log, TEXT("[NPC] Loaded from DT. NPCID=%s"),
-		*NPCID.ToString());
+	UE_LOG(LogTemp, Log, TEXT("[NPC] Loaded from DT. NPCID=%s"),*NPCID.ToString());
+
+	// 추가: 퀘스트 상태 변화 바인딩
+	QuestSys->OnQuestStateChanged.AddDynamic(this, &AUK_QuestNPC::HandleQuestStateChanged);
+
+	UE_LOG(LogTemp, Warning, TEXT("[QuestMarker] Bound OnQuestStateChanged | NPC=%s | NPCID=%s"),*GetName(),*NPCID.ToString());
+
+	// 추가: 시작 시점 마커 상태 초기화
+	RefreshQuestMarker();
 }
 
+void AUK_QuestNPC::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if ( UWorld* World = GetWorld() )
+	{
+		if ( UGameInstance* GI = World->GetGameInstance() )
+		{
+			if ( UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>() )
+			{
+				QuestSys->OnQuestStateChanged.RemoveDynamic(this, &AUK_QuestNPC::HandleQuestStateChanged);
+			}
+		}
+	}
+
+	GetWorldTimerManager().ClearTimer(MarkerTimerHandle);
+
+	Super::EndPlay(EndPlayReason);
+}
 
 void AUK_QuestNPC::OnPlayerEnter(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -112,17 +152,7 @@ void AUK_QuestNPC::OnPlayerEnter(UPrimitiveComponent* OverlappedComp, AActor* Ot
 
 		Player->InteractionComp->SetNearActor(this);
 
-		if ( QuestMarker )
-		{
-			QuestMarker->SetVisibility(true);
-			GetWorldTimerManager().SetTimer(
-				MarkerTimerHandle,
-				this,
-				&AUK_QuestNPC::UpdateMarkerRotation,
-				0.03f,
-				true
-			);
-		}
+		RefreshQuestMarker();
 	}
 }
 
@@ -131,32 +161,34 @@ void AUK_QuestNPC::OnPlayerExit(UPrimitiveComponent* OverlappedComp, AActor* Oth
 	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(OtherActor);
 
 	if ( Player && Player->InteractionComp )
-
 	{
 		bPlayerInRange = false;
 
 		Player->InteractionComp->ClearNearActor();
 
-		if ( QuestMarker )
-		{
-			QuestMarker->SetVisibility(false);
-			GetWorldTimerManager().ClearTimer(MarkerTimerHandle);
-		}
+		RefreshQuestMarker();
 	}
 }
 
 void AUK_QuestNPC::UpdateMarkerRotation()
 {
-	if ( !QuestMarker ) return;
+	if ( !NPCMarker )
+	{
+		return;
+	}
 
 	ACharacter* PlayerChar = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
-	if ( !PlayerChar ) return;
+	if ( !PlayerChar )
+	{
+		return;
+	}
 
-	FVector ToPlayer = PlayerChar->GetActorLocation() - QuestMarker->GetComponentLocation();
+	FVector ToPlayer = PlayerChar->GetActorLocation() - NPCMarker->GetActorLocation();
 	FRotator LookAtRotation = ToPlayer.Rotation();
 	LookAtRotation.Pitch = 0.f;
 	LookAtRotation.Yaw += 90.f;
-	QuestMarker->SetWorldRotation(LookAtRotation);
+
+	NPCMarker->SetActorRotation(LookAtRotation);
 }
 
 bool AUK_QuestNPC::IsQuestStarted(UUKQuestManagerSubsystem* QuestSys, FName InQuestId) const
@@ -396,47 +428,27 @@ bool AUK_QuestNPC::TryProcessDelivery(UUKQuestManagerSubsystem* QuestSys, AUK_Ch
 	const UUKQuestDefinitionAsset* Def = QuestSys->GetQuestDefinition(QuestId);
 	if ( !Def )
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] TryProcessDelivery failed: QuestDefinition is null. Quest=%s"),
+			*QuestId.ToString());
 		return false;
 	}
 
 	FQuestProgress Progress;
 	if ( !QuestSys->GetProgress(QuestId, Progress) )
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] TryProcessDelivery failed: Progress not found. Quest=%s"),
+			*QuestId.ToString());
 		return false;
 	}
 
 	// 이미 완료된 퀘스트면 전달 처리 안 함
 	if ( Progress.bCompleted )
 	{
+		UE_LOG(LogTemp, Log, TEXT("[QuestNPC] TryProcessDelivery skipped: already completed. Quest=%s"),
+			*QuestId.ToString());
 		return false;
 	}
 
-	// 이미 목표 만족 상태면 다시 전달 처리 안 함
-	if ( QuestSys->AreObjectivesSatisfied(QuestId) )
-	{
-		return false;
-	}
-
-	// 현재는 Objective 1개 기준 처리
-	if ( Def->Objectives.Num() <= 0 )
-	{
-		return false;
-	}
-
-	const FUKQuestObjectiveDef& Obj = Def->Objectives[ 0 ];
-
-	// 전달 퀘스트만 처리
-	if ( Obj.Type != EUKQuestObjectiveType::Delivered )
-	{
-		return false;
-	}
-
-	if ( Obj.TargetId.IsNone() || Obj.RequiredCount <= 0 )
-	{
-		return false;
-	}
-
-	// 플레이어 인벤토리 컴포넌트 찾기
 	UUK_InventoryComponent* InventoryComp = Player->FindComponentByClass<UUK_InventoryComponent>();
 	if ( !InventoryComp )
 	{
@@ -444,41 +456,109 @@ bool AUK_QuestNPC::TryProcessDelivery(UUKQuestManagerSubsystem* QuestSys, AUK_Ch
 		return false;
 	}
 
-	// 현재 보유 수량 확인
-	const int32 CurrentCount = InventoryComp->GetItemTotalQuantity(Obj.TargetId);
-	if ( CurrentCount < Obj.RequiredCount )
-	{
-		UE_LOG(LogTemp, Log, TEXT("[QuestNPC] Delivery failed. Need=%d Have=%d Item=%s"),
-			Obj.RequiredCount,
-			CurrentCount,
-			*Obj.TargetId.ToString());
-		return false;
-	}
+	bool bAnyDelivered = false;
+	bool bFoundDeliveredObjective = false;
 
-	// 아이템 차감
-	const int32 RemoveResult = InventoryComp->RemoveItem(Obj.TargetId, Obj.RequiredCount);
-	if ( RemoveResult != 0 )
+	for ( const FUKQuestObjectiveDef& Obj : Def->Objectives )
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] RemoveItem failed. Item=%s Need=%d RemainNotRemoved=%d"),
+		// Delivered 타입만 처리
+		if ( Obj.Type != EUKQuestObjectiveType::Delivered )
+		{
+			continue;
+		}
+
+		bFoundDeliveredObjective = true;
+
+		if ( Obj.TargetId.IsNone() || Obj.RequiredCount <= 0 )
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] Invalid Delivered objective skipped. Quest=%s Objective=%s"),
+				*QuestId.ToString(),
+				*Obj.ObjectiveId.ToString());
+			continue;
+		}
+
+		// 이미 이 목표가 충족된 상태면 다시 전달하지 않음
+		if ( !Obj.CounterName.IsNone() )
+		{
+			const FName CounterKey = MakeQuestCounterKey_Local(QuestId, Obj.CounterName);
+			const int32 CurrentDeliveredCount = Progress.Counters.FindRef(CounterKey);
+
+			if ( CurrentDeliveredCount >= Obj.RequiredCount )
+			{
+				UE_LOG(LogTemp, Log, TEXT("[QuestNPC] Delivered objective already satisfied. Quest=%s Objective=%s Counter=%s Current=%d Required=%d"),
+					*QuestId.ToString(),
+					*Obj.ObjectiveId.ToString(),
+					*Obj.CounterName.ToString(),
+					CurrentDeliveredCount,
+					Obj.RequiredCount);
+				continue;
+			}
+		}
+		else if ( !Obj.CompleteFlagCategory.IsNone() )
+		{
+			const FName FlagKey = MakeQuestFlagKey_Local(QuestId, Obj.CompleteFlagCategory);
+			if ( Progress.Flags.Contains(FlagKey) )
+			{
+				UE_LOG(LogTemp, Log, TEXT("[QuestNPC] Delivered flag objective already satisfied. Quest=%s Objective=%s Flag=%s"),
+					*QuestId.ToString(),
+					*Obj.ObjectiveId.ToString(),
+					*Obj.CompleteFlagCategory.ToString());
+				continue;
+			}
+		}
+
+		// 현재 보유 수량 확인
+		const int32 CurrentCount = InventoryComp->GetItemTotalQuantity(Obj.TargetId);
+		if ( CurrentCount < Obj.RequiredCount )
+		{
+			UE_LOG(LogTemp, Log, TEXT("[QuestNPC] Delivery failed. Quest=%s Objective=%s Need=%d Have=%d Item=%s"),
+				*QuestId.ToString(),
+				*Obj.ObjectiveId.ToString(),
+				Obj.RequiredCount,
+				CurrentCount,
+				*Obj.TargetId.ToString());
+			continue;
+		}
+
+		// 아이템 차감
+		const int32 RemoveResult = InventoryComp->RemoveItem(Obj.TargetId, Obj.RequiredCount);
+		if ( RemoveResult != 0 )
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] RemoveItem failed. Quest=%s Objective=%s Item=%s Need=%d RemainNotRemoved=%d"),
+				*QuestId.ToString(),
+				*Obj.ObjectiveId.ToString(),
+				*Obj.TargetId.ToString(),
+				Obj.RequiredCount,
+				RemoveResult);
+			continue;
+		}
+
+		// 전달 성공 -> Delivered 이벤트를 개수만큼 발사
+		for ( int32 i = 0; i < Obj.RequiredCount; ++i )
+		{
+			const FString EventStr = FString::Printf(TEXT("QuestEvent.Delivered.%s"), *Obj.TargetId.ToString());
+			QuestSys->EmitQuestEvent(FName(*EventStr));
+		}
+
+		UE_LOG(LogTemp, Log, TEXT("[QuestNPC] Delivery success. Quest=%s Objective=%s Item=%s Count=%d"),
+			*QuestId.ToString(),
+			*Obj.ObjectiveId.ToString(),
 			*Obj.TargetId.ToString(),
-			Obj.RequiredCount,
-			RemoveResult);
-		return false;
+			Obj.RequiredCount);
+
+		bAnyDelivered = true;
+
+		// 방금 EmitQuestEvent로 Progress가 바뀌었을 수 있으니 다시 읽기
+		QuestSys->GetProgress(QuestId, Progress);
 	}
 
-	// 전달 성공 -> Delivered 이벤트를 개수만큼 발사
-	for ( int32 i = 0; i < Obj.RequiredCount; ++i )
+	if ( !bFoundDeliveredObjective )
 	{
-		const FString EventStr = FString::Printf(TEXT("QuestEvent.Delivered.%s"), *Obj.TargetId.ToString());
-		QuestSys->EmitQuestEvent(FName(*EventStr));
+		UE_LOG(LogTemp, Log, TEXT("[QuestNPC] TryProcessDelivery: no Delivered objectives. Quest=%s"),
+			*QuestId.ToString());
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[QuestNPC] Delivery success. Quest=%s Item=%s Count=%d"),
-		*QuestId.ToString(),
-		*Obj.TargetId.ToString(),
-		Obj.RequiredCount);
-
-	return true;
+	return bAnyDelivered;
 }
 
 void AUK_QuestNPC::Interact(AActor* Interactor)
@@ -586,4 +666,161 @@ void AUK_QuestNPC::HandleQuestInteract(AUK_CharacterBase* Player)
 		Dialogue,
 		QuestDesc
 	);
+}
+
+bool AUK_QuestNPC::IsRelevantQuestId(FName QuestId) const
+{
+	if ( QuestId.IsNone() )
+	{
+		return false;
+	}
+
+	if ( !QuestID.IsNone() && QuestID == QuestId )
+	{
+		return true;
+	}
+
+	if ( OfferQuestIDs.Contains(QuestId) )
+	{
+		return true;
+	}
+
+	if ( ReportQuestIDs.Contains(QuestId) )
+	{
+		return true;
+	}
+
+	return false;
+}
+
+void AUK_QuestNPC::HandleQuestStateChanged(FName QuestId)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[QuestMarker] HandleQuestStateChanged called | NPC=%s | NPCID=%s | QuestId=%s"),
+		*GetName(),*NPCID.ToString(),*QuestId.ToString());
+
+	if ( !IsRelevantQuestId(QuestId) )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[QuestMarker] Irrelevant QuestId ignored | NPC=%s | NPCID=%s | QuestId=%s"),*GetName(),*NPCID.ToString(),*QuestId.ToString());
+		
+		return;
+	}
+
+	if ( bPlayerInRange )
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if ( !World )
+	{
+		return;
+	}
+
+	UGameInstance* GI = World->GetGameInstance();
+	if ( !GI )
+	{
+		return;
+	}
+
+	UUKQuestUIManagerSubsystem* QuestUIManager = GI->GetSubsystem<UUKQuestUIManagerSubsystem>();
+	if ( !QuestUIManager )
+	{
+		return;
+	}
+
+	const EUKQuestMarkerState MarkerState = QuestUIManager->GetQuestMarkerState(QuestId);
+	ApplyMarkerState(MarkerState);
+}
+
+void AUK_QuestNPC::ApplyMarkerState(EUKQuestMarkerState MarkerState)
+{
+	if ( !MarkerComp || !NPCMarker )
+	{
+		return;
+	}
+
+	switch ( MarkerState )
+	{
+	case EUKQuestMarkerState::Hidden:
+		MarkerComp->SetVisibility(false, true);
+		NPCMarker->SetActorHiddenInGame(true);
+		GetWorldTimerManager().ClearTimer(MarkerTimerHandle);
+		break;
+
+	case EUKQuestMarkerState::InProgress:
+		MarkerComp->SetVisibility(true, true);
+		NPCMarker->SetActorHiddenInGame(false);
+		GetWorldTimerManager().SetTimer(
+			MarkerTimerHandle,
+			this,
+			&AUK_QuestNPC::UpdateMarkerRotation,
+			0.03f,
+			true
+		);
+		break;
+
+	case EUKQuestMarkerState::ReadyToTurnIn:
+		MarkerComp->SetVisibility(true, true);
+		NPCMarker->SetActorHiddenInGame(false);
+		GetWorldTimerManager().SetTimer(
+			MarkerTimerHandle,
+			this,
+			&AUK_QuestNPC::UpdateMarkerRotation,
+			0.03f,
+			true
+		);
+		break;
+
+	default:
+		MarkerComp->SetVisibility(false, true);
+		NPCMarker->SetActorHiddenInGame(true);
+		GetWorldTimerManager().ClearTimer(MarkerTimerHandle);
+		break;
+	}
+}
+
+void AUK_QuestNPC::RefreshQuestMarker()
+{
+	if ( !MarkerComp || !NPCMarker )
+	{
+		return;
+	}
+
+	if ( bPlayerInRange )
+	{
+		MarkerComp->SetVisibility(false, true);
+		NPCMarker->SetActorHiddenInGame(true);
+		GetWorldTimerManager().ClearTimer(MarkerTimerHandle);
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if ( !World )
+	{
+		return;
+	}
+
+	UGameInstance* GI = World->GetGameInstance();
+	if ( !GI )
+	{
+		return;
+	}
+
+	UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>();
+	UUKQuestUIManagerSubsystem* QuestUIManager = GI->GetSubsystem<UUKQuestUIManagerSubsystem>();
+
+	if ( !QuestSys || !QuestUIManager )
+	{
+		return;
+	}
+
+	const FName CurrentQuestId = ResolveQuestIdToShow(QuestSys);
+	if ( CurrentQuestId.IsNone() )
+	{
+		ApplyMarkerState(EUKQuestMarkerState::Hidden);
+		return;
+	}
+
+	const EUKQuestMarkerState MarkerState = QuestUIManager->GetQuestMarkerState(CurrentQuestId);
+	ApplyMarkerState(MarkerState);
 }
