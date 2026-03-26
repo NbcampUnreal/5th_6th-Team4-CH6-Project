@@ -41,18 +41,14 @@ AUK_QuestNPC::AUK_QuestNPC()
 
 	InteractionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionSphere"));
 	InteractionSphere->SetupAttachment(RootComponent);
-	InteractionSphere->SetSphereRadius(1000.f); // 마커 띄울 범위 임시 설정
+	InteractionSphere->SetSphereRadius(500.f); // 마커 띄울 범위 임시 설정
 
 	InteractionSphere->OnComponentBeginOverlap.AddDynamic(this, &AUK_QuestNPC::OnPlayerEnter);
 	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &AUK_QuestNPC::OnPlayerExit);
 
-	QuestMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("QuestMarker"));
-	QuestMarker->SetupAttachment(RootComponent);
-	QuestMarker->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
-	QuestMarker->SetVisibility(false);
-
 	MarkerComp = CreateDefaultSubobject<UChildActorComponent>("MarkerComp");
 	MarkerComp->SetupAttachment(RootComponent);
+	MarkerComp->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
 
 }
 
@@ -71,7 +67,7 @@ void AUK_QuestNPC::BeginPlay()
 		NPCMarker = Cast<AUK_CheckPoint>(MarkerComp->GetChildActor());
 		if ( NPCMarker )
 		{
-			FVector CheckLocation = GetActorLocation() + FVector(0.0f, 0.0f, 150.0f);
+			FVector CheckLocation = GetActorLocation() + FVector(0.0f, 0.0f, 60.0f);
 			NPCMarker->SetActorLocation(CheckLocation);
 		}
 

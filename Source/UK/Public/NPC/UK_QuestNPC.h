@@ -35,10 +35,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC")
 	USphereComponent* InteractionSphere;
 
-	// 퀘스트가 있는 NPC일 때 표시할 마커
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
-	UStaticMeshComponent* QuestMarker;
-
 	FTimerHandle MarkerTimerHandle;
 
 	// 가까이 있으면 상호작용 가능
