@@ -1,4 +1,4 @@
-#include "AIMonster/MonsterSpawner/UK_MonsterSpawner.h"
+﻿#include "AIMonster/MonsterSpawner/UK_MonsterSpawner.h"
 #include "AIMonster/AIMonsterBase.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
@@ -9,6 +9,9 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/GameModeBase.h"
+#include "UI/InGame/UK_CheckPoint.h"
+#include "Quest/UKQuestManagerSubsystem.h"
+#include "Kismet/GameplayStatics.h"
 #include "server/UKGameMode.h"
 
 #pragma region Initialization
@@ -16,17 +19,61 @@ AUK_MonsterSpawner::AUK_MonsterSpawner()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+
+	MarkerComp = CreateDefaultSubobject<UChildActorComponent>(TEXT("MarkerComp"));
+	MarkerComp->SetupAttachment(RootComponent);
+	MarkerComp->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
 }
 
 void AUK_MonsterSpawner::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if ( SelectMarker )
+	{
+		MarkerComp->SetChildActorClass(SelectMarker);
+		MarkerComp->CreateChildActor();
+
+		SpawnerMarker = Cast<AUK_CheckPoint>(MarkerComp->GetChildActor());
+		if ( SpawnerMarker )
+		{
+			MarkerComp->SetVisibility(false, true);
+			SpawnerMarker->SetActorHiddenInGame(true);
+		}
+	}
+
+	if ( UGameInstance* GI = GetGameInstance() )
+	{
+		if ( UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>() )
+		{
+			QuestSys->OnQuestMarkerResetRequested.AddDynamic(this, &AUK_MonsterSpawner::HandleQuestMarkerResetRequested);
+			QuestSys->OnQuestMarkerRouteResolved.AddDynamic(this, &AUK_MonsterSpawner::HandleQuestMarkerRouteResolved);
+
+			UE_LOG(LogTemp, Warning,
+				TEXT("[QuestMarker] Bound MonsterSpawner terminal broadcasts | Spawner=%s | SpawnerID=%s"),
+				*GetName(),
+				*SpawnerID.ToString());
+		}
+	}
+
+	RefreshSpawnerMarker();
 }
 
 void AUK_MonsterSpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	StopSpawning();
-	
+
+	if ( UGameInstance* GI = GetGameInstance() )
+	{
+		if ( UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>() )
+		{
+			QuestSys->OnQuestMarkerResetRequested.RemoveDynamic(this, &AUK_MonsterSpawner::HandleQuestMarkerResetRequested);
+			QuestSys->OnQuestMarkerRouteResolved.RemoveDynamic(this, &AUK_MonsterSpawner::HandleQuestMarkerRouteResolved);
+		}
+	}
+
+	GetWorldTimerManager().ClearTimer(MarkerTimerHandle);
+
 	Super::EndPlay(EndPlayReason);
 }
 #pragma endregion
@@ -412,3 +459,111 @@ void AUK_MonsterSpawner::UpdateMonsterLOD()
 	}
 }
 #pragma endregion
+
+// 퀘스트 마커관련
+
+
+void AUK_MonsterSpawner::UpdateMarkerRotation()
+{
+	if ( !SpawnerMarker )
+	{
+		return;
+	}
+
+	ACharacter* PlayerChar = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
+	if ( !PlayerChar )
+	{
+		return;
+	}
+
+	FVector ToPlayer = PlayerChar->GetActorLocation() - SpawnerMarker->GetActorLocation();
+	FRotator LookAtRotation = ToPlayer.Rotation();
+	LookAtRotation.Pitch = 0.f;
+	LookAtRotation.Yaw += 90.f;
+
+	SpawnerMarker->SetActorRotation(LookAtRotation);
+}
+
+void AUK_MonsterSpawner::HideMarkerInternal()
+{
+	if ( !MarkerComp || !SpawnerMarker )
+	{
+		return;
+	}
+
+	MarkerComp->SetVisibility(false, true);
+	SpawnerMarker->SetActorHiddenInGame(true);
+	GetWorldTimerManager().ClearTimer(MarkerTimerHandle);
+}
+
+void AUK_MonsterSpawner::ShowMarkerInternal(EUKQuestMarkerState MarkerState)
+{
+	if ( !MarkerComp || !SpawnerMarker )
+	{
+		return;
+	}
+
+	if ( MarkerState == EUKQuestMarkerState::Hidden )
+	{
+		HideMarkerInternal();
+		return;
+	}
+
+	MarkerComp->SetVisibility(true, true);
+	SpawnerMarker->SetActorHiddenInGame(false);
+
+	GetWorldTimerManager().SetTimer(
+		MarkerTimerHandle,
+		this,
+		&AUK_MonsterSpawner::UpdateMarkerRotation,
+		0.03f,
+		true
+	);
+}
+
+void AUK_MonsterSpawner::HandleQuestMarkerResetRequested()
+{
+	HideMarkerInternal();
+}
+
+void AUK_MonsterSpawner::HandleQuestMarkerRouteResolved(FName QuestId, EUKQuestMarkerTargetType TargetType, FName TargetId)
+{
+	UE_LOG(LogTemp, Warning,
+		TEXT("[QuestMarker][Spawner Terminal] RouteResolved | Spawner=%s SpawnerID=%s QuestId=%s TargetType=%d TargetId=%s"),
+		*GetName(),
+		*SpawnerID.ToString(),
+		*QuestId.ToString(),
+		static_cast< int32 >( TargetType ),
+		*TargetId.ToString());
+
+	if ( TargetType != EUKQuestMarkerTargetType::MonsterSpawner )
+	{
+		return;
+	}
+
+	if ( TargetId.IsNone() || TargetId != SpawnerID )
+	{
+		return;
+	}
+
+	if ( UGameInstance* GI = GetGameInstance() )
+	{
+		if ( UUKQuestUIManagerSubsystem* QuestUIManager = GI->GetSubsystem<UUKQuestUIManagerSubsystem>() )
+		{
+			const EUKQuestMarkerState MarkerState = QuestUIManager->GetQuestMarkerState(QuestId);
+			ShowMarkerInternal(MarkerState);
+		}
+	}
+}
+
+void AUK_MonsterSpawner::RefreshSpawnerMarker()
+{
+	if ( !MarkerComp || !SpawnerMarker )
+	{
+		return;
+	}
+
+	// 현재 단계에서는 스포너가 담당할 수 있는 퀘스트 후보 목록을 따로 안 들고 있으므로
+	// 로컬 단독 판단 대신 방송 기반을 중심으로 운용
+	HideMarkerInternal();
+}
