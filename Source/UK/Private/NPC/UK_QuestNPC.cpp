@@ -428,47 +428,27 @@ bool AUK_QuestNPC::TryProcessDelivery(UUKQuestManagerSubsystem* QuestSys, AUK_Ch
 	const UUKQuestDefinitionAsset* Def = QuestSys->GetQuestDefinition(QuestId);
 	if ( !Def )
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] TryProcessDelivery failed: QuestDefinition is null. Quest=%s"),
+			*QuestId.ToString());
 		return false;
 	}
 
 	FQuestProgress Progress;
 	if ( !QuestSys->GetProgress(QuestId, Progress) )
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] TryProcessDelivery failed: Progress not found. Quest=%s"),
+			*QuestId.ToString());
 		return false;
 	}
 
 	// 이미 완료된 퀘스트면 전달 처리 안 함
 	if ( Progress.bCompleted )
 	{
+		UE_LOG(LogTemp, Log, TEXT("[QuestNPC] TryProcessDelivery skipped: already completed. Quest=%s"),
+			*QuestId.ToString());
 		return false;
 	}
 
-	// 이미 목표 만족 상태면 다시 전달 처리 안 함
-	if ( QuestSys->AreObjectivesSatisfied(QuestId) )
-	{
-		return false;
-	}
-
-	// 현재는 Objective 1개 기준 처리
-	if ( Def->Objectives.Num() <= 0 )
-	{
-		return false;
-	}
-
-	const FUKQuestObjectiveDef& Obj = Def->Objectives[ 0 ];
-
-	// 전달 퀘스트만 처리
-	if ( Obj.Type != EUKQuestObjectiveType::Delivered )
-	{
-		return false;
-	}
-
-	if ( Obj.TargetId.IsNone() || Obj.RequiredCount <= 0 )
-	{
-		return false;
-	}
-
-	// 플레이어 인벤토리 컴포넌트 찾기
 	UUK_InventoryComponent* InventoryComp = Player->FindComponentByClass<UUK_InventoryComponent>();
 	if ( !InventoryComp )
 	{
@@ -476,41 +456,109 @@ bool AUK_QuestNPC::TryProcessDelivery(UUKQuestManagerSubsystem* QuestSys, AUK_Ch
 		return false;
 	}
 
-	// 현재 보유 수량 확인
-	const int32 CurrentCount = InventoryComp->GetItemTotalQuantity(Obj.TargetId);
-	if ( CurrentCount < Obj.RequiredCount )
-	{
-		UE_LOG(LogTemp, Log, TEXT("[QuestNPC] Delivery failed. Need=%d Have=%d Item=%s"),
-			Obj.RequiredCount,
-			CurrentCount,
-			*Obj.TargetId.ToString());
-		return false;
-	}
+	bool bAnyDelivered = false;
+	bool bFoundDeliveredObjective = false;
 
-	// 아이템 차감
-	const int32 RemoveResult = InventoryComp->RemoveItem(Obj.TargetId, Obj.RequiredCount);
-	if ( RemoveResult != 0 )
+	for ( const FUKQuestObjectiveDef& Obj : Def->Objectives )
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] RemoveItem failed. Item=%s Need=%d RemainNotRemoved=%d"),
+		// Delivered 타입만 처리
+		if ( Obj.Type != EUKQuestObjectiveType::Delivered )
+		{
+			continue;
+		}
+
+		bFoundDeliveredObjective = true;
+
+		if ( Obj.TargetId.IsNone() || Obj.RequiredCount <= 0 )
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] Invalid Delivered objective skipped. Quest=%s Objective=%s"),
+				*QuestId.ToString(),
+				*Obj.ObjectiveId.ToString());
+			continue;
+		}
+
+		// 이미 이 목표가 충족된 상태면 다시 전달하지 않음
+		if ( !Obj.CounterName.IsNone() )
+		{
+			const FName CounterKey = MakeQuestCounterKey_Local(QuestId, Obj.CounterName);
+			const int32 CurrentDeliveredCount = Progress.Counters.FindRef(CounterKey);
+
+			if ( CurrentDeliveredCount >= Obj.RequiredCount )
+			{
+				UE_LOG(LogTemp, Log, TEXT("[QuestNPC] Delivered objective already satisfied. Quest=%s Objective=%s Counter=%s Current=%d Required=%d"),
+					*QuestId.ToString(),
+					*Obj.ObjectiveId.ToString(),
+					*Obj.CounterName.ToString(),
+					CurrentDeliveredCount,
+					Obj.RequiredCount);
+				continue;
+			}
+		}
+		else if ( !Obj.CompleteFlagCategory.IsNone() )
+		{
+			const FName FlagKey = MakeQuestFlagKey_Local(QuestId, Obj.CompleteFlagCategory);
+			if ( Progress.Flags.Contains(FlagKey) )
+			{
+				UE_LOG(LogTemp, Log, TEXT("[QuestNPC] Delivered flag objective already satisfied. Quest=%s Objective=%s Flag=%s"),
+					*QuestId.ToString(),
+					*Obj.ObjectiveId.ToString(),
+					*Obj.CompleteFlagCategory.ToString());
+				continue;
+			}
+		}
+
+		// 현재 보유 수량 확인
+		const int32 CurrentCount = InventoryComp->GetItemTotalQuantity(Obj.TargetId);
+		if ( CurrentCount < Obj.RequiredCount )
+		{
+			UE_LOG(LogTemp, Log, TEXT("[QuestNPC] Delivery failed. Quest=%s Objective=%s Need=%d Have=%d Item=%s"),
+				*QuestId.ToString(),
+				*Obj.ObjectiveId.ToString(),
+				Obj.RequiredCount,
+				CurrentCount,
+				*Obj.TargetId.ToString());
+			continue;
+		}
+
+		// 아이템 차감
+		const int32 RemoveResult = InventoryComp->RemoveItem(Obj.TargetId, Obj.RequiredCount);
+		if ( RemoveResult != 0 )
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[QuestNPC] RemoveItem failed. Quest=%s Objective=%s Item=%s Need=%d RemainNotRemoved=%d"),
+				*QuestId.ToString(),
+				*Obj.ObjectiveId.ToString(),
+				*Obj.TargetId.ToString(),
+				Obj.RequiredCount,
+				RemoveResult);
+			continue;
+		}
+
+		// 전달 성공 -> Delivered 이벤트를 개수만큼 발사
+		for ( int32 i = 0; i < Obj.RequiredCount; ++i )
+		{
+			const FString EventStr = FString::Printf(TEXT("QuestEvent.Delivered.%s"), *Obj.TargetId.ToString());
+			QuestSys->EmitQuestEvent(FName(*EventStr));
+		}
+
+		UE_LOG(LogTemp, Log, TEXT("[QuestNPC] Delivery success. Quest=%s Objective=%s Item=%s Count=%d"),
+			*QuestId.ToString(),
+			*Obj.ObjectiveId.ToString(),
 			*Obj.TargetId.ToString(),
-			Obj.RequiredCount,
-			RemoveResult);
-		return false;
+			Obj.RequiredCount);
+
+		bAnyDelivered = true;
+
+		// 방금 EmitQuestEvent로 Progress가 바뀌었을 수 있으니 다시 읽기
+		QuestSys->GetProgress(QuestId, Progress);
 	}
 
-	// 전달 성공 -> Delivered 이벤트를 개수만큼 발사
-	for ( int32 i = 0; i < Obj.RequiredCount; ++i )
+	if ( !bFoundDeliveredObjective )
 	{
-		const FString EventStr = FString::Printf(TEXT("QuestEvent.Delivered.%s"), *Obj.TargetId.ToString());
-		QuestSys->EmitQuestEvent(FName(*EventStr));
+		UE_LOG(LogTemp, Log, TEXT("[QuestNPC] TryProcessDelivery: no Delivered objectives. Quest=%s"),
+			*QuestId.ToString());
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[QuestNPC] Delivery success. Quest=%s Item=%s Count=%d"),
-		*QuestId.ToString(),
-		*Obj.TargetId.ToString(),
-		Obj.RequiredCount);
-
-	return true;
+	return bAnyDelivered;
 }
 
 void AUK_QuestNPC::Interact(AActor* Interactor)
