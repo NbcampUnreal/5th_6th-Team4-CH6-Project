@@ -41,8 +41,6 @@ EBTNodeResult::Type UUK_BTTaskNode_BossAttack::ExecuteTask(UBehaviorTreeComponen
 
 void UUK_BTTaskNode_BossAttack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
-	// 폴링 로직 제거 — 델리게이트가 처리
-	// 타임아웃 안전장치만 유지
 	CurrentTime += DeltaSeconds;
 	if (CurrentTime >= AttackDuration)
 	{
