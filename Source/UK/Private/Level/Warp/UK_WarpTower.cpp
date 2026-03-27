@@ -131,8 +131,8 @@ void AUK_WarpTower::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* 
 			{
 				if ( UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>() )
 				{
-					QuestSys->EmitQuestEvent(FName(TEXT("QuestEvent.Custom.WarpUnlocked")));
-					UE_LOG(LogTemp, Warning, TEXT("[Warp][Quest] Emit WarpUnlocked. Actor=%s"), *GetName());
+					QuestSys->EmitQuestEvent(FName(*FString::Printf(TEXT("QuestEvent.Custom.%s"), *WarpPointID.ToString())));
+					UE_LOG(LogTemp, Warning, TEXT("[Warp][Quest] Emit %s. Actor=%s"), *WarpPointID.ToString(), *GetName());
 				}
 			}
 		}
@@ -240,11 +240,13 @@ void AUK_WarpTower::HandleQuestMarkerRouteResolved(FName QuestId, EUKQuestMarker
 
 	if ( TargetType != EUKQuestMarkerTargetType::Warp )
 	{
+		HideMarkerInternal();
 		return;
 	}
 
 	if ( TargetId.IsNone() || TargetId != WarpPointID )
 	{
+		HideMarkerInternal();
 		return;
 	}
 
@@ -277,7 +279,48 @@ void AUK_WarpTower::RefreshWarpMarker()
 		return;
 	}
 
-	// 현재 단계에서는 WarpTower가 담당할 수 있는 퀘스트 후보 목록이 없으므로,
-	// 로컬 단독 판단 대신 방송 기반을 중심으로 운용
+	UGameInstance* GI = GetGameInstance();
+	if ( !GI )
+	{
+		HideMarkerInternal();
+		return;
+	}
+
+	UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>();
+	UUKQuestUIManagerSubsystem* QuestUI = GI->GetSubsystem<UUKQuestUIManagerSubsystem>();
+	if ( !QuestSys || !QuestUI )
+	{
+		HideMarkerInternal();
+		return;
+	}
+
+	for ( const TPair<FName, FQuestProgress>& Pair : QuestSys->RuntimeProgress )
+	{
+		const FName QuestId = Pair.Key;
+		const FQuestProgress& Prog = Pair.Value;
+
+		if ( Prog.bCompleted )
+		{
+			continue;
+		}
+
+		const FUKQuestMarkerRouteInfo RouteInfo = QuestUI->GetQuestMarkerRouteInfo(QuestId);
+
+		if ( RouteInfo.TargetType == EUKQuestMarkerTargetType::Warp &&
+			RouteInfo.TargetId == WarpPointID &&
+			RouteInfo.MarkerState != EUKQuestMarkerState::Hidden )
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[QuestMarker][Warp Refresh] Recovered | WarpTower=%s WarpPointID=%s QuestId=%s State=%d"),
+				*GetName(),
+				*WarpPointID.ToString(),
+				*QuestId.ToString(),
+				static_cast< int32 >( RouteInfo.MarkerState ));
+
+			ShowMarkerInternal(RouteInfo.MarkerState);
+			return;
+		}
+	}
+
 	HideMarkerInternal();
 }
