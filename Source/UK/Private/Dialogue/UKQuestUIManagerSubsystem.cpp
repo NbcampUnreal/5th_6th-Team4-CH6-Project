@@ -349,11 +349,23 @@ EUKQuestMarkerTargetType UUKQuestUIManagerSubsystem::GetQuestMarkerTargetType(FN
 		return EUKQuestMarkerTargetType::MonsterSpawner;
 
 	case EUKQuestObjectiveType::Custom:
+	{
+		UUKQuestManagerSubsystem* QS = GetQuestSubsystem();
+		if ( QS )
+		{
+			const UUKQuestDefinitionAsset* Def = QS->GetQuestDefinition(QuestId);
+			if ( Def && Def->Tag == EUKQuestTag::WRP )
+			{
+				return EUKQuestMarkerTargetType::Warp;
+			}
+		}
+
 		if ( IsWarpObjectiveTarget(PendingObj->TargetId) )
 		{
 			return EUKQuestMarkerTargetType::Warp;
 		}
 		return EUKQuestMarkerTargetType::NPC;
+	}
 
 	case EUKQuestObjectiveType::EnteredZone:
 	case EUKQuestObjectiveType::GotItem:
