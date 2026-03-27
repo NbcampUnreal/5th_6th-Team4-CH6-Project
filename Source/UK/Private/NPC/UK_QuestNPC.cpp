@@ -69,8 +69,27 @@ void AUK_QuestNPC::BeginPlay()
 		{
 			FVector CheckLocation = GetActorLocation() + FVector(0.0f, 0.0f, 60.0f);
 			NPCMarker->SetActorLocation(CheckLocation);
-		}
 
+			UE_LOG(LogTemp, Warning,
+				TEXT("[NPC Terminal] Marker created | NPC=%s NPCID=%s MarkerActor=%s"),
+				*GetName(),
+				*NPCID.ToString(),
+				*NPCMarker->GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[NPC Terminal] Marker cast failed | NPC=%s NPCID=%s"),
+				*GetName(),
+				*NPCID.ToString());
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[NPC Terminal] SelectMarker is None | NPC=%s NPCID=%s"),
+			*GetName(),
+			*NPCID.ToString());
 	}
 
 	// NPCID는 BP 기본값 또는 배치된 액터에서 미리 지정되어 있어야 함
@@ -118,6 +137,14 @@ void AUK_QuestNPC::BeginPlay()
 	// 추가: 퀘스트 상태 변화 바인딩
 	QuestSys->OnQuestMarkerResetRequested.AddDynamic(this, &AUK_QuestNPC::HandleQuestMarkerResetRequested);
 	QuestSys->OnQuestMarkerRouteResolved.AddDynamic(this, &AUK_QuestNPC::HandleQuestMarkerRouteResolved);
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[NPC Terminal] BeginPlay success | NPC=%s NPCID=%s QuestID=%s OfferCount=%d ReportCount=%d"),
+		*GetName(),
+		*NPCID.ToString(),
+		*QuestID.ToString(),
+		OfferQuestIDs.Num(),
+		ReportQuestIDs.Num());
 
 	UE_LOG(LogTemp, Warning, TEXT("[QuestMarker] Bound Marker terminal broadcasts | NPC=%s | NPCID=%s"),*GetName(),*NPCID.ToString());
 	// 추가: 시작 시점 마커 상태 초기화
@@ -676,9 +703,17 @@ void AUK_QuestNPC::RefreshQuestMarker()
 		return;
 	}
 
-	// 가까우면 무조건 숨김
+	UE_LOG(LogTemp, Warning,
+		TEXT("[NPC Terminal][Refresh] Enter | NPC=%s NPCID=%s"),
+		*GetName(),
+		*NPCID.ToString());
+
 	if ( bPlayerInRange )
 	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[NPC Terminal][Refresh] Hidden | Reason=PlayerInRange NPCID=%s"),
+			*NPCID.ToString());
+
 		HideMarkerInternal();
 		return;
 	}
@@ -701,17 +736,29 @@ void AUK_QuestNPC::RefreshQuestMarker()
 		return;
 	}
 
-	// 현재 이 NPC가 담당 중인 후보 퀘스트들을 기준으로
-	// 머리(RouteInfo)가 "NPC + 내 NPCID"를 가리키는 퀘스트가 있는지 확인
 	TArray<FName> CandidateQuestIds;
 
+	// 1순위: 완료 보고 퀘스트
+	CandidateQuestIds.Append(ReportQuestIDs);
+
+	// 2순위: 이 NPC의 대표 퀘스트
 	if ( !QuestID.IsNone() )
 	{
 		CandidateQuestIds.Add(QuestID);
 	}
 
+	// 3순위: 제공 퀘스트
 	CandidateQuestIds.Append(OfferQuestIDs);
-	CandidateQuestIds.Append(ReportQuestIDs);
+
+	TArray<FName> UniqueQuestIds;
+	for ( const FName& Qid : CandidateQuestIds )
+	{
+		if ( !Qid.IsNone() && !UniqueQuestIds.Contains(Qid) )
+		{
+			UniqueQuestIds.Add(Qid);
+		}
+	}
+	CandidateQuestIds = UniqueQuestIds;
 
 	for ( const FName& CandidateQuestId : CandidateQuestIds )
 	{
@@ -722,16 +769,33 @@ void AUK_QuestNPC::RefreshQuestMarker()
 
 		const FUKQuestMarkerRouteInfo RouteInfo = QuestUIManager->GetQuestMarkerRouteInfo(CandidateQuestId);
 
+		UE_LOG(LogTemp, Warning,
+			TEXT("[NPC Terminal][Refresh] Check | NPCID=%s QuestId=%s State=%d Type=%d TargetId=%s"),
+			*NPCID.ToString(),
+			*CandidateQuestId.ToString(),
+			static_cast< int32 >( RouteInfo.MarkerState ),
+			static_cast< int32 >( RouteInfo.TargetType ),
+			*RouteInfo.TargetId.ToString());
+
 		if ( RouteInfo.TargetType == EUKQuestMarkerTargetType::NPC &&
 			RouteInfo.TargetId == NPCID &&
 			RouteInfo.MarkerState != EUKQuestMarkerState::Hidden )
 		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[NPC Terminal][Refresh] ShowMarker | NPCID=%s QuestId=%s MarkerState=%d"),
+				*NPCID.ToString(),
+				*CandidateQuestId.ToString(),
+				static_cast< int32 >( RouteInfo.MarkerState ));
+
 			ShowMarkerInternal(RouteInfo.MarkerState);
 			return;
 		}
 	}
 
-	// 해당되는 것이 없으면 숨김
+	UE_LOG(LogTemp, Warning,
+		TEXT("[NPC Terminal][Refresh] NoMatch -> Hide | NPCID=%s"),
+		*NPCID.ToString());
+
 	HideMarkerInternal();
 }
 
@@ -790,23 +854,15 @@ void AUK_QuestNPC::HandleQuestMarkerRouteResolved(FName QuestId, EUKQuestMarkerT
 	// NPC 단말이 아니면 무시
 	if ( TargetType != EUKQuestMarkerTargetType::NPC )
 	{
-		UE_LOG(LogTemp, Warning,
-			TEXT("[NPC Terminal] Ignored: not NPC target. NPCID=%s QuestId=%s Type=%d TargetId=%s"),
-			*NPCID.ToString(),
-			*QuestId.ToString(),
-			static_cast< int32 >( TargetType ),
-			*TargetId.ToString());
+		HideMarkerInternal();
 		return;
 	}
 
 	// 내 NPCID와 일치하지 않으면 무시
 	if ( TargetId.IsNone() || TargetId != NPCID )
 	{
-		UE_LOG(LogTemp, Warning,
-			TEXT("[NPC Terminal] Ignored: TargetId mismatch. MyNPCID=%s QuestId=%s TargetId=%s"),
-			*NPCID.ToString(),
-			*QuestId.ToString(),
-			*TargetId.ToString());
+		HideMarkerInternal();
+
 		return;
 	}
 
