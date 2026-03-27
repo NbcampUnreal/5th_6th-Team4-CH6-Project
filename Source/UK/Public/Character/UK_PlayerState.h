@@ -29,4 +29,11 @@ public:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GB|Abilities")
 	UUK_PlayerStatusAttributeSet* StatusAttributeSet;
+	
+protected:
+	UPROPERTY(EditAnywhere)
+	float DefenceSetting;	
+	UPROPERTY(EditAnywhere)
+	float AttackPower;	
+
 };
