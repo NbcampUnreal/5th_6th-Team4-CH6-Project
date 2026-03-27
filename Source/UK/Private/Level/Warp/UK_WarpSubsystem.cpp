@@ -4,6 +4,7 @@
 #include "UI/OutGame/UK_Out_Loading.h"
 #include "Kismet/GameplayStatics.h"
 #include "Systems/Data/UK_InGameSave.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 const FString WARP_SAVE_SLOT = TEXT("UK_InGameSave");
 
@@ -111,13 +112,27 @@ void UUK_WarpSubsystem::TeleportToWarpPoint(ACharacter* PlayerChar, FName PointI
 			TargetLoc.X += 250.0f; 
 			TargetLoc.Z += 100.0f;
 
+			// 지형이 로드될 때까지 공중에 고정
+			PlayerChar->GetCharacterMovement()->DisableMovement();
 			PlayerChar->SetActorLocation(TargetLoc);
 
+			// 타이머를 통해 로딩 후 물리 복구
 			FTimerHandle WarpTimerHandle;
-			GetWorld()->GetTimerManager().SetTimer(WarpTimerHandle, [ LoadingWidget ] ()
+			// 람다 캡처에 PlayerChar 추가
+			GetWorld()->GetTimerManager().SetTimer(WarpTimerHandle, [ LoadingWidget, PlayerChar ] ()
 				{
-					if ( LoadingWidget ) LoadingWidget->TargetValue = 1.0f;
-				}, 1.0f, false);
+					if ( LoadingWidget )
+					{
+						LoadingWidget->TargetValue = 1.0f;
+					}
+
+					if ( PlayerChar )
+					{
+						// 다시 걷기 모드로 변경 (중력이 적용됨)
+						PlayerChar->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+						UE_LOG(LogTemp, Warning, TEXT("Warp Complete: Physics Restored"));
+					}
+				}, 1.5f, false); // 지형 로드 시간을 고려해 1.5초 정도 여유를 둠
 		}
 	}
 }
