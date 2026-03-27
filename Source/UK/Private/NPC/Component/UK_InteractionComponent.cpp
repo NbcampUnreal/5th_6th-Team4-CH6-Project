@@ -52,8 +52,22 @@ void UUK_InteractionComponent::TryInteract()
 	AUK_CharacterBase* Player = Cast<AUK_CharacterBase>(GetOwner());
 	if (!Player) return;
 	
+	// 1. 반경 내 특정 채널 액터들 긁어오기 (빌드에서 훨씬 안정적)
 	TArray<AActor*> OverlappingActors;
-	Player->GetOverlappingActors(OverlappingActors);
+	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldDynamic));
+	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
+
+	UKismetSystemLibrary::SphereOverlapActors(
+		GetWorld(),
+		Player->GetActorLocation(),
+		200.0f, 
+		ObjectTypes,
+		AActor::StaticClass(), 
+		TArray<AActor*>(),   
+		OverlappingActors
+	);
+	UE_LOG(LogTemp, Log, TEXT("[Interact] Found %d actors around player."), OverlappingActors.Num());
 
 	for (AActor* Actor : OverlappingActors)
 	{
