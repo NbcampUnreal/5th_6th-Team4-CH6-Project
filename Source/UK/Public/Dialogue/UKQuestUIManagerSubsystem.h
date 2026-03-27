@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "Dialogue/UKDialogueTypes.h"
+#include "Quest/UKQuestObjectiveTypes.h"
 #include "UKQuestUIManagerSubsystem.generated.h"
 
 class UUKQuestManagerSubsystem;
@@ -15,6 +16,33 @@ enum class EUKQuestMarkerState : uint8
 	Hidden        UMETA(DisplayName = "Hidden"),
 	InProgress    UMETA(DisplayName = "InProgress"),
 	ReadyToTurnIn UMETA(DisplayName = "ReadyToTurnIn")
+};
+
+UENUM(BlueprintType)
+enum class EUKQuestMarkerTargetType : uint8
+{
+	None            UMETA(DisplayName = "None"),
+	NPC             UMETA(DisplayName = "NPC"),
+	Warp            UMETA(DisplayName = "Warp"),
+	MonsterSpawner  UMETA(DisplayName = "MonsterSpawner")
+};
+
+USTRUCT(BlueprintType)
+struct FUKQuestMarkerRouteInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	FName QuestId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly)
+	FName TargetId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly)
+	EUKQuestMarkerState MarkerState = EUKQuestMarkerState::Hidden;
+
+	UPROPERTY(BlueprintReadOnly)
+	EUKQuestMarkerTargetType TargetType = EUKQuestMarkerTargetType::None;
 };
 
 UCLASS(BlueprintType, Blueprintable)
@@ -43,6 +71,11 @@ protected:
 	UUKQuestManagerSubsystem* GetQuestSubsystem() const;
 	UUKDialogueSubsystem* GetDialogueSubsystem() const;
 	const UUKQuestDefinitionAsset* GetQuestDefinitionSafe(FName QuestId) const;
+
+	const FUKQuestObjectiveDef* FindFirstUnsatisfiedObjective(FName QuestId) const;
+	bool IsWarpObjectiveTarget(const FName& TargetId) const;
+	FName ResolveReportNpcId(FName QuestId) const;
+	FName ResolveOfferNpcId(FName QuestId) const;
 
 public:
 	
@@ -108,6 +141,15 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, Category = "UK|QuestUI")
 	EUKQuestMarkerState GetQuestMarkerState(FName QuestId) const;
+
+	UFUNCTION(BlueprintCallable, Category = "UK|QuestUI")
+	EUKQuestMarkerTargetType GetQuestMarkerTargetType(FName QuestId) const;
+
+	UFUNCTION(BlueprintCallable, Category = "UK|QuestUI")
+	FName GetQuestMarkerTargetId(FName QuestId, EUKQuestMarkerTargetType TargetType) const;
+
+	UFUNCTION(BlueprintCallable, Category = "UK|QuestUI")
+	FUKQuestMarkerRouteInfo GetQuestMarkerRouteInfo(FName QuestId) const;
 
 public:
 	

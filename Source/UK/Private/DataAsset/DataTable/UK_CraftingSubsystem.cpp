@@ -8,18 +8,8 @@ void UUK_CraftingSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 	RecipeDataTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Game/ItemData/CraftingWeaponRecipe/CraftWeapon_Recipe")));
-    
-	if (RecipeDataTable)
-	{
-		UE_LOG(LogTemp, Log, TEXT("RecipeDataTable 로드 성공!"));
-	}
 
 	ItemDataTable = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, TEXT("/Game/ItemData/DT_ItemTableble")));
-    
-	if (ItemDataTable)
-	{
-		UE_LOG(LogTemp, Log, TEXT("ItemDataTable 로드 성공!"));
-	}
 }
 
 const FUK_ItemData* UUK_CraftingSubsystem::GetItemData(FName ItemId) const
@@ -46,7 +36,6 @@ bool UUK_CraftingSubsystem::TryCraftItem(FName RecipeRowName)
 	//골드 체크
 	if (PlayerInv->GetGold() < Recipe->RequiredGold) 
 	{
-		UE_LOG(LogTemp, Warning, TEXT("골드가 부족합니다!"));
 		return false;
 	}
 
@@ -55,7 +44,6 @@ bool UUK_CraftingSubsystem::TryCraftItem(FName RecipeRowName)
 	{
 		if (PlayerInv->GetItemTotalQuantity(Ingredient.Key) < Ingredient.Value)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("%s 재료가 부족합니다!"), *Ingredient.Key.ToString());
 			return false;
 		}
 	}
@@ -76,11 +64,8 @@ bool UUK_CraftingSubsystem::TryCraftItem(FName RecipeRowName)
 		if ( UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>() )
 		{
 			QuestSys->EmitQuestEvent(FName(TEXT("QuestEvent.Custom.CraftCompleted")));
-			UE_LOG(LogTemp, Warning, TEXT("[Craft][Quest] Emit CraftCompleted. Actor=%s"), *GetName());
 		}
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("%s 제작 완료!"), *Recipe->RecipeDisplayName.ToString());
 	return true;
 }
 

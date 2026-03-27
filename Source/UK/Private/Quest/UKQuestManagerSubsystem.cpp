@@ -22,6 +22,7 @@
 #include "Quest/DataAsset/UKQuestDefinitionAsset.h"
 #include "Quest/UKQuestObjectiveTypes.h"
 #include "Quest/UKQuestEventParsing.h"
+#include "Dialogue/UKQuestUIManagerSubsystem.h"
 #include "Systems/Data/UK_InGameSave.h"
 
 
@@ -664,6 +665,7 @@ bool UUKQuestManagerSubsystem::SetQuestFlag(FName QuestId, FName Category)
 		*FlagKey.ToString());
 
 	OnQuestStateChanged.Broadcast(QuestId);
+	BroadcastQuestMarkerRouting(QuestId);
 	return true;
 }
 
@@ -706,6 +708,7 @@ bool UUKQuestManagerSubsystem::SetQuestCounterValue(FName QuestId, FName Counter
 		NewValue);
 
 	OnQuestStateChanged.Broadcast(QuestId);
+	BroadcastQuestMarkerRouting(QuestId);
 	return true;
 }
 
@@ -736,7 +739,45 @@ bool UUKQuestManagerSubsystem::AddQuestCounterValue(FName QuestId, FName Counter
 		NewCounterValue);
 
 	OnQuestStateChanged.Broadcast(QuestId);
+	BroadcastQuestMarkerRouting(QuestId);
 	return true;
+}
+
+//[마커관련 2단계 방송시스템]
+
+void UUKQuestManagerSubsystem::BroadcastQuestMarkerRouting(FName QuestId)
+{
+	if ( QuestId.IsNone() )
+	{
+		return;
+	}
+
+	UGameInstance* GI = GetGameInstance();
+	if ( !GI )
+	{
+		return;
+	}
+
+	UUKQuestUIManagerSubsystem* QuestUI = GI->GetSubsystem<UUKQuestUIManagerSubsystem>();
+	if ( !QuestUI )
+	{
+		return;
+	}
+
+	// 1차 방송: 모든 단말 초기화
+	OnQuestMarkerResetRequested.Broadcast();
+
+	// 2차 방송: 이번 퀘스트의 대상 타입 확정 방송
+	const FUKQuestMarkerRouteInfo RouteInfo = QuestUI->GetQuestMarkerRouteInfo(QuestId);
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[MarkerRoute][Broadcast] QuestId=%s State=%d Type=%d TargetId=%s"),
+		*RouteInfo.QuestId.ToString(),
+		static_cast< int32 >( RouteInfo.MarkerState ),
+		static_cast< int32 >( RouteInfo.TargetType ),
+		*RouteInfo.TargetId.ToString());
+
+	OnQuestMarkerRouteResolved.Broadcast(RouteInfo.QuestId, RouteInfo.TargetType, RouteInfo.TargetId);
 }
 
 // [3] Quest 기본 API
@@ -821,6 +862,7 @@ bool UUKQuestManagerSubsystem::StartQuest(FName QuestId)
 	UE_LOG(LogTemp, Warning, TEXT("[Quest][Marker] Broadcast from StartQuest: %s"), *QuestId.ToString());
 	
 	OnQuestStateChanged.Broadcast(QuestId);
+	BroadcastQuestMarkerRouting(QuestId);
 
 	return true;
 }
@@ -857,6 +899,7 @@ bool UUKQuestManagerSubsystem::CompleteQuest(FName QuestId)
 	UE_LOG(LogTemp, Warning, TEXT("[Quest][Marker] Broadcast from CompleteQuest: %s"), *QuestId.ToString());
 	
 	OnQuestStateChanged.Broadcast(QuestId);
+	BroadcastQuestMarkerRouting(QuestId);
 
 	return true;
 }

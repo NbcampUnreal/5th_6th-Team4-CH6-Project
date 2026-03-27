@@ -85,7 +85,7 @@ void UUK_BTService_FindUKPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, uin
 
 		const float SearchStartTime = BB->GetValueAsFloat(TEXT("SearchStartTime"));
 
-		if (SearchStartTime == -1.f) return; // 이미 수색 실패 확정
+		if (SearchStartTime == -1.f) return;
 
 		const float Now = World->GetTimeSeconds();
 
