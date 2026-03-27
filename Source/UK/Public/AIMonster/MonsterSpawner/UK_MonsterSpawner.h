@@ -1,13 +1,17 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Dialogue/UKQuestUIManagerSubsystem.h"
 #include "UK_MonsterSpawner.generated.h"
 
 class AAIMonsterBase;
 class AAIController;
+class UChildActorComponent;
+class AUK_CheckPoint;
+class UUKQuestManagerSubsystem;
 
 UCLASS()
 class UK_API AUK_MonsterSpawner : public AActor
@@ -47,7 +51,20 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Debug")
 	bool bShowDebugInfo = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|QuestMarker")
+	FName SpawnerID;
 #pragma endregion
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Spawner|QuestMarker")
+	TObjectPtr<UChildActorComponent> MarkerComp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|QuestMarker")
+	TSubclassOf<AUK_CheckPoint> SelectMarker;
+
+	UPROPERTY()
+	TObjectPtr<AUK_CheckPoint> SpawnerMarker;
+
 
 #pragma region Spawning Control
 public:
@@ -62,6 +79,9 @@ public:
 private:
 	int32 TriggerRefCount = 0;
 #pragma endregion
+
+	FTimerHandle MarkerTimerHandle;
+	bool bPlayerInRange = false;
 
 #pragma region Object Pool
 public:                                    
@@ -114,5 +134,19 @@ private:
 	float LODDistance = 3000.f;
     
 	FTimerHandle LODTimerHandle;
+#pragma endregion
+
+#pragma region Quest Marker Terminal
+private:
+	UFUNCTION()
+	void HandleQuestMarkerResetRequested();
+
+	UFUNCTION()
+	void HandleQuestMarkerRouteResolved(FName QuestId, EUKQuestMarkerTargetType TargetType, FName TargetId);
+
+	void RefreshSpawnerMarker();
+	void HideMarkerInternal();
+	void ShowMarkerInternal(EUKQuestMarkerState MarkerState);
+	void UpdateMarkerRotation();
 #pragma endregion
 };
