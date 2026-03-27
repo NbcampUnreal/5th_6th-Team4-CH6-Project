@@ -8,7 +8,7 @@
 
 class UUKQuestUIManagerSubsystem;
 class UUK_QuestMain;
-class SoundCue;
+class USoundCue;
 
 UCLASS()
 class UK_API UUK_Quest : public UUserWidget
