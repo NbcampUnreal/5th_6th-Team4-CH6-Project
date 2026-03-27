@@ -5,6 +5,7 @@
 #include "UKQuestTypes.h"
 #include "Quest/UKQuestRewardTypes.h"
 #include "Quest/UKQuestObjectiveTypes.h"
+#include "Dialogue/UKQuestUIManagerSubsystem.h"
 #include "Engine/DataTable.h"
 #include "DataAsset/Data/UK_ItemData.h"
 #include "DataAsset/NPCData/UK_NPCData.h"
@@ -22,6 +23,15 @@
 #include "UKQuestManagerSubsystem.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnQuestStateChanged, FName, QuestId);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnQuestMarkerResetRequested);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(
+	FOnQuestMarkerRouteResolved,
+	FName, QuestId,
+	EUKQuestMarkerTargetType, TargetType,
+	FName, TargetId
+);
+
 
 UCLASS(BlueprintType, Blueprintable)
 class UK_API UUKQuestManagerSubsystem : public UGameInstanceSubsystem
@@ -45,6 +55,12 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "UK|Quest")
 	FOnQuestStateChanged OnQuestStateChanged;
 
+	UPROPERTY(BlueprintAssignable, Category = "UK|Quest|Marker")
+	FOnQuestMarkerResetRequested OnQuestMarkerResetRequested;
+
+	UPROPERTY(BlueprintAssignable, Category = "UK|Quest|Marker")
+	FOnQuestMarkerRouteResolved OnQuestMarkerRouteResolved;
+
 	// [3] Quest 기본 API
 	UFUNCTION(BlueprintCallable)
 	bool StartQuest(FName QuestId);
@@ -58,6 +74,8 @@ public:
 	// ---- 이벤트 라우터(뼈대) ----
 	UFUNCTION(BlueprintCallable)
 	void EmitQuestEvent(FName EventId);
+
+	void BroadcastQuestMarkerRouting(FName QuestId);
 
 	UFUNCTION(BlueprintCallable, Category = "UK|Quest")
 	bool CanStartQuest(FName QuestId) const;

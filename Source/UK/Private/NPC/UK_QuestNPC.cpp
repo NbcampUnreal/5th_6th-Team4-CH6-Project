@@ -116,10 +116,10 @@ void AUK_QuestNPC::BeginPlay()
 	UE_LOG(LogTemp, Log, TEXT("[NPC] Loaded from DT. NPCID=%s"),*NPCID.ToString());
 
 	// 추가: 퀘스트 상태 변화 바인딩
-	QuestSys->OnQuestStateChanged.AddDynamic(this, &AUK_QuestNPC::HandleQuestStateChanged);
+	QuestSys->OnQuestMarkerResetRequested.AddDynamic(this, &AUK_QuestNPC::HandleQuestMarkerResetRequested);
+	QuestSys->OnQuestMarkerRouteResolved.AddDynamic(this, &AUK_QuestNPC::HandleQuestMarkerRouteResolved);
 
-	UE_LOG(LogTemp, Warning, TEXT("[QuestMarker] Bound OnQuestStateChanged | NPC=%s | NPCID=%s"),*GetName(),*NPCID.ToString());
-
+	UE_LOG(LogTemp, Warning, TEXT("[QuestMarker] Bound Marker terminal broadcasts | NPC=%s | NPCID=%s"),*GetName(),*NPCID.ToString());
 	// 추가: 시작 시점 마커 상태 초기화
 	RefreshQuestMarker();
 }
@@ -132,7 +132,8 @@ void AUK_QuestNPC::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		{
 			if ( UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>() )
 			{
-				QuestSys->OnQuestStateChanged.RemoveDynamic(this, &AUK_QuestNPC::HandleQuestStateChanged);
+				QuestSys->OnQuestMarkerResetRequested.RemoveDynamic(this, &AUK_QuestNPC::HandleQuestMarkerResetRequested);
+				QuestSys->OnQuestMarkerRouteResolved.RemoveDynamic(this, &AUK_QuestNPC::HandleQuestMarkerRouteResolved);
 			}
 		}
 	}
@@ -668,45 +669,155 @@ void AUK_QuestNPC::HandleQuestInteract(AUK_CharacterBase* Player)
 	);
 }
 
-bool AUK_QuestNPC::IsRelevantQuestId(FName QuestId) const
+void AUK_QuestNPC::RefreshQuestMarker()
 {
-	if ( QuestId.IsNone() )
+	if ( !MarkerComp || !NPCMarker )
 	{
-		return false;
-	}
-
-	if ( !QuestID.IsNone() && QuestID == QuestId )
-	{
-		return true;
-	}
-
-	if ( OfferQuestIDs.Contains(QuestId) )
-	{
-		return true;
-	}
-
-	if ( ReportQuestIDs.Contains(QuestId) )
-	{
-		return true;
-	}
-
-	return false;
-}
-
-void AUK_QuestNPC::HandleQuestStateChanged(FName QuestId)
-{
-	UE_LOG(LogTemp, Warning, TEXT("[QuestMarker] HandleQuestStateChanged called | NPC=%s | NPCID=%s | QuestId=%s"),
-		*GetName(),*NPCID.ToString(),*QuestId.ToString());
-
-	if ( !IsRelevantQuestId(QuestId) )
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[QuestMarker] Irrelevant QuestId ignored | NPC=%s | NPCID=%s | QuestId=%s"),*GetName(),*NPCID.ToString(),*QuestId.ToString());
-		
 		return;
 	}
 
+	// 가까우면 무조건 숨김
 	if ( bPlayerInRange )
 	{
+		HideMarkerInternal();
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if ( !World )
+	{
+		return;
+	}
+
+	UGameInstance* GI = World->GetGameInstance();
+	if ( !GI )
+	{
+		return;
+	}
+
+	UUKQuestUIManagerSubsystem* QuestUIManager = GI->GetSubsystem<UUKQuestUIManagerSubsystem>();
+	if ( !QuestUIManager )
+	{
+		return;
+	}
+
+	// 현재 이 NPC가 담당 중인 후보 퀘스트들을 기준으로
+	// 머리(RouteInfo)가 "NPC + 내 NPCID"를 가리키는 퀘스트가 있는지 확인
+	TArray<FName> CandidateQuestIds;
+
+	if ( !QuestID.IsNone() )
+	{
+		CandidateQuestIds.Add(QuestID);
+	}
+
+	CandidateQuestIds.Append(OfferQuestIDs);
+	CandidateQuestIds.Append(ReportQuestIDs);
+
+	for ( const FName& CandidateQuestId : CandidateQuestIds )
+	{
+		if ( CandidateQuestId.IsNone() )
+		{
+			continue;
+		}
+
+		const FUKQuestMarkerRouteInfo RouteInfo = QuestUIManager->GetQuestMarkerRouteInfo(CandidateQuestId);
+
+		if ( RouteInfo.TargetType == EUKQuestMarkerTargetType::NPC &&
+			RouteInfo.TargetId == NPCID &&
+			RouteInfo.MarkerState != EUKQuestMarkerState::Hidden )
+		{
+			ShowMarkerInternal(RouteInfo.MarkerState);
+			return;
+		}
+	}
+
+	// 해당되는 것이 없으면 숨김
+	HideMarkerInternal();
+}
+
+void AUK_QuestNPC::HideMarkerInternal()
+{
+	if ( !MarkerComp || !NPCMarker )
+	{
+		return;
+	}
+
+	MarkerComp->SetVisibility(false, true);
+	NPCMarker->SetActorHiddenInGame(true);
+	GetWorldTimerManager().ClearTimer(MarkerTimerHandle);
+}
+
+void AUK_QuestNPC::ShowMarkerInternal(EUKQuestMarkerState MarkerState)
+{
+	if ( !MarkerComp || !NPCMarker )
+	{
+		return;
+	}
+
+	if ( MarkerState == EUKQuestMarkerState::Hidden )
+	{
+		HideMarkerInternal();
+		return;
+	}
+
+	MarkerComp->SetVisibility(true, true);
+	NPCMarker->SetActorHiddenInGame(false);
+
+	GetWorldTimerManager().SetTimer(
+		MarkerTimerHandle,
+		this,
+		&AUK_QuestNPC::UpdateMarkerRotation,
+		0.03f,
+		true
+	);
+}
+
+void AUK_QuestNPC::HandleQuestMarkerResetRequested()
+{
+	HideMarkerInternal();
+}
+
+void AUK_QuestNPC::HandleQuestMarkerRouteResolved(FName QuestId, EUKQuestMarkerTargetType TargetType, FName TargetId)
+{
+	UE_LOG(LogTemp, Warning,
+		TEXT("[QuestMarker][NPC Terminal] RouteResolved | NPC=%s NPCID=%s QuestId=%s TargetType=%d TargetId=%s"),
+		*GetName(),
+		*NPCID.ToString(),
+		*QuestId.ToString(),
+		static_cast< int32 >( TargetType ),
+		*TargetId.ToString());
+
+	// NPC 단말이 아니면 무시
+	if ( TargetType != EUKQuestMarkerTargetType::NPC )
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[NPC Terminal] Ignored: not NPC target. NPCID=%s QuestId=%s Type=%d TargetId=%s"),
+			*NPCID.ToString(),
+			*QuestId.ToString(),
+			static_cast< int32 >( TargetType ),
+			*TargetId.ToString());
+		return;
+	}
+
+	// 내 NPCID와 일치하지 않으면 무시
+	if ( TargetId.IsNone() || TargetId != NPCID )
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[NPC Terminal] Ignored: TargetId mismatch. MyNPCID=%s QuestId=%s TargetId=%s"),
+			*NPCID.ToString(),
+			*QuestId.ToString(),
+			*TargetId.ToString());
+		return;
+	}
+
+	// 플레이어가 가까우면 숨김 유지
+	if ( bPlayerInRange )
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[NPC Terminal] Hidden because player in range. NPCID=%s QuestId=%s"),
+			*NPCID.ToString(),
+			*QuestId.ToString());
+		HideMarkerInternal();
 		return;
 	}
 
@@ -729,98 +840,5 @@ void AUK_QuestNPC::HandleQuestStateChanged(FName QuestId)
 	}
 
 	const EUKQuestMarkerState MarkerState = QuestUIManager->GetQuestMarkerState(QuestId);
-	ApplyMarkerState(MarkerState);
-}
-
-void AUK_QuestNPC::ApplyMarkerState(EUKQuestMarkerState MarkerState)
-{
-	if ( !MarkerComp || !NPCMarker )
-	{
-		return;
-	}
-
-	switch ( MarkerState )
-	{
-	case EUKQuestMarkerState::Hidden:
-		MarkerComp->SetVisibility(false, true);
-		NPCMarker->SetActorHiddenInGame(true);
-		GetWorldTimerManager().ClearTimer(MarkerTimerHandle);
-		break;
-
-	case EUKQuestMarkerState::InProgress:
-		MarkerComp->SetVisibility(true, true);
-		NPCMarker->SetActorHiddenInGame(false);
-		GetWorldTimerManager().SetTimer(
-			MarkerTimerHandle,
-			this,
-			&AUK_QuestNPC::UpdateMarkerRotation,
-			0.03f,
-			true
-		);
-		break;
-
-	case EUKQuestMarkerState::ReadyToTurnIn:
-		MarkerComp->SetVisibility(true, true);
-		NPCMarker->SetActorHiddenInGame(false);
-		GetWorldTimerManager().SetTimer(
-			MarkerTimerHandle,
-			this,
-			&AUK_QuestNPC::UpdateMarkerRotation,
-			0.03f,
-			true
-		);
-		break;
-
-	default:
-		MarkerComp->SetVisibility(false, true);
-		NPCMarker->SetActorHiddenInGame(true);
-		GetWorldTimerManager().ClearTimer(MarkerTimerHandle);
-		break;
-	}
-}
-
-void AUK_QuestNPC::RefreshQuestMarker()
-{
-	if ( !MarkerComp || !NPCMarker )
-	{
-		return;
-	}
-
-	if ( bPlayerInRange )
-	{
-		MarkerComp->SetVisibility(false, true);
-		NPCMarker->SetActorHiddenInGame(true);
-		GetWorldTimerManager().ClearTimer(MarkerTimerHandle);
-		return;
-	}
-
-	UWorld* World = GetWorld();
-	if ( !World )
-	{
-		return;
-	}
-
-	UGameInstance* GI = World->GetGameInstance();
-	if ( !GI )
-	{
-		return;
-	}
-
-	UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>();
-	UUKQuestUIManagerSubsystem* QuestUIManager = GI->GetSubsystem<UUKQuestUIManagerSubsystem>();
-
-	if ( !QuestSys || !QuestUIManager )
-	{
-		return;
-	}
-
-	const FName CurrentQuestId = ResolveQuestIdToShow(QuestSys);
-	if ( CurrentQuestId.IsNone() )
-	{
-		ApplyMarkerState(EUKQuestMarkerState::Hidden);
-		return;
-	}
-
-	const EUKQuestMarkerState MarkerState = QuestUIManager->GetQuestMarkerState(CurrentQuestId);
-	ApplyMarkerState(MarkerState);
+	ShowMarkerInternal(MarkerState);
 }

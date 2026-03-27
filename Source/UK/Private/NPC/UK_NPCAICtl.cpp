@@ -165,13 +165,6 @@ void AUK_NPCAICtl::UpdateScheduleByTime(int32 CurrentHour)
 				FVector TargetPos = GoalActor->GetActorLocation();
 				BlackboardComp->SetValueAsVector(TEXT("TargetLocation"), TargetPos);
 				BlackboardComp->SetValueAsEnum(TEXT("CurrentState"), (uint8)Row->ActivityState);
-         
-				UE_LOG(LogTemp, Warning, TEXT("[%s] %d시 출근 완료! 목적지: %s"), 
-					*NPC->MyNPC_ID.ToString(), CurrentHour, *GoalActor->GetName());
-			}
-			else 
-			{
-				UE_LOG(LogTemp, Error, TEXT("[%s] %d시 목적지 액터를 로드할 수 없음!"), *NPC->MyNPC_ID.ToString(), CurrentHour);
 			}
 
 			BlackboardComp->SetValueAsObject(TEXT("ActionMontage"), Row->ActionMontage);

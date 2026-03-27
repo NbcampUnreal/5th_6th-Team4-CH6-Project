@@ -1,8 +1,12 @@
 ﻿#include "Dialogue/UKQuestUIManagerSubsystem.h"
 
 #include "Quest/UKQuestManagerSubsystem.h"
+#include "Quest/UKQuestObjectiveTypes.h"
 #include "Dialogue/UKDialogueSubsystem.h"
+#include "NPC/UK_QuestNPC.h"
+#include "EngineUtils.h"
 #include "Quest/DataAsset/UKQuestDefinitionAsset.h"
+
 
 void UUKQuestUIManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -239,6 +243,279 @@ EUKQuestMarkerState UUKQuestUIManagerSubsystem::GetQuestMarkerState(FName QuestI
 	return EUKQuestMarkerState::InProgress;
 }
 
+const FUKQuestObjectiveDef* UUKQuestUIManagerSubsystem::FindFirstUnsatisfiedObjective(FName QuestId) const
+{
+	UUKQuestManagerSubsystem* QS = GetQuestSubsystem();
+	if ( !QS || QuestId.IsNone() )
+	{
+		return nullptr;
+	}
+
+	const UUKQuestDefinitionAsset* Def = QS->GetQuestDefinition(QuestId);
+	if ( !Def )
+	{
+		return nullptr;
+	}
+
+	FQuestProgress Progress;
+	if ( !QS->GetProgress(QuestId, Progress) )
+	{
+		return nullptr;
+	}
+
+	for ( const FUKQuestObjectiveDef& Obj : Def->Objectives )
+	{
+		// Counter 기반
+		if ( !Obj.CounterName.IsNone() && Obj.RequiredCount > 0 )
+		{
+			const FName CounterKey(*FString::Printf(TEXT("C.%s.%s"),
+				*QuestId.ToString(),
+				*Obj.CounterName.ToString()));
+
+			const int32 CurrentValue = Progress.Counters.FindRef(CounterKey);
+			if ( CurrentValue < Obj.RequiredCount )
+			{
+				return &Obj;
+			}
+
+			continue;
+		}
+
+		// Flag 기반
+		if ( !Obj.CompleteFlagCategory.IsNone() )
+		{
+			const FName FlagKey(*FString::Printf(TEXT("F.%s.%s"),
+				*QuestId.ToString(),
+				*Obj.CompleteFlagCategory.ToString()));
+
+			if ( !Progress.Flags.Contains(FlagKey) )
+			{
+				return &Obj;
+			}
+
+			continue;
+		}
+
+		// 둘 다 없으면 미지원/미충족으로 간주
+		return &Obj;
+	}
+
+	return nullptr;
+}
+
+bool UUKQuestUIManagerSubsystem::IsWarpObjectiveTarget(const FName& TargetId) const
+{
+	if ( TargetId.IsNone() )
+	{
+		return false;
+	}
+
+	const FString TargetStr = TargetId.ToString();
+
+	return TargetStr.Contains(TEXT("Warp"), ESearchCase::IgnoreCase)
+		|| TargetStr.Contains(TEXT("WRP"), ESearchCase::IgnoreCase)
+		|| TargetStr.Equals(TEXT("WarpUnlocked"), ESearchCase::IgnoreCase);
+}
+
+EUKQuestMarkerTargetType UUKQuestUIManagerSubsystem::GetQuestMarkerTargetType(FName QuestId) const
+{
+	const EUKQuestMarkerState MarkerState = GetQuestMarkerState(QuestId);
+
+	if ( MarkerState == EUKQuestMarkerState::Hidden )
+	{
+		return EUKQuestMarkerTargetType::None;
+	}
+
+	// 완료 보고 가능 상태면 무조건 보고 NPC
+	if ( MarkerState == EUKQuestMarkerState::ReadyToTurnIn )
+	{
+		return EUKQuestMarkerTargetType::NPC;
+	}
+
+	// 진행 중이면 "현재 미충족 Objective"를 보고 어디로 띄울지 판단
+	const FUKQuestObjectiveDef* PendingObj = FindFirstUnsatisfiedObjective(QuestId);
+	if ( !PendingObj )
+	{
+		// 안전 fallback
+		return EUKQuestMarkerTargetType::NPC;
+	}
+
+	switch ( PendingObj->Type )
+	{
+	case EUKQuestObjectiveType::TalkedTo:
+		return EUKQuestMarkerTargetType::NPC;
+
+	case EUKQuestObjectiveType::Killed:
+		return EUKQuestMarkerTargetType::MonsterSpawner;
+
+	case EUKQuestObjectiveType::Custom:
+		if ( IsWarpObjectiveTarget(PendingObj->TargetId) )
+		{
+			return EUKQuestMarkerTargetType::Warp;
+		}
+		return EUKQuestMarkerTargetType::NPC;
+
+	case EUKQuestObjectiveType::EnteredZone:
+	case EUKQuestObjectiveType::GotItem:
+	case EUKQuestObjectiveType::Delivered:
+	default:
+		// 현재 데이터 구조상 별도 단말 정보가 없으므로 안전 fallback
+		return EUKQuestMarkerTargetType::NPC;
+	}
+}
+
+FName UUKQuestUIManagerSubsystem::ResolveReportNpcId(FName QuestId) const
+{
+	if ( QuestId.IsNone() )
+	{
+		return NAME_None;
+	}
+
+	UWorld* World = GetWorld();
+	if ( !World )
+	{
+		return NAME_None;
+	}
+
+	for ( TActorIterator<AUK_QuestNPC> It(World); It; ++It )
+	{
+		AUK_QuestNPC* NPC = *It;
+		if ( !IsValid(NPC) )
+		{
+			continue;
+		}
+
+		if ( NPC->GetReportQuestIDs().Contains(QuestId) )
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[MarkerRoute][ResolveReportNpcId] QuestId=%s -> NPCID=%s NPC=%s"),
+				*QuestId.ToString(),
+				*NPC->GetNPCID().ToString(),
+				*NPC->GetName());
+			return NPC->GetNPCID();
+		}
+	}
+
+	return NAME_None;
+}
+
+FName UUKQuestUIManagerSubsystem::ResolveOfferNpcId(FName QuestId) const
+{
+	if ( QuestId.IsNone() )
+	{
+		return NAME_None;
+	}
+
+	UWorld* World = GetWorld();
+	if ( !World )
+	{
+		return NAME_None;
+	}
+
+	for ( TActorIterator<AUK_QuestNPC> It(World); It; ++It )
+	{
+		AUK_QuestNPC* NPC = *It;
+		if ( !IsValid(NPC) )
+		{
+			continue;
+		}
+
+		if ( !NPC->GetQuestID().IsNone() && NPC->GetQuestID() == QuestId )
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[MarkerRoute][ResolveOfferNpcId] QuestId=%s -> NPCID=%s NPC=%s"),
+				*QuestId.ToString(),
+				*NPC->GetNPCID().ToString(),
+				*NPC->GetName());
+			return NPC->GetNPCID();
+		}
+
+		if ( NPC->GetOfferQuestIDs().Contains(QuestId) )
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[MarkerRoute][ResolveOfferNpcId] QuestId=%s -> NPCID=%s NPC=%s"),
+				*QuestId.ToString(),
+				*NPC->GetNPCID().ToString(),
+				*NPC->GetName());
+			return NPC->GetNPCID();
+		}
+	}
+UE_LOG(LogTemp, Warning,
+	TEXT("[MarkerRoute][ResolveOfferNpcId] QuestId=%s -> NOT FOUND"),
+	*QuestId.ToString());
+	return NAME_None;
+}
+
+FName UUKQuestUIManagerSubsystem::GetQuestMarkerTargetId(FName QuestId, EUKQuestMarkerTargetType TargetType) const
+{
+	if ( QuestId.IsNone() || TargetType == EUKQuestMarkerTargetType::None )
+	{
+		return NAME_None;
+	}
+
+	const EUKQuestMarkerState MarkerState = GetQuestMarkerState(QuestId);
+
+	// 완료 보고 가능이면 "보고 NPC"
+	if ( MarkerState == EUKQuestMarkerState::ReadyToTurnIn )
+	{
+		if ( TargetType == EUKQuestMarkerTargetType::NPC )
+		{
+			return ResolveReportNpcId(QuestId);
+		}
+
+		return NAME_None;
+	}
+
+	// 진행 중이면 미충족 Objective 기준
+	const FUKQuestObjectiveDef* PendingObj = FindFirstUnsatisfiedObjective(QuestId);
+	if ( !PendingObj )
+	{
+		return NAME_None;
+	}
+
+	switch ( TargetType )
+	{
+	case EUKQuestMarkerTargetType::NPC:
+		// TalkedTo는 Objective TargetId가 실제 대상 NPC일 수 있으므로 우선 사용
+		if ( PendingObj->Type == EUKQuestObjectiveType::TalkedTo && !PendingObj->TargetId.IsNone() )
+		{
+			return PendingObj->TargetId;
+		}
+
+		// Delivered / Custom(제작 등) / 기타 진행형은 현재 구조상 진행 NPC로 처리
+		return ResolveOfferNpcId(QuestId);
+
+	case EUKQuestMarkerTargetType::Warp:
+		// 현재 구조상 Warp 목적지는 Objective TargetId 자체를 Warp 식별자로 사용
+		return PendingObj->TargetId;
+
+	case EUKQuestMarkerTargetType::MonsterSpawner:
+		// 현재는 스포너 ID 매핑 구조가 아직 없으므로 일단 Objective TargetId를 넘김
+		// 다음 단계에서 MonsterTargetId -> SpawnerID 매핑이 필요
+		return PendingObj->TargetId;
+
+	case EUKQuestMarkerTargetType::None:
+	default:
+		return NAME_None;
+	}
+}
+
+FUKQuestMarkerRouteInfo UUKQuestUIManagerSubsystem::GetQuestMarkerRouteInfo(FName QuestId) const
+{
+	FUKQuestMarkerRouteInfo OutInfo;
+	OutInfo.QuestId = QuestId;
+	OutInfo.MarkerState = GetQuestMarkerState(QuestId);
+	OutInfo.TargetType = GetQuestMarkerTargetType(QuestId);
+	OutInfo.TargetId = GetQuestMarkerTargetId(QuestId, OutInfo.TargetType);
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[MarkerRoute][RouteInfo] QuestId=%s State=%d Type=%d TargetId=%s"),
+		*OutInfo.QuestId.ToString(),
+		static_cast< int32 >( OutInfo.MarkerState ),
+		static_cast< int32 >( OutInfo.TargetType ),
+		*OutInfo.TargetId.ToString());
+	return OutInfo;
+}
 
 // [6] Dialogue UI Getter
 

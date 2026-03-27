@@ -70,14 +70,26 @@ public:
 
 	AUK_CheckPoint* NPCMarker;
 
+	UFUNCTION()
+	void HandleQuestMarkerResetRequested();
 
 	UFUNCTION()
-	void HandleQuestStateChanged(FName QuestId);
+	void HandleQuestMarkerRouteResolved(FName QuestId, EUKQuestMarkerTargetType TargetType, FName TargetId);
+
+	UFUNCTION(BlueprintPure, Category = "Quest|Marker")
+	FName GetNPCID() const { return NPCID; }
+
+	UFUNCTION(BlueprintPure, Category = "Quest|Marker")
+	FName GetQuestID() const { return QuestID; }
+
+	const TArray<FName>& GetOfferQuestIDs() const { return OfferQuestIDs; }
+	const TArray<FName>& GetReportQuestIDs() const { return ReportQuestIDs; }
 
 protected:
 	void RefreshQuestMarker();                   
-	void ApplyMarkerState(EUKQuestMarkerState MarkerState); 
-	bool IsRelevantQuestId(FName QuestId) const; 
+
+	void HideMarkerInternal();
+	void ShowMarkerInternal(EUKQuestMarkerState MarkerState);
 
 	// 하위 호환용 / 단일 퀘스트 fallback
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")

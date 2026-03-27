@@ -31,11 +31,10 @@ bool UUK_BTDecorator_BackPos::CalculateRawConditionValue(UBehaviorTreeComponent&
 		}
 		return false;
 	}
-
-	// 타겟 없음 → SearchStartTime 체크
+	
 	const float SearchStartTime = BB->GetValueAsFloat(TEXT("SearchStartTime"));
-	if (SearchStartTime > 0.f)  return false; // 수색 중
-	if (SearchStartTime < 0.f)  return true;  // 수색 실패 → 귀환
+	if (SearchStartTime > 0.f)  return false;
+	if (SearchStartTime < 0.f)  return true; 
 
 	const FVector Home = BB->GetValueAsVector(TEXT("HomeLocation"));
 	return FVector::DistSquared(AI->GetPawn()->GetActorLocation(), Home) > FMath::Square(MaxDistance);
