@@ -59,4 +59,8 @@ public:
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "SaveSystem")
 	FString MainSaveSlotName = TEXT("Slot_0");
+
+	//퀘스트 강제참조
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Quest|Cook")
+	TObjectPtr<class UUKQuestCookAnchor> QuestCookAnchor = nullptr;
 };
