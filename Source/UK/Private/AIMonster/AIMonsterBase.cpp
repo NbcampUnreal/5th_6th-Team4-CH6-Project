@@ -1215,7 +1215,7 @@ float AAIMonsterBase::CalculateDefense(int32 PlayerLevel) const
 {
     const FUK_MonsterStatRow* Row = GetStatRow();
     if (!Row) return 0.f;
-	return (PlayerLevel * 5.f) + Row->BaseDefense;
+	return Row->BaseDefense;
 }
 
 // ────────────────────────────────────────────────
