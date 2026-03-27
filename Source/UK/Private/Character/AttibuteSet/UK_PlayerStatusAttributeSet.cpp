@@ -265,7 +265,7 @@ void UUK_PlayerStatusAttributeSet::PostAttributeChange(const FGameplayAttribute&
 			if (NewValue == 1)
 				return;
 			SetMaxEXP((NewValue*2) * 10 + 100);
-			SetAttackPower(GetAttackPower() + 100);
+			SetAttackPower(GetAttackPower() + 3);
 			SetMaxHealth(GetMaxHealth() + 10);
 			SetMaxMp(GetMaxMp() + 10);
 			LevelUp();
