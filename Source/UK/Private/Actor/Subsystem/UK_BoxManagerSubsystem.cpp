@@ -35,9 +35,5 @@ void UUK_BoxManagerSubsystem::SaveToDisk()
 	{
 		SaveGame->OpenedChestIDs = OpenedChestIDs.Array();
 		bool bSuccess = UGameplayStatics::SaveGameToSlot(SaveGame, TEXT("BoxSaveSlot"), 0);
-       
-		if (bSuccess)
-		{
-		}
 	}
 }
