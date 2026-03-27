@@ -112,7 +112,10 @@ void UUK_DamageExecutionCalculation::Execute_Implementation(
 		FinalDamage = FMath::Max(FinalDamage * CriticalDamage, 0.f);
 		UE_LOG(LogTemp, Display, TEXT("FinalDamage : %f"), FinalDamage);
 	}
-
+	
+	const float RandomDamage = FMath::FRandRange(0.7f, 1.1f);
+	FinalDamage *= RandomDamage;
+	
 	if (FinalDamage > 0.f)
 	{
 		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
