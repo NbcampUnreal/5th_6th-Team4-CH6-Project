@@ -88,7 +88,7 @@ void AUK_PlayerController::BeginPlay()
 			GetWorldTimerManager().SetTimer(TimerHandle, [ GI ] ()
 				{
 					GI->PersistentLoadingWidget->TargetValue = 1.0f;
-				}, 0.3f, false);
+				}, 2.0f, false);
 		}
 	}
 }
