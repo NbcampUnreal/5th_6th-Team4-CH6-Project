@@ -110,7 +110,7 @@ void UUK_WarpSubsystem::TeleportToWarpPoint(ACharacter* PlayerChar, FName PointI
 			// 실제 워프 좌표 적용 
 			FVector TargetLoc = RowData.WorldLocation; // 데이터테이블의 좌표 사용
 			TargetLoc.X += 250.0f; 
-			TargetLoc.Z += 100.0f;
+			TargetLoc.Z += 150.0f;
 
 			// 지형이 로드될 때까지 공중에 고정
 			PlayerChar->GetCharacterMovement()->DisableMovement();
@@ -132,7 +132,7 @@ void UUK_WarpSubsystem::TeleportToWarpPoint(ACharacter* PlayerChar, FName PointI
 						PlayerChar->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 						UE_LOG(LogTemp, Warning, TEXT("Warp Complete: Physics Restored"));
 					}
-				}, 1.5f, false); // 지형 로드 시간을 고려해 1.5초 정도 여유를 둠
+				}, 4.3f, false); // 지형 로드 시간을 고려해 4.3초 정도 여유를 둠
 		}
 	}
 }
