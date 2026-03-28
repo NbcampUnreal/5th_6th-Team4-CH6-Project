@@ -1011,15 +1011,24 @@ void UUKQuestManagerSubsystem::EmitQuestEvent(FName EventId)
 			if ( !MatchesType(Obj.Type, Ev.Category) )
 				continue;
 
+			UE_LOG(LogTemp, Warning,
+				TEXT("[WRP][MatchCheck] Quest=%s ObjType=%d ObjTarget=%s EvCat=%d EvDetail=%s CompleteFlag=%s"),
+				*QuestId.ToString(),
+				static_cast< int32 >( Obj.Type ),
+				*Obj.TargetId.ToString(),
+				static_cast< int32 >( Ev.Category ),
+				*Ev.Detail.ToString(),
+				*Obj.CompleteFlagCategory.ToString());
+
 			// Target 매칭(Detail == TargetId)
 			if ( !Obj.TargetId.IsNone() && Obj.TargetId != Ev.Detail )
 				continue;
 
-			UE_LOG(LogTemp, Log, TEXT("[Quest][Match] Quest=%s Obj=%s Type=%d Target=%s"),
+			UE_LOG(LogTemp, Warning,
+				TEXT("[WRP][MatchSuccess] Quest=%s ObjTarget=%s EvDetail=%s"),
 				*QuestId.ToString(),
-				*Obj.ObjectiveId.ToString(),
-				static_cast< int32 >( Obj.Type ),
-				*Obj.TargetId.ToString());
+				*Obj.TargetId.ToString(),
+				*Ev.Detail.ToString());
 
 			// 3) 카운터 갱신(있으면 1 증가)
 			if ( !Obj.CounterName.IsNone() )

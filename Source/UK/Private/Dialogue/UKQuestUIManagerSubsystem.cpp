@@ -467,7 +467,7 @@ FName UUKQuestUIManagerSubsystem::GetQuestMarkerTargetId(FName QuestId, EUKQuest
 
 	const EUKQuestMarkerState MarkerState = GetQuestMarkerState(QuestId);
 
-	// 완료 보고 가능이면 "보고 NPC"
+	// 완료 보고 가능이면 무조건 Report NPC
 	if ( MarkerState == EUKQuestMarkerState::ReadyToTurnIn )
 	{
 		if ( TargetType == EUKQuestMarkerTargetType::NPC )

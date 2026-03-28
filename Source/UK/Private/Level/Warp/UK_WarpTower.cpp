@@ -132,7 +132,12 @@ void AUK_WarpTower::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* 
 				if ( UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>() )
 				{
 					QuestSys->EmitQuestEvent(FName(*FString::Printf(TEXT("QuestEvent.Custom.%s"), *WarpPointID.ToString())));
-					UE_LOG(LogTemp, Warning, TEXT("[Warp][Quest] Emit %s. Actor=%s"), *WarpPointID.ToString(), *GetName());
+					UE_LOG(LogTemp, Warning,
+						TEXT("[WRP][Tower Emit] Actor=%s WarpPointID=%s bIsActivated=%d EventId=QuestEvent.Custom.%s"),
+						*GetName(),
+						*WarpPointID.ToString(),
+						bIsActivated ? 1 : 0,
+						*WarpPointID.ToString());
 				}
 			}
 		}
