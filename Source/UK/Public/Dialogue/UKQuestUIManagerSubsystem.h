@@ -76,6 +76,8 @@ protected:
 	bool IsWarpObjectiveTarget(const FName& TargetId) const;
 	FName ResolveReportNpcId(FName QuestId) const;
 	FName ResolveOfferNpcId(FName QuestId) const;
+	TArray<const FUKQuestObjectiveDef*> FindUnsatisfiedObjectives(FName QuestId) const;
+
 
 public:
 	
@@ -150,6 +152,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "UK|QuestUI")
 	FUKQuestMarkerRouteInfo GetQuestMarkerRouteInfo(FName QuestId) const;
+
+	UFUNCTION(BlueprintCallable, Category = "UK|QuestUI")
+	TArray<FUKQuestMarkerRouteInfo> GetQuestMarkerRouteInfos(FName QuestId) const;
 
 public:
 	

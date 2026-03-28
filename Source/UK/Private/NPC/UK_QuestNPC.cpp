@@ -767,28 +767,31 @@ void AUK_QuestNPC::RefreshQuestMarker()
 			continue;
 		}
 
-		const FUKQuestMarkerRouteInfo RouteInfo = QuestUIManager->GetQuestMarkerRouteInfo(CandidateQuestId);
+		const TArray<FUKQuestMarkerRouteInfo> RouteInfos = QuestUIManager->GetQuestMarkerRouteInfos(CandidateQuestId);
 
-		UE_LOG(LogTemp, Warning,
-			TEXT("[NPC Terminal][Refresh] Check | NPCID=%s QuestId=%s State=%d Type=%d TargetId=%s"),
-			*NPCID.ToString(),
-			*CandidateQuestId.ToString(),
-			static_cast< int32 >( RouteInfo.MarkerState ),
-			static_cast< int32 >( RouteInfo.TargetType ),
-			*RouteInfo.TargetId.ToString());
-
-		if ( RouteInfo.TargetType == EUKQuestMarkerTargetType::NPC &&
-			RouteInfo.TargetId == NPCID &&
-			RouteInfo.MarkerState != EUKQuestMarkerState::Hidden )
+		for ( const FUKQuestMarkerRouteInfo& RouteInfo : RouteInfos )
 		{
 			UE_LOG(LogTemp, Warning,
-				TEXT("[NPC Terminal][Refresh] ShowMarker | NPCID=%s QuestId=%s MarkerState=%d"),
+				TEXT("[NPC Terminal][Refresh] Check | NPCID=%s QuestId=%s State=%d Type=%d TargetId=%s"),
 				*NPCID.ToString(),
 				*CandidateQuestId.ToString(),
-				static_cast< int32 >( RouteInfo.MarkerState ));
+				static_cast< int32 >( RouteInfo.MarkerState ),
+				static_cast< int32 >( RouteInfo.TargetType ),
+				*RouteInfo.TargetId.ToString());
 
-			ShowMarkerInternal(RouteInfo.MarkerState);
-			return;
+			if ( RouteInfo.TargetType == EUKQuestMarkerTargetType::NPC &&
+				RouteInfo.TargetId == NPCID &&
+				RouteInfo.MarkerState != EUKQuestMarkerState::Hidden )
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("[NPC Terminal][Refresh] ShowMarker | NPCID=%s QuestId=%s MarkerState=%d"),
+					*NPCID.ToString(),
+					*CandidateQuestId.ToString(),
+					static_cast< int32 >( RouteInfo.MarkerState ));
+
+				ShowMarkerInternal(RouteInfo.MarkerState);
+				return;
+			}
 		}
 	}
 
@@ -851,29 +854,23 @@ void AUK_QuestNPC::HandleQuestMarkerRouteResolved(FName QuestId, EUKQuestMarkerT
 		static_cast< int32 >( TargetType ),
 		*TargetId.ToString());
 
-	// NPC 단말이 아니면 무시
+	// 복수 방송형에서는 "내 것이 아니면 무시"
 	if ( TargetType != EUKQuestMarkerTargetType::NPC )
 	{
-		HideMarkerInternal();
 		return;
 	}
 
-	// 내 NPCID와 일치하지 않으면 무시
 	if ( TargetId.IsNone() || TargetId != NPCID )
 	{
-		HideMarkerInternal();
-
 		return;
 	}
 
-	// 플레이어가 가까우면 숨김 유지
 	if ( bPlayerInRange )
 	{
 		UE_LOG(LogTemp, Warning,
 			TEXT("[NPC Terminal] Hidden because player in range. NPCID=%s QuestId=%s"),
 			*NPCID.ToString(),
 			*QuestId.ToString());
-		HideMarkerInternal();
 		return;
 	}
 

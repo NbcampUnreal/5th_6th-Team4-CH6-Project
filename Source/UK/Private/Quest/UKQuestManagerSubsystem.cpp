@@ -767,17 +767,20 @@ void UUKQuestManagerSubsystem::BroadcastQuestMarkerRouting(FName QuestId)
 	// 1차 방송: 모든 단말 초기화
 	OnQuestMarkerResetRequested.Broadcast();
 
-	// 2차 방송: 이번 퀘스트의 대상 타입 확정 방송
-	const FUKQuestMarkerRouteInfo RouteInfo = QuestUI->GetQuestMarkerRouteInfo(QuestId);
+	// 2차 방송: 이번 퀘스트의 마커 경로들을 전부 방송
+	const TArray<FUKQuestMarkerRouteInfo> RouteInfos = QuestUI->GetQuestMarkerRouteInfos(QuestId);
 
-	UE_LOG(LogTemp, Warning,
-		TEXT("[MarkerRoute][Broadcast] QuestId=%s State=%d Type=%d TargetId=%s"),
-		*RouteInfo.QuestId.ToString(),
-		static_cast< int32 >( RouteInfo.MarkerState ),
-		static_cast< int32 >( RouteInfo.TargetType ),
-		*RouteInfo.TargetId.ToString());
+	for ( const FUKQuestMarkerRouteInfo& RouteInfo : RouteInfos )
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[MarkerRoute][BroadcastMulti] QuestId=%s State=%d Type=%d TargetId=%s"),
+			*RouteInfo.QuestId.ToString(),
+			static_cast< int32 >( RouteInfo.MarkerState ),
+			static_cast< int32 >( RouteInfo.TargetType ),
+			*RouteInfo.TargetId.ToString());
 
-	OnQuestMarkerRouteResolved.Broadcast(RouteInfo.QuestId, RouteInfo.TargetType, RouteInfo.TargetId);
+		OnQuestMarkerRouteResolved.Broadcast(RouteInfo.QuestId, RouteInfo.TargetType, RouteInfo.TargetId);
+	}
 }
 
 // [3] Quest 기본 API
