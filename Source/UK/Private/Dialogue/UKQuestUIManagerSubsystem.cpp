@@ -621,9 +621,61 @@ TArray<FUKQuestMarkerRouteInfo> UUKQuestUIManagerSubsystem::GetQuestMarkerRouteI
 		return OutInfos;
 	}
 
-	// 진행 중이면 미충족 Objective 전부
 	const TArray<const FUKQuestObjectiveDef*> PendingObjectives = FindUnsatisfiedObjectives(QuestId);
 
+	// 1) 먼저 "현장 진행용 목표"가 남아있는지 검사
+	bool bHasFieldProgressObjective = false;
+
+	for ( const FUKQuestObjectiveDef* Obj : PendingObjectives )
+	{
+		if ( !Obj )
+		{
+			continue;
+		}
+
+		switch ( Obj->Type )
+		{
+		case EUKQuestObjectiveType::Killed:
+			bHasFieldProgressObjective = true;
+			break;
+
+		case EUKQuestObjectiveType::Custom:
+		{
+			bool bIsWarpLike = false;
+
+			const UUKQuestDefinitionAsset* Def = GetQuestDefinitionSafe(QuestId);
+			if ( Def && Def->Tag == EUKQuestTag::WRP )
+			{
+				bIsWarpLike = true;
+			}
+			else
+			{
+				const FString S = Obj->TargetId.ToString();
+				if ( S.Contains(TEXT("Warp")) || S.Contains(TEXT("WRP")) || S.Contains(TEXT("WarpUnlocked")) )
+				{
+					bIsWarpLike = true;
+				}
+			}
+
+			// Warp 성격 Custom이면 현장 진행용 목표로 본다
+			if ( bIsWarpLike )
+			{
+				bHasFieldProgressObjective = true;
+			}
+			break;
+		}
+
+		default:
+			break;
+		}
+
+		if ( bHasFieldProgressObjective )
+		{
+			break;
+		}
+	}
+
+	// 2) route 생성
 	for ( const FUKQuestObjectiveDef* Obj : PendingObjectives )
 	{
 		if ( !Obj )
@@ -637,11 +689,21 @@ TArray<FUKQuestMarkerRouteInfo> UUKQuestUIManagerSubsystem::GetQuestMarkerRouteI
 		switch ( Obj->Type )
 		{
 		case EUKQuestObjectiveType::TalkedTo:
+			// 현장 진행용 목표가 남아있으면 보고/대화 NPC는 아직 막는다
+			if ( bHasFieldProgressObjective )
+			{
+				continue;
+			}
 			TargetType = EUKQuestMarkerTargetType::NPC;
 			TargetId = Obj->TargetId;
 			break;
 
 		case EUKQuestObjectiveType::Delivered:
+			// 현장 진행용 목표가 남아있으면 보고/전달 NPC는 아직 막는다
+			if ( bHasFieldProgressObjective )
+			{
+				continue;
+			}
 			TargetType = EUKQuestMarkerTargetType::NPC;
 			TargetId = ResolveOfferNpcId(QuestId);
 			break;
@@ -653,14 +715,34 @@ TArray<FUKQuestMarkerRouteInfo> UUKQuestUIManagerSubsystem::GetQuestMarkerRouteI
 
 		case EUKQuestObjectiveType::Custom:
 		{
-			const FString S = Obj->TargetId.ToString();
-			if ( S.Contains(TEXT("Warp")) || S.Contains(TEXT("WRP")) || S.Contains(TEXT("WarpUnlocked")) )
+			bool bIsWarpLike = false;
+
+			const UUKQuestDefinitionAsset* Def = GetQuestDefinitionSafe(QuestId);
+			if ( Def && Def->Tag == EUKQuestTag::WRP )
+			{
+				bIsWarpLike = true;
+			}
+			else
+			{
+				const FString S = Obj->TargetId.ToString();
+				if ( S.Contains(TEXT("Warp")) || S.Contains(TEXT("WRP")) || S.Contains(TEXT("WarpUnlocked")) )
+				{
+					bIsWarpLike = true;
+				}
+			}
+
+			if ( bIsWarpLike )
 			{
 				TargetType = EUKQuestMarkerTargetType::Warp;
 				TargetId = Obj->TargetId;
 			}
 			else
 			{
+				if ( bHasFieldProgressObjective )
+				{
+					continue;
+				}
+
 				TargetType = EUKQuestMarkerTargetType::NPC;
 				TargetId = ResolveOfferNpcId(QuestId);
 			}
@@ -668,11 +750,13 @@ TArray<FUKQuestMarkerRouteInfo> UUKQuestUIManagerSubsystem::GetQuestMarkerRouteI
 		}
 
 		case EUKQuestObjectiveType::EnteredZone:
-			TargetType = EUKQuestMarkerTargetType::NPC;
-			TargetId = ResolveOfferNpcId(QuestId);
-			break;
-
 		case EUKQuestObjectiveType::GotItem:
+			// 필요시 여기까지 막을지 정책 결정 가능
+			// 일단 지금은 기존처럼 NPC 처리
+			if ( bHasFieldProgressObjective )
+			{
+				continue;
+			}
 			TargetType = EUKQuestMarkerTargetType::NPC;
 			TargetId = ResolveOfferNpcId(QuestId);
 			break;
