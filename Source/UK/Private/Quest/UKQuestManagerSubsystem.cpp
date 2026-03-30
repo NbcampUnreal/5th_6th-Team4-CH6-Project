@@ -767,17 +767,20 @@ void UUKQuestManagerSubsystem::BroadcastQuestMarkerRouting(FName QuestId)
 	// 1차 방송: 모든 단말 초기화
 	OnQuestMarkerResetRequested.Broadcast();
 
-	// 2차 방송: 이번 퀘스트의 대상 타입 확정 방송
-	const FUKQuestMarkerRouteInfo RouteInfo = QuestUI->GetQuestMarkerRouteInfo(QuestId);
+	// 2차 방송: 이번 퀘스트의 마커 경로들을 전부 방송
+	const TArray<FUKQuestMarkerRouteInfo> RouteInfos = QuestUI->GetQuestMarkerRouteInfos(QuestId);
 
-	UE_LOG(LogTemp, Warning,
-		TEXT("[MarkerRoute][Broadcast] QuestId=%s State=%d Type=%d TargetId=%s"),
-		*RouteInfo.QuestId.ToString(),
-		static_cast< int32 >( RouteInfo.MarkerState ),
-		static_cast< int32 >( RouteInfo.TargetType ),
-		*RouteInfo.TargetId.ToString());
+	for ( const FUKQuestMarkerRouteInfo& RouteInfo : RouteInfos )
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[MarkerRoute][BroadcastMulti] QuestId=%s State=%d Type=%d TargetId=%s"),
+			*RouteInfo.QuestId.ToString(),
+			static_cast< int32 >( RouteInfo.MarkerState ),
+			static_cast< int32 >( RouteInfo.TargetType ),
+			*RouteInfo.TargetId.ToString());
 
-	OnQuestMarkerRouteResolved.Broadcast(RouteInfo.QuestId, RouteInfo.TargetType, RouteInfo.TargetId);
+		OnQuestMarkerRouteResolved.Broadcast(RouteInfo.QuestId, RouteInfo.TargetType, RouteInfo.TargetId);
+	}
 }
 
 // [3] Quest 기본 API
@@ -1011,15 +1014,24 @@ void UUKQuestManagerSubsystem::EmitQuestEvent(FName EventId)
 			if ( !MatchesType(Obj.Type, Ev.Category) )
 				continue;
 
+			UE_LOG(LogTemp, Warning,
+				TEXT("[WRP][MatchCheck] Quest=%s ObjType=%d ObjTarget=%s EvCat=%d EvDetail=%s CompleteFlag=%s"),
+				*QuestId.ToString(),
+				static_cast< int32 >( Obj.Type ),
+				*Obj.TargetId.ToString(),
+				static_cast< int32 >( Ev.Category ),
+				*Ev.Detail.ToString(),
+				*Obj.CompleteFlagCategory.ToString());
+
 			// Target 매칭(Detail == TargetId)
 			if ( !Obj.TargetId.IsNone() && Obj.TargetId != Ev.Detail )
 				continue;
 
-			UE_LOG(LogTemp, Log, TEXT("[Quest][Match] Quest=%s Obj=%s Type=%d Target=%s"),
+			UE_LOG(LogTemp, Warning,
+				TEXT("[WRP][MatchSuccess] Quest=%s ObjTarget=%s EvDetail=%s"),
 				*QuestId.ToString(),
-				*Obj.ObjectiveId.ToString(),
-				static_cast< int32 >( Obj.Type ),
-				*Obj.TargetId.ToString());
+				*Obj.TargetId.ToString(),
+				*Ev.Detail.ToString());
 
 			// 3) 카운터 갱신(있으면 1 증가)
 			if ( !Obj.CounterName.IsNone() )

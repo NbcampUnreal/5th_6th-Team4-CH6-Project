@@ -54,6 +54,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|QuestMarker")
 	FName SpawnerID;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|QuestMarker")
+	FName MonsterTargetID;
 #pragma endregion
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Spawner|QuestMarker")
