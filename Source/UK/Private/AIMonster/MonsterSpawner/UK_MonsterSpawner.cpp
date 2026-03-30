@@ -536,6 +536,7 @@ void AUK_MonsterSpawner::HandleQuestMarkerRouteResolved(FName QuestId, EUKQuestM
 		static_cast< int32 >( TargetType ),
 		*TargetId.ToString());
 
+	// 복수 방송형에서는 "내 것이 아니면 무시" 해야 함
 	if ( TargetType != EUKQuestMarkerTargetType::MonsterSpawner )
 	{
 		return;
@@ -563,7 +564,51 @@ void AUK_MonsterSpawner::RefreshSpawnerMarker()
 		return;
 	}
 
-	// 현재 단계에서는 스포너가 담당할 수 있는 퀘스트 후보 목록을 따로 안 들고 있으므로
-	// 로컬 단독 판단 대신 방송 기반을 중심으로 운용
+	UGameInstance* GI = GetGameInstance();
+	if ( !GI )
+	{
+		HideMarkerInternal();
+		return;
+	}
+
+	UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>();
+	UUKQuestUIManagerSubsystem* QuestUI = GI->GetSubsystem<UUKQuestUIManagerSubsystem>();
+	if ( !QuestSys || !QuestUI )
+	{
+		HideMarkerInternal();
+		return;
+	}
+
+	for ( const TPair<FName, FQuestProgress>& Pair : QuestSys->RuntimeProgress )
+	{
+		const FName QuestId = Pair.Key;
+		const FQuestProgress& Prog = Pair.Value;
+
+		if ( Prog.bCompleted )
+		{
+			continue;
+		}
+
+		const TArray<FUKQuestMarkerRouteInfo> RouteInfos = QuestUI->GetQuestMarkerRouteInfos(QuestId);
+
+		for ( const FUKQuestMarkerRouteInfo& RouteInfo : RouteInfos )
+		{
+			if ( RouteInfo.TargetType == EUKQuestMarkerTargetType::MonsterSpawner &&
+				RouteInfo.TargetId == SpawnerID &&
+				RouteInfo.MarkerState != EUKQuestMarkerState::Hidden )
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("[QuestMarker][Spawner Refresh] Recovered | Spawner=%s SpawnerID=%s QuestId=%s State=%d"),
+					*GetName(),
+					*SpawnerID.ToString(),
+					*QuestId.ToString(),
+					static_cast< int32 >( RouteInfo.MarkerState ));
+
+				ShowMarkerInternal(RouteInfo.MarkerState);
+				return;
+			}
+		}
+	}
+
 	HideMarkerInternal();
 }

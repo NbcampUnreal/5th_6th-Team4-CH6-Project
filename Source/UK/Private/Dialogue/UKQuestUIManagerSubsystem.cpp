@@ -5,6 +5,7 @@
 #include "Dialogue/UKDialogueSubsystem.h"
 #include "NPC/UK_QuestNPC.h"
 #include "EngineUtils.h"
+#include "AIMonster/MonsterSpawner/UK_MonsterSpawner.h"
 #include "Quest/DataAsset/UKQuestDefinitionAsset.h"
 
 
@@ -303,6 +304,52 @@ const FUKQuestObjectiveDef* UUKQuestUIManagerSubsystem::FindFirstUnsatisfiedObje
 	return nullptr;
 }
 
+TArray<const FUKQuestObjectiveDef*> UUKQuestUIManagerSubsystem::FindUnsatisfiedObjectives(FName QuestId) const
+{
+	TArray<const FUKQuestObjectiveDef*> OutObjectives;
+
+	const UUKQuestDefinitionAsset* Def = GetQuestDefinitionSafe(QuestId);
+	UUKQuestManagerSubsystem* QS = GetQuestSubsystem();
+
+	if ( !Def || !QS )
+	{
+		return OutObjectives;
+	}
+
+	FQuestProgress Progress;
+	if ( !QS->GetProgress(QuestId, Progress) )
+	{
+		return OutObjectives;
+	}
+
+	if ( Progress.bCompleted )
+	{
+		return OutObjectives;
+	}
+
+	for ( const FUKQuestObjectiveDef& Obj : Def->Objectives )
+	{
+		bool bSatisfied = false;
+
+		if ( !Obj.CounterName.IsNone() )
+		{
+			const int32 CurrentValue = QS->GetQuestCounterValue(QuestId, Obj.CounterName);
+			bSatisfied = ( CurrentValue >= Obj.RequiredCount );
+		}
+		else if ( !Obj.CompleteFlagCategory.IsNone() )
+		{
+			bSatisfied = QS->HasQuestFlag(QuestId, Obj.CompleteFlagCategory);
+		}
+
+		if ( !bSatisfied )
+		{
+			OutObjectives.Add(&Obj);
+		}
+	}
+
+	return OutObjectives;
+}
+
 bool UUKQuestUIManagerSubsystem::IsWarpObjectiveTarget(const FName& TargetId) const
 {
 	if ( TargetId.IsNone() )
@@ -349,11 +396,23 @@ EUKQuestMarkerTargetType UUKQuestUIManagerSubsystem::GetQuestMarkerTargetType(FN
 		return EUKQuestMarkerTargetType::MonsterSpawner;
 
 	case EUKQuestObjectiveType::Custom:
+	{
+		UUKQuestManagerSubsystem* QS = GetQuestSubsystem();
+		if ( QS )
+		{
+			const UUKQuestDefinitionAsset* Def = QS->GetQuestDefinition(QuestId);
+			if ( Def && Def->Tag == EUKQuestTag::WRP )
+			{
+				return EUKQuestMarkerTargetType::Warp;
+			}
+		}
+
 		if ( IsWarpObjectiveTarget(PendingObj->TargetId) )
 		{
 			return EUKQuestMarkerTargetType::Warp;
 		}
 		return EUKQuestMarkerTargetType::NPC;
+	}
 
 	case EUKQuestObjectiveType::EnteredZone:
 	case EUKQuestObjectiveType::GotItem:
@@ -455,7 +514,7 @@ FName UUKQuestUIManagerSubsystem::GetQuestMarkerTargetId(FName QuestId, EUKQuest
 
 	const EUKQuestMarkerState MarkerState = GetQuestMarkerState(QuestId);
 
-	// 완료 보고 가능이면 "보고 NPC"
+	// 완료 보고 가능이면 무조건 Report NPC
 	if ( MarkerState == EUKQuestMarkerState::ReadyToTurnIn )
 	{
 		if ( TargetType == EUKQuestMarkerTargetType::NPC )
@@ -490,13 +549,28 @@ FName UUKQuestUIManagerSubsystem::GetQuestMarkerTargetId(FName QuestId, EUKQuest
 		return PendingObj->TargetId;
 
 	case EUKQuestMarkerTargetType::MonsterSpawner:
-		// 현재는 스포너 ID 매핑 구조가 아직 없으므로 일단 Objective TargetId를 넘김
-		// 다음 단계에서 MonsterTargetId -> SpawnerID 매핑이 필요
 		return PendingObj->TargetId;
 
 	case EUKQuestMarkerTargetType::None:
 	default:
 		return NAME_None;
+	}
+}
+
+namespace
+{
+	static FUKQuestMarkerRouteInfo MakeRouteInfoFromObjective(
+		FName QuestId,
+		EUKQuestMarkerState MarkerState,
+		EUKQuestMarkerTargetType TargetType,
+		FName TargetId)
+	{
+		FUKQuestMarkerRouteInfo OutInfo;
+		OutInfo.QuestId = QuestId;
+		OutInfo.MarkerState = MarkerState;
+		OutInfo.TargetType = TargetType;
+		OutInfo.TargetId = TargetId;
+		return OutInfo;
 	}
 }
 
@@ -515,6 +589,195 @@ FUKQuestMarkerRouteInfo UUKQuestUIManagerSubsystem::GetQuestMarkerRouteInfo(FNam
 		static_cast< int32 >( OutInfo.TargetType ),
 		*OutInfo.TargetId.ToString());
 	return OutInfo;
+}
+
+TArray<FUKQuestMarkerRouteInfo> UUKQuestUIManagerSubsystem::GetQuestMarkerRouteInfos(FName QuestId) const
+{
+	TArray<FUKQuestMarkerRouteInfo> OutInfos;
+
+	if ( QuestId.IsNone() )
+	{
+		return OutInfos;
+	}
+
+	const EUKQuestMarkerState MarkerState = GetQuestMarkerState(QuestId);
+	if ( MarkerState == EUKQuestMarkerState::Hidden )
+	{
+		return OutInfos;
+	}
+
+	// 완료 보고 가능이면 보고 NPC 하나만 남김
+	if ( MarkerState == EUKQuestMarkerState::ReadyToTurnIn )
+	{
+		const FName ReportNpcId = ResolveReportNpcId(QuestId);
+		if ( !ReportNpcId.IsNone() )
+		{
+			OutInfos.Add(MakeRouteInfoFromObjective(
+				QuestId,
+				MarkerState,
+				EUKQuestMarkerTargetType::NPC,
+				ReportNpcId));
+		}
+		return OutInfos;
+	}
+
+	const TArray<const FUKQuestObjectiveDef*> PendingObjectives = FindUnsatisfiedObjectives(QuestId);
+
+	// 1) 먼저 "현장 진행용 목표"가 남아있는지 검사
+	bool bHasFieldProgressObjective = false;
+
+	for ( const FUKQuestObjectiveDef* Obj : PendingObjectives )
+	{
+		if ( !Obj )
+		{
+			continue;
+		}
+
+		switch ( Obj->Type )
+		{
+		case EUKQuestObjectiveType::Killed:
+			bHasFieldProgressObjective = true;
+			break;
+
+		case EUKQuestObjectiveType::Custom:
+		{
+			bool bIsWarpLike = false;
+
+			const UUKQuestDefinitionAsset* Def = GetQuestDefinitionSafe(QuestId);
+			if ( Def && Def->Tag == EUKQuestTag::WRP )
+			{
+				bIsWarpLike = true;
+			}
+			else
+			{
+				const FString S = Obj->TargetId.ToString();
+				if ( S.Contains(TEXT("Warp")) || S.Contains(TEXT("WRP")) || S.Contains(TEXT("WarpUnlocked")) )
+				{
+					bIsWarpLike = true;
+				}
+			}
+
+			// Warp 성격 Custom이면 현장 진행용 목표로 본다
+			if ( bIsWarpLike )
+			{
+				bHasFieldProgressObjective = true;
+			}
+			break;
+		}
+
+		default:
+			break;
+		}
+
+		if ( bHasFieldProgressObjective )
+		{
+			break;
+		}
+	}
+
+	// 2) route 생성
+	for ( const FUKQuestObjectiveDef* Obj : PendingObjectives )
+	{
+		if ( !Obj )
+		{
+			continue;
+		}
+
+		EUKQuestMarkerTargetType TargetType = EUKQuestMarkerTargetType::None;
+		FName TargetId = NAME_None;
+
+		switch ( Obj->Type )
+		{
+		case EUKQuestObjectiveType::TalkedTo:
+			// 현장 진행용 목표가 남아있으면 보고/대화 NPC는 아직 막는다
+			if ( bHasFieldProgressObjective )
+			{
+				continue;
+			}
+			TargetType = EUKQuestMarkerTargetType::NPC;
+			TargetId = Obj->TargetId;
+			break;
+
+		case EUKQuestObjectiveType::Delivered:
+			// 현장 진행용 목표가 남아있으면 보고/전달 NPC는 아직 막는다
+			if ( bHasFieldProgressObjective )
+			{
+				continue;
+			}
+			TargetType = EUKQuestMarkerTargetType::NPC;
+			TargetId = ResolveOfferNpcId(QuestId);
+			break;
+
+		case EUKQuestObjectiveType::Killed:
+			TargetType = EUKQuestMarkerTargetType::MonsterSpawner;
+			TargetId = Obj->TargetId;
+			break;
+
+		case EUKQuestObjectiveType::Custom:
+		{
+			bool bIsWarpLike = false;
+
+			const UUKQuestDefinitionAsset* Def = GetQuestDefinitionSafe(QuestId);
+			if ( Def && Def->Tag == EUKQuestTag::WRP )
+			{
+				bIsWarpLike = true;
+			}
+			else
+			{
+				const FString S = Obj->TargetId.ToString();
+				if ( S.Contains(TEXT("Warp")) || S.Contains(TEXT("WRP")) || S.Contains(TEXT("WarpUnlocked")) )
+				{
+					bIsWarpLike = true;
+				}
+			}
+
+			if ( bIsWarpLike )
+			{
+				TargetType = EUKQuestMarkerTargetType::Warp;
+				TargetId = Obj->TargetId;
+			}
+			else
+			{
+				if ( bHasFieldProgressObjective )
+				{
+					continue;
+				}
+
+				TargetType = EUKQuestMarkerTargetType::NPC;
+				TargetId = ResolveOfferNpcId(QuestId);
+			}
+			break;
+		}
+
+		case EUKQuestObjectiveType::EnteredZone:
+		case EUKQuestObjectiveType::GotItem:
+			// 필요시 여기까지 막을지 정책 결정 가능
+			// 일단 지금은 기존처럼 NPC 처리
+			if ( bHasFieldProgressObjective )
+			{
+				continue;
+			}
+			TargetType = EUKQuestMarkerTargetType::NPC;
+			TargetId = ResolveOfferNpcId(QuestId);
+			break;
+
+		default:
+			break;
+		}
+
+		if ( TargetType == EUKQuestMarkerTargetType::None || TargetId.IsNone() )
+		{
+			continue;
+		}
+
+		OutInfos.Add(MakeRouteInfoFromObjective(
+			QuestId,
+			MarkerState,
+			TargetType,
+			TargetId));
+	}
+
+	return OutInfos;
 }
 
 // [6] Dialogue UI Getter
