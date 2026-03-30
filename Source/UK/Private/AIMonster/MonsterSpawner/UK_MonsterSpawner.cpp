@@ -536,15 +536,14 @@ void AUK_MonsterSpawner::HandleQuestMarkerRouteResolved(FName QuestId, EUKQuestM
 		static_cast< int32 >( TargetType ),
 		*TargetId.ToString());
 
+	// 복수 방송형에서는 "내 것이 아니면 무시" 해야 함
 	if ( TargetType != EUKQuestMarkerTargetType::MonsterSpawner )
 	{
-		HideMarkerInternal();
 		return;
 	}
 
 	if ( TargetId.IsNone() || TargetId != SpawnerID )
 	{
-		HideMarkerInternal();
 		return;
 	}
 
@@ -580,34 +579,34 @@ void AUK_MonsterSpawner::RefreshSpawnerMarker()
 		return;
 	}
 
-	// 현재 진행 중인 퀘스트들 중에서
-	// 이 스포너를 목표로 하는 것이 있으면 다시 표시
 	for ( const TPair<FName, FQuestProgress>& Pair : QuestSys->RuntimeProgress )
 	{
 		const FName QuestId = Pair.Key;
 		const FQuestProgress& Prog = Pair.Value;
 
-		// 완료된 퀘스트는 제외
 		if ( Prog.bCompleted )
 		{
 			continue;
 		}
 
-		const FUKQuestMarkerRouteInfo RouteInfo = QuestUI->GetQuestMarkerRouteInfo(QuestId);
+		const TArray<FUKQuestMarkerRouteInfo> RouteInfos = QuestUI->GetQuestMarkerRouteInfos(QuestId);
 
-		if ( RouteInfo.TargetType == EUKQuestMarkerTargetType::MonsterSpawner &&
-			RouteInfo.TargetId == SpawnerID &&
-			RouteInfo.MarkerState != EUKQuestMarkerState::Hidden )
+		for ( const FUKQuestMarkerRouteInfo& RouteInfo : RouteInfos )
 		{
-			UE_LOG(LogTemp, Warning,
-				TEXT("[QuestMarker][Spawner Refresh] Recovered | Spawner=%s SpawnerID=%s QuestId=%s State=%d"),
-				*GetName(),
-				*SpawnerID.ToString(),
-				*QuestId.ToString(),
-				static_cast< int32 >( RouteInfo.MarkerState ));
+			if ( RouteInfo.TargetType == EUKQuestMarkerTargetType::MonsterSpawner &&
+				RouteInfo.TargetId == SpawnerID &&
+				RouteInfo.MarkerState != EUKQuestMarkerState::Hidden )
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("[QuestMarker][Spawner Refresh] Recovered | Spawner=%s SpawnerID=%s QuestId=%s State=%d"),
+					*GetName(),
+					*SpawnerID.ToString(),
+					*QuestId.ToString(),
+					static_cast< int32 >( RouteInfo.MarkerState ));
 
-			ShowMarkerInternal(RouteInfo.MarkerState);
-			return;
+				ShowMarkerInternal(RouteInfo.MarkerState);
+				return;
+			}
 		}
 	}
 

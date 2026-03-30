@@ -132,7 +132,12 @@ void AUK_WarpTower::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* 
 				if ( UUKQuestManagerSubsystem* QuestSys = GI->GetSubsystem<UUKQuestManagerSubsystem>() )
 				{
 					QuestSys->EmitQuestEvent(FName(*FString::Printf(TEXT("QuestEvent.Custom.%s"), *WarpPointID.ToString())));
-					UE_LOG(LogTemp, Warning, TEXT("[Warp][Quest] Emit %s. Actor=%s"), *WarpPointID.ToString(), *GetName());
+					UE_LOG(LogTemp, Warning,
+						TEXT("[WRP][Tower Emit] Actor=%s WarpPointID=%s bIsActivated=%d EventId=QuestEvent.Custom.%s"),
+						*GetName(),
+						*WarpPointID.ToString(),
+						bIsActivated ? 1 : 0,
+						*WarpPointID.ToString());
 				}
 			}
 		}
@@ -238,21 +243,19 @@ void AUK_WarpTower::HandleQuestMarkerRouteResolved(FName QuestId, EUKQuestMarker
 		static_cast< int32 >( TargetType ),
 		*TargetId.ToString());
 
+	// 복수 방송형에서는 "내 것이 아니면 무시"
 	if ( TargetType != EUKQuestMarkerTargetType::Warp )
 	{
-		HideMarkerInternal();
 		return;
 	}
 
 	if ( TargetId.IsNone() || TargetId != WarpPointID )
 	{
-		HideMarkerInternal();
 		return;
 	}
 
 	if ( bPlayerInRange )
 	{
-		HideMarkerInternal();
 		return;
 	}
 
@@ -304,21 +307,24 @@ void AUK_WarpTower::RefreshWarpMarker()
 			continue;
 		}
 
-		const FUKQuestMarkerRouteInfo RouteInfo = QuestUI->GetQuestMarkerRouteInfo(QuestId);
+		const TArray<FUKQuestMarkerRouteInfo> RouteInfos = QuestUI->GetQuestMarkerRouteInfos(QuestId);
 
-		if ( RouteInfo.TargetType == EUKQuestMarkerTargetType::Warp &&
-			RouteInfo.TargetId == WarpPointID &&
-			RouteInfo.MarkerState != EUKQuestMarkerState::Hidden )
+		for ( const FUKQuestMarkerRouteInfo& RouteInfo : RouteInfos )
 		{
-			UE_LOG(LogTemp, Warning,
-				TEXT("[QuestMarker][Warp Refresh] Recovered | WarpTower=%s WarpPointID=%s QuestId=%s State=%d"),
-				*GetName(),
-				*WarpPointID.ToString(),
-				*QuestId.ToString(),
-				static_cast< int32 >( RouteInfo.MarkerState ));
+			if ( RouteInfo.TargetType == EUKQuestMarkerTargetType::Warp &&
+				RouteInfo.TargetId == WarpPointID &&
+				RouteInfo.MarkerState != EUKQuestMarkerState::Hidden )
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("[QuestMarker][Warp Refresh] Recovered | WarpTower=%s WarpPointID=%s QuestId=%s State=%d"),
+					*GetName(),
+					*WarpPointID.ToString(),
+					*QuestId.ToString(),
+					static_cast< int32 >( RouteInfo.MarkerState ));
 
-			ShowMarkerInternal(RouteInfo.MarkerState);
-			return;
+				ShowMarkerInternal(RouteInfo.MarkerState);
+				return;
+			}
 		}
 	}
 
